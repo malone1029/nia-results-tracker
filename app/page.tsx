@@ -104,7 +104,7 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    document.title = "Dashboard | NIA Excellence Hub";
+    document.title = "Results Dashboard | NIA Excellence Hub";
     fetchMetrics();
   }, []);
 
