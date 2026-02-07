@@ -124,7 +124,7 @@ export default function SchedulePage() {
                 {CADENCE_LABELS[cadence]}
               </div>
               {needsAttention > 0 && (
-                <div className="text-xs text-red-600 mt-1">
+                <div className="text-xs text-[#f79935] font-medium mt-1">
                   {needsAttention} need attention
                 </div>
               )}
@@ -180,7 +180,7 @@ function CadenceSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div id={id} className="bg-white rounded-lg shadow overflow-hidden">
+    <div id={id} className={`bg-white rounded-lg shadow overflow-hidden ${needsAttention > 0 ? "border-l-4 border-[#f79935]" : ""}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
@@ -198,7 +198,7 @@ function CadenceSection({
         </div>
         <div className="flex items-center gap-3">
           {needsAttention > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-[#f79935]/10 text-[#f79935] font-medium">
               {needsAttention} need attention
             </span>
           )}

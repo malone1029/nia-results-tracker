@@ -260,7 +260,7 @@ export default function CategoriesPage() {
               ).length;
 
               return (
-                <div key={proc.id} className="bg-white rounded-lg shadow overflow-hidden">
+                <div key={proc.id} className={`bg-white rounded-lg shadow overflow-hidden ${needsAttention > 0 ? "border-l-4 border-[#f79935]" : ""}`}>
                   {/* Process header — clickable to expand */}
                   <button
                     onClick={() => toggleProcess(proc.id)}
@@ -276,7 +276,7 @@ export default function CategoriesPage() {
                       </span>
                     </div>
                     {needsAttention > 0 && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#f79935]/10 text-[#f79935] font-medium">
                         {needsAttention} need attention
                       </span>
                     )}

@@ -295,6 +295,7 @@ export default function Dashboard() {
           subtitle="These metrics are past their review date"
           metrics={overdue}
           onLogClick={openLogForm}
+          accent
         />
       )}
 
@@ -305,6 +306,7 @@ export default function Dashboard() {
           subtitle="These metrics are due for review within the next 7 days"
           metrics={dueSoon}
           onLogClick={openLogForm}
+          accent
         />
       )}
 
@@ -327,6 +329,7 @@ export default function Dashboard() {
           metrics={noData}
           defaultOpen={false}
           onLogClick={openLogForm}
+          accent
         />
       )}
 
@@ -369,17 +372,19 @@ function MetricSection({
   metrics,
   onLogClick,
   defaultOpen = true,
+  accent = false,
 }: {
   title: string;
   subtitle: string;
   metrics: MetricRow[];
   onLogClick: (metricId: number) => void;
   defaultOpen?: boolean;
+  accent?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className={`bg-white rounded-lg shadow overflow-hidden ${accent ? "border-l-4 border-[#f79935]" : ""}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
