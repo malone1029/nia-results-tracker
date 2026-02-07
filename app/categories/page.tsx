@@ -203,16 +203,6 @@ export default function CategoriesPage() {
               <span className="text-gray-400 text-sm"> / {cat.totalMetrics}</span>
             </div>
             <div className="text-xs text-gray-400">metrics with data</div>
-            {/* Progress bar */}
-            <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${cat.totalMetrics > 0 ? (cat.totalWithData / cat.totalMetrics) * 100 : 0}%`,
-                  backgroundColor: cat.totalWithData === cat.totalMetrics ? "#b1bd37" : "#f79935",
-                }}
-              />
-            </div>
           </a>
         ))}
       </div>
