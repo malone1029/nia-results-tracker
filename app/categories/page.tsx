@@ -264,7 +264,7 @@ export default function CategoriesPage() {
                   ).length;
 
                   return (
-                    <div key={proc.id} className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                    <div key={proc.id} className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200 border-l-4 border-l-[#f79935]">
                       {/* Process header — clickable to expand */}
                       <button
                         onClick={() => toggleProcess(proc.id)}
