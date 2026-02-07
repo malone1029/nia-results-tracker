@@ -180,7 +180,7 @@ function CadenceSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div id={id} className={`bg-white rounded-lg shadow overflow-hidden ${needsAttention > 0 ? "border-l-4 border-[#f79935]" : ""}`}>
+    <div id={id} className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-[#f79935]">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"

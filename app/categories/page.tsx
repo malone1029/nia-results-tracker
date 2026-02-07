@@ -232,125 +232,131 @@ export default function CategoriesPage() {
         const isCatExpanded = expandedCategories.has(cat.id);
 
         return (
-          <div key={cat.id} id={`cat-${cat.id}`} className="space-y-4">
+          <div key={cat.id} id={`cat-${cat.id}`} className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-[#f79935]">
             {/* Category header — clickable to expand */}
             <button
               onClick={() => toggleCategory(cat.id)}
-              className="w-full flex items-center justify-between text-left group"
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
                 <span className="text-gray-400 text-sm">
                   {isCatExpanded ? "▼" : "▶"}
                 </span>
-                <h2 className="text-lg font-bold text-[#324a4d] group-hover:text-[#f79935] transition-colors">
-                  Category {cat.sort_order}: {cat.display_name}
-                </h2>
-                <span className="text-sm text-gray-400">
-                  {cat.processes.length} process{cat.processes.length !== 1 ? "es" : ""} &middot;{" "}
-                  {cat.totalWithData} of {cat.totalMetrics} metrics with data
-                </span>
+                <div>
+                  <span className="text-lg font-bold text-[#324a4d]">
+                    Category {cat.sort_order}: {cat.display_name}
+                  </span>
+                  <span className="text-sm text-gray-400 ml-3">
+                    {cat.processes.length} process{cat.processes.length !== 1 ? "es" : ""} &middot;{" "}
+                    {cat.totalWithData} of {cat.totalMetrics} metrics with data
+                  </span>
+                </div>
               </div>
             </button>
 
             {/* Expanded process list */}
-            {isCatExpanded && cat.processes.map((proc) => {
-              const isExpanded = expandedProcesses.has(proc.id);
-              const needsAttention = proc.metrics.filter(
-                (m) => m.review_status === "overdue" || m.review_status === "no-data"
-              ).length;
+            {isCatExpanded && (
+              <div className="border-t border-gray-100 p-4 space-y-3">
+                {cat.processes.map((proc) => {
+                  const isExpanded = expandedProcesses.has(proc.id);
+                  const needsAttention = proc.metrics.filter(
+                    (m) => m.review_status === "overdue" || m.review_status === "no-data"
+                  ).length;
 
-              return (
-                <div key={proc.id} className={`bg-white rounded-lg shadow overflow-hidden ${needsAttention > 0 ? "border-l-4 border-[#f79935]" : ""}`}>
-                  {/* Process header — clickable to expand */}
-                  <button
-                    onClick={() => toggleProcess(proc.id)}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-400 text-sm">
-                        {isExpanded ? "▼" : "▶"}
-                      </span>
-                      <span className="font-medium text-[#324a4d]">{proc.name}</span>
-                      <span className="text-sm text-gray-400">
-                        {proc.withData} of {proc.total} metrics with data
-                      </span>
-                    </div>
-                    {needsAttention > 0 && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#f79935]/10 text-[#f79935] font-medium">
-                        {needsAttention} need attention
-                      </span>
-                    )}
-                  </button>
+                  return (
+                    <div key={proc.id} className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                      {/* Process header — clickable to expand */}
+                      <button
+                        onClick={() => toggleProcess(proc.id)}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-400 text-sm">
+                            {isExpanded ? "▼" : "▶"}
+                          </span>
+                          <span className="font-medium text-[#324a4d]">{proc.name}</span>
+                          <span className="text-sm text-gray-400">
+                            {proc.withData} of {proc.total} metrics with data
+                          </span>
+                        </div>
+                        {needsAttention > 0 && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f79935]/10 text-[#f79935] font-medium">
+                            {needsAttention} need attention
+                          </span>
+                        )}
+                      </button>
 
-                  {/* Expanded metric list */}
-                  {isExpanded && (
-                    <div className="border-t border-gray-100">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-gray-50 text-gray-500 text-left text-xs uppercase">
-                            <th className="px-4 py-2">Status</th>
-                            <th className="px-4 py-2">Metric</th>
-                            <th className="px-4 py-2">Cadence</th>
-                            <th className="px-4 py-2">Source</th>
-                            <th className="px-4 py-2 text-right">Last Value</th>
-                            <th className="px-4 py-2 text-right">Target</th>
-                            <th className="px-4 py-2 text-right">Last Logged</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {proc.metrics.map((metric) => (
-                            <tr
-                              key={metric.id}
-                              className="border-t border-gray-50 hover:bg-gray-50"
-                            >
-                              <td className="px-4 py-2">
-                                <span
-                                  className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                  style={{
-                                    backgroundColor:
-                                      getStatusColor(metric.review_status) + "20",
-                                    color: getStatusColor(metric.review_status),
-                                  }}
+                      {/* Expanded metric list */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-200">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-100 text-gray-500 text-left text-xs uppercase">
+                                <th className="px-4 py-2">Status</th>
+                                <th className="px-4 py-2">Metric</th>
+                                <th className="px-4 py-2">Cadence</th>
+                                <th className="px-4 py-2">Source</th>
+                                <th className="px-4 py-2 text-right">Last Value</th>
+                                <th className="px-4 py-2 text-right">Target</th>
+                                <th className="px-4 py-2 text-right">Last Logged</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {proc.metrics.map((metric) => (
+                                <tr
+                                  key={metric.id}
+                                  className="border-t border-gray-200 hover:bg-gray-100"
                                 >
-                                  {getStatusLabel(metric.review_status)}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2">
-                                <Link
-                                  href={`/metric/${metric.id}`}
-                                  className="text-[#324a4d] font-medium hover:text-[#f79935] transition-colors"
-                                >
-                                  {metric.name}
-                                </Link>
-                              </td>
-                              <td className="px-4 py-2 text-gray-500 capitalize">
-                                {metric.cadence}
-                              </td>
-                              <td className="px-4 py-2 text-gray-400">
-                                {metric.data_source || "—"}
-                              </td>
-                              <td className="px-4 py-2 text-right font-medium">
-                                {metric.last_entry_value !== null
-                                  ? `${metric.last_entry_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
-                                  : "—"}
-                              </td>
-                              <td className="px-4 py-2 text-right text-gray-400">
-                                {metric.target_value !== null
-                                  ? `${metric.target_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
-                                  : "TBD"}
-                              </td>
-                              <td className="px-4 py-2 text-right text-gray-400">
-                                {formatDate(metric.last_entry_date)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                  <td className="px-4 py-2">
+                                    <span
+                                      className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                      style={{
+                                        backgroundColor:
+                                          getStatusColor(metric.review_status) + "20",
+                                        color: getStatusColor(metric.review_status),
+                                      }}
+                                    >
+                                      {getStatusLabel(metric.review_status)}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    <Link
+                                      href={`/metric/${metric.id}`}
+                                      className="text-[#324a4d] font-medium hover:text-[#f79935] transition-colors"
+                                    >
+                                      {metric.name}
+                                    </Link>
+                                  </td>
+                                  <td className="px-4 py-2 text-gray-500 capitalize">
+                                    {metric.cadence}
+                                  </td>
+                                  <td className="px-4 py-2 text-gray-400">
+                                    {metric.data_source || "—"}
+                                  </td>
+                                  <td className="px-4 py-2 text-right font-medium">
+                                    {metric.last_entry_value !== null
+                                      ? `${metric.last_entry_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
+                                      : "—"}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-gray-400">
+                                    {metric.target_value !== null
+                                      ? `${metric.target_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
+                                      : "TBD"}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-gray-400">
+                                    {formatDate(metric.last_entry_date)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}

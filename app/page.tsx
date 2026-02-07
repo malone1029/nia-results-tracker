@@ -341,6 +341,7 @@ export default function Dashboard() {
           metrics={current}
           defaultOpen={false}
           onLogClick={openLogForm}
+          accent
         />
       )}
     </div>
