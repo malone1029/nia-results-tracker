@@ -254,36 +254,30 @@ export default function CategoriesPage() {
                   {/* Process header — clickable to expand */}
                   <button
                     onClick={() => toggleProcess(proc.id)}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-400 text-sm">
-                        {isExpanded ? "▼" : "▶"}
+                    <span className="text-gray-400 text-sm">
+                      {isExpanded ? "▼" : "▶"}
+                    </span>
+                    <span className="font-medium text-[#324a4d]">{proc.name}</span>
+                    {/* Progress bar */}
+                    <div className="w-36 h-2.5 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${proc.total > 0 ? (proc.withData / proc.total) * 100 : 0}%`,
+                          backgroundColor: proc.withData === proc.total ? "#b1bd37" : "#f79935",
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-400">
+                      {proc.withData} of {proc.total}
+                    </span>
+                    {needsAttention > 0 && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                        {needsAttention} need attention
                       </span>
-                      <div>
-                        <span className="font-medium text-[#324a4d]">{proc.name}</span>
-                        <span className="text-sm text-gray-400 ml-3">
-                          {proc.withData} of {proc.total} metrics with data
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {needsAttention > 0 && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">
-                          {needsAttention} need attention
-                        </span>
-                      )}
-                      {/* Mini progress bar */}
-                      <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${proc.total > 0 ? (proc.withData / proc.total) * 100 : 0}%`,
-                            backgroundColor: proc.withData === proc.total ? "#b1bd37" : "#f79935",
-                          }}
-                        />
-                      </div>
-                    </div>
+                    )}
                   </button>
 
                   {/* Expanded metric list */}
