@@ -44,6 +44,19 @@ export default function LeTCIPage() {
         .select("metric_id, value, date")
         .order("date", { ascending: true });
 
+      // Fetch metric-requirement links to determine Integration
+      const { data: reqLinkData } = await supabase
+        .from("metric_requirements")
+        .select("metric_id");
+
+      // Count requirement links per metric
+      const reqCountByMetric = new Map<number, number>();
+      if (reqLinkData) {
+        for (const link of reqLinkData) {
+          reqCountByMetric.set(link.metric_id, (reqCountByMetric.get(link.metric_id) || 0) + 1);
+        }
+      }
+
       // Group entries by metric
       const entriesByMetric = new Map<number, { value: number; date: string }[]>();
       if (entriesData) {
@@ -67,7 +80,7 @@ export default function LeTCIPage() {
         const hasLevel = entries.length >= 1;
         const hasTrend = entries.length >= 3;
         const hasComparison = m.comparison_value !== null;
-        const hasIntegration = (m.is_integrated as boolean) ?? false;
+        const hasIntegration = (reqCountByMetric.get(m.id as number) || 0) > 0;
         const trendDir = getTrendDirection(values, m.is_higher_better as boolean);
 
         return {

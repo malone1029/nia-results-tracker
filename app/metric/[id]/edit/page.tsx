@@ -11,6 +11,13 @@ interface ProcessOption {
   category_display_name: string;
 }
 
+interface RequirementOption {
+  id: number;
+  stakeholder_segment: string;
+  stakeholder_group: string;
+  requirement: string;
+}
+
 export default function EditMetricPage() {
   const params = useParams();
   const router = useRouter();
@@ -35,7 +42,8 @@ export default function EditMetricPage() {
   const [collectionMethod, setCollectionMethod] = useState("");
   const [unit, setUnit] = useState("%");
   const [isHigherBetter, setIsHigherBetter] = useState(true);
-  const [isIntegrated, setIsIntegrated] = useState(false);
+  const [allRequirements, setAllRequirements] = useState<RequirementOption[]>([]);
+  const [selectedReqIds, setSelectedReqIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     async function fetch() {
@@ -77,7 +85,22 @@ export default function EditMetricPage() {
         setCollectionMethod(metric.collection_method || "");
         setUnit(metric.unit || "%");
         setIsHigherBetter(metric.is_higher_better);
-        setIsIntegrated(metric.is_integrated ?? false);
+      }
+
+      // Fetch all key requirements
+      const { data: reqData } = await supabase
+        .from("key_requirements")
+        .select("id, stakeholder_segment, stakeholder_group, requirement")
+        .order("sort_order");
+      if (reqData) setAllRequirements(reqData);
+
+      // Fetch existing links for this metric
+      const { data: linkData } = await supabase
+        .from("metric_requirements")
+        .select("requirement_id")
+        .eq("metric_id", metricId);
+      if (linkData) {
+        setSelectedReqIds(new Set(linkData.map((l) => l.requirement_id)));
       }
 
       // Count entries for delete warning
@@ -110,15 +133,27 @@ export default function EditMetricPage() {
         collection_method: collectionMethod || null,
         unit,
         is_higher_better: isHigherBetter,
-        is_integrated: isIntegrated,
       })
       .eq("id", metricId);
 
     if (error) {
       alert("Failed to save: " + error.message);
-    } else {
-      router.push(`/metric/${metricId}`);
+      setSaving(false);
+      return;
     }
+
+    // Save requirement links: delete existing, insert new
+    await supabase.from("metric_requirements").delete().eq("metric_id", metricId);
+    if (selectedReqIds.size > 0) {
+      await supabase.from("metric_requirements").insert(
+        Array.from(selectedReqIds).map((reqId) => ({
+          metric_id: metricId,
+          requirement_id: reqId,
+        }))
+      );
+    }
+
+    router.push(`/metric/${metricId}`);
     setSaving(false);
   }
 
@@ -319,26 +354,55 @@ export default function EditMetricPage() {
           </div>
         </div>
 
-        {/* Integration (LeTCI) */}
-        <div className="bg-[#55787c]/5 border border-[#55787c]/20 rounded-lg p-4">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isIntegrated}
-              onChange={(e) => setIsIntegrated(e.target.checked)}
-              className="mt-1 w-4 h-4 accent-[#b1bd37]"
-            />
-            <div>
-              <span className="font-medium text-[#324a4d]">
-                Integration (LeTCI)
-              </span>
-              <p className="text-xs text-gray-500 mt-1">
-                Check this when results from this metric are actively used in decision-making,
-                connected to organizational priorities, and segmented appropriately (e.g., by
-                service line or district).
-              </p>
+        {/* Key Requirements (LeTCI Integration) */}
+        <div className="bg-[#55787c]/5 border border-[#55787c]/20 rounded-lg p-4 space-y-3">
+          <div>
+            <span className="font-medium text-[#324a4d]">Key Requirements (LeTCI Integration)</span>
+            <p className="text-xs text-gray-500 mt-1">
+              Select the stakeholder requirements this metric provides evidence for.
+              Linking to at least one requirement marks this metric as Integrated (LeTCI).
+            </p>
+          </div>
+          {(() => {
+            // Group requirements by stakeholder_group
+            const groups = new Map<string, RequirementOption[]>();
+            for (const req of allRequirements) {
+              if (!groups.has(req.stakeholder_group)) groups.set(req.stakeholder_group, []);
+              groups.get(req.stakeholder_group)!.push(req);
+            }
+            return Array.from(groups.entries()).map(([group, reqs]) => (
+              <div key={group}>
+                <div className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">
+                  {reqs[0].stakeholder_segment} — {group}
+                </div>
+                <div className="space-y-1 ml-1">
+                  {reqs.map((req) => (
+                    <label key={req.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedReqIds.has(req.id)}
+                        onChange={() => {
+                          setSelectedReqIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(req.id)) next.delete(req.id);
+                            else next.add(req.id);
+                            return next;
+                          });
+                        }}
+                        className="w-4 h-4 accent-[#b1bd37]"
+                      />
+                      <span className="text-sm text-[#324a4d]">{req.requirement}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
+          {selectedReqIds.size > 0 && (
+            <div className="text-xs text-[#b1bd37] font-medium mt-2">
+              {selectedReqIds.size} requirement{selectedReqIds.size !== 1 ? "s" : ""} linked — Integration: Yes
             </div>
-          </label>
+          )}
         </div>
 
         {/* Actions */}

@@ -28,7 +28,6 @@ export interface Metric {
   collection_method: string | null;
   unit: string;
   is_higher_better: boolean;
-  is_integrated: boolean;
 }
 
 export interface Entry {
@@ -41,7 +40,35 @@ export interface Entry {
   created_at: string;
 }
 
+export interface KeyRequirement {
+  id: number;
+  stakeholder_segment: string;
+  stakeholder_group: string;
+  requirement: string;
+  description: string | null;
+  sort_order: number;
+}
+
+export interface MetricRequirement {
+  id: number;
+  metric_id: number;
+  requirement_id: number;
+}
+
 // Extended types for UI (joins data from multiple tables)
+
+export interface KeyRequirementWithStatus extends KeyRequirement {
+  linked_metrics: {
+    id: number;
+    name: string;
+    latest_value: number | null;
+    target_value: number | null;
+    is_higher_better: boolean;
+    trend_direction: "improving" | "declining" | "flat" | "insufficient";
+    on_target: boolean | null; // null = no target set
+  }[];
+  health: "green" | "yellow" | "red" | "no-data";
+}
 
 export interface MetricWithStatus extends Metric {
   process_name: string;

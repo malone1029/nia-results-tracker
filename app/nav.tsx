@@ -9,6 +9,7 @@ const links = [
   { href: "/categories", label: "Categories" },
   { href: "/schedule", label: "Review Schedule" },
   { href: "/letci", label: "LeTCI Summary" },
+  { href: "/requirements", label: "Key Requirements" },
   { href: "/log", label: "Log Data" },
   { href: "/metric/new", label: "+ Add Metric" },
 ];

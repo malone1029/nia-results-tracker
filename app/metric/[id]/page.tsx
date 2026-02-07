@@ -36,6 +36,7 @@ export default function MetricDetailPage() {
 
   const [metric, setMetric] = useState<MetricDetail | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [linkedRequirements, setLinkedRequirements] = useState<{ id: number; requirement: string; stakeholder_group: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Log form state
@@ -79,6 +80,27 @@ export default function MetricDetailPage() {
       .order("date", { ascending: true });
 
     setEntries(entriesData || []);
+
+    // Fetch linked requirements for LeTCI Integration
+    const { data: reqLinks } = await supabase
+      .from("metric_requirements")
+      .select(`
+        requirement_id,
+        key_requirements!inner ( id, requirement, stakeholder_group )
+      `)
+      .eq("metric_id", metricId);
+
+    if (reqLinks) {
+      setLinkedRequirements(
+        reqLinks.map((link) => {
+          const req = link.key_requirements as unknown as { id: number; requirement: string; stakeholder_group: string };
+          return req;
+        })
+      );
+    } else {
+      setLinkedRequirements([]);
+    }
+
     setLoading(false);
   }
 
@@ -158,7 +180,7 @@ export default function MetricDetailPage() {
     level: entries.length >= 1,
     trend: entries.length >= 3,
     comparison: metric.comparison_value !== null,
-    integration: metric.is_integrated,
+    integration: linkedRequirements.length > 0,
   };
   const letciCount = [letci.level, letci.trend, letci.comparison, letci.integration].filter(Boolean).length;
 
@@ -473,8 +495,8 @@ export default function MetricDetailPage() {
             ready={letci.integration}
             detail={
               letci.integration
-                ? `Results actively used in decision-making. Process: ${metric.process_name} (${metric.category_display_name})`
-                : "Not yet marked as integrated. Edit this metric to confirm that results are used in decision-making and connected to organizational priorities."
+                ? `Linked to ${linkedRequirements.length} Key Requirement${linkedRequirements.length !== 1 ? "s" : ""}: ${linkedRequirements.map((r) => `${r.requirement} (${r.stakeholder_group})`).join(", ")}`
+                : "No Key Requirements linked. Edit this metric to link it to stakeholder requirements and demonstrate Integration."
             }
           />
         </div>
