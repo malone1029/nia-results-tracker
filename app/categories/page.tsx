@@ -9,6 +9,7 @@ import Link from "next/link";
 interface MetricRow extends Metric {
   process_id: number;
   process_name: string;
+  is_key_process: boolean;
   category_id: number;
   category_display_name: string;
   category_sort_order: number;
@@ -20,6 +21,7 @@ interface MetricRow extends Metric {
 interface ProcessGroup {
   id: number;
   name: string;
+  is_key: boolean;
   metrics: MetricRow[];
   withData: number;
   total: number;
@@ -34,9 +36,65 @@ interface CategoryGroup {
   totalWithData: number;
 }
 
+function groupByCategory(rows: MetricRow[]): CategoryGroup[] {
+  const categoryMap = new Map<number, CategoryGroup>();
+
+  for (const row of rows) {
+    if (!categoryMap.has(row.category_id)) {
+      categoryMap.set(row.category_id, {
+        id: row.category_id,
+        display_name: row.category_display_name,
+        sort_order: row.category_sort_order,
+        processes: [],
+        totalMetrics: 0,
+        totalWithData: 0,
+      });
+    }
+    const cat = categoryMap.get(row.category_id)!;
+
+    let proc = cat.processes.find((p) => p.id === row.process_id);
+    if (!proc) {
+      proc = {
+        id: row.process_id,
+        name: row.process_name,
+        is_key: row.is_key_process,
+        metrics: [],
+        withData: 0,
+        total: 0,
+      };
+      cat.processes.push(proc);
+    }
+
+    proc.metrics.push(row);
+    proc.total++;
+    cat.totalMetrics++;
+
+    if (row.review_status !== "no-data") {
+      proc.withData++;
+      cat.totalWithData++;
+    }
+  }
+
+  const sorted = Array.from(categoryMap.values()).sort(
+    (a, b) => a.sort_order - b.sort_order
+  );
+  for (const cat of sorted) {
+    cat.processes.sort((a, b) => a.name.localeCompare(b.name));
+    for (const proc of cat.processes) {
+      const statusOrder = { overdue: 0, "no-data": 1, "due-soon": 2, current: 3 };
+      proc.metrics.sort(
+        (a, b) => statusOrder[a.review_status] - statusOrder[b.review_status]
+      );
+    }
+  }
+
+  return sorted;
+}
+
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<CategoryGroup[]>([]);
+  const [allRows, setAllRows] = useState<MetricRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showKeyOnly, setShowKeyOnly] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const [expandedProcesses, setExpandedProcesses] = useState<Set<number>>(new Set());
 
@@ -50,6 +108,7 @@ export default function CategoriesPage() {
           processes!inner (
             id,
             name,
+            is_key,
             categories!inner ( id, display_name, sort_order )
           )
         `);
@@ -77,6 +136,7 @@ export default function CategoriesPage() {
           ...(m as unknown as Metric),
           process_id: process.id as number,
           process_name: process.name as string,
+          is_key_process: process.is_key as boolean,
           category_id: category.id as number,
           category_display_name: category.display_name as string,
           category_sort_order: category.sort_order as number,
@@ -86,63 +146,17 @@ export default function CategoriesPage() {
         };
       });
 
-      // Group by category, then by process
-      const categoryMap = new Map<number, CategoryGroup>();
-
-      for (const row of rows) {
-        if (!categoryMap.has(row.category_id)) {
-          categoryMap.set(row.category_id, {
-            id: row.category_id,
-            display_name: row.category_display_name,
-            sort_order: row.category_sort_order,
-            processes: [],
-            totalMetrics: 0,
-            totalWithData: 0,
-          });
-        }
-        const cat = categoryMap.get(row.category_id)!;
-
-        let proc = cat.processes.find((p) => p.id === row.process_id);
-        if (!proc) {
-          proc = {
-            id: row.process_id,
-            name: row.process_name,
-            metrics: [],
-            withData: 0,
-            total: 0,
-          };
-          cat.processes.push(proc);
-        }
-
-        proc.metrics.push(row);
-        proc.total++;
-        cat.totalMetrics++;
-
-        if (row.review_status !== "no-data") {
-          proc.withData++;
-          cat.totalWithData++;
-        }
-      }
-
-      // Sort categories by sort_order, processes alphabetically
-      const sorted = Array.from(categoryMap.values()).sort(
-        (a, b) => a.sort_order - b.sort_order
-      );
-      for (const cat of sorted) {
-        cat.processes.sort((a, b) => a.name.localeCompare(b.name));
-        for (const proc of cat.processes) {
-          const statusOrder = { overdue: 0, "no-data": 1, "due-soon": 2, current: 3 };
-          proc.metrics.sort(
-            (a, b) => statusOrder[a.review_status] - statusOrder[b.review_status]
-          );
-        }
-      }
-
-      setCategories(sorted);
+      setAllRows(rows);
       setLoading(false);
     }
     fetch();
   }, []);
+
+  // Derive categories from rows, applying key filter
+  const filteredRows = showKeyOnly
+    ? allRows.filter((r) => r.is_key_process)
+    : allRows;
+  const categories = groupByCategory(filteredRows);
 
   function toggleCategory(categoryId: number) {
     setExpandedCategories((prev) => {
@@ -178,11 +192,23 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-[#324a4d]">Categories &amp; Processes</h1>
-        <p className="text-gray-500 mt-1">
-          Metrics organized by Baldrige Category and process
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#324a4d]">Categories &amp; Processes</h1>
+          <p className="text-gray-500 mt-1">
+            Metrics organized by Baldrige Category and process
+          </p>
+        </div>
+        <button
+          onClick={() => setShowKeyOnly(!showKeyOnly)}
+          className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors self-start ${
+            showKeyOnly
+              ? "bg-[#f79935] text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+        >
+          {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
+        </button>
       </div>
 
       {/* Category overview cards */}
@@ -274,7 +300,10 @@ export default function CategoriesPage() {
                           <span className="text-gray-400 text-sm">
                             {isExpanded ? "▼" : "▶"}
                           </span>
-                          <span className="font-medium text-[#324a4d]">{proc.name}</span>
+                          <span className="font-medium text-[#324a4d]">
+                            {proc.is_key && <span className="text-[#f79935] mr-1">&#9733;</span>}
+                            {proc.name}
+                          </span>
                           <span className="text-sm text-gray-400">
                             {proc.withData} of {proc.total} metrics with data
                           </span>

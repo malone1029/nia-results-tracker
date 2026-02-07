@@ -5,10 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/", label: "Results Dashboard" },
   { href: "/requirements", label: "Key Requirements" },
   { href: "/processes", label: "Processes" },
   { href: "/categories", label: "Categories" },
+  { href: "/", label: "Results Dashboard" },
   { href: "/letci", label: "LeTCI Summary" },
   { href: "/schedule", label: "Review Schedule" },
   { href: "/log", label: "Log Data" },

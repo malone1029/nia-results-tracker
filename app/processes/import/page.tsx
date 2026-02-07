@@ -190,6 +190,7 @@ export default function ImportProcessPage() {
           adli_integration: parsed.adli_integration,
           workflow: parsed.workflow,
           baldrige_connections: parsed.baldrige_connections,
+          is_key: false,
         };
 
         // Check if this process already exists

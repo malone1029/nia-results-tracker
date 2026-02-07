@@ -8,6 +8,7 @@ import Link from "next/link";
 
 interface MetricLeTCI extends Metric {
   process_name: string;
+  is_key_process: boolean;
   category_display_name: string;
   category_sort_order: number;
   entry_count: number;
@@ -24,6 +25,7 @@ export default function LeTCIPage() {
   const [metrics, setMetrics] = useState<MetricLeTCI[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [showKeyOnly, setShowKeyOnly] = useState(false);
   const [sortField, setSortField] = useState<string>("letci_score");
   const [sortAsc, setSortAsc] = useState(true);
 
@@ -36,6 +38,7 @@ export default function LeTCIPage() {
           *,
           processes!inner (
             name,
+            is_key,
             categories!inner ( display_name, sort_order )
           )
         `);
@@ -95,6 +98,7 @@ export default function LeTCIPage() {
         return {
           ...(m as unknown as Metric),
           process_name: process.name as string,
+          is_key_process: process.is_key as boolean,
           category_display_name: category.display_name as string,
           category_sort_order: category.sort_order as number,
           entry_count: entries.length,
@@ -128,10 +132,13 @@ export default function LeTCIPage() {
   ).sort();
 
   // Filter
-  const filtered =
+  let filtered =
     filterCategory === "all"
       ? metrics
       : metrics.filter((m) => m.category_display_name === filterCategory);
+  if (showKeyOnly) {
+    filtered = filtered.filter((m) => m.is_key_process);
+  }
 
   // Sort
   const sorted = [...filtered].sort((a, b) => {
@@ -241,6 +248,16 @@ export default function LeTCIPage() {
 
       {/* Filter */}
       <div className="flex items-center gap-4">
+        <button
+          onClick={() => setShowKeyOnly(!showKeyOnly)}
+          className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors ${
+            showKeyOnly
+              ? "bg-[#f79935] text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+        >
+          {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
+        </button>
         <label className="text-sm font-medium text-[#324a4d]">Filter by category:</label>
         <select
           value={filterCategory}
@@ -286,7 +303,10 @@ export default function LeTCIPage() {
                       {metric.name}
                     </Link>
                   </td>
-                  <td className="px-3 py-2 text-gray-500">{metric.process_name}</td>
+                  <td className="px-3 py-2 text-gray-500">
+                    {metric.is_key_process && <span className="text-[#f79935] mr-1">&#9733;</span>}
+                    {metric.process_name}
+                  </td>
                   <td className="px-3 py-2 text-gray-400 text-xs">{metric.category_display_name}</td>
                   <td className="px-3 py-2 text-center">
                     <LetciDot ready={metric.has_level} detail={`${metric.entry_count} entries`} />

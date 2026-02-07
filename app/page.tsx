@@ -15,6 +15,14 @@ interface MetricRow extends Metric {
   review_status: "current" | "due-soon" | "overdue" | "no-data";
 }
 
+interface KeyProcessSummary {
+  total: number;
+  key: number;
+  keyApproved: number;
+  keyInProgress: number;
+  keyDraft: number;
+}
+
 interface LogFormData {
   metricId: number;
   value: string;
@@ -25,6 +33,7 @@ interface LogFormData {
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
+  const [processSummary, setProcessSummary] = useState<KeyProcessSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [logForm, setLogForm] = useState<LogFormData | null>(null);
   const [saving, setSaving] = useState(false);
@@ -106,6 +115,26 @@ export default function Dashboard() {
   useEffect(() => {
     document.title = "Results Dashboard | NIA Excellence Hub";
     fetchMetrics();
+
+    async function fetchProcessSummary() {
+      const { data } = await supabase
+        .from("processes")
+        .select("is_key, status");
+      if (data) {
+        const all = data as { is_key: boolean; status: string }[];
+        const keyProcs = all.filter((p) => p.is_key);
+        setProcessSummary({
+          total: all.length,
+          key: keyProcs.length,
+          keyApproved: keyProcs.filter((p) => p.status === "approved").length,
+          keyInProgress: keyProcs.filter((p) =>
+            ["ready_for_review", "in_review", "revisions_needed"].includes(p.status)
+          ).length,
+          keyDraft: keyProcs.filter((p) => p.status === "draft").length,
+        });
+      }
+    }
+    fetchProcessSummary();
   }, []);
 
   async function handleLogSubmit(e: React.FormEvent) {
@@ -190,6 +219,46 @@ export default function Dashboard() {
           color="#55787c"
         />
       </div>
+
+      {/* Key Process Summary */}
+      {processSummary && processSummary.key > 0 && (
+        <Link
+          href="/processes"
+          className="block bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935] hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                Key Processes
+              </h2>
+              <p className="text-[#324a4d] mt-1">
+                <span className="text-2xl font-bold">{processSummary.key}</span>
+                <span className="text-gray-400 text-sm"> of {processSummary.total} processes marked as key</span>
+              </p>
+            </div>
+            <div className="flex gap-4 text-center">
+              {processSummary.keyApproved > 0 && (
+                <div>
+                  <div className="text-lg font-bold text-[#b1bd37]">{processSummary.keyApproved}</div>
+                  <div className="text-xs text-gray-400">Approved</div>
+                </div>
+              )}
+              {processSummary.keyInProgress > 0 && (
+                <div>
+                  <div className="text-lg font-bold text-[#f79935]">{processSummary.keyInProgress}</div>
+                  <div className="text-xs text-gray-400">In Review</div>
+                </div>
+              )}
+              {processSummary.keyDraft > 0 && (
+                <div>
+                  <div className="text-lg font-bold text-gray-400">{processSummary.keyDraft}</div>
+                  <div className="text-xs text-gray-400">Draft</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* Inline log form */}
       {logForm && (

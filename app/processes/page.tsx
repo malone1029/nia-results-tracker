@@ -10,6 +10,7 @@ interface ProcessRow {
   name: string;
   category_id: number;
   category_display_name: string;
+  is_key: boolean;
   status: ProcessStatus;
   template_type: "quick" | "full";
   owner: string | null;
@@ -47,6 +48,7 @@ export default function ProcessesPage() {
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState<ProcessStatus | null>(null);
+  const [showKeyOnly, setShowKeyOnly] = useState(false);
 
   useEffect(() => {
     document.title = "Processes | NIA Excellence Hub";
@@ -62,7 +64,7 @@ export default function ProcessesPage() {
       const { data: procData } = await supabase
         .from("processes")
         .select(`
-          id, name, category_id, status, template_type, owner, baldrige_item,
+          id, name, category_id, is_key, status, template_type, owner, baldrige_item,
           categories!inner ( display_name )
         `)
         .order("name");
@@ -75,6 +77,7 @@ export default function ProcessesPage() {
             name: p.name as string,
             category_id: p.category_id as number,
             category_display_name: cat.display_name as string,
+            is_key: p.is_key as boolean,
             status: (p.status as ProcessStatus) || "draft",
             template_type: (p.template_type as "quick" | "full") || "quick",
             owner: p.owner as string | null,
@@ -112,6 +115,16 @@ export default function ProcessesPage() {
     fetchData();
   }, []);
 
+  async function toggleKeyProcess(id: number, currentValue: boolean) {
+    await supabase
+      .from("processes")
+      .update({ is_key: !currentValue })
+      .eq("id", id);
+    setProcesses((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, is_key: !currentValue } : p))
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -125,6 +138,7 @@ export default function ProcessesPage() {
     if (filterCategory !== null && p.category_id !== filterCategory)
       return false;
     if (filterStatus !== null && p.status !== filterStatus) return false;
+    if (showKeyOnly && !p.is_key) return false;
     return true;
   });
 
@@ -166,7 +180,16 @@ export default function ProcessesPage() {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {categories.map((cat) => {
-            const isEmpty = cat.process_count === 0;
+            // Recompute counts when key filter is active
+            const catProcesses = showKeyOnly
+              ? processes.filter((p) => p.category_id === cat.id && p.is_key)
+              : processes.filter((p) => p.category_id === cat.id);
+            const count = catProcesses.length;
+            const approved = catProcesses.filter((p) => p.status === "approved").length;
+            const inProgress = catProcesses.filter((p) =>
+              ["ready_for_review", "in_review", "revisions_needed"].includes(p.status)
+            ).length;
+            const isEmpty = count === 0;
             const isSelected = filterCategory === cat.id;
 
             return (
@@ -182,7 +205,7 @@ export default function ProcessesPage() {
                 } ${isEmpty ? "opacity-60" : ""}`}
               >
                 <div className={`text-2xl font-bold ${isEmpty ? "text-[#dc2626]" : "text-[#324a4d]"}`}>
-                  {cat.process_count}
+                  {count}
                 </div>
                 <div className={`text-xs font-medium mt-1 leading-tight ${isEmpty ? "text-[#dc2626]" : "text-[#324a4d]"}`}>
                   {cat.display_name}
@@ -193,15 +216,15 @@ export default function ProcessesPage() {
                   </div>
                 ) : (
                   <div className="text-xs mt-1 text-gray-500 space-x-1">
-                    {cat.approved_count > 0 && (
-                      <span className="text-[#6b7a1a]">{cat.approved_count} approved</span>
+                    {approved > 0 && (
+                      <span className="text-[#6b7a1a]">{approved} approved</span>
                     )}
-                    {cat.in_progress_count > 0 && (
-                      <span className="text-[#b06a10]">{cat.in_progress_count} in review</span>
+                    {inProgress > 0 && (
+                      <span className="text-[#b06a10]">{inProgress} in review</span>
                     )}
-                    {cat.process_count - cat.approved_count - cat.in_progress_count > 0 && (
+                    {count - approved - inProgress > 0 && (
                       <span>
-                        {cat.process_count - cat.approved_count - cat.in_progress_count} draft
+                        {count - approved - inProgress} draft
                       </span>
                     )}
                   </div>
@@ -213,7 +236,17 @@ export default function ProcessesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <button
+          onClick={() => setShowKeyOnly(!showKeyOnly)}
+          className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors ${
+            showKeyOnly
+              ? "bg-[#f79935] text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+        >
+          {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
+        </button>
         <select
           value={filterCategory ?? ""}
           onChange={(e) =>
@@ -244,11 +277,12 @@ export default function ProcessesPage() {
             </option>
           ))}
         </select>
-        {(filterCategory !== null || filterStatus !== null) && (
+        {(filterCategory !== null || filterStatus !== null || showKeyOnly) && (
           <button
             onClick={() => {
               setFilterCategory(null);
               setFilterStatus(null);
+              setShowKeyOnly(false);
             }}
             className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors"
           >
@@ -288,12 +322,28 @@ export default function ProcessesPage() {
                     className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/processes/${process.id}`}
-                        className="font-medium text-[#324a4d] hover:text-[#f79935] transition-colors"
-                      >
-                        {process.name}
-                      </Link>
+                      <span className="inline-flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleKeyProcess(process.id, process.is_key);
+                          }}
+                          className={`text-base leading-none transition-colors ${
+                            process.is_key
+                              ? "text-[#f79935] hover:text-[#d4820e]"
+                              : "text-gray-300 hover:text-[#f79935]"
+                          }`}
+                          title={process.is_key ? "Remove key process flag" : "Mark as key process"}
+                        >
+                          {process.is_key ? "\u2605" : "\u2606"}
+                        </button>
+                        <Link
+                          href={`/processes/${process.id}`}
+                          className="font-medium text-[#324a4d] hover:text-[#f79935] transition-colors"
+                        >
+                          {process.name}
+                        </Link>
+                      </span>
                       {process.baldrige_item && (
                         <span className="text-xs text-gray-400 ml-2">
                           ({process.baldrige_item})
@@ -337,7 +387,22 @@ export default function ProcessesPage() {
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="font-medium text-[#324a4d]">
+                    <div className="font-medium text-[#324a4d] flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleKeyProcess(process.id, process.is_key);
+                        }}
+                        className={`text-base leading-none transition-colors ${
+                          process.is_key
+                            ? "text-[#f79935] hover:text-[#d4820e]"
+                            : "text-gray-300 hover:text-[#f79935]"
+                        }`}
+                        title={process.is_key ? "Remove key process flag" : "Mark as key process"}
+                      >
+                        {process.is_key ? "\u2605" : "\u2606"}
+                      </button>
                       {process.name}
                     </div>
                     <div className="text-sm text-gray-500 mt-1">

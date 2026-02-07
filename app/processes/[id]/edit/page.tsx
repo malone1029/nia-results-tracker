@@ -51,6 +51,7 @@ export default function EditProcessPage() {
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [baldrigeItem, setBaldrigeItem] = useState("");
   const [owner, setOwner] = useState("");
+  const [isKey, setIsKey] = useState(false);
   const [reviewer, setReviewer] = useState("");
   const [status, setStatus] = useState<ProcessStatus>("draft");
   const [templateType, setTemplateType] = useState<TemplateType>("quick");
@@ -89,6 +90,7 @@ export default function EditProcessPage() {
         setCategoryId(p.category_id);
         setBaldrigeItem(p.baldrige_item || "");
         setOwner(p.owner || "");
+        setIsKey(p.is_key || false);
         setReviewer(p.reviewer || "");
         setStatus(p.status || "draft");
         setTemplateType(p.template_type || "quick");
@@ -129,6 +131,7 @@ export default function EditProcessPage() {
         category_id: categoryId,
         baldrige_item: baldrigeItem.trim() || null,
         owner: owner.trim() || null,
+        is_key: isKey,
         reviewer: reviewer.trim() || null,
         status,
         template_type: templateType,
@@ -265,6 +268,28 @@ export default function EditProcessPage() {
             </select>
           </div>
         </div>
+
+        {/* Key Process Toggle */}
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div
+            onClick={() => setIsKey(!isKey)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${
+              isKey ? "bg-[#f79935]" : "bg-gray-300"
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                isKey ? "translate-x-5" : ""
+              }`}
+            />
+          </div>
+          <span className="text-sm font-medium text-[#324a4d]">
+            Key Process
+          </span>
+          <span className="text-xs text-gray-400">
+            Key processes directly fulfill key requirements and need LeTCI scoring
+          </span>
+        </label>
 
         {/* Description — hide for full templates when Charter has the full content */}
         {!(templateType === "full" && charter.content) && (

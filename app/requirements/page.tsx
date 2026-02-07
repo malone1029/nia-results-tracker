@@ -22,8 +22,18 @@ interface AllMetric {
   category_display_name: string;
 }
 
+interface LinkedProcess {
+  id: number;
+  name: string;
+  is_key: boolean;
+}
+
+interface EnrichedRequirement extends KeyRequirementWithStatus {
+  linked_processes: LinkedProcess[];
+}
+
 export default function RequirementsPage() {
-  const [requirements, setRequirements] = useState<KeyRequirementWithStatus[]>([]);
+  const [requirements, setRequirements] = useState<EnrichedRequirement[]>([]);
   const [allMetrics, setAllMetrics] = useState<AllMetric[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -84,6 +94,30 @@ export default function RequirementsPage() {
         );
       }
 
+      // Fetch process-requirement links with process info
+      const { data: procLinkData } = await supabase
+        .from("process_requirements")
+        .select(`
+          requirement_id,
+          processes!inner ( id, name, is_key )
+        `);
+
+      // Build map of requirement_id -> linked processes
+      const procsByReq = new Map<number, LinkedProcess[]>();
+      if (procLinkData) {
+        for (const link of procLinkData) {
+          const proc = link.processes as unknown as { id: number; name: string; is_key: boolean };
+          if (!procsByReq.has(link.requirement_id)) {
+            procsByReq.set(link.requirement_id, []);
+          }
+          procsByReq.get(link.requirement_id)!.push({
+            id: proc.id,
+            name: proc.name,
+            is_key: proc.is_key,
+          });
+        }
+      }
+
       // Fetch all entries for trend/value calculations
       const { data: entriesData } = await supabase
         .from("entries")
@@ -116,7 +150,7 @@ export default function RequirementsPage() {
       }
 
       // Build enriched requirements
-      const enriched: KeyRequirementWithStatus[] = (reqData || []).map((req) => {
+      const enriched: EnrichedRequirement[] = (reqData || []).map((req) => {
         const links = linksByReq.get(req.id) || [];
 
         const linkedMetrics = links.map((link) => {
@@ -168,6 +202,7 @@ export default function RequirementsPage() {
         return {
           ...req,
           linked_metrics: linkedMetrics,
+          linked_processes: procsByReq.get(req.id) || [],
           health,
         };
       });
@@ -264,7 +299,7 @@ export default function RequirementsPage() {
   const meetingTargets = requirements.filter((r) => r.health === "green").length;
 
   // Group requirements by segment then group, in GROUP_ORDER
-  const grouped = new Map<string, KeyRequirementWithStatus[]>();
+  const grouped = new Map<string, EnrichedRequirement[]>();
   for (const req of requirements) {
     const key = req.stakeholder_group;
     if (!grouped.has(key)) grouped.set(key, []);
@@ -492,13 +527,43 @@ export default function RequirementsPage() {
                   {/* Expanded detail */}
                   {isExpanded && (
                     <div className="border-t border-gray-100 px-4 py-3 space-y-3">
-                      {req.linked_metrics.length === 0 && (
+                      {/* Linked processes */}
+                      {req.linked_processes.length > 0 && (
+                        <div>
+                          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Processes
+                          </span>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {req.linked_processes.map((proc) => (
+                              <Link
+                                key={proc.id}
+                                href={`/processes/${proc.id}`}
+                                className="inline-flex items-center gap-1 text-sm bg-[#55787c]/10 text-[#324a4d] px-3 py-1 rounded-full hover:bg-[#55787c]/20 transition-colors"
+                              >
+                                {proc.is_key && <span className="text-[#f79935]">&#9733;</span>}
+                                {proc.name}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {req.linked_metrics.length === 0 && req.linked_processes.length === 0 && (
+                        <p className="text-sm text-gray-400 italic">
+                          No processes or metrics are linked to this requirement yet.
+                        </p>
+                      )}
+                      {req.linked_metrics.length === 0 && req.linked_processes.length > 0 && (
                         <p className="text-sm text-gray-400 italic">
                           No metrics are linked to this requirement yet.
                         </p>
                       )}
                       {req.linked_metrics.length > 0 && (
-                        <div className="space-y-1">
+                        <div>
+                          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Metrics
+                          </span>
+                          <div className="space-y-1 mt-1">
                           {req.linked_metrics.map((m) => (
                             <div
                               key={m.id}
@@ -542,6 +607,7 @@ export default function RequirementsPage() {
                               </div>
                             </div>
                           ))}
+                          </div>
                         </div>
                       )}
 

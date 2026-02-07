@@ -33,6 +33,7 @@ export interface ParsedProcess {
   adli_integration: AdliIntegration | null;
   workflow: Workflow | null;
   baldrige_connections: BaldigeConnections | null;
+  is_key: boolean;
 }
 
 // Map status emoji/text to our status values
@@ -463,5 +464,6 @@ export function parseObsidianProcess(markdown: string): ParsedProcess {
     adli_integration,
     workflow,
     baldrige_connections,
+    is_key: false,
   };
 }

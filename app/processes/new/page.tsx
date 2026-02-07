@@ -19,6 +19,7 @@ export default function NewProcessPage() {
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [baldrigeItem, setBaldrigeItem] = useState("");
   const [owner, setOwner] = useState("");
+  const [isKey, setIsKey] = useState(false);
   const [description, setDescription] = useState("");
   const [basicSteps, setBasicSteps] = useState<string[]>([""]);
   const [participants, setParticipants] = useState<string[]>([""]);
@@ -51,6 +52,7 @@ export default function NewProcessPage() {
         category_id: categoryId,
         baldrige_item: baldrigeItem.trim() || null,
         owner: owner.trim() || null,
+        is_key: isKey,
         description: description.trim() || null,
         status: "draft",
         template_type: "quick",
@@ -151,6 +153,28 @@ export default function NewProcessPage() {
             placeholder="e.g., Jon Malone"
           />
         </div>
+
+        {/* Key Process Toggle */}
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div
+            onClick={() => setIsKey(!isKey)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${
+              isKey ? "bg-[#f79935]" : "bg-gray-300"
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                isKey ? "translate-x-5" : ""
+              }`}
+            />
+          </div>
+          <span className="text-sm font-medium text-[#324a4d]">
+            Key Process
+          </span>
+          <span className="text-xs text-gray-400">
+            Key processes directly fulfill key requirements and need LeTCI scoring
+          </span>
+        </label>
 
         {/* Description */}
         <div>

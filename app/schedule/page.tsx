@@ -8,6 +8,7 @@ import Link from "next/link";
 
 interface MetricRow extends Metric {
   process_name: string;
+  is_key_process: boolean;
   category_display_name: string;
   last_entry_date: string | null;
   last_entry_value: number | null;
@@ -31,6 +32,7 @@ const CADENCE_DESCRIPTIONS: Record<string, string> = {
 export default function SchedulePage() {
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showKeyOnly, setShowKeyOnly] = useState(false);
 
   useEffect(() => {
     document.title = "Review Schedule | NIA Excellence Hub";
@@ -41,6 +43,7 @@ export default function SchedulePage() {
           *,
           processes!inner (
             name,
+            is_key,
             categories!inner ( display_name )
           )
         `);
@@ -66,6 +69,7 @@ export default function SchedulePage() {
         return {
           ...(m as unknown as Metric),
           process_name: process.name as string,
+          is_key_process: process.is_key as boolean,
           category_display_name: category.display_name as string,
           last_entry_date: latest?.date || null,
           last_entry_value: latest?.value || null,
@@ -87,23 +91,40 @@ export default function SchedulePage() {
     );
   }
 
+  // Filter by key process if active
+  const filteredMetrics = showKeyOnly
+    ? metrics.filter((m) => m.is_key_process)
+    : metrics;
+
   // Group by cadence
   const grouped = new Map<string, MetricRow[]>();
   for (const cadence of CADENCE_ORDER) {
     grouped.set(cadence, []);
   }
-  for (const metric of metrics) {
+  for (const metric of filteredMetrics) {
     const list = grouped.get(metric.cadence);
     if (list) list.push(metric);
   }
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-[#324a4d]">Review Schedule</h1>
-        <p className="text-gray-500 mt-1">
-          Metrics organized by how often they need to be reviewed
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#324a4d]">Review Schedule</h1>
+          <p className="text-gray-500 mt-1">
+            Metrics organized by how often they need to be reviewed
+          </p>
+        </div>
+        <button
+          onClick={() => setShowKeyOnly(!showKeyOnly)}
+          className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors self-start ${
+            showKeyOnly
+              ? "bg-[#f79935] text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+        >
+          {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
+        </button>
       </div>
 
       {/* Summary cards */}
@@ -242,7 +263,10 @@ function CadenceSection({
                       {metric.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 text-gray-500">{metric.process_name}</td>
+                  <td className="px-4 py-2 text-gray-500">
+                    {metric.is_key_process && <span className="text-[#f79935] mr-1">&#9733;</span>}
+                    {metric.process_name}
+                  </td>
                   <td className="px-4 py-2 text-gray-400">{metric.data_source || "—"}</td>
                   <td className="px-4 py-2 text-right font-medium">
                     {metric.last_entry_value !== null
@@ -278,7 +302,10 @@ function CadenceSection({
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-400">
-                  <span>{metric.process_name}</span>
+                  <span>
+                    {metric.is_key_process && <span className="text-[#f79935] mr-0.5">&#9733;</span>}
+                    {metric.process_name}
+                  </span>
                   {metric.data_source && <span>{metric.data_source}</span>}
                   <span className="font-medium text-[#324a4d]">
                     {metric.last_entry_value !== null

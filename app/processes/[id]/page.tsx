@@ -23,6 +23,7 @@ interface ProcessDetail {
   category_id: number;
   category_display_name: string;
   baldrige_item: string | null;
+  is_key: boolean;
   status: ProcessStatus;
   template_type: "quick" | "full";
   owner: string | null;
@@ -266,7 +267,14 @@ export default function ProcessDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#324a4d]">{process.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-[#324a4d]">{process.name}</h1>
+            {process.is_key && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-[#f79935]/15 text-[#b06a10]">
+                <span className="text-[#f79935]">&#9733;</span> Key Process
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-500">
             <span>{process.category_display_name}</span>
             {process.baldrige_item && (

@@ -107,6 +107,7 @@ export interface Process {
   adli_integration: AdliIntegration | null;
   workflow: Workflow | null;
   baldrige_connections: BaldigeConnections | null;
+  is_key: boolean;
   updated_at: string;
 }
 
