@@ -308,12 +308,13 @@ export default function Dashboard() {
         />
       )}
 
-      {/* No Data section */}
+      {/* No Data section — collapsed by default */}
       {noData.length > 0 && (
         <MetricSection
           title="No Data Yet"
           subtitle="These metrics have never been logged"
           metrics={noData}
+          defaultOpen={false}
           onLogClick={(id) =>
             setLogForm({
               metricId: id,
@@ -326,12 +327,13 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Current section */}
+      {/* Current section — collapsed by default */}
       {current.length > 0 && (
         <MetricSection
           title="Current"
           subtitle="These metrics are up to date"
           metrics={current}
+          defaultOpen={false}
           onLogClick={(id) =>
             setLogForm({
               metricId: id,
@@ -371,71 +373,96 @@ function MetricSection({
   subtitle,
   metrics,
   onLogClick,
+  defaultOpen = true,
 }: {
   title: string;
   subtitle: string;
   metrics: MetricRow[];
   onLogClick: (metricId: number) => void;
+  defaultOpen?: boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
   return (
-    <div>
-      <h2 className="text-lg font-bold text-[#324a4d]">{title}</h2>
-      <p className="text-sm text-gray-500 mb-3">{subtitle}</p>
-      <div className="space-y-2">
-        {metrics.map((metric) => (
-          <div
-            key={metric.id}
-            className="bg-white rounded-lg shadow p-4 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-3 h-3 rounded-full flex-shrink-0"
-                style={{
-                  backgroundColor: getStatusColor(metric.review_status),
-                }}
-              />
-              <div>
-                <Link href={`/metric/${metric.id}`} className="font-medium text-[#324a4d] hover:text-[#f79935] transition-colors">
-                  {metric.name}
-                </Link>
-                <div className="text-sm text-gray-500">
-                  {metric.category_display_name} &middot; {metric.process_name}{" "}
-                  &middot; {metric.cadence}
+    <div className="bg-white rounded-lg shadow overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-gray-400 text-sm">
+            {isOpen ? "▼" : "▶"}
+          </span>
+          <div>
+            <span className="text-lg font-bold text-[#324a4d]">{title}</span>
+            <span className="text-sm text-gray-400 ml-3">
+              {metrics.length} metric{metrics.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+        <span className="text-xs text-gray-400">{subtitle}</span>
+      </button>
+
+      {isOpen && (
+        <div className="border-t border-gray-100 space-y-0">
+          {metrics.map((metric) => (
+            <div
+              key={metric.id}
+              className="px-4 py-3 flex items-center justify-between border-b border-gray-50 last:border-b-0 hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor: getStatusColor(metric.review_status),
+                  }}
+                />
+                <div>
+                  <Link href={`/metric/${metric.id}`} className="font-medium text-[#324a4d] hover:text-[#f79935] transition-colors">
+                    {metric.name}
+                  </Link>
+                  <div className="text-sm text-gray-500">
+                    {metric.category_display_name} &middot; {metric.process_name}{" "}
+                    &middot; {metric.cadence}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {metric.last_entry_value !== null && (
-                <div className="text-right">
-                  <div className="font-medium text-[#324a4d]">
-                    {metric.last_entry_value}
-                    {metric.unit === "%" ? "%" : ` ${metric.unit}`}
+              <div className="flex items-center gap-4">
+                {metric.last_entry_value !== null && (
+                  <div className="text-right">
+                    <div className="font-medium text-[#324a4d]">
+                      {metric.last_entry_value}
+                      {metric.unit === "%" ? "%" : ` ${metric.unit}`}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {metric.last_entry_date}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-400">
-                    {metric.last_entry_date}
-                  </div>
-                </div>
-              )}
-              <span
-                className="text-xs px-2 py-1 rounded-full font-medium"
-                style={{
-                  backgroundColor:
-                    getStatusColor(metric.review_status) + "20",
-                  color: getStatusColor(metric.review_status),
-                }}
-              >
-                {getStatusLabel(metric.review_status)}
-              </span>
-              <button
-                onClick={() => onLogClick(metric.id)}
-                className="bg-[#324a4d] text-white text-sm rounded-lg py-1.5 px-3 hover:opacity-90"
-              >
-                Log Now
-              </button>
+                )}
+                <span
+                  className="text-xs px-2 py-1 rounded-full font-medium"
+                  style={{
+                    backgroundColor:
+                      getStatusColor(metric.review_status) + "20",
+                    color: getStatusColor(metric.review_status),
+                  }}
+                >
+                  {getStatusLabel(metric.review_status)}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLogClick(metric.id);
+                  }}
+                  className="bg-[#324a4d] text-white text-sm rounded-lg py-1.5 px-3 hover:opacity-90"
+                >
+                  Log Now
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

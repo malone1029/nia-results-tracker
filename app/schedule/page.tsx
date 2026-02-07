@@ -141,71 +141,121 @@ export default function SchedulePage() {
         const statusOrder = { overdue: 0, "no-data": 1, "due-soon": 2, current: 3 };
         list.sort((a, b) => statusOrder[a.review_status] - statusOrder[b.review_status]);
 
+        const needsAttention = list.filter(
+          (m) => m.review_status === "overdue" || m.review_status === "due-soon"
+        ).length;
+
         return (
-          <div key={cadence} id={cadence}>
-            <div className="flex items-baseline gap-3 mb-1">
-              <h2 className="text-lg font-bold text-[#324a4d]">
-                {CADENCE_LABELS[cadence]}
-              </h2>
-              <span className="text-sm text-gray-400">
-                {list.length} metric{list.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 mb-3">
-              {CADENCE_DESCRIPTIONS[cadence]}
-            </p>
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-[#324a4d] text-white text-left">
-                    <th className="px-4 py-2">Status</th>
-                    <th className="px-4 py-2">Metric</th>
-                    <th className="px-4 py-2">Process</th>
-                    <th className="px-4 py-2">Source</th>
-                    <th className="px-4 py-2 text-right">Last Value</th>
-                    <th className="px-4 py-2 text-right">Last Logged</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.map((metric) => (
-                    <tr key={metric.id} className="border-t border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-2">
-                        <span
-                          className="text-xs px-2 py-0.5 rounded-full font-medium"
-                          style={{
-                            backgroundColor: getStatusColor(metric.review_status) + "20",
-                            color: getStatusColor(metric.review_status),
-                          }}
-                        >
-                          {getStatusLabel(metric.review_status)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2">
-                        <Link
-                          href={`/metric/${metric.id}`}
-                          className="text-[#324a4d] font-medium hover:text-[#f79935] transition-colors"
-                        >
-                          {metric.name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-2 text-gray-500">{metric.process_name}</td>
-                      <td className="px-4 py-2 text-gray-400">{metric.data_source || "—"}</td>
-                      <td className="px-4 py-2 text-right font-medium">
-                        {metric.last_entry_value !== null
-                          ? `${metric.last_entry_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-2 text-right text-gray-400">
-                        {metric.last_entry_date || "Never"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <CadenceSection
+            key={cadence}
+            id={cadence}
+            label={CADENCE_LABELS[cadence]}
+            description={CADENCE_DESCRIPTIONS[cadence]}
+            metrics={list}
+            needsAttention={needsAttention}
+            defaultOpen={needsAttention > 0}
+          />
         );
       })}
+    </div>
+  );
+}
+
+function CadenceSection({
+  id,
+  label,
+  description,
+  metrics,
+  needsAttention,
+  defaultOpen,
+}: {
+  id: string;
+  label: string;
+  description: string;
+  metrics: MetricRow[];
+  needsAttention: number;
+  defaultOpen: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div id={id} className="bg-white rounded-lg shadow overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-gray-400 text-sm">
+            {isOpen ? "▼" : "▶"}
+          </span>
+          <div>
+            <span className="text-lg font-bold text-[#324a4d]">{label}</span>
+            <span className="text-sm text-gray-400 ml-3">
+              {metrics.length} metric{metrics.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {needsAttention > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+              {needsAttention} need attention
+            </span>
+          )}
+          <span className="text-xs text-gray-400">{description}</span>
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="border-t border-gray-100">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-gray-500 text-left text-xs uppercase">
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2">Metric</th>
+                <th className="px-4 py-2">Process</th>
+                <th className="px-4 py-2">Source</th>
+                <th className="px-4 py-2 text-right">Last Value</th>
+                <th className="px-4 py-2 text-right">Last Logged</th>
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.map((metric) => (
+                <tr key={metric.id} className="border-t border-gray-100 hover:bg-gray-50">
+                  <td className="px-4 py-2">
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{
+                        backgroundColor: getStatusColor(metric.review_status) + "20",
+                        color: getStatusColor(metric.review_status),
+                      }}
+                    >
+                      {getStatusLabel(metric.review_status)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">
+                    <Link
+                      href={`/metric/${metric.id}`}
+                      className="text-[#324a4d] font-medium hover:text-[#f79935] transition-colors"
+                    >
+                      {metric.name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2 text-gray-500">{metric.process_name}</td>
+                  <td className="px-4 py-2 text-gray-400">{metric.data_source || "—"}</td>
+                  <td className="px-4 py-2 text-right font-medium">
+                    {metric.last_entry_value !== null
+                      ? `${metric.last_entry_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-2 text-right text-gray-400">
+                    {metric.last_entry_date || "Never"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
