@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Link from "next/link";
 import Image from "next/image";
+import Nav from "./nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,41 +48,7 @@ export default function RootLayout({
                 </p>
               </div>
             </div>
-            <nav className="flex gap-4 text-sm">
-              <Link href="/" className="hover:text-[#f79935] transition-colors">
-                Dashboard
-              </Link>
-              <Link
-                href="/categories"
-                className="hover:text-[#f79935] transition-colors"
-              >
-                Categories
-              </Link>
-              <Link
-                href="/schedule"
-                className="hover:text-[#f79935] transition-colors"
-              >
-                Review Schedule
-              </Link>
-              <Link
-                href="/letci"
-                className="hover:text-[#f79935] transition-colors"
-              >
-                LeTCI Summary
-              </Link>
-              <Link
-                href="/log"
-                className="hover:text-[#f79935] transition-colors"
-              >
-                Log Data
-              </Link>
-              <Link
-                href="/metric/new"
-                className="hover:text-[#f79935] transition-colors"
-              >
-                + Add Metric
-              </Link>
-            </nav>
+            <Nav />
           </div>
         </header>
 

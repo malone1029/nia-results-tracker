@@ -256,8 +256,14 @@ export default function MetricDetailPage() {
 
         {/* Target nudge */}
         {metric.target_value === null && (
-          <div className="mt-4 bg-[#f79935]/10 border border-[#f79935]/30 rounded-lg px-4 py-3 text-sm text-[#324a4d]">
-            No target set — would you like to add one? Setting a target helps evaluate whether results are meeting expectations.
+          <div className="mt-4 bg-[#f79935]/10 border border-[#f79935]/30 rounded-lg px-4 py-3 text-sm text-[#324a4d] flex items-center justify-between">
+            <span>No target set — setting a target helps evaluate whether results are meeting expectations.</span>
+            <Link
+              href={`/metric/${metricId}/edit`}
+              className="text-[#f79935] font-medium hover:underline whitespace-nowrap ml-4"
+            >
+              Set Target
+            </Link>
           </div>
         )}
       </div>

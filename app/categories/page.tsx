@@ -187,9 +187,18 @@ export default function CategoriesPage() {
       {/* Category overview cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {categories.map((cat) => (
-          <a
+          <button
             key={cat.id}
-            href={`#cat-${cat.id}`}
+            onClick={() => {
+              setExpandedCategories((prev) => {
+                const next = new Set(prev);
+                next.add(cat.id);
+                return next;
+              });
+              setTimeout(() => {
+                document.getElementById(`cat-${cat.id}`)?.scrollIntoView({ behavior: "smooth" });
+              }, 50);
+            }}
             className="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition-shadow"
           >
             <div className="text-xs text-gray-400 uppercase mb-1">
@@ -213,7 +222,7 @@ export default function CategoriesPage() {
                 }}
               />
             </div>
-          </a>
+          </button>
         ))}
       </div>
 
