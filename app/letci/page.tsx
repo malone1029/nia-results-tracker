@@ -16,6 +16,7 @@ interface MetricLeTCI extends Metric {
   trend_direction: "improving" | "declining" | "flat" | "insufficient";
   has_comparison: boolean;
   has_integration: boolean;
+  linked_requirements: string[]; // requirement names
   letci_score: number; // 0-4
 }
 
@@ -44,16 +45,23 @@ export default function LeTCIPage() {
         .select("metric_id, value, date")
         .order("date", { ascending: true });
 
-      // Fetch metric-requirement links to determine Integration
+      // Fetch metric-requirement links with requirement names
       const { data: reqLinkData } = await supabase
         .from("metric_requirements")
-        .select("metric_id");
+        .select(`
+          metric_id,
+          key_requirements!inner ( requirement )
+        `);
 
-      // Count requirement links per metric
-      const reqCountByMetric = new Map<number, number>();
+      // Build map of metric_id -> requirement names
+      const reqsByMetric = new Map<number, string[]>();
       if (reqLinkData) {
         for (const link of reqLinkData) {
-          reqCountByMetric.set(link.metric_id, (reqCountByMetric.get(link.metric_id) || 0) + 1);
+          const reqName = (link.key_requirements as unknown as { requirement: string }).requirement;
+          if (!reqsByMetric.has(link.metric_id)) {
+            reqsByMetric.set(link.metric_id, []);
+          }
+          reqsByMetric.get(link.metric_id)!.push(reqName);
         }
       }
 
@@ -80,7 +88,8 @@ export default function LeTCIPage() {
         const hasLevel = entries.length >= 1;
         const hasTrend = entries.length >= 3;
         const hasComparison = m.comparison_value !== null;
-        const hasIntegration = (reqCountByMetric.get(m.id as number) || 0) > 0;
+        const linkedReqs = reqsByMetric.get(m.id as number) || [];
+        const hasIntegration = linkedReqs.length > 0;
         const trendDir = getTrendDirection(values, m.is_higher_better as boolean);
 
         return {
@@ -94,6 +103,7 @@ export default function LeTCIPage() {
           trend_direction: trendDir,
           has_comparison: hasComparison,
           has_integration: hasIntegration,
+          linked_requirements: linkedReqs,
           letci_score: [hasLevel, hasTrend, hasComparison, hasIntegration].filter(Boolean).length,
         };
       });
@@ -303,10 +313,20 @@ export default function LeTCIPage() {
                     />
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <LetciDot
-                      ready={metric.has_integration}
-                      detail={metric.has_integration ? "Used in decision-making" : "Not yet integrated"}
-                    />
+                    <div className="flex flex-col items-center gap-0.5">
+                      <LetciDot
+                        ready={metric.has_integration}
+                        detail={metric.has_integration ? metric.linked_requirements.join(", ") : "Not yet integrated"}
+                      />
+                      {metric.has_integration && (
+                        <Link
+                          href="/requirements"
+                          className="text-[10px] text-[#55787c] hover:text-[#f79935] leading-tight"
+                        >
+                          {metric.linked_requirements.length} req{metric.linked_requirements.length !== 1 ? "s" : ""}
+                        </Link>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2 text-center">
                     <span

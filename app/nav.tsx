@@ -6,10 +6,10 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/", label: "Dashboard" },
-  { href: "/categories", label: "Categories" },
-  { href: "/schedule", label: "Review Schedule" },
-  { href: "/letci", label: "LeTCI Summary" },
   { href: "/requirements", label: "Key Requirements" },
+  { href: "/categories", label: "Categories" },
+  { href: "/letci", label: "LeTCI Summary" },
+  { href: "/schedule", label: "Review Schedule" },
   { href: "/log", label: "Log Data" },
   { href: "/metric/new", label: "+ Add Metric" },
 ];

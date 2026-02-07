@@ -289,7 +289,8 @@ export default function CategoriesPage() {
                       {/* Expanded metric list */}
                       {isExpanded && (
                         <div className="border-t border-gray-200">
-                          <table className="w-full text-sm">
+                          {/* Desktop table */}
+                          <table className="hidden md:table w-full text-sm">
                             <thead>
                               <tr className="bg-gray-100 text-gray-500 text-left text-xs uppercase">
                                 <th className="px-4 py-2">Status</th>
@@ -350,6 +351,43 @@ export default function CategoriesPage() {
                               ))}
                             </tbody>
                           </table>
+                          {/* Mobile stacked cards */}
+                          <div className="md:hidden divide-y divide-gray-200">
+                            {proc.metrics.map((metric) => (
+                              <div key={metric.id} className="px-4 py-3 space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <Link
+                                    href={`/metric/${metric.id}`}
+                                    className="text-[#324a4d] font-medium hover:text-[#f79935] transition-colors text-sm"
+                                  >
+                                    {metric.name}
+                                  </Link>
+                                  <span
+                                    className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                    style={{
+                                      backgroundColor: getStatusColor(metric.review_status) + "20",
+                                      color: getStatusColor(metric.review_status),
+                                    }}
+                                  >
+                                    {getStatusLabel(metric.review_status)}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-400">
+                                  <span className="capitalize">{metric.cadence}</span>
+                                  {metric.data_source && <span>{metric.data_source}</span>}
+                                  <span className="font-medium text-[#324a4d]">
+                                    {metric.last_entry_value !== null
+                                      ? `${metric.last_entry_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
+                                      : "No data"}
+                                    {metric.target_value !== null && (
+                                      <span className="text-gray-400 font-normal"> / {metric.target_value}{metric.unit === "%" ? "%" : ` ${metric.unit}`}</span>
+                                    )}
+                                  </span>
+                                  <span>{formatDate(metric.last_entry_date)}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>

@@ -379,9 +379,7 @@ export default function RequirementsPage() {
               return (
                 <div
                   key={req.id}
-                  className={`bg-white rounded-lg shadow overflow-hidden ${
-                    isGap ? "border-l-4 border-[#f79935]" : ""
-                  }`}
+                  className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-[#f79935]"
                 >
                   {/* Inline edit form */}
                   {editMode && editingReq === req.id ? (

@@ -2,18 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { formatDate } from "@/lib/review-status";
+import { getReviewStatus, formatDate } from "@/lib/review-status";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
 
 interface MetricOption extends Metric {
   process_name: string;
   category_display_name: string;
+  last_entry_date: string | null;
+  review_status: "current" | "due-soon" | "overdue" | "no-data";
 }
 
 export default function LogDataPage() {
   const [metrics, setMetrics] = useState<MetricOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<"single" | "bulk">("single");
 
   // Form state
   const [selectedMetricId, setSelectedMetricId] = useState<number | null>(null);
@@ -24,39 +27,62 @@ export default function LogDataPage() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Bulk form state
+  const [bulkDate, setBulkDate] = useState(new Date().toISOString().split("T")[0]);
+  const [bulkValues, setBulkValues] = useState<Map<number, string>>(new Map());
+  const [bulkSaving, setBulkSaving] = useState(false);
+
   // Search/filter
   const [search, setSearch] = useState("");
   const [filterCadence, setFilterCadence] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
 
+  async function fetchMetrics() {
+    const { data } = await supabase
+      .from("metrics")
+      .select(`
+        *,
+        processes!inner (
+          name,
+          categories!inner ( display_name )
+        )
+      `)
+      .order("name");
+
+    const { data: entriesData } = await supabase
+      .from("entries")
+      .select("metric_id, date")
+      .order("date", { ascending: false });
+
+    const latestEntries = new Map<number, string>();
+    if (entriesData) {
+      for (const entry of entriesData) {
+        if (!latestEntries.has(entry.metric_id)) {
+          latestEntries.set(entry.metric_id, entry.date);
+        }
+      }
+    }
+
+    const rows: MetricOption[] = (data || []).map((m: Record<string, unknown>) => {
+      const process = m.processes as Record<string, unknown>;
+      const category = process.categories as Record<string, unknown>;
+      const lastDate = latestEntries.get(m.id as number) || null;
+      return {
+        ...(m as unknown as Metric),
+        process_name: process.name as string,
+        category_display_name: category.display_name as string,
+        last_entry_date: lastDate,
+        review_status: getReviewStatus(m.cadence as string, lastDate),
+      };
+    });
+
+    setMetrics(rows);
+    setLoading(false);
+  }
+
   useEffect(() => {
     document.title = "Log Data | NIA Results Tracker";
-    async function fetch() {
-      const { data } = await supabase
-        .from("metrics")
-        .select(`
-          *,
-          processes!inner (
-            name,
-            categories!inner ( display_name )
-          )
-        `)
-        .order("name");
-
-      const rows: MetricOption[] = (data || []).map((m: Record<string, unknown>) => {
-        const process = m.processes as Record<string, unknown>;
-        const category = process.categories as Record<string, unknown>;
-        return {
-          ...(m as unknown as Metric),
-          process_name: process.name as string,
-          category_display_name: category.display_name as string,
-        };
-      });
-
-      setMetrics(rows);
-      setLoading(false);
-    }
-    fetch();
+    fetchMetrics();
   }, []);
 
   const selectedMetric = metrics.find((m) => m.id === selectedMetricId) || null;
@@ -107,6 +133,39 @@ export default function LogDataPage() {
     setSaving(false);
   }
 
+  // Bulk save
+  async function handleBulkSave() {
+    const entries = Array.from(bulkValues.entries())
+      .filter(([, val]) => val.trim() !== "")
+      .map(([metricId, val]) => ({
+        metric_id: metricId,
+        value: parseFloat(val),
+        date: bulkDate,
+        note_analysis: null,
+        note_course_correction: null,
+      }));
+
+    if (entries.length === 0) return;
+
+    setBulkSaving(true);
+    const { error } = await supabase.from("entries").insert(entries);
+
+    if (error) {
+      alert("Failed to save: " + error.message);
+    } else {
+      setSuccessMessage(`Logged ${entries.length} value${entries.length !== 1 ? "s" : ""}`);
+      setBulkValues(new Map());
+      await fetchMetrics();
+      setTimeout(() => setSuccessMessage(""), 4000);
+    }
+    setBulkSaving(false);
+  }
+
+  // Metrics that need review (for bulk mode)
+  const dueMetrics = metrics.filter(
+    (m) => m.review_status === "overdue" || m.review_status === "due-soon" || m.review_status === "no-data"
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -117,11 +176,36 @@ export default function LogDataPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#324a4d]">Log Data</h1>
-        <p className="text-gray-500 mt-1">
-          Search for a metric and log a new value
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#324a4d]">Log Data</h1>
+          <p className="text-gray-500 mt-1">
+            {mode === "single" ? "Search for a metric and log a new value" : "Log values for all due metrics at once"}
+          </p>
+        </div>
+        <div className="flex bg-gray-200 rounded-lg p-0.5">
+          <button
+            onClick={() => setMode("single")}
+            className={`text-sm px-3 py-1.5 rounded-md transition-colors ${
+              mode === "single" ? "bg-white text-[#324a4d] shadow-sm font-medium" : "text-gray-500"
+            }`}
+          >
+            Single
+          </button>
+          <button
+            onClick={() => setMode("bulk")}
+            className={`text-sm px-3 py-1.5 rounded-md transition-colors ${
+              mode === "bulk" ? "bg-white text-[#324a4d] shadow-sm font-medium" : "text-gray-500"
+            }`}
+          >
+            Bulk Review
+            {dueMetrics.length > 0 && (
+              <span className="ml-1.5 text-xs bg-[#f79935]/10 text-[#f79935] px-1.5 py-0.5 rounded-full font-medium">
+                {dueMetrics.length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Success message */}
@@ -134,6 +218,101 @@ export default function LogDataPage() {
         </div>
       )}
 
+      {/* Bulk Review mode */}
+      {mode === "bulk" && (
+        <div className="space-y-4">
+          {dueMetrics.length === 0 ? (
+            <div className="bg-[#b1bd37]/10 border border-[#b1bd37]/30 rounded-lg px-6 py-8 text-center">
+              <div className="text-2xl mb-2">All caught up!</div>
+              <p className="text-[#324a4d] text-sm">
+                No metrics are due for review right now.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935]">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-bold text-[#324a4d]">
+                    {dueMetrics.length} metric{dueMetrics.length !== 1 ? "s" : ""} due for review
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm text-gray-500">Date for all:</label>
+                    <input
+                      type="date"
+                      value={bulkDate}
+                      onChange={(e) => setBulkDate(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-400 mb-4">
+                  Enter values for the metrics you want to log. Leave blank to skip.
+                </p>
+
+                <div className="space-y-2">
+                  {dueMetrics.map((metric) => (
+                    <div
+                      key={metric.id}
+                      className="flex items-center gap-4 py-2 border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          href={`/metric/${metric.id}`}
+                          className="text-sm font-medium text-[#324a4d] hover:text-[#f79935] transition-colors"
+                        >
+                          {metric.name}
+                        </Link>
+                        <div className="text-xs text-gray-400">
+                          {metric.category_display_name} &middot; {metric.process_name} &middot;{" "}
+                          <span className="capitalize">{metric.cadence}</span>
+                          {metric.target_value !== null && (
+                            <> &middot; Target: {metric.target_value}{metric.unit === "%" ? "%" : ` ${metric.unit}`}</>
+                          )}
+                          {metric.last_entry_date && (
+                            <> &middot; Last: {formatDate(metric.last_entry_date)}</>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <input
+                          type="number"
+                          step="any"
+                          value={bulkValues.get(metric.id) || ""}
+                          onChange={(e) => {
+                            const next = new Map(bulkValues);
+                            next.set(metric.id, e.target.value);
+                            setBulkValues(next);
+                          }}
+                          className="w-24 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                          placeholder="Value"
+                        />
+                        <span className="text-xs text-gray-400 w-6">{metric.unit}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="text-sm text-gray-400">
+                    {Array.from(bulkValues.values()).filter((v) => v.trim() !== "").length} of{" "}
+                    {dueMetrics.length} filled in
+                  </span>
+                  <button
+                    onClick={handleBulkSave}
+                    disabled={bulkSaving || Array.from(bulkValues.values()).filter((v) => v.trim() !== "").length === 0}
+                    className="bg-[#324a4d] text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium text-sm"
+                  >
+                    {bulkSaving ? "Saving..." : "Save All"}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Single mode */}
+      {mode === "single" && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Metric picker */}
         <div className="space-y-4">
@@ -320,6 +499,7 @@ export default function LogDataPage() {
           {selectedMetric && <RecentEntries metricId={selectedMetric.id} unit={selectedMetric.unit} />}
         </div>
       </div>
+      )}
     </div>
   );
 }
