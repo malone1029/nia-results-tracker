@@ -203,6 +203,16 @@ export default function CategoriesPage() {
               <span className="text-gray-400 text-sm"> / {cat.totalMetrics}</span>
             </div>
             <div className="text-xs text-gray-400">metrics with data</div>
+            {/* Progress bar */}
+            <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${cat.totalMetrics > 0 ? (cat.totalWithData / cat.totalMetrics) * 100 : 0}%`,
+                  backgroundColor: cat.totalWithData === cat.totalMetrics ? "#b1bd37" : "#f79935",
+                }}
+              />
+            </div>
           </a>
         ))}
       </div>
@@ -235,23 +245,11 @@ export default function CategoriesPage() {
                   {cat.totalWithData} of {cat.totalMetrics} metrics with data
                 </span>
               </div>
-              <div className="flex items-center gap-3">
-                {catNeedsAttention > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">
-                    {catNeedsAttention} need attention
-                  </span>
-                )}
-                {/* Mini progress bar */}
-                <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${cat.totalMetrics > 0 ? (cat.totalWithData / cat.totalMetrics) * 100 : 0}%`,
-                      backgroundColor: cat.totalWithData === cat.totalMetrics ? "#b1bd37" : "#f79935",
-                    }}
-                  />
-                </div>
-              </div>
+              {catNeedsAttention > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                  {catNeedsAttention} need attention
+                </span>
+              )}
             </button>
 
             {/* Expanded process list */}
