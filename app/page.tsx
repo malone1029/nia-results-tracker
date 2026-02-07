@@ -1,65 +1,441 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { getReviewStatus, getStatusColor, getStatusLabel } from "@/lib/review-status";
+import type { Metric, Entry } from "@/lib/types";
+import Link from "next/link";
+
+interface MetricRow extends Metric {
+  process_name: string;
+  category_display_name: string;
+  last_entry_date: string | null;
+  last_entry_value: number | null;
+  review_status: "current" | "due-soon" | "overdue" | "no-data";
+}
+
+interface LogFormData {
+  metricId: number;
+  value: string;
+  date: string;
+  noteAnalysis: string;
+  noteCourseCorrection: string;
+}
+
+export default function Dashboard() {
+  const [metrics, setMetrics] = useState<MetricRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [logForm, setLogForm] = useState<LogFormData | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  async function fetchMetrics() {
+    // Fetch all metrics with their process and category names
+    const { data: metricsData, error: metricsError } = await supabase
+      .from("metrics")
+      .select(`
+        *,
+        processes!inner (
+          name,
+          categories!inner (
+            display_name
+          )
+        )
+      `);
+
+    if (metricsError) {
+      console.error("Error fetching metrics:", metricsError);
+      setLoading(false);
+      return;
+    }
+
+    // Fetch the latest entry for each metric
+    const { data: entriesData, error: entriesError } = await supabase
+      .from("entries")
+      .select("metric_id, value, date")
+      .order("date", { ascending: false });
+
+    if (entriesError) {
+      console.error("Error fetching entries:", entriesError);
+    }
+
+    // Build a map of metric_id -> latest entry
+    const latestEntries = new Map<number, { value: number; date: string }>();
+    if (entriesData) {
+      for (const entry of entriesData) {
+        if (!latestEntries.has(entry.metric_id)) {
+          latestEntries.set(entry.metric_id, {
+            value: entry.value,
+            date: entry.date,
+          });
+        }
+      }
+    }
+
+    // Combine metrics with their status
+    const rows: MetricRow[] = (metricsData || []).map((m: Record<string, unknown>) => {
+      const process = m.processes as Record<string, unknown>;
+      const category = process.categories as Record<string, unknown>;
+      const latest = latestEntries.get(m.id as number);
+
+      return {
+        ...(m as unknown as Metric),
+        process_name: process.name as string,
+        category_display_name: category.display_name as string,
+        last_entry_date: latest?.date || null,
+        last_entry_value: latest?.value || null,
+        review_status: getReviewStatus(
+          m.cadence as string,
+          latest?.date || null
+        ),
+      };
+    });
+
+    // Sort: overdue first, then due-soon, then no-data, then current
+    const statusOrder = { overdue: 0, "due-soon": 1, "no-data": 2, current: 3 };
+    rows.sort(
+      (a, b) => statusOrder[a.review_status] - statusOrder[b.review_status]
+    );
+
+    setMetrics(rows);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    fetchMetrics();
+  }, []);
+
+  async function handleLogSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!logForm) return;
+
+    setSaving(true);
+    const { error } = await supabase.from("entries").insert({
+      metric_id: logForm.metricId,
+      value: parseFloat(logForm.value),
+      date: logForm.date,
+      note_analysis: logForm.noteAnalysis || null,
+      note_course_correction: logForm.noteCourseCorrection || null,
+    });
+
+    if (error) {
+      console.error("Error saving entry:", error);
+      alert("Failed to save: " + error.message);
+    } else {
+      setSuccessMessage(
+        `Logged ${logForm.value} for ${metrics.find((m) => m.id === logForm.metricId)?.name}`
+      );
+      setLogForm(null);
+      // Refresh the data
+      await fetchMetrics();
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(""), 3000);
+    }
+    setSaving(false);
+  }
+
+  const today = new Date().toISOString().split("T")[0];
+  const overdue = metrics.filter((m) => m.review_status === "overdue");
+  const dueSoon = metrics.filter((m) => m.review_status === "due-soon");
+  const noData = metrics.filter((m) => m.review_status === "no-data");
+  const current = metrics.filter((m) => m.review_status === "current");
+  const needsTargets = metrics.filter((m) => m.target_value === null);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-[#55787c] text-lg">Loading dashboard...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="space-y-6">
+      {/* Success message */}
+      {successMessage && (
+        <div className="bg-[#b1bd37]/20 border border-[#b1bd37] text-[#324a4d] px-4 py-3 rounded-lg">
+          {successMessage}
+        </div>
+      )}
+
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatCard label="Total Metrics" value={metrics.length} color="#324a4d" />
+        <StatCard
+          label="With Data"
+          value={metrics.length - noData.length}
+          color="#b1bd37"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <StatCard label="Due Soon" value={dueSoon.length} color="#f79935" />
+        <StatCard label="Overdue" value={overdue.length} color="#dc2626" />
+        <StatCard
+          label="Need Targets"
+          value={needsTargets.length}
+          color="#55787c"
+        />
+      </div>
+
+      {/* Inline log form */}
+      {logForm && (
+        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-[#f79935]">
+          <h3 className="font-bold text-[#324a4d] mb-4">
+            Log Value:{" "}
+            {metrics.find((m) => m.id === logForm.metricId)?.name}
+          </h3>
+          <form onSubmit={handleLogSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                  Value *
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  value={logForm.value}
+                  onChange={(e) =>
+                    setLogForm({ ...logForm, value: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                  placeholder="Enter value"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                  Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={logForm.date}
+                  onChange={(e) =>
+                    setLogForm({ ...logForm, date: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                Analysis Note{" "}
+                <span className="text-gray-400 font-normal">
+                  (context or explanation)
+                </span>
+              </label>
+              <input
+                type="text"
+                value={logForm.noteAnalysis}
+                onChange={(e) =>
+                  setLogForm({ ...logForm, noteAnalysis: e.target.value })
+                }
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                placeholder="e.g., New survey methodology used this cycle"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                Course Correction{" "}
+                <span className="text-gray-400 font-normal">
+                  (action taken if missing target)
+                </span>
+              </label>
+              <input
+                type="text"
+                value={logForm.noteCourseCorrection}
+                onChange={(e) =>
+                  setLogForm({
+                    ...logForm,
+                    noteCourseCorrection: e.target.value,
+                  })
+                }
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                placeholder="e.g., Added mandatory re-training for repeat offenders"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="bg-[#324a4d] text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Entry"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLogForm(null)}
+                className="bg-gray-200 text-[#324a4d] rounded-lg py-2 px-4 hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      )}
+
+      {/* Overdue section */}
+      {overdue.length > 0 && (
+        <MetricSection
+          title="Overdue"
+          subtitle="These metrics are past their review date"
+          metrics={overdue}
+          onLogClick={(id) =>
+            setLogForm({
+              metricId: id,
+              value: "",
+              date: today,
+              noteAnalysis: "",
+              noteCourseCorrection: "",
+            })
+          }
+        />
+      )}
+
+      {/* Due Soon section */}
+      {dueSoon.length > 0 && (
+        <MetricSection
+          title="Due Soon"
+          subtitle="These metrics are due for review within the next 7 days"
+          metrics={dueSoon}
+          onLogClick={(id) =>
+            setLogForm({
+              metricId: id,
+              value: "",
+              date: today,
+              noteAnalysis: "",
+              noteCourseCorrection: "",
+            })
+          }
+        />
+      )}
+
+      {/* No Data section */}
+      {noData.length > 0 && (
+        <MetricSection
+          title="No Data Yet"
+          subtitle="These metrics have never been logged"
+          metrics={noData}
+          onLogClick={(id) =>
+            setLogForm({
+              metricId: id,
+              value: "",
+              date: today,
+              noteAnalysis: "",
+              noteCourseCorrection: "",
+            })
+          }
+        />
+      )}
+
+      {/* Current section */}
+      {current.length > 0 && (
+        <MetricSection
+          title="Current"
+          subtitle="These metrics are up to date"
+          metrics={current}
+          onLogClick={(id) =>
+            setLogForm({
+              metricId: id,
+              value: "",
+              date: today,
+              noteAnalysis: "",
+              noteCourseCorrection: "",
+            })
+          }
+        />
+      )}
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <div className="bg-white rounded-lg shadow p-4 text-center">
+      <div className="text-3xl font-bold" style={{ color }}>
+        {value}
+      </div>
+      <div className="text-sm text-gray-500 mt-1">{label}</div>
+    </div>
+  );
+}
+
+function MetricSection({
+  title,
+  subtitle,
+  metrics,
+  onLogClick,
+}: {
+  title: string;
+  subtitle: string;
+  metrics: MetricRow[];
+  onLogClick: (metricId: number) => void;
+}) {
+  return (
+    <div>
+      <h2 className="text-lg font-bold text-[#324a4d]">{title}</h2>
+      <p className="text-sm text-gray-500 mb-3">{subtitle}</p>
+      <div className="space-y-2">
+        {metrics.map((metric) => (
+          <div
+            key={metric.id}
+            className="bg-white rounded-lg shadow p-4 flex items-center justify-between"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{
+                  backgroundColor: getStatusColor(metric.review_status),
+                }}
+              />
+              <div>
+                <Link href={`/metric/${metric.id}`} className="font-medium text-[#324a4d] hover:text-[#f79935] transition-colors">
+                  {metric.name}
+                </Link>
+                <div className="text-sm text-gray-500">
+                  {metric.category_display_name} &middot; {metric.process_name}{" "}
+                  &middot; {metric.cadence}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {metric.last_entry_value !== null && (
+                <div className="text-right">
+                  <div className="font-medium text-[#324a4d]">
+                    {metric.last_entry_value}
+                    {metric.unit === "%" ? "%" : ` ${metric.unit}`}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {metric.last_entry_date}
+                  </div>
+                </div>
+              )}
+              <span
+                className="text-xs px-2 py-1 rounded-full font-medium"
+                style={{
+                  backgroundColor:
+                    getStatusColor(metric.review_status) + "20",
+                  color: getStatusColor(metric.review_status),
+                }}
+              >
+                {getStatusLabel(metric.review_status)}
+              </span>
+              <button
+                onClick={() => onLogClick(metric.id)}
+                className="bg-[#324a4d] text-white text-sm rounded-lg py-1.5 px-3 hover:opacity-90"
+              >
+                Log Now
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
