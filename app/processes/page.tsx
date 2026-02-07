@@ -166,19 +166,7 @@ export default function ProcessesPage() {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {categories.map((cat) => {
-            let bgColor: string;
-            let textColor: string;
-            if (cat.approved_count > 0) {
-              bgColor = "#b1bd37" + "20";
-              textColor = "#6b7a1a";
-            } else if (cat.process_count > 0) {
-              bgColor = "#f79935" + "20";
-              textColor = "#b06a10";
-            } else {
-              bgColor = "#dc2626" + "20";
-              textColor = "#dc2626";
-            }
-
+            const isEmpty = cat.process_count === 0;
             const isSelected = filterCategory === cat.id;
 
             return (
@@ -187,36 +175,32 @@ export default function ProcessesPage() {
                 onClick={() =>
                   setFilterCategory(isSelected ? null : cat.id)
                 }
-                className={`rounded-lg p-3 text-center transition-all ${
+                className={`bg-white rounded-lg shadow p-3 text-center transition-all ${
                   isSelected
                     ? "ring-2 ring-[#324a4d] shadow-md"
                     : "hover:shadow-md"
-                }`}
-                style={{ backgroundColor: bgColor }}
+                } ${isEmpty ? "opacity-60" : ""}`}
               >
-                <div
-                  className="text-2xl font-bold"
-                  style={{ color: textColor }}
-                >
+                <div className={`text-2xl font-bold ${isEmpty ? "text-[#dc2626]" : "text-[#324a4d]"}`}>
                   {cat.process_count}
                 </div>
-                <div className="text-xs font-medium text-[#324a4d] mt-1 leading-tight">
+                <div className={`text-xs font-medium mt-1 leading-tight ${isEmpty ? "text-[#dc2626]" : "text-[#324a4d]"}`}>
                   {cat.display_name}
                 </div>
-                {cat.process_count === 0 ? (
-                  <div className="text-xs mt-1" style={{ color: "#dc2626" }}>
+                {isEmpty ? (
+                  <div className="text-xs mt-1 text-[#dc2626]">
                     No processes
                   </div>
                 ) : (
-                  <div className="text-xs mt-1 space-x-1">
+                  <div className="text-xs mt-1 text-gray-500 space-x-1">
                     {cat.approved_count > 0 && (
-                      <span style={{ color: "#6b7a1a" }}>{cat.approved_count} approved</span>
+                      <span className="text-[#6b7a1a]">{cat.approved_count} approved</span>
                     )}
                     {cat.in_progress_count > 0 && (
-                      <span style={{ color: "#b06a10" }}>{cat.in_progress_count} in review</span>
+                      <span className="text-[#b06a10]">{cat.in_progress_count} in review</span>
                     )}
                     {cat.process_count - cat.approved_count - cat.in_progress_count > 0 && (
-                      <span className="text-gray-400">
+                      <span>
                         {cat.process_count - cat.approved_count - cat.in_progress_count} draft
                       </span>
                     )}
