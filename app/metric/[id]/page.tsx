@@ -9,6 +9,7 @@ import {
   getStatusLabel,
   toFiscalYear,
   getTrendDirection,
+  formatDate,
 } from "@/lib/review-status";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
@@ -62,6 +63,8 @@ export default function MetricDetailPage() {
     if (metricData) {
       const process = metricData.processes as Record<string, unknown>;
       const category = process.categories as Record<string, unknown>;
+      const name = metricData.name as string;
+      document.title = `${name} | NIA Results Tracker`;
       setMetric({
         ...(metricData as unknown as Metric),
         process_name: process.name as string,
@@ -107,6 +110,16 @@ export default function MetricDetailPage() {
       setTimeout(() => setSuccessMessage(""), 3000);
     }
     setSaving(false);
+  }
+
+  async function handleDeleteEntry(entryId: number) {
+    if (!confirm("Delete this entry? This cannot be undone.")) return;
+    const { error } = await supabase.from("entries").delete().eq("id", entryId);
+    if (error) {
+      alert("Failed to delete: " + error.message);
+    } else {
+      await fetchData();
+    }
   }
 
   if (loading) {
@@ -477,12 +490,13 @@ export default function MetricDetailPage() {
                 <th className="px-4 py-2 text-right">Value</th>
                 <th className="px-4 py-2">Analysis Note</th>
                 <th className="px-4 py-2">Course Correction</th>
+                <th className="px-4 py-2"></th>
               </tr>
             </thead>
             <tbody>
               {[...entries].reverse().map((entry) => (
-                <tr key={entry.id} className="border-t border-gray-100">
-                  <td className="px-4 py-2 text-gray-600">{entry.date}</td>
+                <tr key={entry.id} className="border-t border-gray-100 group">
+                  <td className="px-4 py-2 text-gray-600">{formatDate(entry.date)}</td>
                   <td className="px-4 py-2 text-gray-400">{toFiscalYear(entry.date)}</td>
                   <td className="px-4 py-2 text-right font-medium text-[#324a4d]">
                     {entry.value}
@@ -497,6 +511,15 @@ export default function MetricDetailPage() {
                     ) : (
                       <span className="text-gray-400">—</span>
                     )}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <button
+                      onClick={() => handleDeleteEntry(entry.id)}
+                      className="text-gray-300 hover:text-red-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete this entry"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}

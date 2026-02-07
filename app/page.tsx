@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { getReviewStatus, getStatusColor, getStatusLabel } from "@/lib/review-status";
+import { getReviewStatus, getStatusColor, getStatusLabel, formatDate } from "@/lib/review-status";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
+import { useRef } from "react";
 
 interface MetricRow extends Metric {
   process_name: string;
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const [logForm, setLogForm] = useState<LogFormData | null>(null);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const logFormRef = useRef<HTMLDivElement>(null);
 
   async function fetchMetrics() {
     // Fetch all metrics with their process and category names
@@ -102,6 +104,7 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+    document.title = "Dashboard | NIA Results Tracker";
     fetchMetrics();
   }, []);
 
@@ -132,6 +135,19 @@ export default function Dashboard() {
       setTimeout(() => setSuccessMessage(""), 3000);
     }
     setSaving(false);
+  }
+
+  function openLogForm(metricId: number) {
+    setLogForm({
+      metricId,
+      value: "",
+      date: new Date().toISOString().split("T")[0],
+      noteAnalysis: "",
+      noteCourseCorrection: "",
+    });
+    setTimeout(() => {
+      logFormRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
   }
 
   const today = new Date().toISOString().split("T")[0];
@@ -177,7 +193,7 @@ export default function Dashboard() {
 
       {/* Inline log form */}
       {logForm && (
-        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-[#f79935]">
+        <div ref={logFormRef} className="bg-white rounded-lg shadow p-6 border-l-4 border-[#f79935]">
           <h3 className="font-bold text-[#324a4d] mb-4">
             Log Value:{" "}
             {metrics.find((m) => m.id === logForm.metricId)?.name}
@@ -278,15 +294,7 @@ export default function Dashboard() {
           title="Overdue"
           subtitle="These metrics are past their review date"
           metrics={overdue}
-          onLogClick={(id) =>
-            setLogForm({
-              metricId: id,
-              value: "",
-              date: today,
-              noteAnalysis: "",
-              noteCourseCorrection: "",
-            })
-          }
+          onLogClick={openLogForm}
         />
       )}
 
@@ -296,16 +304,19 @@ export default function Dashboard() {
           title="Due Soon"
           subtitle="These metrics are due for review within the next 7 days"
           metrics={dueSoon}
-          onLogClick={(id) =>
-            setLogForm({
-              metricId: id,
-              value: "",
-              date: today,
-              noteAnalysis: "",
-              noteCourseCorrection: "",
-            })
-          }
+          onLogClick={openLogForm}
         />
+      )}
+
+      {/* All caught up empty state */}
+      {overdue.length === 0 && dueSoon.length === 0 && (
+        <div className="bg-[#b1bd37]/10 border border-[#b1bd37]/30 rounded-lg px-6 py-8 text-center">
+          <div className="text-2xl mb-2">All caught up!</div>
+          <p className="text-[#324a4d] text-sm">
+            No metrics are overdue or due soon. Check back later or{" "}
+            <Link href="/log" className="text-[#f79935] hover:underline font-medium">log new data</Link>.
+          </p>
+        </div>
       )}
 
       {/* No Data section — collapsed by default */}
@@ -315,15 +326,7 @@ export default function Dashboard() {
           subtitle="These metrics have never been logged"
           metrics={noData}
           defaultOpen={false}
-          onLogClick={(id) =>
-            setLogForm({
-              metricId: id,
-              value: "",
-              date: today,
-              noteAnalysis: "",
-              noteCourseCorrection: "",
-            })
-          }
+          onLogClick={openLogForm}
         />
       )}
 
@@ -334,15 +337,7 @@ export default function Dashboard() {
           subtitle="These metrics are up to date"
           metrics={current}
           defaultOpen={false}
-          onLogClick={(id) =>
-            setLogForm({
-              metricId: id,
-              value: "",
-              date: today,
-              noteAnalysis: "",
-              noteCourseCorrection: "",
-            })
-          }
+          onLogClick={openLogForm}
         />
       )}
     </div>
@@ -435,7 +430,7 @@ function MetricSection({
                       {metric.unit === "%" ? "%" : ` ${metric.unit}`}
                     </div>
                     <div className="text-xs text-gray-400">
-                      {metric.last_entry_date}
+                      {formatDate(metric.last_entry_date)}
                     </div>
                   </div>
                 )}

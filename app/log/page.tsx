@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { formatDate } from "@/lib/review-status";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
 
@@ -29,6 +30,7 @@ export default function LogDataPage() {
   const [filterCategory, setFilterCategory] = useState<string>("all");
 
   useEffect(() => {
+    document.title = "Log Data | NIA Results Tracker";
     async function fetch() {
       const { data } = await supabase
         .from("metrics")
@@ -348,7 +350,7 @@ function RecentEntries({ metricId, unit }: { metricId: number; unit: string }) {
       <div className="space-y-1">
         {entries.map((entry) => (
           <div key={entry.id} className="flex justify-between text-sm py-1 border-b border-gray-50">
-            <span className="text-gray-500">{entry.date}</span>
+            <span className="text-gray-500">{formatDate(entry.date)}</span>
             <span className="font-medium text-[#324a4d]">
               {entry.value}{unit === "%" ? "%" : ` ${unit}`}
             </span>

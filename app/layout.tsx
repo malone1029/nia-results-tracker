@@ -31,7 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {/* Header */}
-        <header className="bg-gradient-to-r from-[#55787c] to-[#324a4d] text-white shadow-lg">
+        <header className="bg-gradient-to-r from-[#55787c] to-[#324a4d] text-white shadow-lg relative">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Image

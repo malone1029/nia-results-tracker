@@ -63,6 +63,17 @@ export function getStatusLabel(status: ReviewStatus): string {
   }
 }
 
+// Format a date string like "2025-01-15" to "Jan 15, 2025"
+export function formatDate(date: string | null): string {
+  if (!date) return "Never";
+  const d = new Date(date + "T00:00:00"); // avoid timezone shift
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 // Convert a date to NIA fiscal year label (July 1 - June 30)
 // July 2024 through June 2025 = FY25
 export function toFiscalYear(date: Date | string): string {

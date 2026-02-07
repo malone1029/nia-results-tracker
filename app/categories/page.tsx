@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { getReviewStatus, getStatusColor, getStatusLabel } from "@/lib/review-status";
+import { getReviewStatus, getStatusColor, getStatusLabel, formatDate } from "@/lib/review-status";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
 
@@ -41,6 +41,7 @@ export default function CategoriesPage() {
   const [expandedProcesses, setExpandedProcesses] = useState<Set<number>>(new Set());
 
   useEffect(() => {
+    document.title = "Categories | NIA Results Tracker";
     async function fetch() {
       const { data: metricsData } = await supabase
         .from("metrics")
@@ -339,7 +340,7 @@ export default function CategoriesPage() {
                                   : "TBD"}
                               </td>
                               <td className="px-4 py-2 text-right text-gray-400">
-                                {metric.last_entry_date || "Never"}
+                                {formatDate(metric.last_entry_date)}
                               </td>
                             </tr>
                           ))}
