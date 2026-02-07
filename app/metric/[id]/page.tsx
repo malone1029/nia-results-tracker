@@ -158,7 +158,7 @@ export default function MetricDetailPage() {
     level: entries.length >= 1,
     trend: entries.length >= 3,
     comparison: metric.comparison_value !== null,
-    integration: true, // Always true — linked to a process by design
+    integration: metric.is_integrated,
   };
   const letciCount = [letci.level, letci.trend, letci.comparison, letci.integration].filter(Boolean).length;
 
@@ -436,7 +436,7 @@ export default function MetricDetailPage() {
           <LeTCICard
             letter="Le"
             title="Levels"
-            description="Current performance — do we have at least one data point?"
+            description="Current performance on a meaningful measurement scale"
             ready={letci.level}
             detail={
               letci.level
@@ -447,7 +447,7 @@ export default function MetricDetailPage() {
           <LeTCICard
             letter="T"
             title="Trends"
-            description="Direction over time — do we have 3+ data points?"
+            description="Rate of improvement or sustained good performance over time"
             ready={letci.trend}
             detail={
               letci.trend
@@ -458,7 +458,7 @@ export default function MetricDetailPage() {
           <LeTCICard
             letter="C"
             title="Comparisons"
-            description="Benchmarks — do we have a peer or industry comparison?"
+            description="Performance relative to benchmarks, peers, or industry standards"
             ready={letci.comparison}
             detail={
               letci.comparison
@@ -469,9 +469,13 @@ export default function MetricDetailPage() {
           <LeTCICard
             letter="I"
             title="Integration"
-            description="Connection to processes — is this metric linked to organizational work?"
+            description="Results used in decision-making and connected to organizational priorities"
             ready={letci.integration}
-            detail={`Linked to: ${metric.process_name} (${metric.category_display_name})`}
+            detail={
+              letci.integration
+                ? `Results actively used in decision-making. Process: ${metric.process_name} (${metric.category_display_name})`
+                : "Not yet marked as integrated. Edit this metric to confirm that results are used in decision-making and connected to organizational priorities."
+            }
           />
         </div>
       </div>

@@ -15,7 +15,7 @@ interface MetricLeTCI extends Metric {
   has_trend: boolean;
   trend_direction: "improving" | "declining" | "flat" | "insufficient";
   has_comparison: boolean;
-  has_integration: boolean; // always true
+  has_integration: boolean;
   letci_score: number; // 0-4
 }
 
@@ -67,7 +67,7 @@ export default function LeTCIPage() {
         const hasLevel = entries.length >= 1;
         const hasTrend = entries.length >= 3;
         const hasComparison = m.comparison_value !== null;
-        const hasIntegration = true;
+        const hasIntegration = (m.is_integrated as boolean) ?? false;
         const trendDir = getTrendDirection(values, m.is_higher_better as boolean);
 
         return {
@@ -134,6 +134,9 @@ export default function LeTCIPage() {
         break;
       case "comparison":
         cmp = Number(a.has_comparison) - Number(b.has_comparison);
+        break;
+      case "integration":
+        cmp = Number(a.has_integration) - Number(b.has_integration);
         break;
       default:
         cmp = a.letci_score - b.letci_score;
@@ -202,7 +205,9 @@ export default function LeTCIPage() {
           <div className="text-xs text-gray-400">Have Comparisons</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold text-[#b1bd37]">{withIntegration}</div>
+          <div className="text-2xl font-bold" style={{ color: withIntegration > 0 ? "#b1bd37" : "#dc2626" }}>
+            {withIntegration}
+          </div>
           <div className="text-xs text-gray-400">Have Integration</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 text-center border-2 border-[#b1bd37]">
@@ -243,7 +248,7 @@ export default function LeTCIPage() {
                 <SortHeader field="level" label="Level" />
                 <SortHeader field="trend" label="Trend" />
                 <SortHeader field="comparison" label="Comparison" />
-                <th className="px-3 py-2">Integration</th>
+                <SortHeader field="integration" label="Integration" />
                 <SortHeader field="letci_score" label="Score" />
               </tr>
             </thead>
@@ -285,7 +290,10 @@ export default function LeTCIPage() {
                     />
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <LetciDot ready={metric.has_integration} detail={metric.process_name} />
+                    <LetciDot
+                      ready={metric.has_integration}
+                      detail={metric.has_integration ? "Used in decision-making" : "Not yet integrated"}
+                    />
                   </td>
                   <td className="px-3 py-2 text-center">
                     <span

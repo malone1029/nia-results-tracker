@@ -30,6 +30,7 @@ export default function NewMetricPage() {
   const [collectionMethod, setCollectionMethod] = useState("");
   const [unit, setUnit] = useState("%");
   const [isHigherBetter, setIsHigherBetter] = useState(true);
+  const [isIntegrated, setIsIntegrated] = useState(false);
 
   useEffect(() => {
     async function fetch() {
@@ -77,6 +78,7 @@ export default function NewMetricPage() {
         collection_method: collectionMethod || null,
         unit,
         is_higher_better: isHigherBetter,
+        is_integrated: isIntegrated,
       })
       .select("id")
       .single();
@@ -268,6 +270,28 @@ export default function NewMetricPage() {
               placeholder="e.g., Semi-annual survey"
             />
           </div>
+        </div>
+
+        {/* Integration (LeTCI) */}
+        <div className="bg-[#55787c]/5 border border-[#55787c]/20 rounded-lg p-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isIntegrated}
+              onChange={(e) => setIsIntegrated(e.target.checked)}
+              className="mt-1 w-4 h-4 accent-[#b1bd37]"
+            />
+            <div>
+              <span className="font-medium text-[#324a4d]">
+                Integration (LeTCI)
+              </span>
+              <p className="text-xs text-gray-500 mt-1">
+                Check this when results from this metric are actively used in decision-making,
+                connected to organizational priorities, and segmented appropriately (e.g., by
+                service line or district).
+              </p>
+            </div>
+          </label>
         </div>
 
         {/* Actions */}

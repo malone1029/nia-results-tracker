@@ -28,6 +28,7 @@ export interface Metric {
   collection_method: string | null;
   unit: string;
   is_higher_better: boolean;
+  is_integrated: boolean;
 }
 
 export interface Entry {

@@ -31,7 +31,8 @@ create table metrics (
   data_source text,                  -- e.g., "Studer EE Survey"
   collection_method text,            -- e.g., "Semi-annual survey"
   unit text default '%',             -- %, count, currency, score, days, rate
-  is_higher_better boolean default true  -- determines trend color (false = lower is better, like phishing click rate)
+  is_higher_better boolean default true,  -- determines trend color (false = lower is better, like phishing click rate)
+  is_integrated boolean default false    -- LeTCI Integration: results used in decision-making and connected to org priorities
 );
 
 -- Entries table: individual data points logged over time
