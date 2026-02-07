@@ -154,7 +154,7 @@ export default function SchedulePage() {
             description={CADENCE_DESCRIPTIONS[cadence]}
             metrics={list}
             needsAttention={needsAttention}
-            defaultOpen={needsAttention > 0}
+            defaultOpen={false}
           />
         );
       })}
