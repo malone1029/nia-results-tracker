@@ -414,10 +414,12 @@ export default function ProcessDetailPage() {
         )}
       </div>
 
-      {/* Quick Template Content */}
-      <Section title="What is this process?">
-        <TextContent text={process.description} />
-      </Section>
+      {/* Description — hide for full templates when Charter has the full content */}
+      {!(process.template_type === "full" && process.charter?.content) && (
+        <Section title="What is this process?">
+          <TextContent text={process.description} />
+        </Section>
+      )}
 
       {/* These quick-only fields are redundant for full templates (covered by Charter + ADLI) */}
       {process.template_type === "quick" && (

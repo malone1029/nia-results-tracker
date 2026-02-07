@@ -455,7 +455,14 @@ export default function ImportProcessPage() {
           )}
 
           {vaultError && (
-            <p className="text-red-600 text-sm py-4">{vaultError}</p>
+            <div className="py-4">
+              <p className="text-[#55787c] text-sm font-medium mb-1">
+                Vault import is only available when running locally
+              </p>
+              <p className="text-gray-400 text-xs">
+                The app needs access to your Obsidian vault on disk. Use the &quot;Paste Markdown&quot; tab to import manually, or run the app locally with <code className="bg-gray-100 px-1 rounded">npm run dev</code>.
+              </p>
+            </div>
           )}
 
           {!vaultLoading && !vaultError && (

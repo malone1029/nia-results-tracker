@@ -266,16 +266,18 @@ export default function EditProcessPage() {
           </div>
         </div>
 
-        {/* Quick Template Fields */}
-        <CollapsibleSection title="What is this process?" defaultOpen>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
-            placeholder="Briefly describe what this process does..."
-          />
-        </CollapsibleSection>
+        {/* Description — hide for full templates when Charter has the full content */}
+        {!(templateType === "full" && charter.content) && (
+          <CollapsibleSection title="What is this process?" defaultOpen>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              placeholder="Briefly describe what this process does..."
+            />
+          </CollapsibleSection>
+        )}
 
         {/* These quick-only fields are redundant for full templates (covered by Charter + ADLI) */}
         {templateType === "quick" && (

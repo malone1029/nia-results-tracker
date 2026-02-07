@@ -22,6 +22,7 @@ interface CategorySummary {
   display_name: string;
   process_count: number;
   approved_count: number;
+  in_progress_count: number; // ready_for_review + in_review + revisions_needed
 }
 
 const STATUS_CONFIG: Record<ProcessStatus, { label: string; color: string }> = {
@@ -88,13 +89,17 @@ export default function ProcessesPage() {
           const catProcesses = processRows.filter(
             (p) => p.category_id === (c.id as number)
           );
+          const approved = catProcesses.filter((p) => p.status === "approved").length;
+          const inProgress = catProcesses.filter((p) =>
+            ["ready_for_review", "in_review", "revisions_needed"].includes(p.status)
+          ).length;
           return {
             id: c.id as number,
             name: c.name as string,
             display_name: c.display_name as string,
             process_count: catProcesses.length,
-            approved_count: catProcesses.filter((p) => p.status === "approved")
-              .length,
+            approved_count: approved,
+            in_progress_count: inProgress,
           };
         }
       );
@@ -128,7 +133,12 @@ export default function ProcessesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#324a4d]">Processes</h1>
+          <h1 className="text-2xl font-bold text-[#324a4d]">
+            Processes{" "}
+            {processes.length > 0 && (
+              <span className="text-gray-400 font-normal text-lg">({processes.length})</span>
+            )}
+          </h1>
           <p className="text-gray-500 mt-1">
             Organizational processes aligned to the Baldrige Excellence Framework
           </p>
@@ -193,22 +203,23 @@ export default function ProcessesPage() {
                 <div className="text-xs font-medium text-[#324a4d] mt-1 leading-tight">
                   {cat.display_name}
                 </div>
-                {cat.approved_count > 0 && (
-                  <div
-                    className="text-xs mt-1"
-                    style={{ color: "#6b7a1a" }}
-                  >
-                    {cat.approved_count} approved
-                  </div>
-                )}
-                {cat.process_count > 0 && cat.approved_count === 0 && (
-                  <div className="text-xs mt-1" style={{ color: "#b06a10" }}>
-                    {cat.process_count} draft
-                  </div>
-                )}
-                {cat.process_count === 0 && (
+                {cat.process_count === 0 ? (
                   <div className="text-xs mt-1" style={{ color: "#dc2626" }}>
                     No processes
+                  </div>
+                ) : (
+                  <div className="text-xs mt-1 space-x-1">
+                    {cat.approved_count > 0 && (
+                      <span style={{ color: "#6b7a1a" }}>{cat.approved_count} approved</span>
+                    )}
+                    {cat.in_progress_count > 0 && (
+                      <span style={{ color: "#b06a10" }}>{cat.in_progress_count} in review</span>
+                    )}
+                    {cat.process_count - cat.approved_count - cat.in_progress_count > 0 && (
+                      <span className="text-gray-400">
+                        {cat.process_count - cat.approved_count - cat.in_progress_count} draft
+                      </span>
+                    )}
                   </div>
                 )}
               </button>
