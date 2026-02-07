@@ -37,7 +37,7 @@ export default function RequirementsPage() {
   const [newReqForm, setNewReqForm] = useState({ requirement: "", description: "" });
 
   useEffect(() => {
-    document.title = "Key Requirements | NIA Results Tracker";
+    document.title = "Key Requirements | NIA Excellence Hub";
 
     async function fetchData() {
       // Fetch all key requirements

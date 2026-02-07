@@ -28,7 +28,7 @@ export default function LeTCIPage() {
   const [sortAsc, setSortAsc] = useState(true);
 
   useEffect(() => {
-    document.title = "LeTCI Summary | NIA Results Tracker";
+    document.title = "LeTCI Summary | NIA Excellence Hub";
     async function fetch() {
       const { data: metricsData } = await supabase
         .from("metrics")

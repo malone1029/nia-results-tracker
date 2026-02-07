@@ -81,7 +81,7 @@ export default function LogDataPage() {
   }
 
   useEffect(() => {
-    document.title = "Log Data | NIA Results Tracker";
+    document.title = "Log Data | NIA Excellence Hub";
     fetchMetrics();
   }, []);
 

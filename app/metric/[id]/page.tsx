@@ -65,7 +65,7 @@ export default function MetricDetailPage() {
       const process = metricData.processes as Record<string, unknown>;
       const category = process.categories as Record<string, unknown>;
       const name = metricData.name as string;
-      document.title = `${name} | NIA Results Tracker`;
+      document.title = `${name} | NIA Excellence Hub`;
       setMetric({
         ...(metricData as unknown as Metric),
         process_name: process.name as string,

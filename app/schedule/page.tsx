@@ -33,7 +33,7 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = "Review Schedule | NIA Results Tracker";
+    document.title = "Review Schedule | NIA Excellence Hub";
     async function fetch() {
       const { data: metricsData } = await supabase
         .from("metrics")

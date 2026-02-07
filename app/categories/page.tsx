@@ -41,7 +41,7 @@ export default function CategoriesPage() {
   const [expandedProcesses, setExpandedProcesses] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    document.title = "Categories | NIA Results Tracker";
+    document.title = "Categories | NIA Excellence Hub";
     async function fetch() {
       const { data: metricsData } = await supabase
         .from("metrics")

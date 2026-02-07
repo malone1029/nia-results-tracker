@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NIA Results Tracker",
+  title: "NIA Excellence Hub",
   description:
-    "Track organizational performance metrics aligned to the Baldrige Excellence Framework",
+    "Process documentation and performance metrics aligned to the Baldrige Excellence Framework",
 };
 
 export default function RootLayout({
@@ -42,7 +42,7 @@ export default function RootLayout({
                 className="rounded"
               />
               <div>
-                <h1 className="text-xl font-bold">NIA Results Tracker</h1>
+                <h1 className="text-xl font-bold">NIA Excellence Hub</h1>
                 <p className="text-sm text-white/70">
                   Baldrige Excellence Framework
                 </p>

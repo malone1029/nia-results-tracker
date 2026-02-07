@@ -7,12 +7,121 @@ export interface Category {
   sort_order: number;
 }
 
+// Status workflow: draft → ready_for_review → in_review → revisions_needed → approved
+export type ProcessStatus =
+  | "draft"
+  | "ready_for_review"
+  | "in_review"
+  | "revisions_needed"
+  | "approved";
+
+export type TemplateType = "quick" | "full";
+
+// JSONB field types for structured process data
+// Each type has an optional `content` field that stores the full markdown
+// of that section (preserved during Obsidian import so nothing is lost).
+
+export interface Charter {
+  content?: string;
+  purpose?: string;
+  scope_includes?: string;
+  scope_excludes?: string;
+  stakeholders?: string[];
+  mission_alignment?: string;
+}
+
+export interface AdliApproach {
+  content?: string;
+  evidence_base?: string;
+  key_steps?: string[];
+  tools_used?: string[];
+  key_requirements?: string;
+}
+
+export interface AdliDeployment {
+  content?: string;
+  teams?: string[];
+  communication_plan?: string;
+  training_approach?: string;
+  consistency_mechanisms?: string;
+}
+
+export interface AdliLearning {
+  content?: string;
+  metrics?: string[];
+  evaluation_methods?: string;
+  review_frequency?: string;
+  improvement_process?: string;
+}
+
+export interface AdliIntegration {
+  content?: string;
+  strategic_goals?: string[];
+  mission_connection?: string;
+  related_processes?: string[];
+  standards_alignment?: string;
+}
+
+export interface Workflow {
+  content?: string;
+  inputs?: string[];
+  steps?: {
+    responsible: string;
+    action: string;
+    output: string;
+    timing: string;
+  }[];
+  outputs?: string[];
+  quality_controls?: string[];
+}
+
+export interface BaldigeConnections {
+  content?: string;
+  questions_addressed?: string[];
+  evidence_by_dimension?: {
+    approach?: string;
+    deployment?: string;
+    learning?: string;
+    integration?: string;
+  };
+}
+
 export interface Process {
   id: number;
   category_id: number;
   name: string;
   description: string | null;
   baldrige_item: string | null;
+  status: ProcessStatus;
+  template_type: TemplateType;
+  owner: string | null;
+  reviewer: string | null;
+  charter: Charter | null;
+  basic_steps: string[] | null;
+  participants: string[] | null;
+  metrics_summary: string | null;
+  connections: string | null;
+  adli_approach: AdliApproach | null;
+  adli_deployment: AdliDeployment | null;
+  adli_learning: AdliLearning | null;
+  adli_integration: AdliIntegration | null;
+  workflow: Workflow | null;
+  baldrige_connections: BaldigeConnections | null;
+  updated_at: string;
+}
+
+export interface ProcessRequirement {
+  id: number;
+  process_id: number;
+  requirement_id: number;
+}
+
+export interface ProcessHistory {
+  id: number;
+  process_id: number;
+  version: string | null;
+  change_description: string;
+  changed_at: string;
 }
 
 export interface Metric {
