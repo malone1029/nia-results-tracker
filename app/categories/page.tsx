@@ -220,11 +220,6 @@ export default function CategoriesPage() {
       {/* Category sections — collapsible */}
       {categories.map((cat) => {
         const isCatExpanded = expandedCategories.has(cat.id);
-        const catNeedsAttention = cat.processes.reduce(
-          (sum, proc) =>
-            sum + proc.metrics.filter((m) => m.review_status === "overdue" || m.review_status === "due-soon").length,
-          0
-        );
 
         return (
           <div key={cat.id} id={`cat-${cat.id}`} className="space-y-4">
@@ -245,11 +240,6 @@ export default function CategoriesPage() {
                   {cat.totalWithData} of {cat.totalMetrics} metrics with data
                 </span>
               </div>
-              {catNeedsAttention > 0 && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">
-                  {catNeedsAttention} need attention
-                </span>
-              )}
             </button>
 
             {/* Expanded process list */}
