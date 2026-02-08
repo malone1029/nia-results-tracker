@@ -173,7 +173,7 @@ export default function LogDataPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#324a4d]">Log Data</h1>
+          <h1 className="text-3xl font-bold text-nia-dark">Log Data</h1>
           <p className="text-gray-500 mt-1">
             {mode === "single" ? "Search for a metric and log a new value" : "Log values for all due metrics at once"}
           </p>
@@ -182,7 +182,7 @@ export default function LogDataPage() {
           <button
             onClick={() => setMode("single")}
             className={`text-sm px-3 py-1.5 rounded-md transition-colors ${
-              mode === "single" ? "bg-white text-[#324a4d] shadow-sm font-medium" : "text-gray-500"
+              mode === "single" ? "bg-white text-nia-dark shadow-sm font-medium" : "text-gray-500"
             }`}
           >
             Single
@@ -190,12 +190,12 @@ export default function LogDataPage() {
           <button
             onClick={() => setMode("bulk")}
             className={`text-sm px-3 py-1.5 rounded-md transition-colors ${
-              mode === "bulk" ? "bg-white text-[#324a4d] shadow-sm font-medium" : "text-gray-500"
+              mode === "bulk" ? "bg-white text-nia-dark shadow-sm font-medium" : "text-gray-500"
             }`}
           >
             Bulk Review
             {dueMetrics.length > 0 && (
-              <span className="ml-1.5 text-xs bg-[#f79935]/10 text-[#f79935] px-1.5 py-0.5 rounded-full font-medium">
+              <span className="ml-1.5 text-xs bg-nia-orange/10 text-nia-orange px-1.5 py-0.5 rounded-full font-medium">
                 {dueMetrics.length}
               </span>
             )}
@@ -205,9 +205,9 @@ export default function LogDataPage() {
 
       {/* Success message */}
       {successMessage && (
-        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] text-[#324a4d] px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="banner-enter bg-nia-green/20 border border-nia-green text-nia-dark px-4 py-3 rounded-lg flex items-center justify-between">
           <span>{successMessage}</span>
-          <Link href="/" className="text-sm text-[#55787c] hover:underline">
+          <Link href="/" className="text-sm text-nia-grey-blue hover:underline">
             Back to Dashboard
           </Link>
         </div>
@@ -217,17 +217,17 @@ export default function LogDataPage() {
       {mode === "bulk" && (
         <div className="space-y-4">
           {dueMetrics.length === 0 ? (
-            <div className="bg-[#b1bd37]/10 border border-[#b1bd37]/30 rounded-lg px-6 py-8 text-center">
+            <div className="bg-nia-green/10 border border-nia-green/30 rounded-lg px-6 py-8 text-center">
               <div className="text-2xl mb-2">All caught up!</div>
-              <p className="text-[#324a4d] text-sm">
+              <p className="text-nia-dark text-sm">
                 No metrics are due for review right now.
               </p>
             </div>
           ) : (
             <>
-              <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935]">
+              <div className="bg-white rounded-lg shadow p-4 border-l-4 border-nia-orange">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-bold text-[#324a4d]">
+                  <h2 className="font-bold text-nia-dark">
                     {dueMetrics.length} metric{dueMetrics.length !== 1 ? "s" : ""} due for review
                   </h2>
                   <div className="flex items-center gap-3">
@@ -236,7 +236,7 @@ export default function LogDataPage() {
                       type="date"
                       value={bulkDate}
                       onChange={(e) => setBulkDate(e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                      className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                     />
                   </div>
                 </div>
@@ -253,7 +253,7 @@ export default function LogDataPage() {
                       <div className="flex-1 min-w-0">
                         <Link
                           href={`/metric/${metric.id}`}
-                          className="text-sm font-medium text-[#324a4d] hover:text-[#f79935] transition-colors"
+                          className="text-sm font-medium text-nia-dark hover:text-nia-orange transition-colors"
                         >
                           {metric.name}
                         </Link>
@@ -278,7 +278,7 @@ export default function LogDataPage() {
                             next.set(metric.id, e.target.value);
                             setBulkValues(next);
                           }}
-                          className="w-24 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                          className="w-24 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                           placeholder="Value"
                         />
                         <span className="text-xs text-gray-400 w-6">{metric.unit}</span>
@@ -295,7 +295,7 @@ export default function LogDataPage() {
                   <button
                     onClick={handleBulkSave}
                     disabled={bulkSaving || Array.from(bulkValues.values()).filter((v) => v.trim() !== "").length === 0}
-                    className="bg-[#324a4d] text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium text-sm"
+                    className="bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium text-sm"
                   >
                     {bulkSaving ? "Saving..." : "Save All"}
                   </button>
@@ -312,7 +312,7 @@ export default function LogDataPage() {
         {/* Left: Metric picker */}
         <div className="space-y-4">
           <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="font-bold text-[#324a4d] mb-3">1. Select a Metric</h2>
+            <h2 className="font-bold text-nia-dark mb-3">1. Select a Metric</h2>
 
             {/* Search */}
             <input
@@ -320,7 +320,7 @@ export default function LogDataPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, process, or data source..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             />
 
             {/* Filters */}
@@ -328,7 +328,7 @@ export default function LogDataPage() {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               >
                 <option value="all">All Categories</option>
                 {categoryOptions.map((cat) => (
@@ -340,7 +340,7 @@ export default function LogDataPage() {
               <select
                 value={filterCadence}
                 onChange={(e) => setFilterCadence(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               >
                 <option value="all">All Cadences</option>
                 <option value="monthly">Monthly</option>
@@ -363,11 +363,11 @@ export default function LogDataPage() {
                     onClick={() => setSelectedMetricId(metric.id)}
                     className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
                       selectedMetricId === metric.id
-                        ? "bg-[#55787c]/10 border-l-4 border-l-[#55787c]"
+                        ? "bg-nia-grey-blue/10 border-l-4 border-l-nia-grey-blue"
                         : ""
                     }`}
                   >
-                    <div className="font-medium text-[#324a4d] text-sm">{metric.name}</div>
+                    <div className="font-medium text-nia-dark text-sm">{metric.name}</div>
                     <div className="text-xs text-gray-400 mt-0.5">
                       {metric.category_display_name} &middot; {metric.process_name} &middot;{" "}
                       <span className="capitalize">{metric.cadence}</span>
@@ -385,7 +385,7 @@ export default function LogDataPage() {
         {/* Right: Entry form */}
         <div>
           <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="font-bold text-[#324a4d] mb-3">2. Enter Data</h2>
+            <h2 className="font-bold text-nia-dark mb-3">2. Enter Data</h2>
 
             {!selectedMetric ? (
               <div className="text-gray-400 text-sm py-8 text-center">
@@ -394,8 +394,8 @@ export default function LogDataPage() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Selected metric info */}
-                <div className="bg-[#55787c]/5 rounded-lg p-3 border border-[#55787c]/20">
-                  <div className="font-medium text-[#324a4d]">{selectedMetric.name}</div>
+                <div className="bg-nia-grey-blue/5 rounded-lg p-3 border border-nia-grey-blue/20">
+                  <div className="font-medium text-nia-dark">{selectedMetric.name}</div>
                   <div className="text-xs text-gray-500 mt-1">
                     {selectedMetric.process_name} &middot;{" "}
                     <span className="capitalize">{selectedMetric.cadence}</span> &middot;{" "}
@@ -414,7 +414,7 @@ export default function LogDataPage() {
                 {/* Value and Date */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                    <label className="block text-sm font-medium text-nia-dark mb-1">
                       Value *
                     </label>
                     <div className="flex items-center gap-2">
@@ -424,7 +424,7 @@ export default function LogDataPage() {
                         required
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                         placeholder="Enter value"
                       />
                       <span className="text-sm text-gray-400 whitespace-nowrap">
@@ -433,7 +433,7 @@ export default function LogDataPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                    <label className="block text-sm font-medium text-nia-dark mb-1">
                       Date *
                     </label>
                     <input
@@ -441,14 +441,14 @@ export default function LogDataPage() {
                       required
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                     />
                   </div>
                 </div>
 
                 {/* Analysis Note */}
                 <div>
-                  <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                  <label className="block text-sm font-medium text-nia-dark mb-1">
                     Analysis Note{" "}
                     <span className="text-gray-400 font-normal">(context or explanation)</span>
                   </label>
@@ -456,14 +456,14 @@ export default function LogDataPage() {
                     type="text"
                     value={noteAnalysis}
                     onChange={(e) => setNoteAnalysis(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                     placeholder="e.g., New survey methodology this cycle"
                   />
                 </div>
 
                 {/* Course Correction */}
                 <div>
-                  <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                  <label className="block text-sm font-medium text-nia-dark mb-1">
                     Course Correction{" "}
                     <span className="text-gray-400 font-normal">
                       (action taken if missing target)
@@ -473,7 +473,7 @@ export default function LogDataPage() {
                     type="text"
                     value={noteCourseCorrection}
                     onChange={(e) => setNoteCourseCorrection(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                     placeholder="e.g., Added re-training for repeat offenders"
                   />
                 </div>
@@ -482,7 +482,7 @@ export default function LogDataPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="w-full bg-[#324a4d] text-white rounded-lg py-2.5 px-4 hover:opacity-90 disabled:opacity-50 font-medium"
+                  className="w-full bg-nia-dark text-white rounded-lg py-2.5 px-4 hover:opacity-90 disabled:opacity-50 font-medium"
                 >
                   {saving ? "Saving..." : "Save Entry"}
                 </button>
@@ -521,12 +521,12 @@ function RecentEntries({ metricId, unit }: { metricId: number; unit: string }) {
 
   return (
     <div className="bg-white rounded-lg shadow p-4 mt-4">
-      <h3 className="text-sm font-bold text-[#324a4d] mb-2">Recent Entries</h3>
+      <h3 className="text-sm font-bold text-nia-dark mb-2">Recent Entries</h3>
       <div className="space-y-1">
         {entries.map((entry) => (
           <div key={entry.id} className="flex justify-between text-sm py-1 border-b border-gray-50">
             <span className="text-gray-500">{formatDate(entry.date)}</span>
-            <span className="font-medium text-[#324a4d]">
+            <span className="font-medium text-nia-dark">
               {formatValue(entry.value, unit)}
             </span>
           </div>

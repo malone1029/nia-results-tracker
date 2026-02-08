@@ -310,7 +310,7 @@ function ProcessDetailContent() {
         <p className="text-gray-400 text-lg">Process not found</p>
         <Link
           href="/processes"
-          className="text-[#55787c] hover:text-[#324a4d] mt-4 inline-block"
+          className="text-nia-grey-blue hover:text-nia-dark mt-4 inline-block"
         >
           Back to Processes
         </Link>
@@ -330,7 +330,7 @@ function ProcessDetailContent() {
       {/* Back link */}
       <Link
         href="/processes"
-        className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors"
+        className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
       >
         &larr; Back to Processes
       </Link>
@@ -339,10 +339,10 @@ function ProcessDetailContent() {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-[#324a4d]">{process.name}</h1>
+            <h1 className="text-3xl font-bold text-nia-dark">{process.name}</h1>
             {process.is_key && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-[#f79935]/15 text-[#b06a10]">
-                <span className="text-[#f79935]">&#9733;</span> Key Process
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-nia-orange/15 text-nia-orange-dark">
+                <span className="text-nia-orange">&#9733;</span> Key Process
               </span>
             )}
           </div>
@@ -373,13 +373,13 @@ function ProcessDetailContent() {
         <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={() => setAsanaConfirm(true)}
-            className="bg-[#b1bd37] text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium"
+            className="bg-nia-green text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium"
           >
             {process.asana_project_gid ? "Sync to Asana" : "Export to Asana"}
           </button>
           <Link
             href={`/processes/${process.id}/edit`}
-            className="bg-[#324a4d] text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium"
+            className="bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium"
           >
             Edit
           </Link>
@@ -394,15 +394,15 @@ function ProcessDetailContent() {
 
       {/* Asana export result */}
       {asanaResult && (
-        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] rounded-lg p-4 flex items-center justify-between">
-          <p className="text-sm text-[#324a4d]">
+        <div className="banner-enter bg-nia-green/20 border border-nia-green rounded-lg p-4 flex items-center justify-between">
+          <p className="text-sm text-nia-dark">
             {asanaResult.action === "created" ? "Exported to new Asana project!" : "Synced to Asana!"}
           </p>
           <a
             href={asanaResult.asanaUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium text-[#55787c] hover:text-[#324a4d]"
+            className="text-sm font-medium text-nia-grey-blue hover:text-nia-dark"
           >
             View in Asana &rarr;
           </a>
@@ -418,8 +418,8 @@ function ProcessDetailContent() {
 
       {/* Asana export confirmation */}
       {asanaConfirm && (
-        <div className="bg-[#55787c]/10 border border-[#55787c] rounded-lg p-4">
-          <p className="text-sm text-[#324a4d] mb-1 font-medium">
+        <div className="bg-nia-grey-blue/10 border border-nia-grey-blue rounded-lg p-4">
+          <p className="text-sm text-nia-dark mb-1 font-medium">
             {process.asana_project_gid
               ? "Sync to Asana"
               : "Export to Asana"}
@@ -433,7 +433,7 @@ function ProcessDetailContent() {
             <button
               onClick={handleAsanaExport}
               disabled={asanaExporting}
-              className="bg-[#b1bd37] text-white rounded-lg py-1.5 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              className="bg-nia-green text-white rounded-lg py-1.5 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50"
             >
               {asanaExporting
                 ? "Exporting..."
@@ -459,7 +459,7 @@ function ProcessDetailContent() {
             href={process.asana_project_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#55787c] hover:text-[#324a4d] font-medium"
+            className="text-nia-grey-blue hover:text-nia-dark font-medium"
           >
             View project &rarr;
           </a>
@@ -500,7 +500,7 @@ function ProcessDetailContent() {
             {nextStatus && (
               <button
                 onClick={() => handleStatusChange(nextStatus)}
-                className="text-xs bg-[#324a4d] text-white px-3 py-1.5 rounded-lg hover:opacity-90 font-medium transition-opacity"
+                className="text-xs bg-nia-dark text-white px-3 py-1.5 rounded-lg hover:opacity-90 font-medium transition-opacity"
               >
                 Advance to {STATUS_CONFIG[nextStatus].label} &rarr;
               </button>
@@ -508,7 +508,7 @@ function ProcessDetailContent() {
             {process.status === "in_review" && (
               <button
                 onClick={() => handleStatusChange("revisions_needed")}
-                className="text-xs border border-[#a855f7] text-[#a855f7] px-3 py-1.5 rounded-lg hover:bg-[#a855f7]/10 font-medium transition-colors"
+                className="text-xs border border-nia-purple text-nia-purple px-3 py-1.5 rounded-lg hover:bg-nia-purple/10 font-medium transition-colors"
               >
                 Request Revisions
               </button>
@@ -516,7 +516,7 @@ function ProcessDetailContent() {
             {process.status === "revisions_needed" && (
               <button
                 onClick={() => handleStatusChange("ready_for_review")}
-                className="text-xs border border-[#f79935] text-[#f79935] px-3 py-1.5 rounded-lg hover:bg-[#f79935]/10 font-medium transition-colors"
+                className="text-xs border border-nia-orange text-nia-orange px-3 py-1.5 rounded-lg hover:bg-nia-orange/10 font-medium transition-colors"
               >
                 Resubmit for Review
               </button>
@@ -628,8 +628,8 @@ function ProcessDetailContent() {
 
         {/* Revisions needed banner */}
         {process.status === "revisions_needed" && (
-          <div className="mt-4 flex items-center gap-3 bg-[#a855f7]/5 border border-[#a855f7]/20 rounded-lg px-4 py-2.5">
-            <div className="w-6 h-6 rounded-full bg-[#a855f7] flex items-center justify-center flex-shrink-0">
+          <div className="mt-4 flex items-center gap-3 bg-nia-purple/5 border border-nia-purple/20 rounded-lg px-4 py-2.5">
+            <div className="w-6 h-6 rounded-full bg-nia-purple flex items-center justify-center flex-shrink-0">
               <svg
                 className="w-3.5 h-3.5 text-white"
                 fill="none"
@@ -644,7 +644,7 @@ function ProcessDetailContent() {
                 />
               </svg>
             </div>
-            <span className="text-sm font-medium text-[#a855f7]">
+            <span className="text-sm font-medium text-nia-purple">
               Revisions needed — address feedback and resubmit for review
             </span>
           </div>
@@ -677,7 +677,7 @@ function ProcessDetailContent() {
                     title={getStatusLabel(m.review_status)}
                   />
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-[#324a4d]">{m.name}</span>
+                    <span className="text-sm font-medium text-nia-dark">{m.name}</span>
                     <span className="text-xs text-gray-400 ml-2 capitalize">{m.cadence}</span>
                   </div>
                   {m.sparkline.length >= 2 ? (
@@ -694,7 +694,7 @@ function ProcessDetailContent() {
                   <div className="text-right flex-shrink-0 w-24">
                     {m.last_value !== null ? (
                       <>
-                        <div className="text-sm font-medium text-[#324a4d]">
+                        <div className="text-sm font-medium text-nia-dark">
                           {formatValue(m.last_value, m.unit)}
                         </div>
                         {m.on_target !== null && (
@@ -743,7 +743,7 @@ function ProcessDetailContent() {
         <>
           <Section title="How do we do it?">
             {process.basic_steps && process.basic_steps.length > 0 ? (
-              <ol className="list-decimal list-inside space-y-1 text-[#324a4d]">
+              <ol className="list-decimal list-inside space-y-1 text-nia-dark">
                 {process.basic_steps.map((step, i) => (
                   <li key={i}>{step}</li>
                 ))}
@@ -759,7 +759,7 @@ function ProcessDetailContent() {
                 {process.participants.map((p, i) => (
                   <span
                     key={i}
-                    className="bg-[#55787c]/10 text-[#324a4d] px-3 py-1 rounded-full text-sm"
+                    className="bg-nia-grey-blue/10 text-nia-dark px-3 py-1 rounded-full text-sm"
                   >
                     {p}
                   </span>
@@ -812,7 +812,7 @@ function ProcessDetailContent() {
                           {process.charter.stakeholders.map((s, i) => (
                             <span
                               key={i}
-                              className="bg-[#55787c]/10 text-[#324a4d] px-3 py-1 rounded-full text-sm"
+                              className="bg-nia-grey-blue/10 text-nia-dark px-3 py-1 rounded-full text-sm"
                             >
                               {s}
                             </span>
@@ -840,7 +840,7 @@ function ProcessDetailContent() {
                 {process.workflow.inputs && process.workflow.inputs.length > 0 && (
                   <div>
                     <span className="text-sm font-medium text-gray-500">Inputs</span>
-                    <ul className="list-disc list-inside mt-1 text-[#324a4d]">
+                    <ul className="list-disc list-inside mt-1 text-nia-dark">
                       {process.workflow.inputs.map((item, i) => (
                         <li key={i}>{item}</li>
                       ))}
@@ -856,7 +856,7 @@ function ProcessDetailContent() {
                           key={i}
                           className="bg-gray-50 rounded-lg p-3 text-sm"
                         >
-                          <div className="font-medium text-[#324a4d]">
+                          <div className="font-medium text-nia-dark">
                             {i + 1}. {step.action}
                           </div>
                           <div className="text-gray-500 mt-1">
@@ -878,7 +878,7 @@ function ProcessDetailContent() {
                 {process.workflow.outputs && process.workflow.outputs.length > 0 && (
                   <div>
                     <span className="text-sm font-medium text-gray-500">Outputs</span>
-                    <ul className="list-disc list-inside mt-1 text-[#324a4d]">
+                    <ul className="list-disc list-inside mt-1 text-nia-dark">
                       {process.workflow.outputs.map((item, i) => (
                         <li key={i}>{item}</li>
                       ))}
@@ -891,7 +891,7 @@ function ProcessDetailContent() {
                       <span className="text-sm font-medium text-gray-500">
                         Quality Controls
                       </span>
-                      <ul className="list-disc list-inside mt-1 text-[#324a4d]">
+                      <ul className="list-disc list-inside mt-1 text-nia-dark">
                         {process.workflow.quality_controls.map((item, i) => (
                           <li key={i}>{item}</li>
                         ))}
@@ -915,7 +915,7 @@ function ProcessDetailContent() {
                       <span className="text-sm font-medium text-gray-500">
                         Questions Addressed
                       </span>
-                      <ul className="list-disc list-inside mt-1 text-[#324a4d]">
+                      <ul className="list-disc list-inside mt-1 text-nia-dark">
                         {process.baldrige_connections.questions_addressed.map(
                           (q, i) => (
                             <li key={i}>{q}</li>
@@ -937,7 +937,7 @@ function ProcessDetailContent() {
                           <span className="text-xs font-medium text-gray-500 capitalize">
                             {dim}
                           </span>
-                          <p className="text-sm text-[#324a4d] mt-0.5">
+                          <p className="text-sm text-nia-dark mt-0.5">
                             {evidence || "Not yet documented"}
                           </p>
                         </div>
@@ -962,7 +962,7 @@ function ProcessDetailContent() {
                 key={r.id}
                 className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50"
               >
-                <span className="text-sm text-[#324a4d]">{r.requirement}</span>
+                <span className="text-sm text-nia-dark">{r.requirement}</span>
                 <span className="text-xs text-gray-400">
                   {r.stakeholder_group}
                 </span>
@@ -986,7 +986,7 @@ function ProcessDetailContent() {
                 key={h.id}
                 className="flex items-center justify-between text-sm"
               >
-                <span className="text-[#324a4d]">{h.change_description}</span>
+                <span className="text-nia-dark">{h.change_description}</span>
                 <span className="text-gray-400 text-xs">
                   {new Date(h.changed_at).toLocaleDateString()}
                 </span>
@@ -1013,7 +1013,7 @@ function Section({
 }) {
   const [isOpen, setIsOpen] = useState(true);
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-[#f79935]">
+    <div className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-nia-orange">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
@@ -1022,7 +1022,7 @@ function Section({
           <span className={`section-chevron text-gray-400 text-sm ${isOpen ? "open" : ""}`}>
             ▶
           </span>
-          <h2 className="text-lg font-semibold text-[#324a4d]">{title}</h2>
+          <h2 className="text-lg font-semibold text-nia-dark">{title}</h2>
         </div>
       </button>
       <div className={`section-body ${isOpen ? "open" : ""}`}>
@@ -1036,7 +1036,7 @@ function Section({
 
 function TextContent({ text }: { text: string | null | undefined }) {
   return text ? (
-    <p className="text-[#324a4d] whitespace-pre-wrap">{text}</p>
+    <p className="text-nia-dark whitespace-pre-wrap">{text}</p>
   ) : (
     <EmptyText />
   );
@@ -1058,7 +1058,7 @@ function Field({
   return (
     <div>
       <span className="text-sm font-medium text-gray-500">{label}</span>
-      <p className="text-[#324a4d] mt-0.5">
+      <p className="text-nia-dark mt-0.5">
         {value || (
           <span className="text-sm text-gray-400 italic">
             Not yet documented
@@ -1107,7 +1107,7 @@ function AdliSection({
                 <span className="text-sm font-medium text-gray-500">
                   {label}
                 </span>
-                <ul className="list-disc list-inside mt-1 text-[#324a4d]">
+                <ul className="list-disc list-inside mt-1 text-nia-dark">
                   {value.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}

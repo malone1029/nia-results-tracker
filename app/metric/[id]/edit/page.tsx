@@ -179,38 +179,38 @@ export default function EditMetricPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Breadcrumb */}
       <div className="text-sm text-gray-500">
-        <Link href="/" className="hover:text-[#55787c]">Dashboard</Link>
+        <Link href="/" className="hover:text-nia-grey-blue">Dashboard</Link>
         {" / "}
-        <Link href={`/metric/${metricId}`} className="hover:text-[#55787c]">{name}</Link>
+        <Link href={`/metric/${metricId}`} className="hover:text-nia-grey-blue">{name}</Link>
         {" / "}
-        <span className="text-[#324a4d]">Edit</span>
+        <span className="text-nia-dark">Edit</span>
       </div>
 
-      <h1 className="text-3xl font-bold text-[#324a4d]">Edit Metric</h1>
+      <h1 className="text-3xl font-bold text-nia-dark">Edit Metric</h1>
 
       <form onSubmit={handleSave} className="bg-white rounded-lg shadow p-6 space-y-5">
         {/* Name */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">Name *</label>
+          <label className="block text-sm font-medium text-nia-dark mb-1">Name *</label>
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
           />
         </div>
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">
+          <label className="block text-sm font-medium text-nia-dark mb-1">
             Description <span className="text-gray-400 font-normal">(optional)</span>
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             placeholder="What does this metric measure and why does it matter?"
           />
         </div>
@@ -218,12 +218,12 @@ export default function EditMetricPage() {
         {/* Process and Cadence */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">Process *</label>
+            <label className="block text-sm font-medium text-nia-dark mb-1">Process *</label>
             <select
               required
               value={processId}
               onChange={(e) => setProcessId(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             >
               <option value={0} disabled>Select a process</option>
               {processes.map((p) => (
@@ -234,12 +234,12 @@ export default function EditMetricPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">Cadence *</label>
+            <label className="block text-sm font-medium text-nia-dark mb-1">Cadence *</label>
             <select
               required
               value={cadence}
               onChange={(e) => setCadence(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             >
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
@@ -252,11 +252,11 @@ export default function EditMetricPage() {
         {/* Unit and Direction */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">Unit</label>
+            <label className="block text-sm font-medium text-nia-dark mb-1">Unit</label>
             <select
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             >
               <option value="%">% (Percentage)</option>
               <option value="score">Score</option>
@@ -267,13 +267,13 @@ export default function EditMetricPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">
+            <label className="block text-sm font-medium text-nia-dark mb-1">
               Trend Direction
             </label>
             <select
               value={isHigherBetter ? "higher" : "lower"}
               onChange={(e) => setIsHigherBetter(e.target.value === "higher")}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             >
               <option value="higher">Higher is better (e.g., satisfaction score)</option>
               <option value="lower">Lower is better (e.g., phishing click rate)</option>
@@ -283,7 +283,7 @@ export default function EditMetricPage() {
 
         {/* Target */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">
+          <label className="block text-sm font-medium text-nia-dark mb-1">
             Target Value <span className="text-gray-400 font-normal">(for LeTCI Levels)</span>
           </label>
           <input
@@ -291,7 +291,7 @@ export default function EditMetricPage() {
             step="any"
             value={targetValue}
             onChange={(e) => setTargetValue(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             placeholder="Leave blank if TBD"
           />
         </div>
@@ -299,7 +299,7 @@ export default function EditMetricPage() {
         {/* Comparison */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">
+            <label className="block text-sm font-medium text-nia-dark mb-1">
               Comparison Value <span className="text-gray-400 font-normal">(for LeTCI Comparisons)</span>
             </label>
             <input
@@ -307,19 +307,19 @@ export default function EditMetricPage() {
               step="any"
               value={comparisonValue}
               onChange={(e) => setComparisonValue(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               placeholder="Benchmark or peer value"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">
+            <label className="block text-sm font-medium text-nia-dark mb-1">
               Comparison Source
             </label>
             <input
               type="text"
               value={comparisonSource}
               onChange={(e) => setComparisonSource(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               placeholder="e.g., National average, Studer benchmark"
             />
           </div>
@@ -328,31 +328,31 @@ export default function EditMetricPage() {
         {/* Data Source and Collection Method */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">Data Source</label>
+            <label className="block text-sm font-medium text-nia-dark mb-1">Data Source</label>
             <input
               type="text"
               value={dataSource}
               onChange={(e) => setDataSource(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               placeholder="e.g., Studer EE Survey"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">Collection Method</label>
+            <label className="block text-sm font-medium text-nia-dark mb-1">Collection Method</label>
             <input
               type="text"
               value={collectionMethod}
               onChange={(e) => setCollectionMethod(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               placeholder="e.g., Semi-annual survey"
             />
           </div>
         </div>
 
         {/* Key Requirements (LeTCI Integration) */}
-        <div className="bg-[#55787c]/5 border border-[#55787c]/20 rounded-lg p-4 space-y-3">
+        <div className="bg-nia-grey-blue/5 border border-nia-grey-blue/20 rounded-lg p-4 space-y-3">
           <div>
-            <span className="font-medium text-[#324a4d]">Key Requirements (LeTCI Integration)</span>
+            <span className="font-medium text-nia-dark">Key Requirements (LeTCI Integration)</span>
             <p className="text-xs text-gray-500 mt-1">
               Select the stakeholder requirements this metric provides evidence for.
               Linking to at least one requirement marks this metric as Integrated (LeTCI).
@@ -384,9 +384,9 @@ export default function EditMetricPage() {
                             return next;
                           });
                         }}
-                        className="w-4 h-4 accent-[#b1bd37]"
+                        className="w-4 h-4 accent-nia-green"
                       />
-                      <span className="text-sm text-[#324a4d]">{req.requirement}</span>
+                      <span className="text-sm text-nia-dark">{req.requirement}</span>
                     </label>
                   ))}
                 </div>
@@ -394,7 +394,7 @@ export default function EditMetricPage() {
             ));
           })()}
           {selectedReqIds.size > 0 && (
-            <div className="text-xs text-[#b1bd37] font-medium mt-2">
+            <div className="text-xs text-nia-green font-medium mt-2">
               {selectedReqIds.size} requirement{selectedReqIds.size !== 1 ? "s" : ""} linked — Integration: Yes
             </div>
           )}
@@ -406,13 +406,13 @@ export default function EditMetricPage() {
             <button
               type="submit"
               disabled={saving}
-              className="bg-[#324a4d] text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
+              className="bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
             >
               {saving ? "Saving..." : "Save Changes"}
             </button>
             <Link
               href={`/metric/${metricId}`}
-              className="bg-gray-200 text-[#324a4d] rounded-lg py-2 px-4 hover:bg-gray-300 inline-flex items-center"
+              className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300 inline-flex items-center"
             >
               Cancel
             </Link>
@@ -446,7 +446,7 @@ export default function EditMetricPage() {
             </button>
             <button
               onClick={() => setShowDeleteConfirm(false)}
-              className="bg-gray-200 text-[#324a4d] rounded-lg py-2 px-4 hover:bg-gray-300 text-sm"
+              className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300 text-sm"
             >
               Cancel
             </button>

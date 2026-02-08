@@ -105,7 +105,7 @@ export default function SchedulePage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#324a4d]">Review Schedule</h1>
+          <h1 className="text-3xl font-bold text-nia-dark">Review Schedule</h1>
           <p className="text-gray-500 mt-1">
             Metrics organized by how often they need to be reviewed
           </p>
@@ -114,7 +114,7 @@ export default function SchedulePage() {
           onClick={() => setShowKeyOnly(!showKeyOnly)}
           className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors self-start ${
             showKeyOnly
-              ? "bg-[#f79935] text-white"
+              ? "bg-nia-orange text-white"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           }`}
         >
@@ -136,12 +136,12 @@ export default function SchedulePage() {
               className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
               style={{ backgroundColor: needsAttention > 0 ? "#f7993508" : "#324a4d08", borderTop: `3px solid ${needsAttention > 0 ? "#f79935" : "#324a4d"}` }}
             >
-              <div className="text-2xl font-bold text-[#324a4d]">{list.length}</div>
-              <div className="text-sm font-medium text-[#55787c]">
+              <div className="text-2xl font-bold text-nia-dark">{list.length}</div>
+              <div className="text-sm font-medium text-nia-grey-blue">
                 {CADENCE_LABELS[cadence]}
               </div>
               {needsAttention > 0 && (
-                <div className="text-xs text-[#f79935] font-medium mt-1">
+                <div className="text-xs text-nia-orange font-medium mt-1">
                   {needsAttention} need attention
                 </div>
               )}
@@ -197,7 +197,7 @@ function CadenceSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div id={id} className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-[#f79935]">
+    <div id={id} className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-nia-orange">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
@@ -207,7 +207,7 @@ function CadenceSection({
             ▶
           </span>
           <div>
-            <span className="text-lg font-bold text-[#324a4d]">{label}</span>
+            <span className="text-lg font-bold text-nia-dark">{label}</span>
             <span className="text-sm text-gray-400 ml-3">
               {metrics.length} metric{metrics.length !== 1 ? "s" : ""}
             </span>
@@ -215,7 +215,7 @@ function CadenceSection({
         </div>
         <div className="flex items-center gap-3">
           {needsAttention > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-[#f79935]/10 text-[#f79935] font-medium">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-nia-orange/10 text-nia-orange font-medium">
               {needsAttention} need attention
             </span>
           )}
@@ -255,13 +255,13 @@ function CadenceSection({
                   <td className="px-4 py-2">
                     <Link
                       href={`/metric/${metric.id}`}
-                      className="text-[#324a4d] font-medium hover:text-[#f79935] transition-colors"
+                      className="text-nia-dark font-medium hover:text-nia-orange transition-colors"
                     >
                       {metric.name}
                     </Link>
                   </td>
                   <td className="px-4 py-2 text-gray-500">
-                    {metric.is_key_process && <span className="text-[#f79935] mr-1">&#9733;</span>}
+                    {metric.is_key_process && <span className="text-nia-orange mr-1">&#9733;</span>}
                     {metric.process_name}
                   </td>
                   <td className="px-4 py-2 text-gray-400">{metric.data_source || "—"}</td>
@@ -282,7 +282,7 @@ function CadenceSection({
                 <div className="flex items-center justify-between">
                   <Link
                     href={`/metric/${metric.id}`}
-                    className="text-[#324a4d] font-medium hover:text-[#f79935] transition-colors text-sm"
+                    className="text-nia-dark font-medium hover:text-nia-orange transition-colors text-sm"
                   >
                     {metric.name}
                   </Link>
@@ -298,11 +298,11 @@ function CadenceSection({
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-400">
                   <span>
-                    {metric.is_key_process && <span className="text-[#f79935] mr-0.5">&#9733;</span>}
+                    {metric.is_key_process && <span className="text-nia-orange mr-0.5">&#9733;</span>}
                     {metric.process_name}
                   </span>
                   {metric.data_source && <span>{metric.data_source}</span>}
-                  <span className="font-medium text-[#324a4d]">
+                  <span className="font-medium text-nia-dark">
                     {metric.last_entry_value !== null
                       ? formatValue(metric.last_entry_value, metric.unit)
                       : "No data"}

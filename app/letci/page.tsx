@@ -199,7 +199,7 @@ export default function LeTCIPage() {
     const isActive = sortField === field;
     return (
       <th
-        className="px-3 py-2 cursor-pointer hover:text-[#f79935] transition-colors select-none"
+        className="px-3 py-2 cursor-pointer hover:text-nia-orange transition-colors select-none"
         onClick={() => handleSort(field)}
       >
         {label} {isActive ? (sortAsc ? "▲" : "▼") : ""}
@@ -210,7 +210,7 @@ export default function LeTCIPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-[#324a4d]">LeTCI Summary</h1>
+        <h1 className="text-3xl font-bold text-nia-dark">LeTCI Summary</h1>
         <p className="text-gray-500 mt-1">
           Baldrige readiness across all metrics — Levels, Trends, Comparisons, Integration
         </p>
@@ -219,11 +219,11 @@ export default function LeTCIPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <div className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: "#324a4d08", borderTop: "3px solid #324a4d" }}>
-          <div className="text-2xl font-bold text-[#324a4d]">{total}</div>
+          <div className="text-2xl font-bold text-nia-dark">{total}</div>
           <div className="text-xs text-gray-400">Total Metrics</div>
         </div>
         <div className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: "#b1bd3708", borderTop: "3px solid #b1bd37" }}>
-          <div className="text-2xl font-bold text-[#b1bd37]">{withLevel}</div>
+          <div className="text-2xl font-bold text-nia-green">{withLevel}</div>
           <div className="text-xs text-gray-400">Have Levels</div>
         </div>
         {[
@@ -240,7 +240,7 @@ export default function LeTCIPage() {
           );
         })}
         <div className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: "#b1bd3710", borderTop: "3px solid #b1bd37" }}>
-          <div className="text-2xl font-bold text-[#b1bd37]">{fullLeTCI}</div>
+          <div className="text-2xl font-bold text-nia-green">{fullLeTCI}</div>
           <div className="text-xs text-gray-400">Full LeTCI (4/4)</div>
         </div>
       </div>
@@ -251,17 +251,17 @@ export default function LeTCIPage() {
           onClick={() => setShowKeyOnly(!showKeyOnly)}
           className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors ${
             showKeyOnly
-              ? "bg-[#f79935] text-white"
+              ? "bg-nia-orange text-white"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           }`}
         >
           {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
         </button>
-        <label className="text-sm font-medium text-[#324a4d]">Filter by category:</label>
+        <label className="text-sm font-medium text-nia-dark">Filter by category:</label>
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
         >
           <option value="all">All Categories</option>
           {categoryOptions.map((cat) => (
@@ -280,7 +280,7 @@ export default function LeTCIPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-[#324a4d] text-white text-left text-xs uppercase">
+              <tr className="bg-nia-dark text-white text-left text-xs uppercase">
                 <SortHeader field="name" label="Metric" />
                 <SortHeader field="process" label="Process" />
                 <SortHeader field="category" label="Category" />
@@ -297,13 +297,13 @@ export default function LeTCIPage() {
                   <td className="px-3 py-2">
                     <Link
                       href={`/metric/${metric.id}`}
-                      className="text-[#324a4d] font-medium hover:text-[#f79935] transition-colors"
+                      className="text-nia-dark font-medium hover:text-nia-orange transition-colors"
                     >
                       {metric.name}
                     </Link>
                   </td>
                   <td className="px-3 py-2 text-gray-500">
-                    {metric.is_key_process && <span className="text-[#f79935] mr-1">&#9733;</span>}
+                    {metric.is_key_process && <span className="text-nia-orange mr-1">&#9733;</span>}
                     {metric.process_name}
                   </td>
                   <td className="px-3 py-2 text-gray-400 text-xs">{metric.category_display_name}</td>
@@ -340,7 +340,7 @@ export default function LeTCIPage() {
                       {metric.has_integration && (
                         <Link
                           href="/requirements"
-                          className="text-[10px] text-[#55787c] hover:text-[#f79935] leading-tight"
+                          className="text-[10px] text-nia-grey-blue hover:text-nia-orange leading-tight"
                         >
                           {metric.linked_requirements.length} req{metric.linked_requirements.length !== 1 ? "s" : ""}
                         </Link>

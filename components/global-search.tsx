@@ -202,7 +202,7 @@ export default function GlobalSearch({ mobile, onNavigate }: { mobile?: boolean;
               key={`${item.type}-${item.id}`}
               className={`w-full text-left px-3 py-2 flex flex-col transition-colors ${
                 idx === highlightIndex
-                  ? "bg-[#55787c]/20"
+                  ? "bg-nia-grey-blue/20"
                   : "hover:bg-gray-50"
               }`}
               onMouseEnter={() => setHighlightIndex(idx)}
@@ -261,7 +261,7 @@ export default function GlobalSearch({ mobile, onNavigate }: { mobile?: boolean;
             if (query.length >= 2 && flatResults.length > 0) setOpen(true);
           }}
           placeholder="Search… ⌘K"
-          className="w-full bg-white/15 text-white placeholder-white/50 text-sm rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#f79935]/50 focus:bg-white/25 transition-colors"
+          className="w-full bg-white/15 text-white placeholder-white/50 text-sm rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-orange/50 focus:bg-white/25 transition-colors"
         />
       </div>
 

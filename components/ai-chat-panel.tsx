@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import MarkdownContent from "./markdown-content";
 import AdliRadar from "./adli-radar";
+import { getMaturityLevel } from "@/lib/colors";
 
 interface Message {
   role: "user" | "assistant";
@@ -89,12 +90,6 @@ const FIELD_LABELS: Record<string, string> = {
   adli_integration: "ADLI: Integration",
 };
 
-function getMaturityLevel(score: number): { label: string; color: string; bgColor: string } {
-  if (score >= 70) return { label: "Integrated", color: "#324a4d", bgColor: "#324a4d" };
-  if (score >= 50) return { label: "Aligned", color: "#b1bd37", bgColor: "#b1bd37" };
-  if (score >= 30) return { label: "Early Systematic", color: "#f79935", bgColor: "#f79935" };
-  return { label: "Reacting", color: "#dc2626", bgColor: "#dc2626" };
-}
 
 export default function AiChatPanel({ processId, processName, onProcessUpdated, autoAnalyze }: AiChatPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -350,7 +345,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-[#324a4d] text-white rounded-full px-5 py-3 shadow-lg hover:bg-[#55787c] transition-colors flex items-center gap-2 z-50"
+          className="fixed bottom-6 right-6 bg-nia-dark text-white rounded-full px-5 py-3 shadow-lg hover:bg-nia-grey-blue transition-colors flex items-center gap-2 z-50"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2a8 8 0 0 0-8 8c0 3.5 2.1 6.4 5 7.7V22l3-3 3 3v-4.3c2.9-1.3 5-4.2 5-7.7a8 8 0 0 0-8-8z" />
@@ -373,7 +368,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
           {/* Panel */}
           <div className={`fixed right-0 top-0 h-full w-full bg-white shadow-2xl z-50 flex flex-col transition-all duration-200 ${isExpanded ? "sm:w-[720px]" : "sm:w-[420px]"}`}>
             {/* Header */}
-            <div className="bg-[#324a4d] text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div className="bg-nia-dark text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2 min-w-0">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2a8 8 0 0 0-8 8c0 3.5 2.1 6.4 5 7.7V22l3-3 3 3v-4.3c2.9-1.3 5-4.2 5-7.7a8 8 0 0 0-8-8z" />
@@ -411,11 +406,11 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
               {/* Welcome message when empty */}
               {messages.length === 0 && (
                 <div className="space-y-4">
-                  <div className="bg-[#324a4d]/5 rounded-lg p-4 text-sm text-[#324a4d]">
+                  <div className="bg-nia-dark/5 rounded-lg p-4 text-sm text-nia-dark">
                     <p className="font-medium mb-2">
                       I can help you analyze and improve this process. Try:
                     </p>
-                    <ul className="space-y-1 text-[#55787c]">
+                    <ul className="space-y-1 text-nia-grey-blue">
                       <li>- Running an ADLI gap analysis</li>
                       <li>- Getting specific improvement suggestions</li>
                       <li>- Asking questions about Baldrige criteria</li>
@@ -427,23 +422,23 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Quick Actions</p>
                     <button
                       onClick={() => handleQuickAction("Analyze this process using the ADLI framework. Score each dimension (Approach, Deployment, Learning, Integration), identify the biggest gaps, and suggest what to improve first.")}
-                      className="w-full text-left px-3 py-2.5 rounded-lg border border-[#f79935]/30 bg-[#f79935]/5 text-sm text-[#324a4d] hover:bg-[#f79935]/10 transition-colors"
+                      className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-orange/30 bg-nia-orange/5 text-sm text-nia-dark hover:bg-nia-orange/10 transition-colors"
                     >
-                      <span className="font-medium text-[#f79935]">Analyze This Process</span>
+                      <span className="font-medium text-nia-orange">Analyze This Process</span>
                       <span className="text-gray-500 ml-1">— ADLI gap analysis with scores</span>
                     </button>
                     <button
                       onClick={() => handleQuickAction("What are the top 3 things I should improve about this process to make it stronger? Be specific and reference what's currently documented.")}
-                      className="w-full text-left px-3 py-2.5 rounded-lg border border-[#55787c]/30 bg-[#55787c]/5 text-sm text-[#324a4d] hover:bg-[#55787c]/10 transition-colors"
+                      className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-grey-blue/30 bg-nia-grey-blue/5 text-sm text-nia-dark hover:bg-nia-grey-blue/10 transition-colors"
                     >
-                      <span className="font-medium text-[#55787c]">Top Improvements</span>
+                      <span className="font-medium text-nia-grey-blue">Top Improvements</span>
                       <span className="text-gray-500 ml-1">— 3 most impactful changes</span>
                     </button>
                     <button
                       onClick={() => handleQuickAction("Help me strengthen this process by asking me targeted questions about what's missing or underdeveloped. Start with the weakest area.")}
-                      className="w-full text-left px-3 py-2.5 rounded-lg border border-[#55787c]/30 bg-[#55787c]/5 text-sm text-[#324a4d] hover:bg-[#55787c]/10 transition-colors"
+                      className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-grey-blue/30 bg-nia-grey-blue/5 text-sm text-nia-dark hover:bg-nia-grey-blue/10 transition-colors"
                     >
-                      <span className="font-medium text-[#55787c]">Interview Me</span>
+                      <span className="font-medium text-nia-grey-blue">Interview Me</span>
                       <span className="text-gray-500 ml-1">— guided questions to fill gaps</span>
                     </button>
                   </div>
@@ -476,8 +471,8 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   <div
                     className={`rounded-lg px-3 py-2 ${
                       msg.role === "user"
-                        ? "max-w-[85%] bg-[#324a4d] text-white"
-                        : "w-full bg-gray-100 text-[#324a4d]"
+                        ? "max-w-[85%] bg-nia-dark text-white"
+                        : "w-full bg-gray-100 text-nia-dark"
                     }`}
                   >
                     {msg.role === "assistant" ? (
@@ -498,9 +493,9 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
 
               {/* Apply suggestion buttons */}
               {pendingSuggestions.length > 0 && !isLoading && (
-                <div className="bg-[#b1bd37]/10 border border-[#b1bd37]/30 rounded-lg p-3 space-y-3">
+                <div className="bg-nia-green/10 border border-nia-green/30 rounded-lg p-3 space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-[#324a4d]">
+                    <p className="text-sm font-medium text-nia-dark">
                       {pendingSuggestions.length === 1 ? "Ready to apply:" : `${pendingSuggestions.length} sections ready to apply:`}
                     </p>
                     <button
@@ -514,13 +509,13 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   <div className="space-y-2">
                     {pendingSuggestions.map((suggestion) => (
                       <div key={suggestion.field} className="flex items-center justify-between bg-white rounded px-3 py-2">
-                        <span className="text-sm text-[#324a4d] font-medium">
+                        <span className="text-sm text-nia-dark font-medium">
                           {FIELD_LABELS[suggestion.field] || suggestion.field}
                         </span>
                         <button
                           onClick={() => applySuggestion(suggestion)}
                           disabled={isApplying}
-                          className="text-xs bg-[#b1bd37] text-white rounded px-3 py-1 font-medium hover:opacity-90 disabled:opacity-50"
+                          className="text-xs bg-nia-green text-white rounded px-3 py-1 font-medium hover:opacity-90 disabled:opacity-50"
                         >
                           {isApplying ? "..." : "Apply"}
                         </button>
@@ -532,7 +527,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                     <button
                       onClick={applyAllSuggestions}
                       disabled={isApplying}
-                      className="w-full bg-[#b1bd37] text-white rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
+                      className="w-full bg-nia-green text-white rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
                     >
                       {isApplying ? "Applying..." : "Apply All"}
                     </button>
@@ -563,14 +558,14 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask about this process..."
-                  className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#324a4d] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#55787c] focus:border-transparent"
+                  className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-nia-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue focus:border-transparent"
                   rows={2}
                   disabled={isLoading}
                 />
                 <button
                   onClick={() => sendMessage(input)}
                   disabled={!input.trim() || isLoading}
-                  className="bg-[#324a4d] text-white rounded-lg px-3 py-2 hover:bg-[#55787c] disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
+                  className="bg-nia-dark text-white rounded-lg px-3 py-2 hover:bg-nia-grey-blue disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13" />
@@ -584,7 +579,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                 </p>
                 <div className="flex items-center gap-2">
                   {uploadedFiles.length > 0 && (
-                    <span className="text-xs text-[#55787c]">
+                    <span className="text-xs text-nia-grey-blue">
                       {uploadedFiles.length} file{uploadedFiles.length !== 1 ? "s" : ""}
                     </span>
                   )}
@@ -598,7 +593,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="text-xs text-[#55787c] hover:text-[#324a4d] flex items-center gap-1 disabled:opacity-40"
+                    className="text-xs text-nia-grey-blue hover:text-nia-dark flex items-center gap-1 disabled:opacity-40"
                     title="Upload a file for AI context"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -617,7 +612,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                       key={f.id}
                       className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1"
                     >
-                      <span className="text-[#324a4d] truncate mr-2">
+                      <span className="text-nia-dark truncate mr-2">
                         {f.file_name}
                         <span className="text-gray-400 ml-1">
                           ({Math.round(f.file_size / 1024)}KB)
@@ -648,9 +643,9 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
 function TypingIndicator() {
   return (
     <div className="flex items-center gap-1 py-1 px-1">
-      <div className="w-2 h-2 bg-[#55787c] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-      <div className="w-2 h-2 bg-[#55787c] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-      <div className="w-2 h-2 bg-[#55787c] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+      <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+      <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+      <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
     </div>
   );
 }
@@ -674,7 +669,7 @@ function AdliScorecard({ scores, onImprove, isLoading }: { scores: AdliScores; o
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-[#324a4d]">ADLI Assessment</h3>
+        <h3 className="text-sm font-semibold text-nia-dark">ADLI Assessment</h3>
         <span
           className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
           style={{ backgroundColor: overallLevel.bgColor }}
@@ -720,7 +715,7 @@ function AdliScorecard({ scores, onImprove, isLoading }: { scores: AdliScores; o
                 <button
                   onClick={() => onImprove(key)}
                   disabled={isLoading}
-                  className="text-xs text-[#55787c] hover:text-[#324a4d] font-medium disabled:opacity-40 whitespace-nowrap"
+                  className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium disabled:opacity-40 whitespace-nowrap"
                 >
                   Improve
                 </button>

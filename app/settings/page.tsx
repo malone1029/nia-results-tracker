@@ -55,16 +55,16 @@ function SettingsContent() {
       <div>
         <Link
           href="/"
-          className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors"
+          className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
         >
           &larr; Back to Dashboard
         </Link>
-        <h1 className="text-3xl font-bold text-[#324a4d] mt-2">Settings</h1>
+        <h1 className="text-3xl font-bold text-nia-dark mt-2">Settings</h1>
       </div>
 
       {/* Success / Error banners */}
       {asanaConnected && (
-        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] rounded-lg p-3 text-sm text-[#324a4d]">
+        <div className="banner-enter bg-nia-green/20 border border-nia-green rounded-lg p-3 text-sm text-nia-dark">
           Asana connected successfully!
         </div>
       )}
@@ -86,7 +86,7 @@ function SettingsContent() {
 
       {/* Connected Accounts */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-[#324a4d] mb-4">
+        <h2 className="text-xl font-semibold text-nia-dark mb-4">
           Connected Accounts
         </h2>
 
@@ -102,7 +102,7 @@ function SettingsContent() {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-[#324a4d]">Asana</p>
+              <p className="font-medium text-nia-dark">Asana</p>
               {loading ? (
                 <p className="text-sm text-gray-400">Checking connection...</p>
               ) : connection ? (
@@ -131,7 +131,7 @@ function SettingsContent() {
             ) : (
               <a
                 href="/api/asana/authorize"
-                className="inline-block bg-[#324a4d] text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90 transition-opacity"
+                className="inline-block bg-nia-dark text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90 transition-opacity"
               >
                 Connect Asana
               </a>

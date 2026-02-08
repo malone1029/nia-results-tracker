@@ -119,8 +119,8 @@ export default function Nav() {
             href="/metric/new"
             className={`text-sm px-2 py-1 rounded-md transition-all font-medium ${
               isActive("/metric/new")
-                ? "bg-[#e88a28] text-white"
-                : "bg-[#f79935] text-white hover:bg-[#e88a28]"
+                ? "bg-nia-orange-dark text-white"
+                : "bg-nia-orange text-white hover:bg-nia-orange-dark"
             }`}
           >
             + Metric
@@ -143,7 +143,7 @@ export default function Nav() {
                   className="rounded-full ring-2 ring-white/20"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-[#f79935] flex items-center justify-center text-xs font-bold text-white ring-2 ring-white/20">
+                <div className="w-8 h-8 rounded-full bg-nia-orange flex items-center justify-center text-xs font-bold text-white ring-2 ring-white/20">
                   {initials}
                 </div>
               )}
@@ -187,7 +187,7 @@ export default function Nav() {
 
       {/* Mobile menu dropdown */}
       {menuOpen && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-[#324a4d] shadow-lg z-50">
+        <div className="lg:hidden absolute top-full left-0 right-0 bg-nia-dark shadow-lg z-50">
           {/* Mobile user info */}
           {user && (
             <div className="flex items-center gap-3 px-4 pt-3 pb-2 border-b border-white/10">
@@ -200,7 +200,7 @@ export default function Nav() {
                   className="rounded-full"
                 />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-[#f79935] flex items-center justify-center text-xs font-bold text-white">
+                <div className="w-7 h-7 rounded-full bg-nia-orange flex items-center justify-center text-xs font-bold text-white">
                   {initials}
                 </div>
               )}
@@ -260,7 +260,7 @@ export default function Nav() {
                 <Link
                   href="/metric/new"
                   onClick={() => setMenuOpen(false)}
-                  className="bg-[#f79935] text-white px-3 py-2 rounded-md text-sm font-medium text-center mt-1"
+                  className="bg-nia-orange text-white px-3 py-2 rounded-md text-sm font-medium text-center mt-1"
                 >
                   + Add Metric
                 </Link>

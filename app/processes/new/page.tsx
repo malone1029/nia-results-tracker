@@ -78,7 +78,7 @@ export default function NewProcessPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-[#324a4d]">
+        <h1 className="text-3xl font-bold text-nia-dark">
           Create New Process
         </h1>
         <p className="text-gray-500 mt-1">
@@ -90,10 +90,10 @@ export default function NewProcessPage() {
       {/* Create with AI option */}
       <Link
         href="/processes/new/ai"
-        className="block bg-[#324a4d]/5 border-2 border-dashed border-[#324a4d]/20 rounded-xl p-5 hover:bg-[#324a4d]/10 hover:border-[#324a4d]/40 transition-colors group"
+        className="block bg-nia-dark/5 border-2 border-dashed border-nia-dark/20 rounded-xl p-5 hover:bg-nia-dark/10 hover:border-nia-dark/40 transition-colors group"
       >
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-[#324a4d] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+          <div className="w-10 h-10 rounded-full bg-nia-dark flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2a8 8 0 0 0-8 8c0 3.5 2.1 6.4 5 7.7V22l3-3 3 3v-4.3c2.9-1.3 5-4.2 5-7.7a8 8 0 0 0-8-8z" />
               <circle cx="9" cy="10" r="1" fill="white" />
@@ -101,7 +101,7 @@ export default function NewProcessPage() {
             </svg>
           </div>
           <div>
-            <p className="font-semibold text-[#324a4d]">Create with AI</p>
+            <p className="font-semibold text-nia-dark">Create with AI</p>
             <p className="text-sm text-gray-500">
               Answer a few questions and AI builds a complete process with Charter and ADLI sections.
             </p>
@@ -115,7 +115,7 @@ export default function NewProcessPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Process Name */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">
+          <label className="block text-sm font-medium text-nia-dark mb-1">
             Process Name <span className="text-red-500">*</span>
           </label>
           <input
@@ -123,7 +123,7 @@ export default function NewProcessPage() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             placeholder="e.g., Voice of Customer Process"
           />
         </div>
@@ -131,7 +131,7 @@ export default function NewProcessPage() {
         {/* Category + Baldrige Item row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">
+            <label className="block text-sm font-medium text-nia-dark mb-1">
               Baldrige Category <span className="text-red-500">*</span>
             </label>
             <select
@@ -140,7 +140,7 @@ export default function NewProcessPage() {
               onChange={(e) =>
                 setCategoryId(e.target.value ? Number(e.target.value) : "")
               }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             >
               <option value="">Select a category...</option>
               {categories.map((c) => (
@@ -151,7 +151,7 @@ export default function NewProcessPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">
+            <label className="block text-sm font-medium text-nia-dark mb-1">
               Baldrige Item{" "}
               <span className="text-gray-400 font-normal">(optional)</span>
             </label>
@@ -159,7 +159,7 @@ export default function NewProcessPage() {
               type="text"
               value={baldrigeItem}
               onChange={(e) => setBaldrigeItem(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               placeholder="e.g., 3.1a"
             />
           </div>
@@ -167,7 +167,7 @@ export default function NewProcessPage() {
 
         {/* Owner */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">
+          <label className="block text-sm font-medium text-nia-dark mb-1">
             Owner{" "}
             <span className="text-gray-400 font-normal">(optional)</span>
           </label>
@@ -175,7 +175,7 @@ export default function NewProcessPage() {
             type="text"
             value={owner}
             onChange={(e) => setOwner(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             placeholder="e.g., Jon Malone"
           />
         </div>
@@ -185,7 +185,7 @@ export default function NewProcessPage() {
           <div
             onClick={() => setIsKey(!isKey)}
             className={`relative w-11 h-6 rounded-full transition-colors ${
-              isKey ? "bg-[#f79935]" : "bg-gray-300"
+              isKey ? "bg-nia-orange" : "bg-gray-300"
             }`}
           >
             <div
@@ -194,7 +194,7 @@ export default function NewProcessPage() {
               }`}
             />
           </div>
-          <span className="text-sm font-medium text-[#324a4d]">
+          <span className="text-sm font-medium text-nia-dark">
             Key Process
           </span>
           <span className="text-xs text-gray-400">
@@ -204,21 +204,21 @@ export default function NewProcessPage() {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">
+          <label className="block text-sm font-medium text-nia-dark mb-1">
             What is this process?
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             placeholder="Briefly describe what this process does and why it matters..."
           />
         </div>
 
         {/* Basic Steps */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">
+          <label className="block text-sm font-medium text-nia-dark mb-1">
             How do we do it?{" "}
             <span className="text-gray-400 font-normal">(basic steps)</span>
           </label>
@@ -236,7 +236,7 @@ export default function NewProcessPage() {
                     updated[i] = e.target.value;
                     setBasicSteps(updated);
                   }}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                   placeholder={`Step ${i + 1}...`}
                 />
                 {basicSteps.length > 1 && (
@@ -256,7 +256,7 @@ export default function NewProcessPage() {
             <button
               type="button"
               onClick={() => setBasicSteps([...basicSteps, ""])}
-              className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors font-medium"
+              className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors font-medium"
             >
               + Add Step
             </button>
@@ -265,7 +265,7 @@ export default function NewProcessPage() {
 
         {/* Participants */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">
+          <label className="block text-sm font-medium text-nia-dark mb-1">
             Who&apos;s involved?{" "}
             <span className="text-gray-400 font-normal">
               (roles or names)
@@ -282,7 +282,7 @@ export default function NewProcessPage() {
                     updated[i] = e.target.value;
                     setParticipants(updated);
                   }}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                   placeholder={`e.g., CEO, HR Director...`}
                 />
                 {participants.length > 1 && (
@@ -304,7 +304,7 @@ export default function NewProcessPage() {
             <button
               type="button"
               onClick={() => setParticipants([...participants, ""])}
-              className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors font-medium"
+              className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors font-medium"
             >
               + Add Participant
             </button>
@@ -313,28 +313,28 @@ export default function NewProcessPage() {
 
         {/* Metrics Summary */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">
+          <label className="block text-sm font-medium text-nia-dark mb-1">
             How do we know it&apos;s working?
           </label>
           <textarea
             value={metricsSummary}
             onChange={(e) => setMetricsSummary(e.target.value)}
             rows={2}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             placeholder="What metrics or indicators show this process is effective?"
           />
         </div>
 
         {/* Connections */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">
+          <label className="block text-sm font-medium text-nia-dark mb-1">
             What does this connect to?
           </label>
           <textarea
             value={connections}
             onChange={(e) => setConnections(e.target.value)}
             rows={2}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             placeholder="Related processes, strategic goals, or other systems..."
           />
         </div>
@@ -344,14 +344,14 @@ export default function NewProcessPage() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-[#324a4d] text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
+            className="bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
           >
             {saving ? "Creating..." : "Create Process"}
           </button>
           <button
             type="button"
             onClick={() => router.push("/processes")}
-            className="bg-gray-200 text-[#324a4d] rounded-lg py-2 px-6 hover:bg-gray-300"
+            className="bg-gray-200 text-nia-dark rounded-lg py-2 px-6 hover:bg-gray-300"
           >
             Cancel
           </button>

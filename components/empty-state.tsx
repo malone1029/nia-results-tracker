@@ -30,7 +30,7 @@ export default function EmptyState({
         {illustrations[illustration]}
       </div>
       <h3
-        className={`font-semibold text-[#324a4d] ${
+        className={`font-semibold text-nia-dark ${
           compact ? "text-base mb-0.5" : "text-lg mb-1"
         }`}
       >
@@ -40,7 +40,7 @@ export default function EmptyState({
       {action && (
         <Link
           href={action.href}
-          className="mt-4 inline-block bg-[#324a4d] text-white rounded-lg px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity"
+          className="mt-4 inline-block bg-nia-dark text-white rounded-lg px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity"
         >
           {action.label}
         </Link>

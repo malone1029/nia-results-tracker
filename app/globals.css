@@ -7,7 +7,11 @@
   --nia-dark: #324a4d;
   --nia-grey-blue: #55787c;
   --nia-orange: #f79935;
+  --nia-orange-dark: #e88a28;
   --nia-green: #b1bd37;
+  --nia-red: #dc2626;
+  --nia-purple: #a855f7;
+  --nia-yellow: #eab308;
 }
 
 @theme inline {
@@ -16,7 +20,11 @@
   --color-nia-dark: var(--nia-dark);
   --color-nia-grey-blue: var(--nia-grey-blue);
   --color-nia-orange: var(--nia-orange);
+  --color-nia-orange-dark: var(--nia-orange-dark);
   --color-nia-green: var(--nia-green);
+  --color-nia-red: var(--nia-red);
+  --color-nia-purple: var(--nia-purple);
+  --color-nia-yellow: var(--nia-yellow);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-dm-serif), Georgia, serif;
@@ -133,17 +141,17 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   text-align: left;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #6b7280;
+  color: #374151;
   border-bottom: 1px solid #e5e7eb;
 }
 .markdown-content td {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #f3f4f6;
-  color: #324a4d;
+  color: var(--nia-dark);
 }
 .markdown-content blockquote {
-  border-left: 4px solid #f79935;
-  background: rgba(247, 153, 53, 0.05);
+  border-left: 4px solid var(--nia-orange);
+  background: color-mix(in srgb, var(--nia-orange) 5%, transparent);
   padding: 0.5rem 1rem;
   margin: 0.75rem 0;
   border-radius: 0 0.5rem 0.5rem 0;

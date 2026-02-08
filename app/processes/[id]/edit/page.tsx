@@ -179,7 +179,7 @@ export default function EditProcessPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-[#324a4d]">Edit Process</h1>
+        <h1 className="text-3xl font-bold text-nia-dark">Edit Process</h1>
         <p className="text-gray-500 mt-1">
           {templateType === "quick" ? "Quick" : "Full ADLI"} Template
         </p>
@@ -188,7 +188,7 @@ export default function EditProcessPage() {
       <form onSubmit={handleSave} className="space-y-6">
         {/* Core fields */}
         <div>
-          <label className="block text-sm font-medium text-[#324a4d] mb-1">
+          <label className="block text-sm font-medium text-nia-dark mb-1">
             Process Name <span className="text-red-500">*</span>
           </label>
           <input
@@ -196,20 +196,20 @@ export default function EditProcessPage() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">
+            <label className="block text-sm font-medium text-nia-dark mb-1">
               Baldrige Category <span className="text-red-500">*</span>
             </label>
             <select
               required
               value={categoryId}
               onChange={(e) => setCategoryId(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             >
               <option value="">Select...</option>
               {categories.map((c) => (
@@ -218,14 +218,14 @@ export default function EditProcessPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">
+            <label className="block text-sm font-medium text-nia-dark mb-1">
               Baldrige Item
             </label>
             <input
               type="text"
               value={baldrigeItem}
               onChange={(e) => setBaldrigeItem(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               placeholder="e.g., 1.1a"
             />
           </div>
@@ -233,29 +233,29 @@ export default function EditProcessPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">Owner</label>
+            <label className="block text-sm font-medium text-nia-dark mb-1">Owner</label>
             <input
               type="text"
               value={owner}
               onChange={(e) => setOwner(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">Reviewer</label>
+            <label className="block text-sm font-medium text-nia-dark mb-1">Reviewer</label>
             <input
               type="text"
               value={reviewer}
               onChange={(e) => setReviewer(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#324a4d] mb-1">Status</label>
+            <label className="block text-sm font-medium text-nia-dark mb-1">Status</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as ProcessStatus)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
@@ -269,7 +269,7 @@ export default function EditProcessPage() {
           <div
             onClick={() => setIsKey(!isKey)}
             className={`relative w-11 h-6 rounded-full transition-colors ${
-              isKey ? "bg-[#f79935]" : "bg-gray-300"
+              isKey ? "bg-nia-orange" : "bg-gray-300"
             }`}
           >
             <div
@@ -278,7 +278,7 @@ export default function EditProcessPage() {
               }`}
             />
           </div>
-          <span className="text-sm font-medium text-[#324a4d]">
+          <span className="text-sm font-medium text-nia-dark">
             Key Process
           </span>
           <span className="text-xs text-gray-400">
@@ -293,7 +293,7 @@ export default function EditProcessPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               placeholder="Briefly describe what this process does..."
             />
           </CollapsibleSection>
@@ -324,7 +324,7 @@ export default function EditProcessPage() {
                 value={metricsSummary}
                 onChange={(e) => setMetricsSummary(e.target.value)}
                 rows={2}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                 placeholder="What metrics or indicators show this process is effective?"
               />
             </CollapsibleSection>
@@ -334,7 +334,7 @@ export default function EditProcessPage() {
                 value={connections}
                 onChange={(e) => setConnections(e.target.value)}
                 rows={2}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                 placeholder="Related processes, strategic goals..."
               />
             </CollapsibleSection>
@@ -343,17 +343,17 @@ export default function EditProcessPage() {
 
         {/* Upgrade to Full Template */}
         {templateType === "quick" && (
-          <div className="bg-[#55787c]/10 rounded-lg p-4">
-            <p className="text-sm text-[#324a4d] mb-2">
+          <div className="bg-nia-grey-blue/10 rounded-lg p-4">
+            <p className="text-sm text-nia-dark mb-2">
               Ready to add more detail? Upgrade to the Full ADLI template to document Approach, Deployment, Learning, Integration, and more.
             </p>
             {showUpgradeConfirm ? (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-[#324a4d]">This will add ADLI framework sections. Continue?</span>
+                <span className="text-sm text-nia-dark">This will add ADLI framework sections. Continue?</span>
                 <button
                   type="button"
                   onClick={handleUpgrade}
-                  className="text-sm bg-[#324a4d] text-white px-3 py-1 rounded-lg hover:opacity-90"
+                  className="text-sm bg-nia-dark text-white px-3 py-1 rounded-lg hover:opacity-90"
                 >
                   Yes, Upgrade
                 </button>
@@ -369,7 +369,7 @@ export default function EditProcessPage() {
               <button
                 type="button"
                 onClick={() => setShowUpgradeConfirm(true)}
-                className="text-sm bg-[#324a4d] text-white px-4 py-2 rounded-lg hover:opacity-90 font-medium"
+                className="text-sm bg-nia-dark text-white px-4 py-2 rounded-lg hover:opacity-90 font-medium"
               >
                 Upgrade to Full Template
               </button>
@@ -396,7 +396,7 @@ export default function EditProcessPage() {
                     <TextAreaField label="Scope (Excludes)" value={charter.scope_excludes || ""} onChange={(v) => setCharter({ ...charter, scope_excludes: v })} placeholder="What this process does NOT cover..." />
                     <TextAreaField label="Mission Alignment" value={charter.mission_alignment || ""} onChange={(v) => setCharter({ ...charter, mission_alignment: v })} placeholder="How does this connect to NIA's mission?" />
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Stakeholders</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Stakeholders</label>
                       <ListEditor
                         items={charter.stakeholders?.length ? charter.stakeholders : [""]}
                         onChange={(items) => setCharter({ ...charter, stakeholders: items.filter(Boolean) })}
@@ -421,7 +421,7 @@ export default function EditProcessPage() {
                   <>
                     <TextAreaField label="Evidence Base" value={approach.evidence_base || ""} onChange={(v) => setApproach({ ...approach, evidence_base: v })} placeholder="What evidence or research informs this approach?" />
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Key Steps</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Key Steps</label>
                       <ListEditor
                         items={approach.key_steps?.length ? approach.key_steps : [""]}
                         onChange={(items) => setApproach({ ...approach, key_steps: items.filter(Boolean) })}
@@ -430,7 +430,7 @@ export default function EditProcessPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Tools Used</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Tools Used</label>
                       <ListEditor
                         items={approach.tools_used?.length ? approach.tools_used : [""]}
                         onChange={(items) => setApproach({ ...approach, tools_used: items.filter(Boolean) })}
@@ -455,7 +455,7 @@ export default function EditProcessPage() {
                 {!deployment.content && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Teams</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Teams</label>
                       <ListEditor
                         items={deployment.teams?.length ? deployment.teams : [""]}
                         onChange={(items) => setDeployment({ ...deployment, teams: items.filter(Boolean) })}
@@ -482,7 +482,7 @@ export default function EditProcessPage() {
                 {!learning.content && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Metrics</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Metrics</label>
                       <ListEditor
                         items={learning.metrics?.length ? learning.metrics : [""]}
                         onChange={(items) => setLearning({ ...learning, metrics: items.filter(Boolean) })}
@@ -509,7 +509,7 @@ export default function EditProcessPage() {
                 {!integration.content && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Strategic Goals</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Strategic Goals</label>
                       <ListEditor
                         items={integration.strategic_goals?.length ? integration.strategic_goals : [""]}
                         onChange={(items) => setIntegration({ ...integration, strategic_goals: items.filter(Boolean) })}
@@ -518,7 +518,7 @@ export default function EditProcessPage() {
                     </div>
                     <TextAreaField label="Mission Connection" value={integration.mission_connection || ""} onChange={(v) => setIntegration({ ...integration, mission_connection: v })} placeholder="How does this process support NIA's mission?" />
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Related Processes</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Related Processes</label>
                       <ListEditor
                         items={integration.related_processes?.length ? integration.related_processes : [""]}
                         onChange={(items) => setIntegration({ ...integration, related_processes: items.filter(Boolean) })}
@@ -543,7 +543,7 @@ export default function EditProcessPage() {
                 {!workflow.content && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Inputs</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Inputs</label>
                       <ListEditor
                         items={workflow.inputs?.length ? workflow.inputs : [""]}
                         onChange={(items) => setWorkflow({ ...workflow, inputs: items.filter(Boolean) })}
@@ -551,14 +551,14 @@ export default function EditProcessPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Steps</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Steps</label>
                       <WorkflowStepEditor
                         steps={workflow.steps || []}
                         onChange={(steps) => setWorkflow({ ...workflow, steps })}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Outputs</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Outputs</label>
                       <ListEditor
                         items={workflow.outputs?.length ? workflow.outputs : [""]}
                         onChange={(items) => setWorkflow({ ...workflow, outputs: items.filter(Boolean) })}
@@ -566,7 +566,7 @@ export default function EditProcessPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Quality Controls</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Quality Controls</label>
                       <ListEditor
                         items={workflow.quality_controls?.length ? workflow.quality_controls : [""]}
                         onChange={(items) => setWorkflow({ ...workflow, quality_controls: items.filter(Boolean) })}
@@ -590,7 +590,7 @@ export default function EditProcessPage() {
                 {!baldrigeConn.content && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-1">Questions Addressed</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-1">Questions Addressed</label>
                       <ListEditor
                         items={baldrigeConn.questions_addressed?.length ? baldrigeConn.questions_addressed : [""]}
                         onChange={(items) => setBaldrigeConn({ ...baldrigeConn, questions_addressed: items.filter(Boolean) })}
@@ -598,7 +598,7 @@ export default function EditProcessPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#324a4d] mb-2">Evidence by ADLI Dimension</label>
+                      <label className="block text-sm font-medium text-nia-dark mb-2">Evidence by ADLI Dimension</label>
                       <div className="space-y-3">
                         {(["approach", "deployment", "learning", "integration"] as const).map((dim) => (
                           <TextAreaField
@@ -638,7 +638,7 @@ export default function EditProcessPage() {
                 <label
                   key={req.id}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                    isLinked ? "bg-[#55787c]/10" : "hover:bg-gray-50"
+                    isLinked ? "bg-nia-grey-blue/10" : "hover:bg-gray-50"
                   }`}
                 >
                   <input
@@ -650,9 +650,9 @@ export default function EditProcessPage() {
                       else next.add(req.id);
                       setLinkedReqIds(next);
                     }}
-                    className="rounded border-gray-300 text-[#55787c] focus:ring-[#55787c]"
+                    className="rounded border-gray-300 text-nia-grey-blue focus:ring-nia-grey-blue"
                   />
-                  <span className="text-sm text-[#324a4d]">{req.requirement}</span>
+                  <span className="text-sm text-nia-dark">{req.requirement}</span>
                   <span className="text-xs text-gray-400 ml-auto">{req.stakeholder_group}</span>
                 </label>
               );
@@ -668,14 +668,14 @@ export default function EditProcessPage() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-[#324a4d] text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
+            className="bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
           >
             {saving ? "Saving..." : "Save Changes"}
           </button>
           <button
             type="button"
             onClick={() => router.push(`/processes/${id}`)}
-            className="bg-gray-200 text-[#324a4d] rounded-lg py-2 px-6 hover:bg-gray-300"
+            className="bg-gray-200 text-nia-dark rounded-lg py-2 px-6 hover:bg-gray-300"
           >
             Cancel
           </button>
@@ -700,7 +700,7 @@ function CollapsibleSection({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-[#f79935]">
+    <div className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-nia-orange">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -708,7 +708,7 @@ function CollapsibleSection({
       >
         <div className="flex items-center gap-2">
           <span className="text-gray-400 text-sm">{isOpen ? "\u25BC" : "\u25B6"}</span>
-          <span className="font-semibold text-[#324a4d]">{title}</span>
+          <span className="font-semibold text-nia-dark">{title}</span>
         </div>
         {subtitle && <span className="text-xs text-gray-400">{subtitle}</span>}
       </button>
@@ -732,12 +732,12 @@ function TextAreaField({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-[#324a4d] mb-1">{label}</label>
+      <label className="block text-sm font-medium text-nia-dark mb-1">{label}</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c] text-sm"
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
         placeholder={placeholder}
       />
     </div>
@@ -768,7 +768,7 @@ function ListEditor({
               updated[i] = e.target.value;
               onChange(updated);
             }}
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c] text-sm"
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
             placeholder={placeholder}
           />
           {items.length > 1 && (
@@ -785,7 +785,7 @@ function ListEditor({
       <button
         type="button"
         onClick={() => onChange([...items, ""])}
-        className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors font-medium"
+        className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors font-medium"
       >
         + Add
       </button>
@@ -805,7 +805,7 @@ function WorkflowStepEditor({
       {steps.map((step, i) => (
         <div key={i} className="bg-gray-50 rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-[#324a4d]">Step {i + 1}</span>
+            <span className="text-sm font-medium text-nia-dark">Step {i + 1}</span>
             <button
               type="button"
               onClick={() => onChange(steps.filter((_, idx) => idx !== i))}
@@ -822,7 +822,7 @@ function WorkflowStepEditor({
               onChange(updated);
             }}
             rows={2}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c] text-sm"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
             placeholder="What happens in this step?"
           />
           <div className="grid grid-cols-3 gap-2">
@@ -834,7 +834,7 @@ function WorkflowStepEditor({
                 updated[i] = { ...step, responsible: e.target.value };
                 onChange(updated);
               }}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#55787c] text-sm"
+              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
               placeholder="Responsible"
             />
             <input
@@ -845,7 +845,7 @@ function WorkflowStepEditor({
                 updated[i] = { ...step, output: e.target.value };
                 onChange(updated);
               }}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#55787c] text-sm"
+              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
               placeholder="Output"
             />
             <input
@@ -856,7 +856,7 @@ function WorkflowStepEditor({
                 updated[i] = { ...step, timing: e.target.value };
                 onChange(updated);
               }}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#55787c] text-sm"
+              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
               placeholder="Timing"
             />
           </div>
@@ -865,7 +865,7 @@ function WorkflowStepEditor({
       <button
         type="button"
         onClick={() => onChange([...steps, { responsible: "", action: "", output: "", timing: "" }])}
-        className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors font-medium"
+        className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors font-medium"
       >
         + Add Step
       </button>

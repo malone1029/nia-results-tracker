@@ -179,14 +179,14 @@ export default function AiCreateProcessPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#324a4d]">Create Process with AI</h1>
+          <h1 className="text-3xl font-bold text-nia-dark">Create Process with AI</h1>
           <p className="text-gray-500 mt-1">
             I&apos;ll ask you questions and build a complete process document.
           </p>
         </div>
         <Link
           href="/processes/new"
-          className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors"
+          className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
         >
           Use manual form instead
         </Link>
@@ -214,8 +214,8 @@ export default function AiCreateProcessPage() {
                     <div
                       className={`rounded-lg px-3 py-2 ${
                         msg.role === "user"
-                          ? "max-w-[85%] bg-[#324a4d] text-white"
-                          : "w-full bg-gray-50 text-[#324a4d]"
+                          ? "max-w-[85%] bg-nia-dark text-white"
+                          : "w-full bg-gray-50 text-nia-dark"
                       }`}
                     >
                       {msg.role === "assistant" ? (
@@ -237,13 +237,13 @@ export default function AiCreateProcessPage() {
 
             {/* Draft ready notification */}
             {draft && !showPreview && (
-              <div className="bg-[#b1bd37]/10 border border-[#b1bd37]/30 rounded-lg p-4 space-y-3">
+              <div className="bg-nia-green/10 border border-nia-green/30 rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b1bd37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                     <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
-                  <p className="text-sm font-semibold text-[#324a4d]">
+                  <p className="text-sm font-semibold text-nia-dark">
                     Process draft ready: &quot;{draft.name}&quot;
                   </p>
                 </div>
@@ -253,7 +253,7 @@ export default function AiCreateProcessPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowPreview(true)}
-                    className="bg-[#b1bd37] text-white rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90 transition-colors"
+                    className="bg-nia-green text-white rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90 transition-colors"
                   >
                     Review & Save
                   </button>
@@ -285,14 +285,14 @@ export default function AiCreateProcessPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Tell me about your process..."
-                className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#324a4d] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#55787c] focus:border-transparent"
+                className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-nia-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue focus:border-transparent"
                 rows={2}
                 disabled={isLoading}
               />
               <button
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim() || isLoading}
-                className="bg-[#324a4d] text-white rounded-lg px-3 py-2 hover:bg-[#55787c] disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
+                className="bg-nia-dark text-white rounded-lg px-3 py-2 hover:bg-nia-grey-blue disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13" />
@@ -309,7 +309,7 @@ export default function AiCreateProcessPage() {
         {/* Preview panel */}
         {showPreview && draft && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-[#324a4d] text-white px-4 py-3 flex items-center justify-between">
+            <div className="bg-nia-dark text-white px-4 py-3 flex items-center justify-between">
               <h2 className="font-semibold text-sm">Process Draft Preview</h2>
               <button
                 onClick={() => setShowPreview(false)}
@@ -322,12 +322,12 @@ export default function AiCreateProcessPage() {
             <div className="px-6 py-5 space-y-6">
               {/* Name & Meta */}
               <div>
-                <h3 className="text-xl font-bold text-[#324a4d]">{draft.name}</h3>
+                <h3 className="text-xl font-bold text-nia-dark">{draft.name}</h3>
                 <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
                   <span>Category: <strong>{draft.category_suggestion}</strong></span>
                   {draft.owner && <span>Owner: <strong>{draft.owner}</strong></span>}
                   {draft.is_key && (
-                    <span className="bg-[#f79935]/10 text-[#f79935] px-2 py-0.5 rounded text-xs font-medium">
+                    <span className="bg-nia-orange/10 text-nia-orange px-2 py-0.5 rounded text-xs font-medium">
                       Key Process
                     </span>
                   )}
@@ -336,7 +336,7 @@ export default function AiCreateProcessPage() {
 
               {draft.description && (
                 <div>
-                  <h4 className="text-sm font-semibold text-[#324a4d] mb-1">Description</h4>
+                  <h4 className="text-sm font-semibold text-nia-dark mb-1">Description</h4>
                   <p className="text-sm text-gray-600">{draft.description}</p>
                 </div>
               )}
@@ -365,13 +365,13 @@ export default function AiCreateProcessPage() {
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="bg-[#b1bd37] text-white rounded-lg py-2.5 px-6 font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
+                  className="bg-nia-green text-white rounded-lg py-2.5 px-6 font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
                 >
                   {isSaving ? "Saving..." : "Save as New Process"}
                 </button>
                 <button
                   onClick={() => setShowPreview(false)}
-                  className="bg-gray-200 text-[#324a4d] rounded-lg py-2.5 px-6 hover:bg-gray-300 transition-colors"
+                  className="bg-gray-200 text-nia-dark rounded-lg py-2.5 px-6 hover:bg-gray-300 transition-colors"
                 >
                   Back to Chat
                 </button>
@@ -386,8 +386,8 @@ export default function AiCreateProcessPage() {
 
 function PreviewSection({ title, content }: { title: string; content: string }) {
   return (
-    <div className="border-l-4 border-[#f79935] pl-4">
-      <h4 className="text-sm font-semibold text-[#324a4d] mb-2">{title}</h4>
+    <div className="border-l-4 border-nia-orange pl-4">
+      <h4 className="text-sm font-semibold text-nia-dark mb-2">{title}</h4>
       <div className="text-sm text-gray-600">
         <MarkdownContent content={content} />
       </div>
@@ -398,9 +398,9 @@ function PreviewSection({ title, content }: { title: string; content: string }) 
 function TypingIndicator() {
   return (
     <div className="flex items-center gap-1 py-1 px-1">
-      <div className="w-2 h-2 bg-[#55787c] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-      <div className="w-2 h-2 bg-[#55787c] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-      <div className="w-2 h-2 bg-[#55787c] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+      <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+      <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+      <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
     </div>
   );
 }

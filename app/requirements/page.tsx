@@ -353,7 +353,7 @@ export default function RequirementsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-        <h1 className="text-3xl font-bold text-[#324a4d]">Key Requirements</h1>
+        <h1 className="text-3xl font-bold text-nia-dark">Key Requirements</h1>
         <p className="text-gray-500 mt-1">
           Stakeholder needs from the Organizational Profile — linked to metrics that provide evidence
         </p>
@@ -365,8 +365,8 @@ export default function RequirementsPage() {
           onClick={() => { setEditMode(!editMode); setEditingReq(null); setDeleteConfirm(null); setAddingToGroup(null); }}
           className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
             editMode
-              ? "bg-[#324a4d] text-white"
-              : "bg-gray-200 text-[#324a4d] hover:bg-gray-300"
+              ? "bg-nia-dark text-white"
+              : "bg-gray-200 text-nia-dark hover:bg-gray-300"
           }`}
         >
           {editMode ? "Done Editing" : "Edit Requirements"}
@@ -422,7 +422,7 @@ export default function RequirementsPage() {
 
         return (
           <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-xl font-bold text-[#324a4d] mb-3">Coverage Heatmap</h2>
+            <h2 className="text-xl font-bold text-nia-dark mb-3">Coverage Heatmap</h2>
             <p className="text-xs text-gray-400 mb-3">Metric coverage by stakeholder group and Baldrige category</p>
             <div className="overflow-x-auto">
               <table className="text-sm w-full">
@@ -439,18 +439,18 @@ export default function RequirementsPage() {
                     const catCounts = matrix.get(groupName)!;
                     return (
                       <tr key={groupName} className="border-t border-gray-100">
-                        <td className="px-3 py-2 text-sm font-medium text-[#324a4d]">{groupName}</td>
+                        <td className="px-3 py-2 text-sm font-medium text-nia-dark">{groupName}</td>
                         {categoryNames.map((cat) => {
                           const count = catCounts.get(cat) || 0;
                           const bgColor = count === 0
                             ? "bg-gray-100"
                             : count <= 2
-                              ? "bg-[#f79935]/20"
-                              : "bg-[#b1bd37]/20";
+                              ? "bg-nia-orange/20"
+                              : "bg-nia-green/20";
                           const textColor = count === 0
                             ? "text-gray-300"
                             : count <= 2
-                              ? "text-[#b06a10]"
+                              ? "text-nia-orange-dark"
                               : "text-[#6b7a1a]";
                           return (
                             <td key={cat} className="px-3 py-2 text-center">
@@ -481,7 +481,7 @@ export default function RequirementsPage() {
               <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
                 {segment}
               </span>
-              <h2 className="text-lg font-semibold text-[#324a4d]">{groupName}</h2>
+              <h2 className="text-lg font-semibold text-nia-dark">{groupName}</h2>
             </div>
 
             {groupReqs.map((req) => {
@@ -491,7 +491,7 @@ export default function RequirementsPage() {
               return (
                 <div
                   key={req.id}
-                  className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-[#f79935]"
+                  className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-nia-orange"
                 >
                   {/* Inline edit form */}
                   {editMode && editingReq === req.id ? (
@@ -500,20 +500,20 @@ export default function RequirementsPage() {
                         type="text"
                         value={editForm.requirement}
                         onChange={(e) => setEditForm({ ...editForm, requirement: e.target.value })}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                         placeholder="Requirement name"
                       />
                       <input
                         type="text"
                         value={editForm.description}
                         onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                         placeholder="Description (optional)"
                       />
                       <div className="flex gap-2">
                         <button
                           onClick={() => saveEdit(req.id)}
-                          className="text-sm bg-[#324a4d] text-white px-3 py-1 rounded-lg hover:opacity-90"
+                          className="text-sm bg-nia-dark text-white px-3 py-1 rounded-lg hover:opacity-90"
                         >
                           Save
                         </button>
@@ -560,9 +560,9 @@ export default function RequirementsPage() {
                             {isExpanded ? "\u25BC" : "\u25B6"}
                           </span>
                         )}
-                        <span className="font-medium text-[#324a4d]">{req.requirement}</span>
+                        <span className="font-medium text-nia-dark">{req.requirement}</span>
                         {isGap && !editMode && (
-                          <span className="text-xs bg-[#f79935]/10 text-[#f79935] px-2 py-0.5 rounded-full font-medium">
+                          <span className="text-xs bg-nia-orange/10 text-nia-orange px-2 py-0.5 rounded-full font-medium">
                             No metrics linked
                           </span>
                         )}
@@ -572,7 +572,7 @@ export default function RequirementsPage() {
                           <>
                             <button
                               onClick={(e) => { e.stopPropagation(); startEdit(req); }}
-                              className="text-xs text-[#55787c] hover:text-[#324a4d]"
+                              className="text-xs text-nia-grey-blue hover:text-nia-dark"
                             >
                               Edit
                             </button>
@@ -615,9 +615,9 @@ export default function RequirementsPage() {
                               <Link
                                 key={proc.id}
                                 href={`/processes/${proc.id}`}
-                                className="inline-flex items-center gap-1 text-sm bg-[#55787c]/10 text-[#324a4d] px-3 py-1 rounded-full hover:bg-[#55787c]/20 transition-colors"
+                                className="inline-flex items-center gap-1 text-sm bg-nia-grey-blue/10 text-nia-dark px-3 py-1 rounded-full hover:bg-nia-grey-blue/20 transition-colors"
                               >
-                                {proc.is_key && <span className="text-[#f79935]">&#9733;</span>}
+                                {proc.is_key && <span className="text-nia-orange">&#9733;</span>}
                                 {proc.name}
                               </Link>
                             ))}
@@ -648,7 +648,7 @@ export default function RequirementsPage() {
                             >
                               <Link
                                 href={`/metric/${m.id}`}
-                                className="text-sm text-[#324a4d] hover:text-[#f79935] transition-colors"
+                                className="text-sm text-nia-dark hover:text-nia-orange transition-colors"
                               >
                                 {m.name}
                               </Link>
@@ -692,7 +692,7 @@ export default function RequirementsPage() {
                       {addingTo === req.id ? (
                         <div className="flex items-center gap-2">
                           <select
-                            className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                            className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                             defaultValue=""
                             onChange={(e) => {
                               if (e.target.value) handleAddMetric(req.id, Number(e.target.value));
@@ -729,7 +729,7 @@ export default function RequirementsPage() {
                       ) : (
                         <button
                           onClick={() => setAddingTo(req.id)}
-                          className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors font-medium"
+                          className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors font-medium"
                         >
                           + Add Metric
                         </button>
@@ -748,20 +748,20 @@ export default function RequirementsPage() {
                     type="text"
                     value={newReqForm.requirement}
                     onChange={(e) => setNewReqForm({ ...newReqForm, requirement: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                     placeholder="Requirement name"
                   />
                   <input
                     type="text"
                     value={newReqForm.description}
                     onChange={(e) => setNewReqForm({ ...newReqForm, description: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                     placeholder="Description (optional)"
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleAddRequirement(segment, groupName)}
-                      className="text-sm bg-[#324a4d] text-white px-3 py-1 rounded-lg hover:opacity-90"
+                      className="text-sm bg-nia-dark text-white px-3 py-1 rounded-lg hover:opacity-90"
                     >
                       Add
                     </button>
@@ -776,7 +776,7 @@ export default function RequirementsPage() {
               ) : (
                 <button
                   onClick={() => setAddingToGroup(groupName)}
-                  className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors font-medium"
+                  className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors font-medium"
                 >
                   + Add Requirement
                 </button>

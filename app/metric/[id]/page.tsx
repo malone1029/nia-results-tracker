@@ -152,7 +152,7 @@ export default function MetricDetailPage() {
     return (
       <div className="text-center py-20">
         <div className="text-red-600 text-lg">Metric not found</div>
-        <Link href="/" className="text-[#55787c] hover:underline mt-2 inline-block">
+        <Link href="/" className="text-nia-grey-blue hover:underline mt-2 inline-block">
           Back to Dashboard
         </Link>
       </div>
@@ -198,29 +198,29 @@ export default function MetricDetailPage() {
     <div className="space-y-6">
       {/* Success message */}
       {successMessage && (
-        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] text-[#324a4d] px-4 py-3 rounded-lg">
+        <div className="banner-enter bg-nia-green/20 border border-nia-green text-nia-dark px-4 py-3 rounded-lg">
           {successMessage}
         </div>
       )}
 
       {/* Breadcrumb */}
       <div className="text-sm text-gray-500">
-        <Link href="/" className="hover:text-[#55787c]">
+        <Link href="/" className="hover:text-nia-grey-blue">
           Dashboard
         </Link>
         {" / "}
-        <Link href="/categories" className="hover:text-[#55787c]">
+        <Link href="/categories" className="hover:text-nia-grey-blue">
           {metric.category_display_name}
         </Link>
         {" / "}
-        <span className="text-[#324a4d]">{metric.name}</span>
+        <span className="text-nia-dark">{metric.name}</span>
       </div>
 
       {/* Header */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[#324a4d]">{metric.name}</h1>
+            <h1 className="text-3xl font-bold text-nia-dark">{metric.name}</h1>
             <p className="text-gray-500 mt-1">
               {metric.category_display_name} &middot; {metric.process_name}
             </p>
@@ -240,13 +240,13 @@ export default function MetricDetailPage() {
             </span>
             <Link
               href={`/metric/${metricId}/edit`}
-              className="bg-gray-200 text-[#324a4d] text-sm rounded-lg py-2 px-4 hover:bg-gray-300 inline-flex items-center"
+              className="bg-gray-200 text-nia-dark text-sm rounded-lg py-2 px-4 hover:bg-gray-300 inline-flex items-center"
             >
               Edit
             </Link>
             <button
               onClick={() => setShowLogForm(!showLogForm)}
-              className="bg-[#324a4d] text-white text-sm rounded-lg py-2 px-4 hover:opacity-90"
+              className="bg-nia-dark text-white text-sm rounded-lg py-2 px-4 hover:opacity-90"
             >
               Log New Value
             </button>
@@ -257,17 +257,17 @@ export default function MetricDetailPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
           <div className="text-center">
             <div className="text-xs text-gray-400 uppercase">Cadence</div>
-            <div className="font-medium text-[#324a4d] capitalize">{metric.cadence}</div>
+            <div className="font-medium text-nia-dark capitalize">{metric.cadence}</div>
           </div>
           <div className="text-center">
             <div className="text-xs text-gray-400 uppercase">Last Value</div>
-            <div className="font-medium text-[#324a4d]">
+            <div className="font-medium text-nia-dark">
               {lastEntry ? formatValue(lastEntry.value, metric.unit) : "—"}
             </div>
           </div>
           <div className="text-center">
             <div className="text-xs text-gray-400 uppercase">Target</div>
-            <div className="font-medium text-[#324a4d]">
+            <div className="font-medium text-nia-dark">
               {metric.target_value !== null
                 ? formatValue(metric.target_value, metric.unit)
                 : "Not set"}
@@ -281,17 +281,17 @@ export default function MetricDetailPage() {
           </div>
           <div className="text-center">
             <div className="text-xs text-gray-400 uppercase">Data Source</div>
-            <div className="font-medium text-[#324a4d] text-sm">{metric.data_source || "—"}</div>
+            <div className="font-medium text-nia-dark text-sm">{metric.data_source || "—"}</div>
           </div>
         </div>
 
         {/* Target nudge */}
         {metric.target_value === null && (
-          <div className="mt-4 bg-[#f79935]/10 border border-[#f79935]/30 rounded-lg px-4 py-3 text-sm text-[#324a4d] flex items-center justify-between">
+          <div className="mt-4 bg-nia-orange/10 border border-nia-orange/30 rounded-lg px-4 py-3 text-sm text-nia-dark flex items-center justify-between">
             <span>No target set — setting a target helps evaluate whether results are meeting expectations.</span>
             <Link
               href={`/metric/${metricId}/edit`}
-              className="text-[#f79935] font-medium hover:underline whitespace-nowrap ml-4"
+              className="text-nia-orange font-medium hover:underline whitespace-nowrap ml-4"
             >
               Set Target
             </Link>
@@ -301,66 +301,66 @@ export default function MetricDetailPage() {
 
       {/* Log form */}
       {showLogForm && (
-        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-[#f79935]">
-          <h3 className="font-bold text-[#324a4d] mb-4">Log New Value</h3>
+        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-nia-orange">
+          <h3 className="font-bold text-nia-dark mb-4">Log New Value</h3>
           <form onSubmit={handleLogSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[#324a4d] mb-1">Value *</label>
+                <label className="block text-sm font-medium text-nia-dark mb-1">Value *</label>
                 <input
                   type="number"
                   step="any"
                   required
                   value={logValue}
                   onChange={(e) => setLogValue(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#324a4d] mb-1">Date *</label>
+                <label className="block text-sm font-medium text-nia-dark mb-1">Date *</label>
                 <input
                   type="date"
                   required
                   value={logDate}
                   onChange={(e) => setLogDate(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#324a4d] mb-1">
+              <label className="block text-sm font-medium text-nia-dark mb-1">
                 Analysis Note <span className="text-gray-400 font-normal">(context)</span>
               </label>
               <input
                 type="text"
                 value={logAnalysis}
                 onChange={(e) => setLogAnalysis(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#324a4d] mb-1">
+              <label className="block text-sm font-medium text-nia-dark mb-1">
                 Course Correction <span className="text-gray-400 font-normal">(action if missing target)</span>
               </label>
               <input
                 type="text"
                 value={logCorrection}
                 onChange={(e) => setLogCorrection(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               />
             </div>
             <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={saving}
-                className="bg-[#324a4d] text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50"
+                className="bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Entry"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowLogForm(false)}
-                className="bg-gray-200 text-[#324a4d] rounded-lg py-2 px-4 hover:bg-gray-300"
+                className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300"
               >
                 Cancel
               </button>
@@ -372,7 +372,7 @@ export default function MetricDetailPage() {
       {/* Trend Chart */}
       {entries.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-[#324a4d] mb-4">Trend Chart</h2>
+          <h2 className="text-xl font-bold text-nia-dark mb-4">Trend Chart</h2>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -442,8 +442,8 @@ export default function MetricDetailPage() {
       {/* LeTCI Assessment */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-[#324a4d]">LeTCI Assessment</h2>
-          <span className="text-sm font-medium text-[#55787c]">
+          <h2 className="text-xl font-bold text-nia-dark">LeTCI Assessment</h2>
+          <span className="text-sm font-medium text-nia-grey-blue">
             {letciCount} of 4 dimensions ready
           </span>
         </div>
@@ -500,13 +500,13 @@ export default function MetricDetailPage() {
 
       {/* Entry History */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-[#324a4d] mb-4">Entry History</h2>
+        <h2 className="text-xl font-bold text-nia-dark mb-4">Entry History</h2>
         {entries.length === 0 ? (
           <p className="text-gray-500 text-sm">No entries yet.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-[#324a4d] text-white text-left">
+              <tr className="bg-nia-dark text-white text-left">
                 <th className="px-4 py-2">Date</th>
                 <th className="px-4 py-2">Fiscal Year</th>
                 <th className="px-4 py-2 text-right">Value</th>
@@ -520,13 +520,13 @@ export default function MetricDetailPage() {
                 <tr key={entry.id} className="border-t border-gray-100 group">
                   <td className="px-4 py-2 text-gray-600">{formatDate(entry.date)}</td>
                   <td className="px-4 py-2 text-gray-400">{toFiscalYear(entry.date)}</td>
-                  <td className="px-4 py-2 text-right font-medium text-[#324a4d]">
+                  <td className="px-4 py-2 text-right font-medium text-nia-dark">
                     {formatValue(entry.value, metric.unit)}
                   </td>
                   <td className="px-4 py-2 text-gray-500">{entry.note_analysis || "—"}</td>
                   <td className="px-4 py-2">
                     {entry.note_course_correction ? (
-                      <span className="inline-block border-l-2 border-[#f79935] pl-2 text-gray-600">
+                      <span className="inline-block border-l-2 border-nia-orange pl-2 text-gray-600">
                         {entry.note_course_correction}
                       </span>
                     ) : (
@@ -568,19 +568,19 @@ function LeTCICard({
   return (
     <div
       className={`rounded-lg border-2 p-4 ${
-        ready ? "border-[#b1bd37] bg-[#b1bd37]/5" : "border-gray-200 bg-gray-50"
+        ready ? "border-nia-green bg-nia-green/5" : "border-gray-200 bg-gray-50"
       }`}
     >
       <div className="flex items-center gap-3 mb-2">
         <div
           className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-            ready ? "bg-[#b1bd37]" : "bg-gray-300"
+            ready ? "bg-nia-green" : "bg-gray-300"
           }`}
         >
           {letter}
         </div>
         <div>
-          <div className="font-medium text-[#324a4d]">{title}</div>
+          <div className="font-medium text-nia-dark">{title}</div>
           <div className="text-xs text-gray-400">{description}</div>
         </div>
       </div>

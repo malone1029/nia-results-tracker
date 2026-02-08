@@ -60,7 +60,7 @@ export default function MarkdownContent({ content }: { content: string }) {
   return (
     <div
       ref={ref}
-      className="markdown-content prose prose-sm max-w-none text-[#324a4d]"
+      className="markdown-content prose prose-sm max-w-none text-nia-dark"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

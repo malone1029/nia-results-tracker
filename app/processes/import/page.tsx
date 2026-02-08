@@ -410,11 +410,11 @@ export default function ImportProcessPage() {
       <div>
         <Link
           href="/processes"
-          className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors"
+          className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
         >
           &larr; Back to Processes
         </Link>
-        <h1 className="text-3xl font-bold text-[#324a4d] mt-2">
+        <h1 className="text-3xl font-bold text-nia-dark mt-2">
           Import Processes
         </h1>
         <p className="text-gray-500 mt-1">
@@ -424,8 +424,8 @@ export default function ImportProcessPage() {
 
       {/* Success messages */}
       {savedProcesses.length > 0 && (
-        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] rounded-lg p-4">
-          <p className="text-sm text-[#324a4d] font-medium">
+        <div className="banner-enter bg-nia-green/20 border border-nia-green rounded-lg p-4">
+          <p className="text-sm text-nia-dark font-medium">
             Successfully imported {savedProcesses.length} process
             {savedProcesses.length !== 1 ? "es" : ""}:
           </p>
@@ -434,7 +434,7 @@ export default function ImportProcessPage() {
               <li key={proc.id}>
                 <Link
                   href={`/processes/${proc.id}`}
-                  className="text-[#55787c] hover:text-[#324a4d] font-medium transition-colors underline"
+                  className="text-nia-grey-blue hover:text-nia-dark font-medium transition-colors underline"
                 >
                   {proc.name} &rarr;
                 </Link>
@@ -447,32 +447,32 @@ export default function ImportProcessPage() {
       {/* Bulk import results */}
       {importResults.length > 0 && (
         <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="font-semibold text-[#324a4d] mb-2">Import Results</h3>
+          <h3 className="font-semibold text-nia-dark mb-2">Import Results</h3>
           <div className="space-y-1 text-sm">
             {importResults.map((r, i) => (
               <div key={i} className="flex items-center gap-2">
                 {r.status === "success" && (
                   <>
-                    <span className="text-[#b1bd37]">&#10003;</span>
-                    <Link href={`/processes/${r.id}`} className="text-[#55787c] hover:text-[#324a4d] underline">
+                    <span className="text-nia-green">&#10003;</span>
+                    <Link href={`/processes/${r.id}`} className="text-nia-grey-blue hover:text-nia-dark underline">
                       {r.name}
                     </Link>
                   </>
                 )}
                 {r.status === "updated" && (
                   <>
-                    <span className="text-[#55787c]">&#8635;</span>
-                    <Link href={`/processes/${r.id}`} className="text-[#55787c] hover:text-[#324a4d] underline">
+                    <span className="text-nia-grey-blue">&#8635;</span>
+                    <Link href={`/processes/${r.id}`} className="text-nia-grey-blue hover:text-nia-dark underline">
                       {r.name}
                     </Link>
-                    <span className="text-xs text-[#55787c]">updated</span>
+                    <span className="text-xs text-nia-grey-blue">updated</span>
                   </>
                 )}
                 {r.status === "error" && (
                   <>
-                    <span className="text-[#dc2626]">&#10007;</span>
+                    <span className="text-nia-red">&#10007;</span>
                     <span className="text-gray-500">{r.name}</span>
-                    <span className="text-xs text-[#dc2626]">{r.message}</span>
+                    <span className="text-xs text-nia-red">{r.message}</span>
                   </>
                 )}
               </div>
@@ -490,14 +490,14 @@ export default function ImportProcessPage() {
 
       {/* AI analyze prompt after Asana import */}
       {showAnalyzePrompt && (
-        <div className="bg-[#55787c]/10 border border-[#55787c] rounded-lg p-4 flex items-center justify-between gap-4">
-          <p className="text-sm text-[#324a4d]">
+        <div className="bg-nia-grey-blue/10 border border-nia-grey-blue rounded-lg p-4 flex items-center justify-between gap-4">
+          <p className="text-sm text-nia-dark">
             <strong>{showAnalyzePrompt.name}</strong> imported! Want AI to analyze it for ADLI gaps?
           </p>
           <div className="flex gap-2 flex-shrink-0">
             <button
               onClick={() => router.push(`/processes/${showAnalyzePrompt.id}?analyze=true`)}
-              className="bg-[#b1bd37] text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90"
+              className="bg-nia-green text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90"
             >
               Analyze Now
             </button>
@@ -506,7 +506,7 @@ export default function ImportProcessPage() {
                 setShowAnalyzePrompt(null);
                 router.push(`/processes/${showAnalyzePrompt.id}`);
               }}
-              className="text-sm text-gray-500 hover:text-[#324a4d] py-2 px-3"
+              className="text-sm text-gray-500 hover:text-nia-dark py-2 px-3"
             >
               Skip
             </button>
@@ -520,8 +520,8 @@ export default function ImportProcessPage() {
           onClick={() => setTab("asana")}
           className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             tab === "asana"
-              ? "bg-white text-[#324a4d] shadow-sm"
-              : "text-gray-500 hover:text-[#324a4d]"
+              ? "bg-white text-nia-dark shadow-sm"
+              : "text-gray-500 hover:text-nia-dark"
           }`}
         >
           From Asana
@@ -530,8 +530,8 @@ export default function ImportProcessPage() {
           onClick={() => setTab("vault")}
           className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             tab === "vault"
-              ? "bg-white text-[#324a4d] shadow-sm"
-              : "text-gray-500 hover:text-[#324a4d]"
+              ? "bg-white text-nia-dark shadow-sm"
+              : "text-gray-500 hover:text-nia-dark"
           }`}
         >
           From Obsidian Vault
@@ -540,8 +540,8 @@ export default function ImportProcessPage() {
           onClick={() => setTab("paste")}
           className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             tab === "paste"
-              ? "bg-white text-[#324a4d] shadow-sm"
-              : "text-gray-500 hover:text-[#324a4d]"
+              ? "bg-white text-nia-dark shadow-sm"
+              : "text-gray-500 hover:text-nia-dark"
           }`}
         >
           Paste Markdown
@@ -550,8 +550,8 @@ export default function ImportProcessPage() {
 
       {/* ═══ ASANA TAB ═══ */}
       {tab === "asana" && (
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935]">
-          <h2 className="font-semibold text-[#324a4d] mb-1">
+        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-nia-orange">
+          <h2 className="font-semibold text-nia-dark mb-1">
             Import from Asana
           </h2>
           <p className="text-sm text-gray-500 mb-4">
@@ -560,12 +560,12 @@ export default function ImportProcessPage() {
 
           {asanaConnected === false && (
             <div className="py-4">
-              <p className="text-[#55787c] text-sm font-medium mb-2">
+              <p className="text-nia-grey-blue text-sm font-medium mb-2">
                 Connect your Asana account first
               </p>
               <Link
                 href="/settings"
-                className="inline-block bg-[#324a4d] text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90"
+                className="inline-block bg-nia-dark text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90"
               >
                 Go to Settings
               </Link>
@@ -573,7 +573,7 @@ export default function ImportProcessPage() {
           )}
 
           {asanaLoading && (
-            <p className="text-[#55787c] text-sm py-4">Loading Asana projects...</p>
+            <p className="text-nia-grey-blue text-sm py-4">Loading Asana projects...</p>
           )}
 
           {asanaError && (
@@ -595,7 +595,7 @@ export default function ImportProcessPage() {
                 value={asanaSearch}
                 onChange={(e) => setAsanaSearch(e.target.value)}
                 placeholder="Search projects..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               />
 
               {/* Project list */}
@@ -613,10 +613,10 @@ export default function ImportProcessPage() {
                     return (
                       <div
                         key={project.gid}
-                        className="flex items-center justify-between gap-4 px-3 py-3 rounded-lg border border-gray-100 hover:border-[#55787c]/30 transition-colors"
+                        className="flex items-center justify-between gap-4 px-3 py-3 rounded-lg border border-gray-100 hover:border-nia-grey-blue/30 transition-colors"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-[#324a4d] truncate">
+                          <p className="text-sm font-medium text-nia-dark truncate">
                             {project.name}
                           </p>
                           {project.description && (
@@ -636,14 +636,14 @@ export default function ImportProcessPage() {
                         </div>
                         <div className="flex-shrink-0">
                           {alreadySaved ? (
-                            <span className="text-xs text-[#b1bd37] font-medium">
+                            <span className="text-xs text-nia-green font-medium">
                               Imported
                             </span>
                           ) : (
                             <button
                               onClick={() => handleAsanaImport(project.gid)}
                               disabled={isImporting || asanaImporting !== null}
-                              className="bg-[#324a4d] text-white rounded-lg py-1.5 px-3 text-xs font-medium hover:opacity-90 disabled:opacity-50"
+                              className="bg-nia-dark text-white rounded-lg py-1.5 px-3 text-xs font-medium hover:opacity-90 disabled:opacity-50"
                             >
                               {isImporting ? "Importing..." : "Import"}
                             </button>
@@ -660,8 +660,8 @@ export default function ImportProcessPage() {
 
       {/* ═══ VAULT TAB ═══ */}
       {tab === "vault" && (
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935]">
-          <h2 className="font-semibold text-[#324a4d] mb-1">
+        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-nia-orange">
+          <h2 className="font-semibold text-nia-dark mb-1">
             Select Processes to Import
           </h2>
           <p className="text-sm text-gray-500 mb-4">
@@ -669,12 +669,12 @@ export default function ImportProcessPage() {
           </p>
 
           {vaultLoading && (
-            <p className="text-[#55787c] text-sm py-4">Scanning vault...</p>
+            <p className="text-nia-grey-blue text-sm py-4">Scanning vault...</p>
           )}
 
           {vaultError && (
             <div className="py-4">
-              <p className="text-[#55787c] text-sm font-medium mb-1">
+              <p className="text-nia-grey-blue text-sm font-medium mb-1">
                 Vault import is only available when running locally
               </p>
               <p className="text-gray-400 text-xs">
@@ -687,10 +687,10 @@ export default function ImportProcessPage() {
             <>
               {/* Select all / none */}
               <div className="flex gap-3 mb-3 text-sm">
-                <button onClick={selectAll} className="text-[#55787c] hover:text-[#324a4d] font-medium">
+                <button onClick={selectAll} className="text-nia-grey-blue hover:text-nia-dark font-medium">
                   Select all new
                 </button>
-                <button onClick={selectNone} className="text-gray-400 hover:text-[#324a4d]">
+                <button onClick={selectNone} className="text-gray-400 hover:text-nia-dark">
                   Clear selection
                 </button>
                 <span className="text-gray-400 ml-auto">
@@ -719,7 +719,7 @@ export default function ImportProcessPage() {
                             key={file.relativePath}
                             className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                               isSelected
-                                ? "bg-[#55787c]/10"
+                                ? "bg-nia-grey-blue/10"
                                 : "hover:bg-gray-50"
                             }`}
                           >
@@ -727,13 +727,13 @@ export default function ImportProcessPage() {
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleFile(file.relativePath)}
-                              className="rounded border-gray-300 text-[#55787c] focus:ring-[#55787c]"
+                              className="rounded border-gray-300 text-nia-grey-blue focus:ring-nia-grey-blue"
                             />
-                            <span className="text-sm text-[#324a4d] flex-1">
+                            <span className="text-sm text-nia-dark flex-1">
                               {file.name}
                             </span>
                             {isExisting && (
-                              <span className="text-xs text-[#55787c]">will update</span>
+                              <span className="text-xs text-nia-grey-blue">will update</span>
                             )}
                           </label>
                         );
@@ -746,12 +746,12 @@ export default function ImportProcessPage() {
               {/* Import button */}
               <div className="mt-4 pt-4 border-t border-gray-100">
                 {importProgress && (
-                  <p className="text-sm text-[#55787c] mb-2">{importProgress}</p>
+                  <p className="text-sm text-nia-grey-blue mb-2">{importProgress}</p>
                 )}
                 <button
                   onClick={handleBulkImport}
                   disabled={importing || selectedFiles.size === 0}
-                  className="bg-[#324a4d] text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
+                  className="bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
                 >
                   {importing
                     ? "Importing..."
@@ -766,8 +766,8 @@ export default function ImportProcessPage() {
       {/* ═══ PASTE TAB ═══ */}
       {tab === "paste" && (
         <>
-          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935]">
-            <h2 className="font-semibold text-[#324a4d] mb-2">
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-nia-orange">
+            <h2 className="font-semibold text-nia-dark mb-2">
               Paste Markdown
             </h2>
             <p className="text-sm text-gray-500 mb-3">
@@ -781,27 +781,27 @@ export default function ImportProcessPage() {
                 setParsed(null);
               }}
               rows={12}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c] font-mono text-sm"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue font-mono text-sm"
               placeholder="Paste your Obsidian markdown here..."
             />
             <button
               onClick={handleParse}
               disabled={!markdown.trim()}
-              className="mt-3 bg-[#324a4d] text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50 text-sm font-medium"
+              className="mt-3 bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50 text-sm font-medium"
             >
               Parse Content
             </button>
           </div>
 
           {parsed && (
-            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935]">
-              <h2 className="font-semibold text-[#324a4d] mb-3">
+            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-nia-orange">
+              <h2 className="font-semibold text-nia-dark mb-3">
                 Review Parsed Data
               </h2>
 
               {isDuplicate && (
-                <div className="bg-[#f79935]/10 border border-[#f79935] rounded-lg p-3 mb-4">
-                  <p className="text-sm text-[#b06a10] font-medium">
+                <div className="bg-nia-orange/10 border border-nia-orange rounded-lg p-3 mb-4">
+                  <p className="text-sm text-nia-orange-dark font-medium">
                     Warning: A process named &quot;{parsed.name}&quot; already exists.
                   </p>
                 </div>
@@ -817,13 +817,13 @@ export default function ImportProcessPage() {
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-100">
-                <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                <label className="block text-sm font-medium text-nia-dark mb-1">
                   Assign to Baldrige Category <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                 >
                   <option value="">Select category...</option>
                   {categories.map((c) => (
@@ -835,7 +835,7 @@ export default function ImportProcessPage() {
               <button
                 onClick={handleManualImport}
                 disabled={saving || categoryId === "" || isDuplicate}
-                className="mt-4 bg-[#324a4d] text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
+                className="mt-4 bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
               >
                 {saving ? "Importing..." : "Import Process"}
               </button>
@@ -857,7 +857,7 @@ function PreviewField({
   return (
     <div className="flex gap-3">
       <span className="text-gray-500 w-36 flex-shrink-0 text-right">{label}:</span>
-      <span className="text-[#324a4d]">
+      <span className="text-nia-dark">
         {value || <span className="text-gray-300 italic">empty</span>}
       </span>
     </div>

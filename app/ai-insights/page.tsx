@@ -5,6 +5,7 @@ import Link from "next/link";
 import EmptyState from "@/components/empty-state";
 import AdliRadar from "@/components/adli-radar";
 import { ListPageSkeleton } from "@/components/skeleton";
+import { getMaturityLevel } from "@/lib/colors";
 
 interface ScoreRow {
   id: number;
@@ -34,13 +35,6 @@ interface CategoryGroup {
   sortOrder: number;
   processes: ScoreRow[];
   avgOverall: number;
-}
-
-function getMaturityLevel(score: number): { label: string; color: string; bgColor: string } {
-  if (score >= 70) return { label: "Integrated", color: "#324a4d", bgColor: "#324a4d" };
-  if (score >= 50) return { label: "Aligned", color: "#b1bd37", bgColor: "#b1bd37" };
-  if (score >= 30) return { label: "Early Systematic", color: "#f79935", bgColor: "#f79935" };
-  return { label: "Reacting", color: "#dc2626", bgColor: "#dc2626" };
 }
 
 export default function AiInsightsPage() {
@@ -112,7 +106,7 @@ export default function AiInsightsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[#324a4d]">AI Insights</h1>
+        <h1 className="text-3xl font-bold text-nia-dark">AI Insights</h1>
         <p className="text-gray-500 mt-1">
           ADLI maturity scores across all assessed processes.
         </p>
@@ -185,13 +179,13 @@ export default function AiInsightsPage() {
 
           {/* Sort toggle */}
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[#324a4d]">Process Scores</h2>
+            <h2 className="text-lg font-semibold text-nia-dark">Process Scores</h2>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-500">Sort:</span>
               <button
                 onClick={() => setSortBy("category")}
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  sortBy === "category" ? "bg-[#324a4d] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  sortBy === "category" ? "bg-nia-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 By Category
@@ -199,7 +193,7 @@ export default function AiInsightsPage() {
               <button
                 onClick={() => setSortBy("score")}
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  sortBy === "score" ? "bg-[#324a4d] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  sortBy === "score" ? "bg-nia-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 By Score
@@ -227,11 +221,11 @@ export default function AiInsightsPage() {
                             <span className="text-xs text-gray-400 font-mono w-5">
                               {rank + 1}.
                             </span>
-                            <span className="text-sm font-medium text-[#324a4d] truncate">
+                            <span className="text-sm font-medium text-nia-dark truncate">
                               {s.processes.name}
                             </span>
                             {s.processes.is_key && (
-                              <span className="text-[10px] bg-[#f79935]/10 text-[#f79935] px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                              <span className="text-[10px] bg-nia-orange/10 text-nia-orange px-1.5 py-0.5 rounded font-medium flex-shrink-0">
                                 KEY
                               </span>
                             )}
@@ -272,7 +266,7 @@ export default function AiInsightsPage() {
                   <div key={group.name} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                     {/* Category header */}
                     <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                      <h3 className="font-semibold text-[#324a4d] text-sm">{group.name}</h3>
+                      <h3 className="font-semibold text-nia-dark text-sm">{group.name}</h3>
                       <span
                         className="text-xs font-bold px-2.5 py-0.5 rounded-full text-white"
                         style={{ backgroundColor: groupLevel.bgColor }}
@@ -293,11 +287,11 @@ export default function AiInsightsPage() {
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-sm font-medium text-[#324a4d] truncate">
+                                <span className="text-sm font-medium text-nia-dark truncate">
                                   {s.processes.name}
                                 </span>
                                 {s.processes.is_key && (
-                                  <span className="text-[10px] bg-[#f79935]/10 text-[#f79935] px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                                  <span className="text-[10px] bg-nia-orange/10 text-nia-orange px-1.5 py-0.5 rounded font-medium flex-shrink-0">
                                     KEY
                                   </span>
                                 )}
@@ -341,7 +335,7 @@ function DimBar({ label, score }: { label: string; score: number }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-[#324a4d]">{label}</span>
+        <span className="text-sm font-medium text-nia-dark">{label}</span>
         <span className="text-sm font-bold" style={{ color: level.color }}>
           {score}%
         </span>

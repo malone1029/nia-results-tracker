@@ -40,13 +40,13 @@ export function getReviewStatus(
 export function getStatusColor(status: ReviewStatus): string {
   switch (status) {
     case "current":
-      return "#b1bd37"; // NIA green
+      return "#b1bd37";
     case "due-soon":
-      return "#f79935"; // NIA orange
+      return "#f79935";
     case "overdue":
-      return "#dc2626"; // red
+      return "#dc2626";
     case "no-data":
-      return "#dc2626"; // red
+      return "#dc2626";
   }
 }
 

@@ -193,7 +193,7 @@ export default function ProcessesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#324a4d]">
+          <h1 className="text-3xl font-bold text-nia-dark">
             Processes{" "}
             {processes.length > 0 && (
               <span className="text-gray-400 font-normal text-lg">({processes.length})</span>
@@ -206,13 +206,13 @@ export default function ProcessesPage() {
         <div className="flex gap-2">
           <Link
             href="/processes/import"
-            className="bg-gray-200 text-[#324a4d] rounded-lg py-2 px-4 hover:bg-gray-300 text-sm font-medium text-center"
+            className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300 text-sm font-medium text-center"
           >
             Import Processes
           </Link>
           <Link
             href="/processes/new"
-            className="bg-[#324a4d] text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium text-center"
+            className="bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium text-center"
           >
             + Create New Process
           </Link>
@@ -246,28 +246,28 @@ export default function ProcessesPage() {
                 }
                 className={`rounded-lg shadow p-3 text-center transition-all duration-200 ${
                   isSelected
-                    ? "ring-2 ring-[#324a4d] shadow-md"
+                    ? "ring-2 ring-nia-dark shadow-md"
                     : "hover:shadow-md hover:-translate-y-0.5"
                 } ${isEmpty ? "opacity-60" : ""}`}
                 style={{ backgroundColor: isEmpty ? "#dc262608" : "#324a4d08", borderTop: `3px solid ${isEmpty ? "#dc2626" : "#55787c"}` }}
               >
-                <div className={`text-2xl font-bold ${isEmpty ? "text-[#dc2626]" : "text-[#324a4d]"}`}>
+                <div className={`text-2xl font-bold ${isEmpty ? "text-nia-red" : "text-nia-dark"}`}>
                   {count}
                 </div>
-                <div className={`text-xs font-medium mt-1 leading-tight ${isEmpty ? "text-[#dc2626]" : "text-[#324a4d]"}`}>
+                <div className={`text-xs font-medium mt-1 leading-tight ${isEmpty ? "text-nia-red" : "text-nia-dark"}`}>
                   {cat.display_name}
                 </div>
                 {isEmpty ? (
-                  <div className="text-xs mt-1 text-[#dc2626]">
+                  <div className="text-xs mt-1 text-nia-red">
                     No processes
                   </div>
                 ) : (
                   <div className="text-xs mt-1 text-gray-500 space-x-1">
                     {approved > 0 && (
-                      <span className="text-[#6b7a1a]">{approved} approved</span>
+                      <span className="text-nia-green">{approved} approved</span>
                     )}
                     {inProgress > 0 && (
-                      <span className="text-[#b06a10]">{inProgress} in review</span>
+                      <span className="text-nia-orange">{inProgress} in review</span>
                     )}
                     {count - approved - inProgress > 0 && (
                       <span>
@@ -288,7 +288,7 @@ export default function ProcessesPage() {
           onClick={() => setShowKeyOnly(!showKeyOnly)}
           className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors ${
             showKeyOnly
-              ? "bg-[#f79935] text-white"
+              ? "bg-nia-orange text-white"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           }`}
         >
@@ -299,7 +299,7 @@ export default function ProcessesPage() {
           onChange={(e) =>
             setFilterCategory(e.target.value ? Number(e.target.value) : null)
           }
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
         >
           <option value="">All Categories</option>
           {categories.map((cat) => (
@@ -315,7 +315,7 @@ export default function ProcessesPage() {
               e.target.value ? (e.target.value as ProcessStatus) : null
             )
           }
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
         >
           <option value="">All Statuses</option>
           {STATUS_OPTIONS.map((s) => (
@@ -331,7 +331,7 @@ export default function ProcessesPage() {
               setFilterStatus(null);
               setShowKeyOnly(false);
             }}
-            className="text-sm text-[#55787c] hover:text-[#324a4d] transition-colors"
+            className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
           >
             Clear filters
           </button>
@@ -386,8 +386,8 @@ export default function ProcessesPage() {
                           }}
                           className={`text-base leading-none transition-colors ${
                             process.is_key
-                              ? "text-[#f79935] hover:text-[#d4820e]"
-                              : "text-gray-300 hover:text-[#f79935]"
+                              ? "text-nia-orange hover:text-nia-orange-dark"
+                              : "text-gray-300 hover:text-nia-orange"
                           }`}
                           title={process.is_key ? "Remove key process flag" : "Mark as key process"}
                         >
@@ -395,7 +395,7 @@ export default function ProcessesPage() {
                         </button>
                         <Link
                           href={`/processes/${process.id}`}
-                          className="font-medium text-[#324a4d] hover:text-[#f79935] transition-colors"
+                          className="font-medium text-nia-dark hover:text-nia-orange transition-colors"
                         >
                           {process.name}
                         </Link>
@@ -439,7 +439,7 @@ export default function ProcessesPage() {
                             {sections.map((s, i) => (
                               <div
                                 key={i}
-                                className={`w-2 h-2 rounded-full ${s.filled ? "bg-[#b1bd37]" : "bg-gray-200"}`}
+                                className={`w-2 h-2 rounded-full ${s.filled ? "bg-nia-green" : "bg-gray-200"}`}
                               />
                             ))}
                             <span className="text-xs text-gray-400 ml-1">
@@ -464,11 +464,11 @@ export default function ProcessesPage() {
               <Link
                 key={process.id}
                 href={`/processes/${process.id}`}
-                className="block bg-white rounded-lg shadow p-4 border-l-4 border-[#55787c] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                className="block bg-white rounded-lg shadow p-4 border-l-4 border-nia-grey-blue hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="font-medium text-[#324a4d] flex items-center gap-1">
+                    <div className="font-medium text-nia-dark flex items-center gap-1">
                       <button
                         onClick={(e) => {
                           e.preventDefault();
@@ -477,8 +477,8 @@ export default function ProcessesPage() {
                         }}
                         className={`text-base leading-none transition-colors ${
                           process.is_key
-                            ? "text-[#f79935] hover:text-[#d4820e]"
-                            : "text-gray-300 hover:text-[#f79935]"
+                            ? "text-nia-orange hover:text-nia-orange-dark"
+                            : "text-gray-300 hover:text-nia-orange"
                         }`}
                         title={process.is_key ? "Remove key process flag" : "Mark as key process"}
                       >
@@ -520,7 +520,7 @@ export default function ProcessesPage() {
                     return (
                       <span className="flex items-center gap-0.5">
                         {sections.map((s, i) => (
-                          <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${s.filled ? "bg-[#b1bd37]" : "bg-gray-200"}`} />
+                          <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${s.filled ? "bg-nia-green" : "bg-gray-200"}`} />
                         ))}
                         <span className="ml-1">{filled}/{sections.length}</span>
                       </span>

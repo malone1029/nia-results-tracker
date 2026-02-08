@@ -28,7 +28,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-[#324a4d] to-[#55787c]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-nia-dark to-nia-grey-blue">
       <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
         <Image
           src="/logo.png"
@@ -37,7 +37,7 @@ function LoginForm() {
           height={64}
           className="mx-auto mb-4 rounded"
         />
-        <h1 className="text-2xl font-bold font-display text-[#324a4d] mb-1">
+        <h1 className="text-2xl font-bold font-display text-nia-dark mb-1">
           NIA Excellence Hub
         </h1>
         <p className="text-sm text-gray-500 mb-8">

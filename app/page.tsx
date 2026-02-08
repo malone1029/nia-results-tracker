@@ -208,7 +208,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Success message */}
       {successMessage && (
-        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] text-[#324a4d] px-4 py-3 rounded-lg">
+        <div className="banner-enter bg-nia-green/20 border border-nia-green text-nia-dark px-4 py-3 rounded-lg">
           {successMessage}
         </div>
       )}
@@ -227,7 +227,7 @@ export default function Dashboard() {
             }
           />
           <div>
-            <div className="text-base font-semibold text-[#324a4d]">
+            <div className="text-base font-semibold text-nia-dark">
               Data Health
             </div>
             <div className="text-sm text-gray-400 mt-0.5">
@@ -269,14 +269,14 @@ export default function Dashboard() {
       {processSummary && processSummary.key > 0 && (
         <Link
           href="/processes"
-          className="block bg-white rounded-lg shadow p-4 border-l-4 border-[#55787c] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+          className="block bg-white rounded-lg shadow p-4 border-l-4 border-nia-grey-blue hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
         >
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
                 Key Processes
               </h2>
-              <p className="text-[#324a4d] mt-1">
+              <p className="text-nia-dark mt-1">
                 <span className="text-2xl font-bold">{processSummary.key}</span>
                 <span className="text-gray-400 text-sm"> of {processSummary.total} processes marked as key</span>
               </p>
@@ -284,13 +284,13 @@ export default function Dashboard() {
             <div className="flex gap-4 text-center">
               {processSummary.keyApproved > 0 && (
                 <div>
-                  <div className="text-lg font-bold text-[#b1bd37]">{processSummary.keyApproved}</div>
+                  <div className="text-lg font-bold text-nia-green">{processSummary.keyApproved}</div>
                   <div className="text-xs text-gray-400">Approved</div>
                 </div>
               )}
               {processSummary.keyInProgress > 0 && (
                 <div>
-                  <div className="text-lg font-bold text-[#f79935]">{processSummary.keyInProgress}</div>
+                  <div className="text-lg font-bold text-nia-orange">{processSummary.keyInProgress}</div>
                   <div className="text-xs text-gray-400">In Review</div>
                 </div>
               )}
@@ -307,15 +307,15 @@ export default function Dashboard() {
 
       {/* Inline log form */}
       {logForm && (
-        <div ref={logFormRef} className="bg-white rounded-lg shadow p-6 border-l-4 border-[#f79935]">
-          <h3 className="font-bold text-[#324a4d] mb-4">
+        <div ref={logFormRef} className="bg-white rounded-lg shadow p-6 border-l-4 border-nia-orange">
+          <h3 className="font-bold text-nia-dark mb-4">
             Log Value:{" "}
             {metrics.find((m) => m.id === logForm.metricId)?.name}
           </h3>
           <form onSubmit={handleLogSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                <label className="block text-sm font-medium text-nia-dark mb-1">
                   Value *
                 </label>
                 <input
@@ -326,12 +326,12 @@ export default function Dashboard() {
                   onChange={(e) =>
                     setLogForm({ ...logForm, value: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                   placeholder="Enter value"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#324a4d] mb-1">
+                <label className="block text-sm font-medium text-nia-dark mb-1">
                   Date *
                 </label>
                 <input
@@ -341,12 +341,12 @@ export default function Dashboard() {
                   onChange={(e) =>
                     setLogForm({ ...logForm, date: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#324a4d] mb-1">
+              <label className="block text-sm font-medium text-nia-dark mb-1">
                 Analysis Note{" "}
                 <span className="text-gray-400 font-normal">
                   (context or explanation)
@@ -358,12 +358,12 @@ export default function Dashboard() {
                 onChange={(e) =>
                   setLogForm({ ...logForm, noteAnalysis: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                 placeholder="e.g., New survey methodology used this cycle"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#324a4d] mb-1">
+              <label className="block text-sm font-medium text-nia-dark mb-1">
                 Course Correction{" "}
                 <span className="text-gray-400 font-normal">
                   (action taken if missing target)
@@ -378,7 +378,7 @@ export default function Dashboard() {
                     noteCourseCorrection: e.target.value,
                   })
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                 placeholder="e.g., Added mandatory re-training for repeat offenders"
               />
             </div>
@@ -386,14 +386,14 @@ export default function Dashboard() {
               <button
                 type="submit"
                 disabled={saving}
-                className="bg-[#324a4d] text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50"
+                className="bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Entry"}
               </button>
               <button
                 type="button"
                 onClick={() => setLogForm(null)}
-                className="bg-gray-200 text-[#324a4d] rounded-lg py-2 px-4 hover:bg-gray-300"
+                className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300"
               >
                 Cancel
               </button>
@@ -428,7 +428,7 @@ export default function Dashboard() {
 
       {/* All caught up empty state */}
       {overdue.length === 0 && dueSoon.length === 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-[#b1bd37]/30">
+        <div className="bg-white rounded-xl shadow-sm border border-nia-green/30">
           <EmptyState
             illustration="check"
             title="All caught up!"
@@ -499,7 +499,7 @@ function HealthRing({ percentage }: { percentage: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl font-bold text-[#324a4d]">
+        <span className="text-2xl font-bold text-nia-dark">
           {percentage}<span className="text-sm">%</span>
         </span>
       </div>
@@ -526,7 +526,7 @@ function HeroCard({
       <div className="text-4xl font-bold tracking-tight" style={{ color }}>
         {value}
       </div>
-      <div className="text-base font-semibold text-[#324a4d] mt-1">{label}</div>
+      <div className="text-base font-semibold text-nia-dark mt-1">{label}</div>
       <div className="text-sm text-gray-400 mt-0.5">{subtitle}</div>
     </div>
   );
@@ -585,7 +585,7 @@ function MetricSection({
             ▶
           </span>
           <div>
-            <span className="text-lg font-bold text-[#324a4d]">{title}</span>
+            <span className="text-lg font-bold text-nia-dark">{title}</span>
             <span className="text-sm text-gray-400 ml-3">
               {metrics.length} metric{metrics.length !== 1 ? "s" : ""}
             </span>
@@ -610,7 +610,7 @@ function MetricSection({
                   }}
                 />
                 <div>
-                  <Link href={`/metric/${metric.id}`} className="font-medium text-[#324a4d] hover:text-[#f79935] transition-colors">
+                  <Link href={`/metric/${metric.id}`} className="font-medium text-nia-dark hover:text-nia-orange transition-colors">
                     {metric.name}
                   </Link>
                   <div className="text-sm text-gray-500">
@@ -626,7 +626,7 @@ function MetricSection({
                 />
                 {metric.last_entry_value !== null && (
                   <div className="text-right">
-                    <div className="font-medium text-[#324a4d]">
+                    <div className="font-medium text-nia-dark">
                       {formatValue(metric.last_entry_value, metric.unit)}
                     </div>
                     <div className="text-xs text-gray-400">
@@ -649,7 +649,7 @@ function MetricSection({
                     e.stopPropagation();
                     onLogClick(metric.id);
                   }}
-                  className="bg-[#324a4d] text-white text-sm rounded-lg py-1.5 px-3 hover:opacity-90"
+                  className="bg-nia-dark text-white text-sm rounded-lg py-1.5 px-3 hover:opacity-90"
                 >
                   Log Now
                 </button>

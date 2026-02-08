@@ -214,7 +214,7 @@ export default function CategoriesPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#324a4d]">Categories &amp; Processes</h1>
+          <h1 className="text-3xl font-bold text-nia-dark">Categories &amp; Processes</h1>
           <p className="text-gray-500 mt-1">
             Metrics organized by Baldrige Category and process
           </p>
@@ -223,7 +223,7 @@ export default function CategoriesPage() {
           onClick={() => setShowKeyOnly(!showKeyOnly)}
           className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors self-start ${
             showKeyOnly
-              ? "bg-[#f79935] text-white"
+              ? "bg-nia-orange text-white"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           }`}
         >
@@ -252,16 +252,16 @@ export default function CategoriesPage() {
             <div className="text-xs text-gray-400 uppercase mb-1">
               Category {cat.sort_order}
             </div>
-            <div className={`font-bold text-sm ${cat.totalMetrics === 0 ? "text-[#dc2626]" : "text-[#324a4d]"}`}>{cat.display_name}</div>
+            <div className={`font-bold text-sm ${cat.totalMetrics === 0 ? "text-nia-red" : "text-nia-dark"}`}>{cat.display_name}</div>
             {cat.totalMetrics === 0 ? (
               <div className="mt-2">
-                <div className="text-lg font-bold text-[#dc2626]">0</div>
-                <div className="text-xs text-[#dc2626]">No metrics</div>
+                <div className="text-lg font-bold text-nia-red">0</div>
+                <div className="text-xs text-nia-red">No metrics</div>
               </div>
             ) : (
               <>
                 <div className="mt-2">
-                  <span className="text-lg font-bold text-[#324a4d]">
+                  <span className="text-lg font-bold text-nia-dark">
                     {cat.totalWithData}
                   </span>
                   <span className="text-gray-400 text-sm"> / {cat.totalMetrics}</span>
@@ -288,7 +288,7 @@ export default function CategoriesPage() {
         const isCatExpanded = expandedCategories.has(cat.id);
 
         return (
-          <div key={cat.id} id={`cat-${cat.id}`} className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-[#f79935]">
+          <div key={cat.id} id={`cat-${cat.id}`} className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-nia-orange">
             {/* Category header — clickable to expand */}
             <button
               onClick={() => toggleCategory(cat.id)}
@@ -299,7 +299,7 @@ export default function CategoriesPage() {
                   {isCatExpanded ? "▼" : "▶"}
                 </span>
                 <div>
-                  <span className="text-lg font-bold text-[#324a4d]">
+                  <span className="text-lg font-bold text-nia-dark">
                     Category {cat.sort_order}: {cat.display_name}
                   </span>
                   <span className="text-sm text-gray-400 ml-3">
@@ -325,7 +325,7 @@ export default function CategoriesPage() {
                   ).length;
 
                   return (
-                    <div key={proc.id} className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200 border-l-4 border-l-[#f79935]">
+                    <div key={proc.id} className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200 border-l-4 border-l-nia-orange">
                       {/* Process header — clickable to expand */}
                       <button
                         onClick={() => toggleProcess(proc.id)}
@@ -335,8 +335,8 @@ export default function CategoriesPage() {
                           <span className="text-gray-400 text-sm">
                             {isExpanded ? "▼" : "▶"}
                           </span>
-                          <span className="font-medium text-[#324a4d]">
-                            {proc.is_key && <span className="text-[#f79935] mr-1">&#9733;</span>}
+                          <span className="font-medium text-nia-dark">
+                            {proc.is_key && <span className="text-nia-orange mr-1">&#9733;</span>}
                             {proc.name}
                           </span>
                           <span className="text-sm text-gray-400">
@@ -344,7 +344,7 @@ export default function CategoriesPage() {
                           </span>
                         </div>
                         {needsAttention > 0 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f79935]/10 text-[#f79935] font-medium">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-nia-orange/10 text-nia-orange font-medium">
                             {needsAttention} need attention
                           </span>
                         )}
@@ -387,7 +387,7 @@ export default function CategoriesPage() {
                                   <td className="px-4 py-2">
                                     <Link
                                       href={`/metric/${metric.id}`}
-                                      className="text-[#324a4d] font-medium hover:text-[#f79935] transition-colors"
+                                      className="text-nia-dark font-medium hover:text-nia-orange transition-colors"
                                     >
                                       {metric.name}
                                     </Link>
@@ -420,7 +420,7 @@ export default function CategoriesPage() {
                                 <div className="flex items-center justify-between">
                                   <Link
                                     href={`/metric/${metric.id}`}
-                                    className="text-[#324a4d] font-medium hover:text-[#f79935] transition-colors text-sm"
+                                    className="text-nia-dark font-medium hover:text-nia-orange transition-colors text-sm"
                                   >
                                     {metric.name}
                                   </Link>
@@ -437,7 +437,7 @@ export default function CategoriesPage() {
                                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-400">
                                   <span className="capitalize">{metric.cadence}</span>
                                   {metric.data_source && <span>{metric.data_source}</span>}
-                                  <span className="font-medium text-[#324a4d]">
+                                  <span className="font-medium text-nia-dark">
                                     {metric.last_entry_value !== null
                                       ? formatValue(metric.last_entry_value, metric.unit)
                                       : "No data"}
