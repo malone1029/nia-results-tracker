@@ -111,6 +111,15 @@ main > .space-y-8 > *:nth-child(4) { animation-delay: 150ms; }
 main > .space-y-8 > *:nth-child(5) { animation-delay: 200ms; }
 main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
+/* Stepper active-step pulse ring */
+@keyframes stepper-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.25; }
+  50% { transform: scale(1.5); opacity: 0; }
+}
+.stepper-pulse {
+  animation: stepper-pulse 2s ease-in-out infinite;
+}
+
 /* Markdown content styling for imported process documents */
 .markdown-content table {
   width: 100%;

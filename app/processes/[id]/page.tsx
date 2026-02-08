@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, Fragment } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { DetailSkeleton } from "@/components/skeleton";
@@ -490,84 +490,162 @@ function ProcessDetailContent() {
       )}
 
       {/* Status Workflow Stepper */}
-      <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#55787c]">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-white rounded-xl shadow p-5">
+        <div className="flex items-center justify-between mb-5">
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-            Status
+            Workflow Status
           </h2>
           <div className="flex gap-2">
             {nextStatus && (
               <button
                 onClick={() => handleStatusChange(nextStatus)}
-                className="text-xs bg-[#324a4d] text-white px-3 py-1 rounded-lg hover:opacity-90"
+                className="text-xs bg-[#324a4d] text-white px-3 py-1.5 rounded-lg hover:opacity-90 font-medium transition-opacity"
               >
-                Advance to {STATUS_CONFIG[nextStatus].label}
+                Advance to {STATUS_CONFIG[nextStatus].label} &rarr;
               </button>
             )}
             {process.status === "in_review" && (
               <button
                 onClick={() => handleStatusChange("revisions_needed")}
-                className="text-xs bg-[#a855f7]/10 text-[#a855f7] px-3 py-1 rounded-lg hover:bg-[#a855f7]/20"
+                className="text-xs border border-[#a855f7] text-[#a855f7] px-3 py-1.5 rounded-lg hover:bg-[#a855f7]/10 font-medium transition-colors"
               >
-                Revisions Needed
+                Request Revisions
               </button>
             )}
             {process.status === "revisions_needed" && (
               <button
                 onClick={() => handleStatusChange("ready_for_review")}
-                className="text-xs bg-[#f79935]/10 text-[#f79935] px-3 py-1 rounded-lg hover:bg-[#f79935]/20"
+                className="text-xs border border-[#f79935] text-[#f79935] px-3 py-1.5 rounded-lg hover:bg-[#f79935]/10 font-medium transition-colors"
               >
                 Resubmit for Review
               </button>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1">
+
+        {/* Stepper track */}
+        <div className="flex items-start">
           {STATUS_ORDER.filter((s) => s !== "revisions_needed").map(
             (status, i, arr) => {
               const statusIdx = STATUS_ORDER.indexOf(status);
               const currentStatusIdx = STATUS_ORDER.indexOf(process.status);
-              const isActive = status === process.status;
-              const isCompleted = statusIdx < currentStatusIdx;
-              const color = STATUS_CONFIG[status].color;
+              const effectiveCurrentIdx =
+                process.status === "revisions_needed"
+                  ? STATUS_ORDER.indexOf("in_review")
+                  : currentStatusIdx;
+              const isActive =
+                status === process.status ||
+                (process.status === "revisions_needed" && status === "in_review");
+              const isCompleted = statusIdx < effectiveCurrentIdx;
+              const isFuture = !isActive && !isCompleted;
+              const color =
+                isActive && process.status === "revisions_needed"
+                  ? STATUS_CONFIG.revisions_needed.color
+                  : STATUS_CONFIG[status].color;
 
               return (
-                <div key={status} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center flex-1">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                        isActive || isCompleted
-                          ? "text-white"
-                          : "text-gray-400 bg-gray-100"
-                      }`}
-                      style={
-                        isActive || isCompleted
-                          ? { backgroundColor: color }
-                          : undefined
-                      }
-                    >
-                      {isCompleted ? "\u2713" : i + 1}
+                <Fragment key={status}>
+                  <div className="flex flex-col items-center" style={{ width: 48 }}>
+                    {/* Circle with optional pulse */}
+                    <div className="relative">
+                      {isActive && (
+                        <div
+                          className="absolute -inset-1.5 rounded-full stepper-pulse"
+                          style={{ backgroundColor: color }}
+                        />
+                      )}
+                      <div
+                        className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-500 ${
+                          isFuture
+                            ? "bg-gray-100 border-2 border-gray-200 text-gray-400"
+                            : "text-white"
+                        }`}
+                        style={
+                          !isFuture
+                            ? {
+                                backgroundColor: color,
+                                boxShadow: isActive
+                                  ? `0 0 0 4px ${color}25, 0 4px 12px ${color}20`
+                                  : `0 2px 4px ${color}30`,
+                              }
+                            : undefined
+                        }
+                      >
+                        {isCompleted ? (
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        ) : (
+                          i + 1
+                        )}
+                      </div>
                     </div>
-                    <span className="text-xs text-gray-500 mt-1 text-center leading-tight">
+                    {/* Label */}
+                    <span
+                      className={`text-[11px] mt-2 text-center leading-tight max-w-[56px] ${
+                        isActive
+                          ? "font-bold"
+                          : isCompleted
+                            ? "font-medium text-gray-600"
+                            : "text-gray-400"
+                      }`}
+                      style={isActive ? { color } : undefined}
+                    >
                       {STATUS_CONFIG[status].label}
                     </span>
                   </div>
+                  {/* Connector line */}
                   {i < arr.length - 1 && (
-                    <div
-                      className="h-0.5 flex-1 mx-1"
-                      style={{
-                        backgroundColor: isCompleted ? color : "#e5e7eb",
-                      }}
-                    />
+                    <div className="flex-1 pt-[19px]">
+                      <div
+                        className="h-0.5 w-full rounded-full transition-all duration-500"
+                        style={{
+                          background: isCompleted
+                            ? color
+                            : isActive
+                              ? `linear-gradient(to right, ${color}, #e5e7eb)`
+                              : "#e5e7eb",
+                        }}
+                      />
+                    </div>
                   )}
-                </div>
+                </Fragment>
               );
             }
           )}
         </div>
+
+        {/* Revisions needed banner */}
         {process.status === "revisions_needed" && (
-          <div className="mt-2 text-xs text-[#a855f7] font-medium">
-            Revisions needed — address feedback and resubmit for review
+          <div className="mt-4 flex items-center gap-3 bg-[#a855f7]/5 border border-[#a855f7]/20 rounded-lg px-4 py-2.5">
+            <div className="w-6 h-6 rounded-full bg-[#a855f7] flex items-center justify-center flex-shrink-0">
+              <svg
+                className="w-3.5 h-3.5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </div>
+            <span className="text-sm font-medium text-[#a855f7]">
+              Revisions needed — address feedback and resubmit for review
+            </span>
           </div>
         )}
       </div>
