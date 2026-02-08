@@ -15,9 +15,15 @@ interface AdliScores {
   integration: number;
 }
 
+interface AdliSuggestion {
+  field: string;
+  content: string;
+}
+
 interface AiChatPanelProps {
   processId: number;
   processName: string;
+  onProcessUpdated?: () => void;
 }
 
 // Parse adli-scores code block from AI response, return scores and cleaned text
@@ -34,6 +40,28 @@ function parseAdliScores(text: string): { scores: AdliScores | null; cleanedText
   }
 }
 
+// Parse adli-suggestion code block from AI response
+function parseAdliSuggestion(text: string): { suggestion: AdliSuggestion | null; cleanedText: string } {
+  const match = text.match(/```adli-suggestion\s*\n([\s\S]*?)\n```/);
+  if (!match) return { suggestion: null, cleanedText: text };
+
+  try {
+    const suggestion = JSON.parse(match[1]) as AdliSuggestion;
+    const cleanedText = text.replace(/```adli-suggestion\s*\n[\s\S]*?\n```\s*\n?/, "").trim();
+    return { suggestion, cleanedText };
+  } catch {
+    return { suggestion: null, cleanedText: text };
+  }
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  charter: "Charter",
+  adli_approach: "ADLI: Approach",
+  adli_deployment: "ADLI: Deployment",
+  adli_learning: "ADLI: Learning",
+  adli_integration: "ADLI: Integration",
+};
+
 function getMaturityLevel(score: number): { label: string; color: string; bgColor: string } {
   if (score >= 70) return { label: "Integrated", color: "#324a4d", bgColor: "#324a4d" };
   if (score >= 50) return { label: "Aligned", color: "#b1bd37", bgColor: "#b1bd37" };
@@ -41,14 +69,16 @@ function getMaturityLevel(score: number): { label: string; color: string; bgColo
   return { label: "Reacting", color: "#dc2626", bgColor: "#dc2626" };
 }
 
-export default function AiChatPanel({ processId, processName }: AiChatPanelProps) {
+export default function AiChatPanel({ processId, processName, onProcessUpdated }: AiChatPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adliScores, setAdliScores] = useState<AdliScores | null>(null);
+  const [pendingSuggestion, setPendingSuggestion] = useState<AdliSuggestion | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -117,10 +147,14 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
         });
       }
 
-      // After streaming is done, check for ADLI scores in the response
+      // After streaming is done, check for structured data in the response
       const { scores } = parseAdliScores(assistantContent);
       if (scores) {
         setAdliScores(scores);
+      }
+      const { suggestion } = parseAdliSuggestion(assistantContent);
+      if (suggestion) {
+        setPendingSuggestion(suggestion);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -146,6 +180,51 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
 
   function handleQuickAction(prompt: string) {
     sendMessage(prompt);
+  }
+
+  function handleImprove(dimension: string) {
+    const dimLabel = FIELD_LABELS[`adli_${dimension}`] || dimension;
+    sendMessage(`Improve my ${dimLabel} section. Rewrite it to be stronger based on your analysis. Keep what's good, fill in what's missing, and make it more complete.`);
+  }
+
+  async function applySuggestion() {
+    if (!pendingSuggestion || isApplying) return;
+
+    setIsApplying(true);
+    try {
+      const response = await fetch("/api/ai/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          processId,
+          field: pendingSuggestion.field,
+          content: pendingSuggestion.content,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to apply suggestion");
+      }
+
+      const fieldLabel = FIELD_LABELS[pendingSuggestion.field] || pendingSuggestion.field;
+
+      // Add a success message to the chat
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `**Applied!** The ${fieldLabel} section has been updated. The previous version was saved to process history so you can undo if needed.\n\nRefresh the page to see the changes in the process sections below, or continue improving other dimensions.`,
+        },
+      ]);
+
+      setPendingSuggestion(null);
+      onProcessUpdated?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to apply");
+    } finally {
+      setIsApplying(false);
+    }
   }
 
   return (
@@ -254,15 +333,23 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
                 </div>
               )}
 
-              {/* ADLI Scorecard */}
-              {adliScores && <AdliScorecard scores={adliScores} />}
+              {/* ADLI Scorecard with Improve buttons */}
+              {adliScores && (
+                <AdliScorecard
+                  scores={adliScores}
+                  onImprove={handleImprove}
+                  isLoading={isLoading}
+                />
+              )}
 
               {/* Message bubbles */}
               {messages.map((msg, i) => {
-                // Strip adli-scores block from displayed text
-                const displayContent = msg.role === "assistant"
-                  ? parseAdliScores(msg.content).cleanedText
-                  : msg.content;
+                // Strip structured blocks from displayed text
+                let displayContent = msg.content;
+                if (msg.role === "assistant") {
+                  displayContent = parseAdliScores(displayContent).cleanedText;
+                  displayContent = parseAdliSuggestion(displayContent).cleanedText;
+                }
 
                 return (
                 <div
@@ -291,6 +378,33 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
                 </div>
                 );
               })}
+
+              {/* Apply suggestion button */}
+              {pendingSuggestion && !isLoading && (
+                <div className="bg-[#b1bd37]/10 border border-[#b1bd37]/30 rounded-lg p-3 space-y-2">
+                  <p className="text-sm font-medium text-[#324a4d]">
+                    Ready to apply changes to: <strong>{FIELD_LABELS[pendingSuggestion.field] || pendingSuggestion.field}</strong>
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    The previous version will be saved to process history.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={applySuggestion}
+                      disabled={isApplying}
+                      className="bg-[#b1bd37] text-white rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
+                    >
+                      {isApplying ? "Applying..." : "Apply to Process"}
+                    </button>
+                    <button
+                      onClick={() => setPendingSuggestion(null)}
+                      className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Error message */}
               {error && (
@@ -347,13 +461,16 @@ function TypingIndicator() {
   );
 }
 
-function AdliScorecard({ scores }: { scores: AdliScores }) {
+function AdliScorecard({ scores, onImprove, isLoading }: { scores: AdliScores; onImprove?: (dimension: string) => void; isLoading?: boolean }) {
   const dimensions = [
     { key: "approach" as const, label: "Approach" },
     { key: "deployment" as const, label: "Deployment" },
     { key: "learning" as const, label: "Learning" },
     { key: "integration" as const, label: "Integration" },
   ];
+
+  // Sort by score ascending so user can see weakest first
+  const sorted = [...dimensions].sort((a, b) => scores[a.key] - scores[b.key]);
 
   const overall = Math.round(
     (scores.approach + scores.deployment + scores.learning + scores.integration) / 4
@@ -376,13 +493,13 @@ function AdliScorecard({ scores }: { scores: AdliScores }) {
       </div>
 
       <div className="space-y-2">
-        {dimensions.map(({ key, label }) => {
+        {sorted.map(({ key, label }) => {
           const score = scores[key];
           const level = getMaturityLevel(score);
 
           return (
-            <div key={key} className="flex items-center gap-3">
-              <span className="text-xs font-medium text-gray-500 w-24">{label}</span>
+            <div key={key} className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-500 w-20">{label}</span>
               <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
@@ -395,6 +512,15 @@ function AdliScorecard({ scores }: { scores: AdliScores }) {
               <span className="text-xs font-medium w-8 text-right" style={{ color: level.color }}>
                 {score}%
               </span>
+              {onImprove && (
+                <button
+                  onClick={() => onImprove(key)}
+                  disabled={isLoading}
+                  className="text-xs text-[#55787c] hover:text-[#324a4d] font-medium disabled:opacity-40 whitespace-nowrap"
+                >
+                  Improve
+                </button>
+              )}
             </div>
           );
         })}

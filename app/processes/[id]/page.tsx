@@ -98,8 +98,7 @@ export default function ProcessDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  useEffect(() => {
-    async function fetchProcess() {
+  async function fetchProcess() {
       // Fetch process with category name
       const { data: procData, error } = await supabase
         .from("processes")
@@ -216,10 +215,10 @@ export default function ProcessDetailPage() {
       if (histData) setHistory(histData);
 
       setLoading(false);
-    }
+  }
 
-    fetchProcess();
-  }, [id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchProcess(); }, [id]);
 
   async function handleStatusChange(newStatus: ProcessStatus) {
     if (!process) return;
@@ -805,7 +804,7 @@ export default function ProcessDetailPage() {
       )}
 
       {/* AI Chat Panel */}
-      <AiChatPanel processId={process.id} processName={process.name} />
+      <AiChatPanel processId={process.id} processName={process.name} onProcessUpdated={fetchProcess} />
     </div>
   );
 }
