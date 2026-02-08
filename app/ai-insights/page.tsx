@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import EmptyState from "@/components/empty-state";
+import AdliRadar from "@/components/adli-radar";
 import { ListPageSkeleton } from "@/components/skeleton";
 
 interface ScoreRow {
@@ -128,25 +129,58 @@ export default function AiInsightsPage() {
         </div>
       ) : (
         <>
-          {/* Organization summary cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {/* Overall */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:col-span-2 lg:col-span-1">
-              <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Overall</div>
-              <div className="text-3xl font-bold" style={{ color: orgLevel.color }}>{orgAvg}%</div>
-              <div className="text-sm mt-1" style={{ color: orgLevel.color }}>{orgLevel.label}</div>
-              <div className="text-xs text-gray-400 mt-2">{scores.length} process{scores.length !== 1 ? "es" : ""} assessed</div>
-            </div>
+          {/* Organization summary — radar + stats */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              {/* Radar chart */}
+              <div className="flex items-center justify-center p-6 bg-gray-50/50 border-b md:border-b-0 md:border-r border-gray-100">
+                {dimAvgs && (
+                  <AdliRadar
+                    approach={dimAvgs.approach}
+                    deployment={dimAvgs.deployment}
+                    learning={dimAvgs.learning}
+                    integration={dimAvgs.integration}
+                    size={200}
+                  />
+                )}
+              </div>
 
-            {/* Dimension averages */}
-            {dimAvgs && (
-              <>
-                <DimCard label="Approach" score={dimAvgs.approach} />
-                <DimCard label="Deployment" score={dimAvgs.deployment} />
-                <DimCard label="Learning" score={dimAvgs.learning} />
-                <DimCard label="Integration" score={dimAvgs.integration} />
-              </>
-            )}
+              {/* Stats panel */}
+              <div className="p-6 space-y-4">
+                <div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                    Overall Maturity
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      className="text-4xl font-bold"
+                      style={{ color: orgLevel.color }}
+                    >
+                      {orgAvg}%
+                    </span>
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: orgLevel.color }}
+                    >
+                      {orgLevel.label}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {scores.length} process
+                    {scores.length !== 1 ? "es" : ""} assessed
+                  </div>
+                </div>
+
+                {dimAvgs && (
+                  <div className="space-y-3 pt-2 border-t border-gray-100">
+                    <DimBar label="Approach" score={dimAvgs.approach} />
+                    <DimBar label="Deployment" score={dimAvgs.deployment} />
+                    <DimBar label="Learning" score={dimAvgs.learning} />
+                    <DimBar label="Integration" score={dimAvgs.integration} />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Sort toggle */}
@@ -247,15 +281,19 @@ export default function AiInsightsPage() {
   );
 }
 
-function DimCard({ label, score }: { label: string; score: number }) {
+function DimBar({ label, score }: { label: string; score: number }) {
   const level = getMaturityLevel(score);
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">{label}</div>
-      <div className="text-2xl font-bold" style={{ color: level.color }}>{score}%</div>
-      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-sm font-medium text-[#324a4d]">{label}</span>
+        <span className="text-sm font-bold" style={{ color: level.color }}>
+          {score}%
+        </span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
         <div
-          className="h-full rounded-full transition-all"
+          className="h-full rounded-full transition-all duration-700"
           style={{ width: `${score}%`, backgroundColor: level.bgColor }}
         />
       </div>

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import MarkdownContent from "./markdown-content";
+import AdliRadar from "./adli-radar";
 
 interface Message {
   role: "user" | "assistant";
@@ -674,17 +675,27 @@ function AdliScorecard({ scores, onImprove, isLoading }: { scores: AdliScores; o
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-[#324a4d]">ADLI Assessment</h3>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Overall:</span>
-          <span
-            className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
-            style={{ backgroundColor: overallLevel.bgColor }}
-          >
-            {overall}% — {overallLevel.label}
-          </span>
-        </div>
+        <span
+          className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
+          style={{ backgroundColor: overallLevel.bgColor }}
+        >
+          {overall}% — {overallLevel.label}
+        </span>
       </div>
 
+      {/* Radar visualization */}
+      <div className="flex justify-center py-1">
+        <AdliRadar
+          approach={scores.approach}
+          deployment={scores.deployment}
+          learning={scores.learning}
+          integration={scores.integration}
+          size={160}
+          color={overallLevel.bgColor}
+        />
+      </div>
+
+      {/* Dimension bars with improve buttons */}
       <div className="space-y-2">
         {sorted.map(({ key, label }) => {
           const score = scores[key];
