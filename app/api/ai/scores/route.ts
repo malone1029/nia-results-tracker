@@ -1,12 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createSupabaseServer } from "@/lib/supabase-server";
 
 // GET: Fetch scores for one process or all processes
 export async function GET(request: Request) {
+  const supabase = await createSupabaseServer();
   const { searchParams } = new URL(request.url);
   const processId = searchParams.get("processId");
 
@@ -46,6 +42,7 @@ export async function GET(request: Request) {
 
 // POST: Save or update scores for a process (upsert)
 export async function POST(request: Request) {
+  const supabase = await createSupabaseServer();
   try {
     const { processId, approach, deployment, learning, integration } = await request.json();
 

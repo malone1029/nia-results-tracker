@@ -1,15 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseServer } from "@/lib/supabase-server";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
-
-// Server-side Supabase client (uses same public key, but runs server-side)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // Build a readable summary of the process for the AI context
 function buildProcessContext(process: Record<string, unknown>): string {
@@ -244,6 +238,7 @@ Only include this block when you are proposing a specific rewrite of a section. 
 - Score each ADLI dimension independently. A process can be strong in Approach but weak in Learning.`;
 
 export async function POST(request: Request) {
+  const supabase = await createSupabaseServer();
   try {
     const { processId, messages } = await request.json();
 

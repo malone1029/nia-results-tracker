@@ -1,9 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createSupabaseServer } from "@/lib/supabase-server";
 
 // Fields that can be updated by the AI
 const ALLOWED_FIELDS = [
@@ -15,6 +10,7 @@ const ALLOWED_FIELDS = [
 ];
 
 export async function POST(request: Request) {
+  const supabase = await createSupabaseServer();
   try {
     const { processId, field, content } = await request.json();
 

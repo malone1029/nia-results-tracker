@@ -131,89 +131,92 @@ export async function POST(request: Request) {
     const projectNotes = project.data.notes || "";
     const ownerName = project.data.owner?.name || null;
 
-    // Charter from project overview/description
+    // Build a full markdown document from all Asana content
+    // This becomes the charter.content — a rich, readable representation
+    const contentParts: string[] = [];
+    if (projectNotes) {
+      contentParts.push(`## Overview\n\n${projectNotes}`);
+    }
+
+    // Collect all unique assignees as stakeholders
+    const assignees = new Set<string>();
+
+    for (const section of sectionData) {
+      const sectionLabel = section.name && section.name !== "(no section)"
+        ? section.name
+        : "General Tasks";
+
+      if (section.tasks.length > 0) {
+        const taskLines = section.tasks.map((t) => {
+          if (t.assignee) assignees.add(t.assignee);
+          const assignee = t.assignee ? ` *(${t.assignee})*` : "";
+          const status = t.completed ? " ~~done~~" : "";
+          const line = `- **${t.name}**${assignee}${status}`;
+          return t.notes ? `${line}\n  ${t.notes}` : line;
+        }).join("\n");
+        contentParts.push(`## ${sectionLabel}\n\n${taskLines}`);
+      }
+    }
+
+    const fullContent = contentParts.join("\n\n---\n\n");
+
+    // Charter: full overview in content, first paragraph as purpose
     const charter = {
       purpose: projectNotes || null,
       scope_includes: null,
       scope_excludes: null,
-      stakeholders: [] as string[],
+      stakeholders: Array.from(assignees),
       mission_alignment: null,
-      content: projectNotes || null,
+      content: fullContent || null,
     };
 
-    // Map sections to ADLI dimensions or workflow steps
+    // Map sections to ADLI dimensions if names match
     const adliFields: Record<string, { content: string }> = {};
-    const workflowSteps: { action: string; responsible: string; output: string }[] = [];
 
     for (const section of sectionData) {
-      // Skip the default "(no section)" or "Untitled section"
-      if (!section.name || section.name === "(no section)") {
-        // Add tasks as workflow steps
-        for (const task of section.tasks) {
-          workflowSteps.push({
-            action: task.name,
-            responsible: task.assignee || "",
-            output: task.notes,
-          });
-        }
-        continue;
-      }
-
+      if (!section.name || section.name === "(no section)") continue;
       const adliField = matchAdliDimension(section.name);
-      if (adliField) {
-        // Build ADLI content from section tasks
+      if (adliField && section.tasks.length > 0) {
         const taskLines = section.tasks
           .map((t) => {
-            const status = t.completed ? "[done]" : "";
             const assignee = t.assignee ? ` (${t.assignee})` : "";
-            const line = `- ${t.name}${assignee} ${status}`.trim();
+            const line = `- ${t.name}${assignee}`;
             return t.notes ? `${line}\n  ${t.notes}` : line;
           })
           .join("\n");
-
         adliFields[adliField] = {
           content: `## ${section.name}\n\n${taskLines}`,
         };
-      } else {
-        // Non-ADLI sections become workflow steps
-        for (const task of section.tasks) {
-          workflowSteps.push({
-            action: `[${section.name}] ${task.name}`,
-            responsible: task.assignee || "",
-            output: task.notes,
-          });
-        }
       }
     }
 
-    // Determine template type based on what we got
     const hasAdli = Object.keys(adliFields).length > 0;
-    const templateType = hasAdli ? "full" : "quick";
+
+    // Always use "full" template — AI can work with it better
+    const templateType = "full";
+
+    // Short description for the list view (first sentence or 200 chars)
+    const shortDesc = projectNotes
+      ? projectNotes.split(/[.!?]\s/)[0].slice(0, 200)
+      : null;
 
     // Build process data
     const processData: Record<string, unknown> = {
       name: projectName,
       category_id: 6, // Default to Operations; user can change later
-      description: projectNotes ? projectNotes.slice(0, 300) : null,
+      description: shortDesc,
       status: "draft",
       template_type: templateType,
       owner: ownerName,
-      charter: charter.purpose ? charter : null,
+      charter,
       adli_approach: adliFields.adli_approach || null,
       adli_deployment: adliFields.adli_deployment || null,
       adli_learning: adliFields.adli_learning || null,
       adli_integration: adliFields.adli_integration || null,
-      workflow: workflowSteps.length > 0
-        ? { steps: workflowSteps, inputs: [], outputs: [], quality_controls: [], content: null }
-        : null,
+      workflow: null,
       asana_project_gid: projectGid,
       asana_project_url: `https://app.asana.com/0/${projectGid}`,
     };
-
-    // If quick template, also populate basic_steps
-    if (!hasAdli && workflowSteps.length > 0) {
-      processData.basic_steps = workflowSteps.map((s) => s.action);
-    }
 
     // Insert into database
     const { data: newProcess, error: insertError } = await supabase

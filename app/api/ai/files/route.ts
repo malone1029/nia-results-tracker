@@ -1,9 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createSupabaseServer } from "@/lib/supabase-server";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -60,6 +55,7 @@ async function extractTextFromXlsx(buffer: ArrayBuffer): Promise<string> {
 
 // GET: List files for a process
 export async function GET(request: Request) {
+  const supabase = await createSupabaseServer();
   const { searchParams } = new URL(request.url);
   const processId = searchParams.get("processId");
 
@@ -82,6 +78,7 @@ export async function GET(request: Request) {
 
 // POST: Upload a file
 export async function POST(request: Request) {
+  const supabase = await createSupabaseServer();
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -158,6 +155,7 @@ export async function POST(request: Request) {
 
 // DELETE: Remove a file
 export async function DELETE(request: Request) {
+  const supabase = await createSupabaseServer();
   const { searchParams } = new URL(request.url);
   const fileId = searchParams.get("fileId");
 

@@ -1,14 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseServer } from "@/lib/supabase-server";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const SYSTEM_PROMPT = `You are an AI process creation assistant for NIA (a healthcare organization) that uses the Malcolm Baldrige Excellence Framework. You help users create new organizational processes through a guided conversation.
 
@@ -86,7 +81,8 @@ When you have enough information, generate a complete process draft. You MUST in
 - After generating the draft, tell the user they can review it in the preview and either save it or ask you to make changes.`;
 
 // Load categories for mapping AI suggestion to category_id
-async function getCategoryMap(): Promise<Map<string, number>> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getCategoryMap(supabase: any): Promise<Map<string, number>> {
   const { data } = await supabase
     .from("categories")
     .select("id, display_name")
@@ -103,12 +99,13 @@ async function getCategoryMap(): Promise<Map<string, number>> {
 }
 
 export async function POST(request: Request) {
+  const supabase = await createSupabaseServer();
   try {
     const { messages, action, processData } = await request.json();
 
     // Handle "save" action — create the process in Supabase
     if (action === "save" && processData) {
-      const categoryMap = await getCategoryMap();
+      const categoryMap = await getCategoryMap(supabase);
 
       // Try to match the AI's category suggestion
       const suggestion = (processData.category_suggestion || "").toLowerCase();
