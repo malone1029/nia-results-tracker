@@ -418,7 +418,7 @@ export default function ImportProcessPage() {
           Import Processes
         </h1>
         <p className="text-gray-500 mt-1">
-          Import process documents from your Obsidian vault or paste markdown directly.
+          Import processes from Asana, your Obsidian vault, or paste markdown directly.
         </p>
       </div>
 

@@ -209,7 +209,7 @@ export default function ProcessesPage() {
             href="/processes/import"
             className="bg-gray-200 text-[#324a4d] rounded-lg py-2 px-4 hover:bg-gray-300 text-sm font-medium text-center"
           >
-            Import from Obsidian
+            Import Processes
           </Link>
           <Link
             href="/processes/new"
