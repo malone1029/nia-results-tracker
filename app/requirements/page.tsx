@@ -393,6 +393,88 @@ export default function RequirementsPage() {
         </div>
       </div>
 
+      {/* Coverage Heatmap */}
+      {(() => {
+        // Build metric_id -> category lookup from allMetrics
+        const metricCategory = new Map<number, string>();
+        for (const m of allMetrics) {
+          metricCategory.set(m.id, m.category_display_name);
+        }
+
+        // Get unique categories sorted
+        const categoryNames = Array.from(new Set(allMetrics.map((m) => m.category_display_name))).sort();
+
+        if (categoryNames.length === 0 || orderedGroups.length === 0) return null;
+
+        // Build matrix: group -> category -> count
+        const matrix = new Map<string, Map<string, number>>();
+        for (const groupName of orderedGroups) {
+          const catCounts = new Map<string, number>();
+          for (const cat of categoryNames) catCounts.set(cat, 0);
+          matrix.set(groupName, catCounts);
+        }
+
+        for (const req of requirements) {
+          const groupCounts = matrix.get(req.stakeholder_group);
+          if (!groupCounts) continue;
+          for (const m of req.linked_metrics) {
+            const cat = metricCategory.get(m.id);
+            if (cat && groupCounts.has(cat)) {
+              groupCounts.set(cat, (groupCounts.get(cat) || 0) + 1);
+            }
+          }
+        }
+
+        return (
+          <div className="bg-white rounded-lg shadow p-4">
+            <h2 className="text-lg font-bold text-[#324a4d] mb-3">Coverage Heatmap</h2>
+            <p className="text-xs text-gray-400 mb-3">Metric coverage by stakeholder group and Baldrige category</p>
+            <div className="overflow-x-auto">
+              <table className="text-sm w-full">
+                <thead>
+                  <tr>
+                    <th className="text-left px-3 py-2 text-xs text-gray-400 font-medium">Stakeholder</th>
+                    {categoryNames.map((cat) => (
+                      <th key={cat} className="px-3 py-2 text-xs text-gray-400 font-medium text-center">{cat}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderedGroups.map((groupName) => {
+                    const catCounts = matrix.get(groupName)!;
+                    return (
+                      <tr key={groupName} className="border-t border-gray-100">
+                        <td className="px-3 py-2 text-sm font-medium text-[#324a4d]">{groupName}</td>
+                        {categoryNames.map((cat) => {
+                          const count = catCounts.get(cat) || 0;
+                          const bgColor = count === 0
+                            ? "bg-gray-100"
+                            : count <= 2
+                              ? "bg-[#f79935]/20"
+                              : "bg-[#b1bd37]/20";
+                          const textColor = count === 0
+                            ? "text-gray-300"
+                            : count <= 2
+                              ? "text-[#b06a10]"
+                              : "text-[#6b7a1a]";
+                          return (
+                            <td key={cat} className="px-3 py-2 text-center">
+                              <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold ${bgColor} ${textColor}`}>
+                                {count === 0 ? "\u2014" : count}
+                              </span>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Requirements by group */}
       {orderedGroups.map((groupName) => {
         const groupReqs = grouped.get(groupName)!;

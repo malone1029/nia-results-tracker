@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus, getStatusColor, getStatusLabel, formatDate } from "@/lib/review-status";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
-import { useRef } from "react";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface MetricRow extends Metric {
   process_name: string;
@@ -33,6 +33,7 @@ interface LogFormData {
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
+  const [sparklineData, setSparklineData] = useState<Map<number, number[]>>(new Map());
   const [processSummary, setProcessSummary] = useState<KeyProcessSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [logForm, setLogForm] = useState<LogFormData | null>(null);
@@ -72,6 +73,8 @@ export default function Dashboard() {
 
     // Build a map of metric_id -> latest entry
     const latestEntries = new Map<number, { value: number; date: string }>();
+    // Build sparkline data: last 6 values per metric in chronological order
+    const sparklines = new Map<number, number[]>();
     if (entriesData) {
       for (const entry of entriesData) {
         if (!latestEntries.has(entry.metric_id)) {
@@ -80,6 +83,16 @@ export default function Dashboard() {
             date: entry.date,
           });
         }
+        // Collect up to 6 entries per metric (data is desc, so we reverse later)
+        const existing = sparklines.get(entry.metric_id) || [];
+        if (existing.length < 6) {
+          existing.push(entry.value);
+          sparklines.set(entry.metric_id, existing);
+        }
+      }
+      // Reverse each array to chronological order (oldest first)
+      for (const [id, values] of sparklines) {
+        sparklines.set(id, values.reverse());
       }
     }
 
@@ -109,6 +122,7 @@ export default function Dashboard() {
     );
 
     setMetrics(rows);
+    setSparklineData(sparklines);
     setLoading(false);
   }
 
@@ -363,6 +377,7 @@ export default function Dashboard() {
           title="Overdue"
           subtitle="These metrics are past their review date"
           metrics={overdue}
+          sparklineData={sparklineData}
           onLogClick={openLogForm}
           accent
         />
@@ -374,6 +389,7 @@ export default function Dashboard() {
           title="Due Soon"
           subtitle="These metrics are due for review within the next 7 days"
           metrics={dueSoon}
+          sparklineData={sparklineData}
           onLogClick={openLogForm}
           accent
         />
@@ -396,6 +412,7 @@ export default function Dashboard() {
           title="No Data Yet"
           subtitle="These metrics have never been logged"
           metrics={noData}
+          sparklineData={sparklineData}
           defaultOpen={false}
           onLogClick={openLogForm}
           accent
@@ -408,6 +425,7 @@ export default function Dashboard() {
           title="Current"
           subtitle="These metrics are up to date"
           metrics={current}
+          sparklineData={sparklineData}
           defaultOpen={false}
           onLogClick={openLogForm}
           accent
@@ -440,6 +458,7 @@ function MetricSection({
   title,
   subtitle,
   metrics,
+  sparklineData,
   onLogClick,
   defaultOpen = true,
   accent = false,
@@ -447,6 +466,7 @@ function MetricSection({
   title: string;
   subtitle: string;
   metrics: MetricRow[];
+  sparklineData: Map<number, number[]>;
   onLogClick: (metricId: number) => void;
   defaultOpen?: boolean;
   accent?: boolean;
@@ -498,6 +518,10 @@ function MetricSection({
                 </div>
               </div>
               <div className="flex items-center gap-4">
+                <Sparkline
+                  values={sparklineData.get(metric.id) || []}
+                  isHigherBetter={metric.is_higher_better}
+                />
                 {metric.last_entry_value !== null && (
                   <div className="text-right">
                     <div className="font-medium text-[#324a4d]">
@@ -533,6 +557,29 @@ function MetricSection({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function Sparkline({ values, isHigherBetter }: { values: number[]; isHigherBetter: boolean }) {
+  if (values.length < 2) {
+    return <span className="text-gray-300 text-xs w-16 text-center inline-block">&mdash;</span>;
+  }
+
+  const first = values[0];
+  const last = values[values.length - 1];
+  const trend = last > first ? "up" : last < first ? "down" : "flat";
+  const improving = (trend === "up" && isHigherBetter) || (trend === "down" && !isHigherBetter);
+  const color = improving ? "#b1bd37" : trend === "flat" ? "#55787c" : "#dc2626";
+  const data = values.map((v, i) => ({ i, v }));
+
+  return (
+    <div className="w-16 h-6 flex-shrink-0">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
