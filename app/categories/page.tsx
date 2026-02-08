@@ -93,6 +93,7 @@ function groupByCategory(rows: MetricRow[]): CategoryGroup[] {
 
 export default function CategoriesPage() {
   const [allRows, setAllRows] = useState<MetricRow[]>([]);
+  const [dbCategories, setDbCategories] = useState<{ id: number; display_name: string; sort_order: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showKeyOnly, setShowKeyOnly] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
@@ -101,6 +102,16 @@ export default function CategoriesPage() {
   useEffect(() => {
     document.title = "Categories | NIA Excellence Hub";
     async function fetch() {
+      // Fetch all Baldrige categories from the table
+      const { data: catData } = await supabase
+        .from("categories")
+        .select("id, display_name, sort_order")
+        .order("sort_order");
+
+      if (catData) {
+        setDbCategories(catData);
+      }
+
       const { data: metricsData } = await supabase
         .from("metrics")
         .select(`
@@ -156,7 +167,21 @@ export default function CategoriesPage() {
   const filteredRows = showKeyOnly
     ? allRows.filter((r) => r.is_key_process)
     : allRows;
-  const categories = groupByCategory(filteredRows);
+  const categoriesFromMetrics = groupByCategory(filteredRows);
+
+  // Merge in empty categories from the database so all 6 Baldrige categories are visible
+  const categories: CategoryGroup[] = dbCategories.map((dbCat) => {
+    const existing = categoriesFromMetrics.find((c) => c.id === dbCat.id);
+    if (existing) return existing;
+    return {
+      id: dbCat.id,
+      display_name: dbCat.display_name,
+      sort_order: dbCat.sort_order,
+      processes: [],
+      totalMetrics: 0,
+      totalWithData: 0,
+    };
+  });
 
   function toggleCategory(categoryId: number) {
     setExpandedCategories((prev) => {
@@ -231,14 +256,23 @@ export default function CategoriesPage() {
             <div className="text-xs text-gray-400 uppercase mb-1">
               Category {cat.sort_order}
             </div>
-            <div className="font-bold text-[#324a4d] text-sm">{cat.display_name}</div>
-            <div className="mt-2">
-              <span className="text-lg font-bold text-[#324a4d]">
-                {cat.totalWithData}
-              </span>
-              <span className="text-gray-400 text-sm"> / {cat.totalMetrics}</span>
-            </div>
-            <div className="text-xs text-gray-400">metrics with data</div>
+            <div className={`font-bold text-sm ${cat.totalMetrics === 0 ? "text-[#dc2626]" : "text-[#324a4d]"}`}>{cat.display_name}</div>
+            {cat.totalMetrics === 0 ? (
+              <div className="mt-2">
+                <div className="text-lg font-bold text-[#dc2626]">0</div>
+                <div className="text-xs text-[#dc2626]">No metrics</div>
+              </div>
+            ) : (
+              <>
+                <div className="mt-2">
+                  <span className="text-lg font-bold text-[#324a4d]">
+                    {cat.totalWithData}
+                  </span>
+                  <span className="text-gray-400 text-sm"> / {cat.totalMetrics}</span>
+                </div>
+                <div className="text-xs text-gray-400">metrics with data</div>
+              </>
+            )}
             {/* Progress bar */}
             <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
               <div
@@ -283,6 +317,11 @@ export default function CategoriesPage() {
             {/* Expanded process list */}
             {isCatExpanded && (
               <div className="border-t border-gray-100 p-4 space-y-3">
+                {cat.processes.length === 0 && (
+                  <p className="text-sm text-gray-400 italic py-2">
+                    No processes or metrics in this category yet. This is a gap to address.
+                  </p>
+                )}
                 {cat.processes.map((proc) => {
                   const isExpanded = expandedProcesses.has(proc.id);
                   const needsAttention = proc.metrics.filter(

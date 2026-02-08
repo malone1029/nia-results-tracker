@@ -23,6 +23,7 @@ interface MetricLeTCI extends Metric {
 
 export default function LeTCIPage() {
   const [metrics, setMetrics] = useState<MetricLeTCI[]>([]);
+  const [allCategoryOptions, setAllCategoryOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showKeyOnly, setShowKeyOnly] = useState(false);
@@ -32,6 +33,16 @@ export default function LeTCIPage() {
   useEffect(() => {
     document.title = "LeTCI Summary | NIA Excellence Hub";
     async function fetch() {
+      // Fetch all Baldrige categories for the filter dropdown
+      const { data: catData } = await supabase
+        .from("categories")
+        .select("display_name")
+        .order("sort_order");
+
+      if (catData) {
+        setAllCategoryOptions(catData.map((c: { display_name: string }) => c.display_name));
+      }
+
       const { data: metricsData } = await supabase
         .from("metrics")
         .select(`
@@ -126,10 +137,8 @@ export default function LeTCIPage() {
     );
   }
 
-  // Get unique categories for filter
-  const categoryOptions = Array.from(
-    new Set(metrics.map((m) => m.category_display_name))
-  ).sort();
+  // Use all categories from database (not just ones with metrics)
+  const categoryOptions = allCategoryOptions;
 
   // Filter
   let filtered =

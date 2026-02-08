@@ -35,6 +35,7 @@ interface EnrichedRequirement extends KeyRequirementWithStatus {
 export default function RequirementsPage() {
   const [requirements, setRequirements] = useState<EnrichedRequirement[]>([]);
   const [allMetrics, setAllMetrics] = useState<AllMetric[]>([]);
+  const [allCategories, setAllCategories] = useState<{ display_name: string; sort_order: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [addingTo, setAddingTo] = useState<number | null>(null);
@@ -50,6 +51,16 @@ export default function RequirementsPage() {
     document.title = "Key Requirements | NIA Excellence Hub";
 
     async function fetchData() {
+      // Fetch all Baldrige categories
+      const { data: catData } = await supabase
+        .from("categories")
+        .select("display_name, sort_order")
+        .order("sort_order");
+
+      if (catData) {
+        setAllCategories(catData);
+      }
+
       // Fetch all key requirements
       const { data: reqData } = await supabase
         .from("key_requirements")
@@ -401,8 +412,8 @@ export default function RequirementsPage() {
           metricCategory.set(m.id, m.category_display_name);
         }
 
-        // Get unique categories sorted
-        const categoryNames = Array.from(new Set(allMetrics.map((m) => m.category_display_name))).sort();
+        // Use all categories from the database (sorted by sort_order)
+        const categoryNames = allCategories.map((c) => c.display_name);
 
         if (categoryNames.length === 0 || orderedGroups.length === 0) return null;
 
