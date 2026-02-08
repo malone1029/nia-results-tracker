@@ -18,7 +18,7 @@ interface GroupedResults {
   requirements: SearchResult[];
 }
 
-export default function GlobalSearch({ mobile }: { mobile?: boolean }) {
+export default function GlobalSearch({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GroupedResults>({
@@ -138,9 +138,10 @@ export default function GlobalSearch({ mobile }: { mobile?: boolean }) {
     (href: string) => {
       setOpen(false);
       setQuery("");
+      onNavigate?.();
       router.push(href);
     },
-    [router]
+    [router, onNavigate]
   );
 
   function handleKeyDown(e: React.KeyboardEvent) {

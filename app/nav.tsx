@@ -57,7 +57,7 @@ export default function Nav() {
       {menuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-[#324a4d] shadow-lg z-50">
           <div className="px-4 pt-3">
-            <GlobalSearch mobile />
+            <GlobalSearch mobile onNavigate={() => setMenuOpen(false)} />
           </div>
           <nav className="flex flex-col px-4 py-3 gap-3 text-sm">
             {links.map((link) => (
