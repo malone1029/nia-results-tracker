@@ -10,6 +10,7 @@ const links = [
   { href: "/processes", label: "Processes" },
   { href: "/categories", label: "Categories" },
   { href: "/", label: "Results Dashboard" },
+  { href: "/ai-insights", label: "AI Insights" },
   { href: "/letci", label: "LeTCI Summary" },
   { href: "/schedule", label: "Review Schedule" },
   { href: "/log", label: "Log Data" },

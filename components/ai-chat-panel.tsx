@@ -232,6 +232,18 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
       const { scores } = parseAdliScores(assistantContent);
       if (scores) {
         setAdliScores(scores);
+        // Persist scores to database
+        fetch("/api/ai/scores", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            processId,
+            approach: scores.approach,
+            deployment: scores.deployment,
+            learning: scores.learning,
+            integration: scores.integration,
+          }),
+        }).catch(() => { /* silent — non-critical */ });
       }
       const { suggestions } = parseAdliSuggestions(assistantContent);
       if (suggestions.length > 0) {
