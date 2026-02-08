@@ -16,6 +16,7 @@ import type {
 } from "@/lib/types";
 import Link from "next/link";
 import MarkdownContent from "@/components/markdown-content";
+import AiChatPanel from "@/components/ai-chat-panel";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface ProcessDetail {
@@ -802,6 +803,9 @@ export default function ProcessDetailPage() {
           </div>
         </Section>
       )}
+
+      {/* AI Chat Panel */}
+      <AiChatPanel processId={process.id} processName={process.name} />
     </div>
   );
 }
