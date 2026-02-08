@@ -312,6 +312,48 @@ export async function POST(request: Request) {
       return { requirement: req.requirement, stakeholder_group: req.stakeholder_group };
     });
 
+    // Load uploaded files for this process
+    const { data: filesData } = await supabase
+      .from("process_files")
+      .select("file_name, file_type, content")
+      .eq("process_id", processId);
+
+    // Build file context (text files only — images handled separately)
+    let filesContext = "";
+    const imageFiles: { fileName: string; base64: string; mediaType: string }[] = [];
+
+    if (filesData && filesData.length > 0) {
+      const textFiles = filesData.filter(
+        (f) => !f.content.startsWith("data:image/")
+      );
+      const imgFiles = filesData.filter(
+        (f) => f.content.startsWith("data:image/")
+      );
+
+      if (textFiles.length > 0) {
+        filesContext = "\n### Uploaded Files\n";
+        for (const f of textFiles) {
+          // Truncate very large files to avoid exceeding context limits
+          const truncated = f.content.length > 10000
+            ? f.content.slice(0, 10000) + "\n\n[...file truncated at 10,000 characters]"
+            : f.content;
+          filesContext += `\n**${f.file_name}** (${f.file_type}):\n\`\`\`\n${truncated}\n\`\`\`\n`;
+        }
+      }
+
+      for (const f of imgFiles) {
+        // Extract base64 and media type from data URL
+        const match = f.content.match(/^data:(image\/\w+);base64,(.+)$/);
+        if (match) {
+          imageFiles.push({
+            fileName: f.file_name,
+            base64: match[2],
+            mediaType: match[1],
+          });
+        }
+      }
+    }
+
     // Build the full context for Claude
     const processContext = buildProcessContext(procData);
     const metricsContext = buildMetricsContext(metricsWithValues);
@@ -325,21 +367,42 @@ export async function POST(request: Request) {
 
 ${processContext}
 ${metricsContext}
-${requirementsContext}`;
+${requirementsContext}
+${filesContext}`;
 
     // Stream the response from Claude word-by-word
     const encoder = new TextEncoder();
     const readableStream = new ReadableStream({
       async start(controller) {
         try {
+          // Build messages, injecting images into the first user message if any
+          /* eslint-disable @typescript-eslint/no-explicit-any */
+          const builtMessages: any[] = messages.map((m: { role: string; content: string }, idx: number) => {
+            if (idx === 0 && m.role === "user" && imageFiles.length > 0) {
+              // Include uploaded images in the first user message via Claude vision
+              const content: any[] = [];
+              for (const img of imageFiles) {
+                content.push({
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: img.mediaType,
+                    data: img.base64,
+                  },
+                });
+              }
+              content.push({ type: "text", text: m.content });
+              return { role: m.role, content };
+            }
+            return { role: m.role, content: m.content };
+          });
+          /* eslint-enable @typescript-eslint/no-explicit-any */
+
           const stream = anthropic.messages.stream({
             model: "claude-sonnet-4-5-20250929",
             max_tokens: 4096,
             system: fullSystemPrompt,
-            messages: messages.map((m: { role: string; content: string }) => ({
-              role: m.role as "user" | "assistant",
-              content: m.content,
-            })),
+            messages: builtMessages,
           });
 
           stream.on("text", (text) => {

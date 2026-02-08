@@ -15,6 +15,14 @@ interface AdliScores {
   integration: number;
 }
 
+interface UploadedFile {
+  id: number;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  uploaded_at: string;
+}
+
 interface AdliSuggestion {
   field: string;
   content: string;
@@ -40,18 +48,35 @@ function parseAdliScores(text: string): { scores: AdliScores | null; cleanedText
   }
 }
 
-// Parse adli-suggestion code block from AI response
-function parseAdliSuggestion(text: string): { suggestion: AdliSuggestion | null; cleanedText: string } {
-  const match = text.match(/```adli-suggestion\s*\n([\s\S]*?)\n```/);
-  if (!match) return { suggestion: null, cleanedText: text };
+// Parse adli-suggestion blocks from AI response (supports multiple)
+function parseAdliSuggestions(text: string): { suggestions: AdliSuggestion[]; cleanedText: string } {
+  const suggestions: AdliSuggestion[] = [];
+  let cleanedText = text;
 
-  try {
-    const suggestion = JSON.parse(match[1]) as AdliSuggestion;
-    const cleanedText = text.replace(/```adli-suggestion\s*\n[\s\S]*?\n```\s*\n?/, "").trim();
-    return { suggestion, cleanedText };
-  } catch {
-    return { suggestion: null, cleanedText: text };
+  // Match fenced code blocks: ```adli-suggestion\n{...}\n```
+  const fencedPattern = /```adli-suggestion\s*\n([\s\S]*?)\n```/g;
+  let match;
+  while ((match = fencedPattern.exec(text)) !== null) {
+    try {
+      suggestions.push(JSON.parse(match[1]) as AdliSuggestion);
+    } catch { /* skip malformed */ }
   }
+  cleanedText = cleanedText.replace(/```adli-suggestion\s*\n[\s\S]*?\n```\s*\n?/g, "").trim();
+
+  // Also match bare JSON objects with "field" and "content" keys (AI sometimes skips the fence)
+  if (suggestions.length === 0) {
+    const barePattern = /\{"field":\s*"(adli_\w+|charter)",\s*"content":\s*"((?:[^"\\]|\\.)*)"\}/g;
+    while ((match = barePattern.exec(text)) !== null) {
+      try {
+        suggestions.push(JSON.parse(match[0]) as AdliSuggestion);
+      } catch { /* skip malformed */ }
+    }
+    if (suggestions.length > 0) {
+      cleanedText = cleanedText.replace(/\{"field":\s*"(adli_\w+|charter)",\s*"content":\s*"(?:[^"\\]|\\.)*"\}\s*/g, "").trim();
+    }
+  }
+
+  return { suggestions, cleanedText };
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -78,7 +103,10 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adliScores, setAdliScores] = useState<AdliScores | null>(null);
-  const [pendingSuggestion, setPendingSuggestion] = useState<AdliSuggestion | null>(null);
+  const [pendingSuggestions, setPendingSuggestions] = useState<AdliSuggestion[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -93,6 +121,59 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Load uploaded files when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchFiles();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  async function fetchFiles() {
+    const res = await fetch(`/api/ai/files?processId=${processId}`);
+    if (res.ok) {
+      const data = await res.json();
+      setUploadedFiles(data);
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("processId", String(processId));
+
+      const res = await fetch("/api/ai/files", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Upload failed");
+      }
+
+      await fetchFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleFileDelete(fileId: number) {
+    const res = await fetch(`/api/ai/files?fileId=${fileId}`, { method: "DELETE" });
+    if (res.ok) {
+      setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
+    }
+  }
 
   async function sendMessage(content: string) {
     if (!content.trim() || isLoading) return;
@@ -152,9 +233,9 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
       if (scores) {
         setAdliScores(scores);
       }
-      const { suggestion } = parseAdliSuggestion(assistantContent);
-      if (suggestion) {
-        setPendingSuggestion(suggestion);
+      const { suggestions } = parseAdliSuggestions(assistantContent);
+      if (suggestions.length > 0) {
+        setPendingSuggestions(suggestions);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -187,8 +268,8 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
     sendMessage(`Improve my ${dimLabel} section. Rewrite it to be stronger based on your analysis. Keep what's good, fill in what's missing, and make it more complete.`);
   }
 
-  async function applySuggestion() {
-    if (!pendingSuggestion || isApplying) return;
+  async function applySuggestion(suggestion: AdliSuggestion) {
+    if (isApplying) return;
 
     setIsApplying(true);
     try {
@@ -197,8 +278,8 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           processId,
-          field: pendingSuggestion.field,
-          content: pendingSuggestion.content,
+          field: suggestion.field,
+          content: suggestion.content,
         }),
       });
 
@@ -207,23 +288,31 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
         throw new Error(errData.error || "Failed to apply suggestion");
       }
 
-      const fieldLabel = FIELD_LABELS[pendingSuggestion.field] || pendingSuggestion.field;
+      const fieldLabel = FIELD_LABELS[suggestion.field] || suggestion.field;
+
+      // Remove this suggestion from pending list
+      setPendingSuggestions((prev) => prev.filter((s) => s.field !== suggestion.field));
 
       // Add a success message to the chat
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: `**Applied!** The ${fieldLabel} section has been updated. The previous version was saved to process history so you can undo if needed.\n\nRefresh the page to see the changes in the process sections below, or continue improving other dimensions.`,
+          content: `**Applied!** The ${fieldLabel} section has been updated. The previous version was saved to process history.`,
         },
       ]);
 
-      setPendingSuggestion(null);
       onProcessUpdated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to apply");
     } finally {
       setIsApplying(false);
+    }
+  }
+
+  async function applyAllSuggestions() {
+    for (const suggestion of pendingSuggestions) {
+      await applySuggestion(suggestion);
     }
   }
 
@@ -348,7 +437,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
                 let displayContent = msg.content;
                 if (msg.role === "assistant") {
                   displayContent = parseAdliScores(displayContent).cleanedText;
-                  displayContent = parseAdliSuggestion(displayContent).cleanedText;
+                  displayContent = parseAdliSuggestions(displayContent).cleanedText;
                 }
 
                 return (
@@ -379,30 +468,51 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
                 );
               })}
 
-              {/* Apply suggestion button */}
-              {pendingSuggestion && !isLoading && (
-                <div className="bg-[#b1bd37]/10 border border-[#b1bd37]/30 rounded-lg p-3 space-y-2">
-                  <p className="text-sm font-medium text-[#324a4d]">
-                    Ready to apply changes to: <strong>{FIELD_LABELS[pendingSuggestion.field] || pendingSuggestion.field}</strong>
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    The previous version will be saved to process history.
-                  </p>
-                  <div className="flex gap-2">
+              {/* Apply suggestion buttons */}
+              {pendingSuggestions.length > 0 && !isLoading && (
+                <div className="bg-[#b1bd37]/10 border border-[#b1bd37]/30 rounded-lg p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-[#324a4d]">
+                      {pendingSuggestions.length === 1 ? "Ready to apply:" : `${pendingSuggestions.length} sections ready to apply:`}
+                    </p>
                     <button
-                      onClick={applySuggestion}
-                      disabled={isApplying}
-                      className="bg-[#b1bd37] text-white rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
+                      onClick={() => setPendingSuggestions([])}
+                      className="text-xs text-gray-400 hover:text-gray-600"
                     >
-                      {isApplying ? "Applying..." : "Apply to Process"}
-                    </button>
-                    <button
-                      onClick={() => setPendingSuggestion(null)}
-                      className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
-                    >
-                      Skip
+                      Dismiss all
                     </button>
                   </div>
+
+                  <div className="space-y-2">
+                    {pendingSuggestions.map((suggestion) => (
+                      <div key={suggestion.field} className="flex items-center justify-between bg-white rounded px-3 py-2">
+                        <span className="text-sm text-[#324a4d] font-medium">
+                          {FIELD_LABELS[suggestion.field] || suggestion.field}
+                        </span>
+                        <button
+                          onClick={() => applySuggestion(suggestion)}
+                          disabled={isApplying}
+                          className="text-xs bg-[#b1bd37] text-white rounded px-3 py-1 font-medium hover:opacity-90 disabled:opacity-50"
+                        >
+                          {isApplying ? "..." : "Apply"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {pendingSuggestions.length > 1 && (
+                    <button
+                      onClick={applyAllSuggestions}
+                      disabled={isApplying}
+                      className="w-full bg-[#b1bd37] text-white rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
+                    >
+                      {isApplying ? "Applying..." : "Apply All"}
+                    </button>
+                  )}
+
+                  <p className="text-xs text-gray-500">
+                    Previous versions will be saved to process history.
+                  </p>
                 </div>
               )}
 
@@ -440,9 +550,65 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
                   </svg>
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-1">
-                Enter to send, Shift+Enter for new line
-              </p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs text-gray-400">
+                  Enter to send, Shift+Enter for new line
+                </p>
+                <div className="flex items-center gap-2">
+                  {uploadedFiles.length > 0 && (
+                    <span className="text-xs text-[#55787c]">
+                      {uploadedFiles.length} file{uploadedFiles.length !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    onChange={handleFileUpload}
+                    accept=".txt,.md,.csv,.json,.png,.jpg,.jpeg,.pdf,.xlsx,.xls,.docx"
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="text-xs text-[#55787c] hover:text-[#324a4d] flex items-center gap-1 disabled:opacity-40"
+                    title="Upload a file for AI context"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                    </svg>
+                    {isUploading ? "Uploading..." : "Attach"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Uploaded files list */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {uploadedFiles.map((f) => (
+                    <div
+                      key={f.id}
+                      className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1"
+                    >
+                      <span className="text-[#324a4d] truncate mr-2">
+                        {f.file_name}
+                        <span className="text-gray-400 ml-1">
+                          ({Math.round(f.file_size / 1024)}KB)
+                        </span>
+                      </span>
+                      <button
+                        onClick={() => handleFileDelete(f.id)}
+                        className="text-gray-400 hover:text-red-500 flex-shrink-0"
+                        title="Remove file"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </>
