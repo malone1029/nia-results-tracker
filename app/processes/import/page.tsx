@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   parseObsidianProcess,
@@ -39,7 +40,7 @@ const FOLDER_TO_CATEGORY: Record<string, string> = {
 export default function ImportProcessPage() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [existingProcesses, setExistingProcesses] = useState<Map<string, number>>(new Map()); // name -> id
-  const [tab, setTab] = useState<"vault" | "paste">("vault");
+  const [tab, setTab] = useState<"vault" | "paste" | "asana">("vault");
 
   // Vault import state
   const [vaultFiles, setVaultFiles] = useState<VaultFile[]>([]);
@@ -56,6 +57,16 @@ export default function ImportProcessPage() {
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Asana import state
+  const [asanaProjects, setAsanaProjects] = useState<{ gid: string; name: string; description: string; modified_at: string; team: string | null }[]>([]);
+  const [asanaLoading, setAsanaLoading] = useState(false);
+  const [asanaError, setAsanaError] = useState("");
+  const [asanaConnected, setAsanaConnected] = useState<boolean | null>(null);
+  const [asanaImporting, setAsanaImporting] = useState<string | null>(null); // gid of project being imported
+  const [asanaSearch, setAsanaSearch] = useState("");
+  const [showAnalyzePrompt, setShowAnalyzePrompt] = useState<{ id: number; name: string } | null>(null);
+  const router = useRouter();
 
   // Combined success tracking
   const [savedProcesses, setSavedProcesses] = useState<{ id: number; name: string }[]>([]);
@@ -96,6 +107,66 @@ export default function ImportProcessPage() {
     }
     loadVault();
   }, []);
+
+  // Load Asana projects when tab switches to asana
+  useEffect(() => {
+    if (tab !== "asana" || asanaProjects.length > 0 || asanaConnected === false) return;
+    loadAsanaProjects();
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function loadAsanaProjects() {
+    setAsanaLoading(true);
+    setAsanaError("");
+    try {
+      const res = await fetch("/api/asana/projects");
+      const data = await res.json();
+      if (res.status === 401) {
+        setAsanaConnected(false);
+        return;
+      }
+      if (data.error) {
+        setAsanaError(data.error);
+        return;
+      }
+      setAsanaConnected(true);
+      setAsanaProjects(data.projects);
+    } catch (e) {
+      setAsanaError("Failed to load projects: " + (e as Error).message);
+    } finally {
+      setAsanaLoading(false);
+    }
+  }
+
+  async function handleAsanaImport(projectGid: string) {
+    setAsanaImporting(projectGid);
+    setAsanaError("");
+    try {
+      const res = await fetch("/api/asana/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectGid }),
+      });
+      const data = await res.json();
+
+      if (res.status === 409) {
+        setAsanaError(`"${data.existingName}" was already imported. View it in Processes.`);
+        setAsanaImporting(null);
+        return;
+      }
+
+      if (!res.ok) {
+        setAsanaError(data.error || "Import failed");
+        setAsanaImporting(null);
+        return;
+      }
+
+      setSavedProcesses((prev) => [...prev, { id: data.id, name: data.name }]);
+      setShowAnalyzePrompt({ id: data.id, name: data.name });
+    } catch (e) {
+      setAsanaError("Import failed: " + (e as Error).message);
+    }
+    setAsanaImporting(null);
+  }
 
   function toggleFile(path: string) {
     const next = new Set(selectedFiles);
@@ -417,8 +488,44 @@ export default function ImportProcessPage() {
         </div>
       )}
 
+      {/* AI analyze prompt after Asana import */}
+      {showAnalyzePrompt && (
+        <div className="bg-[#55787c]/10 border border-[#55787c] rounded-lg p-4 flex items-center justify-between gap-4">
+          <p className="text-sm text-[#324a4d]">
+            <strong>{showAnalyzePrompt.name}</strong> imported! Want AI to analyze it for ADLI gaps?
+          </p>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => router.push(`/processes/${showAnalyzePrompt.id}?analyze=true`)}
+              className="bg-[#b1bd37] text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90"
+            >
+              Analyze Now
+            </button>
+            <button
+              onClick={() => {
+                setShowAnalyzePrompt(null);
+                router.push(`/processes/${showAnalyzePrompt.id}`);
+              }}
+              className="text-sm text-gray-500 hover:text-[#324a4d] py-2 px-3"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Tab switcher */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+        <button
+          onClick={() => setTab("asana")}
+          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            tab === "asana"
+              ? "bg-white text-[#324a4d] shadow-sm"
+              : "text-gray-500 hover:text-[#324a4d]"
+          }`}
+        >
+          From Asana
+        </button>
         <button
           onClick={() => setTab("vault")}
           className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
@@ -440,6 +547,115 @@ export default function ImportProcessPage() {
           Paste Markdown
         </button>
       </div>
+
+      {/* ═══ ASANA TAB ═══ */}
+      {tab === "asana" && (
+        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935]">
+          <h2 className="font-semibold text-[#324a4d] mb-1">
+            Import from Asana
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Select an Asana project to import as an NIA process.
+          </p>
+
+          {asanaConnected === false && (
+            <div className="py-4">
+              <p className="text-[#55787c] text-sm font-medium mb-2">
+                Connect your Asana account first
+              </p>
+              <Link
+                href="/settings"
+                className="inline-block bg-[#324a4d] text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90"
+              >
+                Go to Settings
+              </Link>
+            </div>
+          )}
+
+          {asanaLoading && (
+            <p className="text-[#55787c] text-sm py-4">Loading Asana projects...</p>
+          )}
+
+          {asanaError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+              {asanaError}
+            </div>
+          )}
+
+          {asanaConnected && !asanaLoading && asanaProjects.length === 0 && !asanaError && (
+            <p className="text-gray-400 text-sm py-4">No projects found in your Asana workspace.</p>
+          )}
+
+          {asanaConnected && asanaProjects.length > 0 && (
+            <>
+              {/* Search filter */}
+              <input
+                type="text"
+                value={asanaSearch}
+                onChange={(e) => setAsanaSearch(e.target.value)}
+                placeholder="Search projects..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#55787c]"
+              />
+
+              {/* Project list */}
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {asanaProjects
+                  .filter((p) =>
+                    p.name.toLowerCase().includes(asanaSearch.toLowerCase())
+                  )
+                  .map((project) => {
+                    const isImporting = asanaImporting === project.gid;
+                    const alreadySaved = savedProcesses.some(
+                      (sp) => sp.name === project.name
+                    );
+
+                    return (
+                      <div
+                        key={project.gid}
+                        className="flex items-center justify-between gap-4 px-3 py-3 rounded-lg border border-gray-100 hover:border-[#55787c]/30 transition-colors"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-[#324a4d] truncate">
+                            {project.name}
+                          </p>
+                          {project.description && (
+                            <p className="text-xs text-gray-400 truncate mt-0.5">
+                              {project.description}
+                            </p>
+                          )}
+                          <div className="flex gap-3 mt-1 text-xs text-gray-400">
+                            {project.team && <span>{project.team}</span>}
+                            {project.modified_at && (
+                              <span>
+                                Updated{" "}
+                                {new Date(project.modified_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0">
+                          {alreadySaved ? (
+                            <span className="text-xs text-[#b1bd37] font-medium">
+                              Imported
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleAsanaImport(project.gid)}
+                              disabled={isImporting || asanaImporting !== null}
+                              className="bg-[#324a4d] text-white rounded-lg py-1.5 px-3 text-xs font-medium hover:opacity-90 disabled:opacity-50"
+                            >
+                              {isImporting ? "Importing..." : "Import"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ═══ VAULT TAB ═══ */}
       {tab === "vault" && (

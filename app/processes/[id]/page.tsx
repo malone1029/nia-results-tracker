@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus, getStatusColor, getStatusLabel, formatValue } from "@/lib/review-status";
 import type {
@@ -87,8 +87,18 @@ const STATUS_ORDER: ProcessStatus[] = [
 ];
 
 export default function ProcessDetailPage() {
+  return (
+    <Suspense>
+      <ProcessDetailContent />
+    </Suspense>
+  );
+}
+
+function ProcessDetailContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoAnalyze = searchParams.get("analyze") === "true";
   const id = params.id as string;
 
   const [process, setProcess] = useState<ProcessDetail | null>(null);
@@ -804,7 +814,7 @@ export default function ProcessDetailPage() {
       )}
 
       {/* AI Chat Panel */}
-      <AiChatPanel processId={process.id} processName={process.name} onProcessUpdated={fetchProcess} />
+      <AiChatPanel processId={process.id} processName={process.name} onProcessUpdated={fetchProcess} autoAnalyze={autoAnalyze} />
     </div>
   );
 }

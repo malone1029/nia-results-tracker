@@ -32,6 +32,7 @@ interface AiChatPanelProps {
   processId: number;
   processName: string;
   onProcessUpdated?: () => void;
+  autoAnalyze?: boolean;
 }
 
 // Parse adli-scores code block from AI response, return scores and cleaned text
@@ -94,8 +95,9 @@ function getMaturityLevel(score: number): { label: string; color: string; bgColo
   return { label: "Reacting", color: "#dc2626", bgColor: "#dc2626" };
 }
 
-export default function AiChatPanel({ processId, processName, onProcessUpdated }: AiChatPanelProps) {
+export default function AiChatPanel({ processId, processName, onProcessUpdated, autoAnalyze }: AiChatPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const autoAnalyzeRef = useRef(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -121,6 +123,19 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated }
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Auto-open and trigger analysis if autoAnalyze prop is set
+  useEffect(() => {
+    if (autoAnalyze && !autoAnalyzeRef.current) {
+      autoAnalyzeRef.current = true;
+      setIsOpen(true);
+      // Small delay to let the panel render before sending
+      setTimeout(() => {
+        sendMessage("Analyze this process. Give me an ADLI maturity assessment with scores, identify the key gaps, and suggest the top improvements.");
+      }, 500);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAnalyze]);
 
   // Load uploaded files when panel opens
   useEffect(() => {
