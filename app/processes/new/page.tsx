@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 interface CategoryOption {
@@ -85,6 +86,31 @@ export default function NewProcessPage() {
           later.
         </p>
       </div>
+
+      {/* Create with AI option */}
+      <Link
+        href="/processes/new/ai"
+        className="block bg-[#324a4d]/5 border-2 border-dashed border-[#324a4d]/20 rounded-xl p-5 hover:bg-[#324a4d]/10 hover:border-[#324a4d]/40 transition-colors group"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-[#324a4d] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2a8 8 0 0 0-8 8c0 3.5 2.1 6.4 5 7.7V22l3-3 3 3v-4.3c2.9-1.3 5-4.2 5-7.7a8 8 0 0 0-8-8z" />
+              <circle cx="9" cy="10" r="1" fill="white" />
+              <circle cx="15" cy="10" r="1" fill="white" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-semibold text-[#324a4d]">Create with AI</p>
+            <p className="text-sm text-gray-500">
+              Answer a few questions and AI builds a complete process with Charter and ADLI sections.
+            </p>
+          </div>
+          <svg className="w-5 h-5 text-gray-400 ml-auto flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </div>
+      </Link>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Process Name */}
