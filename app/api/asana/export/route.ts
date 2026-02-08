@@ -58,13 +58,15 @@ export async function POST(request: Request) {
 
   try {
     // Build the project description from charter
-    // Use charter.purpose (the overview) for Asana — NOT charter.content which may
-    // contain imported task dumps. Fall back to structured fields, then description.
+    // Use charter.content (what the user edits) first, then fall back to purpose, then description
     const charter = proc.charter as Record<string, unknown> | null;
+    const charterContent = charter?.content && typeof charter.content === "string"
+      ? charter.content
+      : null;
     const charterPurpose = charter?.purpose && typeof charter.purpose === "string"
       ? charter.purpose
       : null;
-    const projectDescription = charterPurpose || fieldToText(charter) || proc.description || "";
+    const projectDescription = charterContent || charterPurpose || proc.description || "";
 
     // Build ADLI section content
     const adliSections = [
