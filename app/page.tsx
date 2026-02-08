@@ -212,17 +212,52 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard label="Total Metrics" value={metrics.length} color="#324a4d" />
-        <StatCard
-          label="With Data"
-          value={metrics.length - noData.length}
-          color="#b1bd37"
+      {/* Hero metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Data Health ring */}
+        <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-5">
+          <HealthRing
+            percentage={
+              metrics.length > 0
+                ? Math.round(
+                    ((metrics.length - noData.length) / metrics.length) * 100
+                  )
+                : 0
+            }
+          />
+          <div>
+            <div className="text-base font-semibold text-[#324a4d]">
+              Data Health
+            </div>
+            <div className="text-sm text-gray-400 mt-0.5">
+              {metrics.length - noData.length} of {metrics.length} metrics
+              tracked
+            </div>
+          </div>
+        </div>
+
+        {/* Overdue */}
+        <HeroCard
+          label="Overdue"
+          value={overdue.length}
+          color="#dc2626"
+          subtitle="past review date"
         />
-        <StatCard label="Due Soon" value={dueSoon.length} color="#f79935" />
-        <StatCard label="Overdue" value={overdue.length} color="#dc2626" />
-        <StatCard
+
+        {/* Due Soon */}
+        <HeroCard
+          label="Due Soon"
+          value={dueSoon.length}
+          color="#f79935"
+          subtitle="review within 7 days"
+        />
+      </div>
+
+      {/* Secondary stats ribbon */}
+      <div className="grid grid-cols-3 gap-3">
+        <MiniStat label="Total Metrics" value={metrics.length} color="#324a4d" />
+        <MiniStat label="Current" value={current.length} color="#b1bd37" />
+        <MiniStat
           label="Need Targets"
           value={needsTargets.length}
           color="#55787c"
@@ -374,7 +409,7 @@ export default function Dashboard() {
           metrics={overdue}
           sparklineData={sparklineData}
           onLogClick={openLogForm}
-          accent
+          accentColor="#dc2626"
         />
       )}
 
@@ -386,7 +421,7 @@ export default function Dashboard() {
           metrics={dueSoon}
           sparklineData={sparklineData}
           onLogClick={openLogForm}
-          accent
+          accentColor="#f79935"
         />
       )}
 
@@ -410,7 +445,7 @@ export default function Dashboard() {
           sparklineData={sparklineData}
           defaultOpen={false}
           onLogClick={openLogForm}
-          accent
+          accentColor="#55787c"
         />
       )}
 
@@ -423,14 +458,79 @@ export default function Dashboard() {
           sparklineData={sparklineData}
           defaultOpen={false}
           onLogClick={openLogForm}
-          accent
+          accentColor="#b1bd37"
         />
       )}
     </div>
   );
 }
 
-function StatCard({
+function HealthRing({ percentage }: { percentage: number }) {
+  const [mounted, setMounted] = useState(false);
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius;
+  const offset = mounted
+    ? circumference - (percentage / 100) * circumference
+    : circumference;
+  const color =
+    percentage >= 80 ? "#b1bd37" : percentage >= 50 ? "#f79935" : "#dc2626";
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 100);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="relative w-28 h-28 flex-shrink-0">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+        <circle
+          cx="50" cy="50" r={radius}
+          fill="none" stroke="#e5e7eb" strokeWidth="7"
+        />
+        <circle
+          cx="50" cy="50" r={radius}
+          fill="none" stroke={color} strokeWidth="7"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 1s ease-out" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-2xl font-bold text-[#324a4d]">
+          {percentage}<span className="text-sm">%</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function HeroCard({
+  label,
+  value,
+  color,
+  subtitle,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  subtitle: string;
+}) {
+  return (
+    <div
+      className="rounded-xl shadow-sm p-5 flex flex-col justify-center border-l-4 hover:shadow-md transition-all duration-200"
+      style={{ backgroundColor: `${color}08`, borderLeftColor: color }}
+    >
+      <div className="text-4xl font-bold tracking-tight" style={{ color }}>
+        {value}
+      </div>
+      <div className="text-base font-semibold text-[#324a4d] mt-1">{label}</div>
+      <div className="text-sm text-gray-400 mt-0.5">{subtitle}</div>
+    </div>
+  );
+}
+
+function MiniStat({
   label,
   value,
   color,
@@ -440,14 +540,11 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div
-      className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-      style={{ backgroundColor: `${color}08`, borderTop: `3px solid ${color}` }}
-    >
-      <div className="text-3xl font-bold" style={{ color }}>
+    <div className="flex items-center gap-3 bg-white rounded-lg shadow-sm px-4 py-3">
+      <div className="text-xl font-bold" style={{ color }}>
         {value}
       </div>
-      <div className="text-sm text-gray-500 mt-1">{label}</div>
+      <div className="text-sm text-gray-500">{label}</div>
     </div>
   );
 }
@@ -459,7 +556,7 @@ function MetricSection({
   sparklineData,
   onLogClick,
   defaultOpen = true,
-  accent = false,
+  accentColor,
 }: {
   title: string;
   subtitle: string;
@@ -467,15 +564,19 @@ function MetricSection({
   sparklineData: Map<number, number[]>;
   onLogClick: (metricId: number) => void;
   defaultOpen?: boolean;
-  accent?: boolean;
+  accentColor?: string;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className={`bg-white rounded-lg shadow overflow-hidden ${accent ? "border-l-4 border-[#f79935]" : ""}`}>
+    <div
+      className="bg-white rounded-lg shadow overflow-hidden"
+      style={accentColor ? { borderLeft: `4px solid ${accentColor}` } : {}}
+    >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors text-left"
+        style={accentColor ? { backgroundColor: `${accentColor}08` } : {}}
       >
         <div className="flex items-center gap-3">
           <span className={`section-chevron text-gray-400 text-sm ${isOpen ? "open" : ""}`}>
@@ -573,7 +674,7 @@ function Sparkline({ values, isHigherBetter }: { values: number[]; isHigherBette
   const data = values.map((v, i) => ({ i, v }));
 
   return (
-    <div className="w-16 h-6 flex-shrink-0">
+    <div className="w-20 h-10 flex-shrink-0">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
           <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
