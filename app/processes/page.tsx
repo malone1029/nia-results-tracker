@@ -25,6 +25,7 @@ interface ProcessRow {
   adli_deployment: Record<string, unknown> | null;
   adli_learning: Record<string, unknown> | null;
   adli_integration: Record<string, unknown> | null;
+  asana_project_gid: string | null;
 }
 
 interface CompletenessSection {
@@ -103,6 +104,7 @@ export default function ProcessesPage() {
           id, name, category_id, is_key, status, template_type, owner, baldrige_item,
           charter, basic_steps, participants, metrics_summary, connections,
           adli_approach, adli_deployment, adli_learning, adli_integration,
+          asana_project_gid,
           categories!inner ( display_name )
         `)
         .order("name");
@@ -129,6 +131,7 @@ export default function ProcessesPage() {
             adli_deployment: p.adli_deployment as Record<string, unknown> | null,
             adli_learning: p.adli_learning as Record<string, unknown> | null,
             adli_integration: p.adli_integration as Record<string, unknown> | null,
+            asana_project_gid: p.asana_project_gid as string | null,
           };
         }
       );
@@ -391,6 +394,11 @@ export default function ProcessesPage() {
                         >
                           {process.name}
                         </Link>
+                        {process.asana_project_gid && (
+                          <span className="text-xs text-gray-400 ml-1" title="Linked to Asana">
+                            <svg className="inline w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="4"/><circle cx="5" cy="18" r="4"/><circle cx="19" cy="18" r="4"/></svg>
+                          </span>
+                        )}
                       </span>
                       {process.baldrige_item && (
                         <span className="text-xs text-gray-400 ml-2">
@@ -472,6 +480,11 @@ export default function ProcessesPage() {
                         {process.is_key ? "\u2605" : "\u2606"}
                       </button>
                       {process.name}
+                      {process.asana_project_gid && (
+                        <span className="text-gray-400 ml-1" title="Linked to Asana">
+                          <svg className="inline w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="4"/><circle cx="5" cy="18" r="4"/><circle cx="19" cy="18" r="4"/></svg>
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
                       {process.category_display_name}
