@@ -375,28 +375,17 @@ export default function RequirementsPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold text-[#324a4d]">{total}</div>
-          <div className="text-xs text-gray-400">Total Requirements</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold" style={{ color: withMetrics > 0 ? "#b1bd37" : "#dc2626" }}>
-            {withMetrics}
+        {[
+          { val: total, label: "Total Requirements", color: "#324a4d" },
+          { val: withMetrics, label: "With Metrics Linked", color: withMetrics > 0 ? "#b1bd37" : "#dc2626" },
+          { val: gaps, label: "Gaps (No Metrics)", color: gaps > 0 ? "#f79935" : "#b1bd37" },
+          { val: meetingTargets, label: "Meeting Targets", color: meetingTargets > 0 ? "#b1bd37" : "#9ca3af" },
+        ].map(({ val, label, color }) => (
+          <div key={label} className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: `${color}08`, borderTop: `3px solid ${color}` }}>
+            <div className="text-2xl font-bold" style={{ color }}>{val}</div>
+            <div className="text-xs text-gray-400">{label}</div>
           </div>
-          <div className="text-xs text-gray-400">With Metrics Linked</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold" style={{ color: gaps > 0 ? "#f79935" : "#b1bd37" }}>
-            {gaps}
-          </div>
-          <div className="text-xs text-gray-400">Gaps (No Metrics)</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold" style={{ color: meetingTargets > 0 ? "#b1bd37" : "#9ca3af" }}>
-            {meetingTargets}
-          </div>
-          <div className="text-xs text-gray-400">Meeting Targets</div>
-        </div>
+        ))}
       </div>
 
       {/* Coverage Heatmap */}

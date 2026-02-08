@@ -85,7 +85,7 @@ function SettingsContent() {
       )}
 
       {/* Connected Accounts */}
-      <div className="bg-white rounded-lg shadow p-6 border-l-4 border-[#f79935]">
+      <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold text-[#324a4d] mb-4">
           Connected Accounts
         </h2>

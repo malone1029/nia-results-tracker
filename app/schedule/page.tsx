@@ -133,7 +133,8 @@ export default function SchedulePage() {
             <a
               key={cadence}
               href={`#${cadence}`}
-              className="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition-shadow"
+              className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              style={{ backgroundColor: needsAttention > 0 ? "#f7993508" : "#324a4d08", borderTop: `3px solid ${needsAttention > 0 ? "#f79935" : "#324a4d"}` }}
             >
               <div className="text-2xl font-bold text-[#324a4d]">{list.length}</div>
               <div className="text-sm font-medium text-[#55787c]">

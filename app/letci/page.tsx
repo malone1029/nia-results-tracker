@@ -218,33 +218,28 @@ export default function LeTCIPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <div className="bg-white rounded-lg shadow p-4 text-center">
+        <div className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: "#324a4d08", borderTop: "3px solid #324a4d" }}>
           <div className="text-2xl font-bold text-[#324a4d]">{total}</div>
           <div className="text-xs text-gray-400">Total Metrics</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 text-center">
+        <div className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: "#b1bd3708", borderTop: "3px solid #b1bd37" }}>
           <div className="text-2xl font-bold text-[#b1bd37]">{withLevel}</div>
           <div className="text-xs text-gray-400">Have Levels</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold" style={{ color: withTrend > 0 ? "#b1bd37" : "#dc2626" }}>
-            {withTrend}
-          </div>
-          <div className="text-xs text-gray-400">Have Trends</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold" style={{ color: withComparison > 0 ? "#b1bd37" : "#dc2626" }}>
-            {withComparison}
-          </div>
-          <div className="text-xs text-gray-400">Have Comparisons</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold" style={{ color: withIntegration > 0 ? "#b1bd37" : "#dc2626" }}>
-            {withIntegration}
-          </div>
-          <div className="text-xs text-gray-400">Have Integration</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 text-center border-2 border-[#b1bd37]">
+        {[
+          { val: withTrend, label: "Have Trends" },
+          { val: withComparison, label: "Have Comparisons" },
+          { val: withIntegration, label: "Have Integration" },
+        ].map(({ val, label }) => {
+          const c = val > 0 ? "#b1bd37" : "#dc2626";
+          return (
+            <div key={label} className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: `${c}08`, borderTop: `3px solid ${c}` }}>
+              <div className="text-2xl font-bold" style={{ color: c }}>{val}</div>
+              <div className="text-xs text-gray-400">{label}</div>
+            </div>
+          );
+        })}
+        <div className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: "#b1bd3710", borderTop: "3px solid #b1bd37" }}>
           <div className="text-2xl font-bold text-[#b1bd37]">{fullLeTCI}</div>
           <div className="text-xs text-gray-400">Full LeTCI (4/4)</div>
         </div>

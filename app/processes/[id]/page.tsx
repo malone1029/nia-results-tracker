@@ -490,7 +490,7 @@ function ProcessDetailContent() {
       )}
 
       {/* Status Workflow Stepper */}
-      <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935]">
+      <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#55787c]">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
             Status

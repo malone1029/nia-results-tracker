@@ -246,7 +246,8 @@ export default function CategoriesPage() {
                 document.getElementById(`cat-${cat.id}`)?.scrollIntoView({ behavior: "smooth" });
               }, 50);
             }}
-            className="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition-shadow"
+            className={`rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${cat.totalMetrics === 0 ? "" : ""}`}
+            style={{ backgroundColor: cat.totalMetrics === 0 ? "#dc262608" : "#324a4d08", borderTop: `3px solid ${cat.totalMetrics === 0 ? "#dc2626" : "#55787c"}` }}
           >
             <div className="text-xs text-gray-400 uppercase mb-1">
               Category {cat.sort_order}

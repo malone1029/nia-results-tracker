@@ -233,7 +233,7 @@ export default function Dashboard() {
       {processSummary && processSummary.key > 0 && (
         <Link
           href="/processes"
-          className="block bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935] hover:shadow-md transition-shadow"
+          className="block bg-white rounded-lg shadow p-4 border-l-4 border-[#55787c] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -440,7 +440,10 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-lg shadow p-4 text-center">
+    <div
+      className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+      style={{ backgroundColor: `${color}08`, borderTop: `3px solid ${color}` }}
+    >
       <div className="text-3xl font-bold" style={{ color }}>
         {value}
       </div>

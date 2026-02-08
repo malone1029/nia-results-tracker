@@ -243,11 +243,12 @@ export default function ProcessesPage() {
                 onClick={() =>
                   setFilterCategory(isSelected ? null : cat.id)
                 }
-                className={`bg-white rounded-lg shadow p-3 text-center transition-all ${
+                className={`rounded-lg shadow p-3 text-center transition-all duration-200 ${
                   isSelected
                     ? "ring-2 ring-[#324a4d] shadow-md"
-                    : "hover:shadow-md"
+                    : "hover:shadow-md hover:-translate-y-0.5"
                 } ${isEmpty ? "opacity-60" : ""}`}
+                style={{ backgroundColor: isEmpty ? "#dc262608" : "#324a4d08", borderTop: `3px solid ${isEmpty ? "#dc2626" : "#55787c"}` }}
               >
                 <div className={`text-2xl font-bold ${isEmpty ? "text-[#dc2626]" : "text-[#324a4d]"}`}>
                   {count}
@@ -454,7 +455,7 @@ export default function ProcessesPage() {
               <Link
                 key={process.id}
                 href={`/processes/${process.id}`}
-                className="block bg-white rounded-lg shadow p-4 border-l-4 border-[#f79935] hover:shadow-md transition-shadow"
+                className="block bg-white rounded-lg shadow p-4 border-l-4 border-[#55787c] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
               >
                 <div className="flex items-start justify-between">
                   <div>

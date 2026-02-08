@@ -2,7 +2,7 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #f5f5f5;
+  --background: #fafaf8;
   --foreground: #324a4d;
   --nia-dark: #324a4d;
   --nia-grey-blue: #55787c;
