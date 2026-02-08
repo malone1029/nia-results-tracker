@@ -48,6 +48,7 @@ export default function AiCreateProcessPage() {
   const [isSaving, setIsSaving] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const hasSentInitial = useRef(false);
 
   useEffect(() => {
     document.title = "Create Process with AI | NIA Excellence Hub";
@@ -63,9 +64,10 @@ export default function AiCreateProcessPage() {
     inputRef.current?.focus();
   }, []);
 
-  // Send the opening prompt automatically on first load
+  // Send the opening prompt automatically on first load (ref prevents Strict Mode double-fire)
   useEffect(() => {
-    if (messages.length === 0) {
+    if (!hasSentInitial.current && messages.length === 0) {
+      hasSentInitial.current = true;
       sendMessage("I want to create a new process. Help me get started.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
