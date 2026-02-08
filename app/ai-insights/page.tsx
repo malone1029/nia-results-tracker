@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import EmptyState from "@/components/empty-state";
 import { ListPageSkeleton } from "@/components/skeleton";
 
 interface ScoreRow {
@@ -117,25 +118,13 @@ export default function AiInsightsPage() {
       </div>
 
       {scores.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-10 text-center">
-          <div className="w-16 h-16 rounded-full bg-[#324a4d]/10 flex items-center justify-center mx-auto mb-4">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#324a4d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2a8 8 0 0 0-8 8c0 3.5 2.1 6.4 5 7.7V22l3-3 3 3v-4.3c2.9-1.3 5-4.2 5-7.7a8 8 0 0 0-8-8z" />
-              <circle cx="9" cy="10" r="1" fill="#324a4d" />
-              <circle cx="15" cy="10" r="1" fill="#324a4d" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-semibold text-[#324a4d] mb-2">No assessments yet</h2>
-          <p className="text-gray-500 text-sm max-w-md mx-auto mb-4">
-            Open any process and use the AI chat panel to run an ADLI analysis.
-            Scores will appear here automatically.
-          </p>
-          <Link
-            href="/processes"
-            className="inline-block bg-[#324a4d] text-white rounded-lg px-5 py-2 text-sm font-medium hover:opacity-90 transition-colors"
-          >
-            Go to Processes
-          </Link>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <EmptyState
+            illustration="radar"
+            title="No assessments yet"
+            description="Open any process and use the AI chat panel to run an ADLI analysis. Scores will appear here automatically."
+            action={{ label: "Go to Processes", href: "/processes" }}
+          />
         </div>
       ) : (
         <>

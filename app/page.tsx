@@ -6,6 +6,7 @@ import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValu
 import { DashboardSkeleton } from "@/components/skeleton";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
+import EmptyState from "@/components/empty-state";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface MetricRow extends Metric {
@@ -427,12 +428,13 @@ export default function Dashboard() {
 
       {/* All caught up empty state */}
       {overdue.length === 0 && dueSoon.length === 0 && (
-        <div className="bg-[#b1bd37]/10 border border-[#b1bd37]/30 rounded-lg px-6 py-8 text-center">
-          <div className="text-2xl mb-2">All caught up!</div>
-          <p className="text-[#324a4d] text-sm">
-            No metrics are overdue or due soon. Check back later or{" "}
-            <Link href="/log" className="text-[#f79935] hover:underline font-medium">log new data</Link>.
-          </p>
+        <div className="bg-white rounded-xl shadow-sm border border-[#b1bd37]/30">
+          <EmptyState
+            illustration="check"
+            title="All caught up!"
+            description="No metrics are overdue or due soon. Check back later or log new data to keep your results current."
+            action={{ label: "Log Data", href: "/log" }}
+          />
         </div>
       )}
 

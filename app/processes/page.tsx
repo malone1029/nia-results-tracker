@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import type { ProcessStatus } from "@/lib/types";
 import { CategoryGridSkeleton } from "@/components/skeleton";
 import Link from "next/link";
+import EmptyState from "@/components/empty-state";
 
 interface ProcessRow {
   id: number;
@@ -339,13 +340,21 @@ export default function ProcessesPage() {
 
       {/* Process List */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-400 text-lg mb-2">No processes found</p>
-          <p className="text-gray-400 text-sm">
-            {processes.length === 0
-              ? "Get started by creating your first process."
-              : "Try adjusting your filters."}
-          </p>
+        <div className="bg-white rounded-xl shadow-sm">
+          <EmptyState
+            illustration={processes.length === 0 ? "document" : "search"}
+            title={processes.length === 0 ? "No processes yet" : "No processes found"}
+            description={
+              processes.length === 0
+                ? "Create your first process to start documenting how your organization works."
+                : "Try adjusting your filters or search terms."
+            }
+            action={
+              processes.length === 0
+                ? { label: "Create Process", href: "/processes/new" }
+                : undefined
+            }
+          />
         </div>
       ) : (
         <>

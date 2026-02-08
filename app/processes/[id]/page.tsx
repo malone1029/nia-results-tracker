@@ -16,6 +16,7 @@ import type {
   BaldigeConnections,
 } from "@/lib/types";
 import Link from "next/link";
+import EmptyState from "@/components/empty-state";
 import MarkdownContent from "@/components/markdown-content";
 import AiChatPanel from "@/components/ai-chat-panel";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
@@ -720,15 +721,13 @@ function ProcessDetailContent() {
             })}
           </div>
         ) : (
-          <div className="bg-[#f79935]/10 border border-[#f79935]/30 rounded-lg px-4 py-3 text-sm text-[#324a4d] flex items-center justify-between">
-            <span>No metrics linked yet — adding metrics lets you track results and build LeTCI evidence for this process.</span>
-            <Link
-              href="/metric/new"
-              className="text-[#f79935] font-medium hover:underline whitespace-nowrap ml-4"
-            >
-              + Add Metric
-            </Link>
-          </div>
+          <EmptyState
+            illustration="chart"
+            title="No metrics linked"
+            description="Add metrics to track results and build LeTCI evidence for this process."
+            action={{ label: "+ Add Metric", href: "/metric/new" }}
+            compact
+          />
         )}
       </Section>
 
