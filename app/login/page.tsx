@@ -37,7 +37,7 @@ function LoginForm() {
           height={64}
           className="mx-auto mb-4 rounded"
         />
-        <h1 className="text-2xl font-bold text-[#324a4d] mb-1">
+        <h1 className="text-2xl font-bold font-display text-[#324a4d] mb-1">
           NIA Excellence Hub
         </h1>
         <p className="text-sm text-gray-500 mb-8">

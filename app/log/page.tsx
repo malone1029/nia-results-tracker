@@ -178,7 +178,7 @@ export default function LogDataPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#324a4d]">Log Data</h1>
+          <h1 className="text-3xl font-bold text-[#324a4d]">Log Data</h1>
           <p className="text-gray-500 mt-1">
             {mode === "single" ? "Search for a metric and log a new value" : "Log values for all due metrics at once"}
           </p>

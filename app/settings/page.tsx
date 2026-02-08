@@ -59,7 +59,7 @@ function SettingsContent() {
         >
           &larr; Back to Dashboard
         </Link>
-        <h1 className="text-2xl font-bold text-[#324a4d] mt-2">Settings</h1>
+        <h1 className="text-3xl font-bold text-[#324a4d] mt-2">Settings</h1>
       </div>
 
       {/* Success / Error banners */}
@@ -86,7 +86,7 @@ function SettingsContent() {
 
       {/* Connected Accounts */}
       <div className="bg-white rounded-lg shadow p-6 border-l-4 border-[#f79935]">
-        <h2 className="text-lg font-semibold text-[#324a4d] mb-4">
+        <h2 className="text-xl font-semibold text-[#324a4d] mb-4">
           Connected Accounts
         </h2>
 

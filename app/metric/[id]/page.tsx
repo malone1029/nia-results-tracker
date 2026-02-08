@@ -225,7 +225,7 @@ export default function MetricDetailPage() {
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[#324a4d]">{metric.name}</h1>
+            <h1 className="text-3xl font-bold text-[#324a4d]">{metric.name}</h1>
             <p className="text-gray-500 mt-1">
               {metric.category_display_name} &middot; {metric.process_name}
             </p>
@@ -377,7 +377,7 @@ export default function MetricDetailPage() {
       {/* Trend Chart */}
       {entries.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-bold text-[#324a4d] mb-4">Trend Chart</h2>
+          <h2 className="text-xl font-bold text-[#324a4d] mb-4">Trend Chart</h2>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -447,7 +447,7 @@ export default function MetricDetailPage() {
       {/* LeTCI Assessment */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-[#324a4d]">LeTCI Assessment</h2>
+          <h2 className="text-xl font-bold text-[#324a4d]">LeTCI Assessment</h2>
           <span className="text-sm font-medium text-[#55787c]">
             {letciCount} of 4 dimensions ready
           </span>
@@ -505,7 +505,7 @@ export default function MetricDetailPage() {
 
       {/* Entry History */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-bold text-[#324a4d] mb-4">Entry History</h2>
+        <h2 className="text-xl font-bold text-[#324a4d] mb-4">Entry History</h2>
         {entries.length === 0 ? (
           <p className="text-gray-500 text-sm">No entries yet.</p>
         ) : (

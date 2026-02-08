@@ -19,12 +19,19 @@
   --color-nia-green: var(--nia-green);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-dm-serif), Georgia, serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Display font for headings — creates typographic contrast with Geist Sans body text */
+main h1,
+main h2 {
+  font-family: var(--font-display);
 }
 
 /* Markdown content styling for imported process documents */

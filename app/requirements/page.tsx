@@ -358,7 +358,7 @@ export default function RequirementsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-        <h1 className="text-2xl font-bold text-[#324a4d]">Key Requirements</h1>
+        <h1 className="text-3xl font-bold text-[#324a4d]">Key Requirements</h1>
         <p className="text-gray-500 mt-1">
           Stakeholder needs from the Organizational Profile — linked to metrics that provide evidence
         </p>
@@ -438,7 +438,7 @@ export default function RequirementsPage() {
 
         return (
           <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-lg font-bold text-[#324a4d] mb-3">Coverage Heatmap</h2>
+            <h2 className="text-xl font-bold text-[#324a4d] mb-3">Coverage Heatmap</h2>
             <p className="text-xs text-gray-400 mb-3">Metric coverage by stakeholder group and Baldrige category</p>
             <div className="overflow-x-auto">
               <table className="text-sm w-full">

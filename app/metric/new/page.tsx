@@ -137,7 +137,7 @@ export default function NewMetricPage() {
         <span className="text-[#324a4d]">Add Metric</span>
       </div>
 
-      <h1 className="text-2xl font-bold text-[#324a4d]">Add New Metric</h1>
+      <h1 className="text-3xl font-bold text-[#324a4d]">Add New Metric</h1>
 
       <form onSubmit={handleSave} className="bg-white rounded-lg shadow p-6 space-y-5">
         {/* Name */}

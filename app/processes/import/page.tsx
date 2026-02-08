@@ -414,7 +414,7 @@ export default function ImportProcessPage() {
         >
           &larr; Back to Processes
         </Link>
-        <h1 className="text-2xl font-bold text-[#324a4d] mt-2">
+        <h1 className="text-3xl font-bold text-[#324a4d] mt-2">
           Import Processes
         </h1>
         <p className="text-gray-500 mt-1">

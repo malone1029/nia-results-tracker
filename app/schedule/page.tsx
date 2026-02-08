@@ -110,7 +110,7 @@ export default function SchedulePage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#324a4d]">Review Schedule</h1>
+          <h1 className="text-3xl font-bold text-[#324a4d]">Review Schedule</h1>
           <p className="text-gray-500 mt-1">
             Metrics organized by how often they need to be reviewed
           </p>

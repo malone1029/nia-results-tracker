@@ -191,7 +191,7 @@ export default function EditMetricPage() {
         <span className="text-[#324a4d]">Edit</span>
       </div>
 
-      <h1 className="text-2xl font-bold text-[#324a4d]">Edit Metric</h1>
+      <h1 className="text-3xl font-bold text-[#324a4d]">Edit Metric</h1>
 
       <form onSubmit={handleSave} className="bg-white rounded-lg shadow p-6 space-y-5">
         {/* Name */}

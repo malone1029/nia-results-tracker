@@ -115,7 +115,7 @@ export default function AiInsightsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[#324a4d]">AI Insights</h1>
+        <h1 className="text-3xl font-bold text-[#324a4d]">AI Insights</h1>
         <p className="text-gray-500 mt-1">
           ADLI maturity scores across all assessed processes.
         </p>

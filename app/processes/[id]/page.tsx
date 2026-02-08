@@ -343,7 +343,7 @@ function ProcessDetailContent() {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-[#324a4d]">{process.name}</h1>
+            <h1 className="text-3xl font-bold text-[#324a4d]">{process.name}</h1>
             {process.is_key && (
               <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-[#f79935]/15 text-[#b06a10]">
                 <span className="text-[#f79935]">&#9733;</span> Key Process
@@ -950,7 +950,7 @@ function Section({
           <span className="text-gray-400 text-sm">
             {isOpen ? "\u25BC" : "\u25B6"}
           </span>
-          <h2 className="font-semibold text-[#324a4d]">{title}</h2>
+          <h2 className="text-lg font-semibold text-[#324a4d]">{title}</h2>
         </div>
       </button>
       {isOpen && (

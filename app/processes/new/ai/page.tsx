@@ -179,7 +179,7 @@ export default function AiCreateProcessPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#324a4d]">Create Process with AI</h1>
+          <h1 className="text-3xl font-bold text-[#324a4d]">Create Process with AI</h1>
           <p className="text-gray-500 mt-1">
             I&apos;ll ask you questions and build a complete process document.
           </p>

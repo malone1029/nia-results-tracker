@@ -197,7 +197,7 @@ export default function ProcessesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#324a4d]">
+          <h1 className="text-3xl font-bold text-[#324a4d]">
             Processes{" "}
             {processes.length > 0 && (
               <span className="text-gray-400 font-normal text-lg">({processes.length})</span>

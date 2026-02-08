@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import Image from "next/image";
 import Nav from "./nav";
@@ -11,6 +11,12 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const dmSerif = DM_Serif_Display({
+  variable: "--font-dm-serif",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -28,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${dmSerif.variable} antialiased`}
       >
         {/* Header */}
         <header className="bg-gradient-to-r from-[#55787c] to-[#324a4d] text-white shadow-lg relative">
@@ -42,7 +48,7 @@ export default function RootLayout({
                 className="rounded"
               />
               <div>
-                <h1 className="text-xl font-bold">NIA Excellence Hub</h1>
+                <h1 className="text-xl font-bold font-display">NIA Excellence Hub</h1>
                 <p className="text-sm text-white/70">
                   Baldrige Excellence Framework
                 </p>
