@@ -588,7 +588,8 @@ export default function ImportProcessPage() {
 
           {asanaConnected && asanaProjects.length > 0 && (
             <>
-              {/* Search filter */}
+              {/* Count + Search filter */}
+              <p className="text-xs text-gray-400 mb-2">{asanaProjects.length} projects found</p>
               <input
                 type="text"
                 value={asanaSearch}

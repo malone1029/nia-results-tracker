@@ -51,23 +51,37 @@ export async function GET() {
       return NextResponse.json({ error: "No workspace found" }, { status: 400 });
     }
 
-    // Fetch projects from the workspace
-    const result = await asanaFetch(
-      token,
-      `/projects?workspace=${tokenRow.workspace_id}&opt_fields=name,notes,modified_at,team.name&limit=100`
+    // Fetch ALL projects from the workspace using pagination
+    const allProjects: { gid: string; name: string; description: string; modified_at: string; team: string | null }[] = [];
+    let nextPage: string | null = `/projects?workspace=${tokenRow.workspace_id}&opt_fields=name,notes,modified_at,team.name,archived&limit=100`;
+
+    while (nextPage) {
+      const result = await asanaFetch(token, nextPage);
+
+      for (const p of result.data) {
+        // Skip archived projects
+        if (p.archived) continue;
+        allProjects.push({
+          gid: p.gid,
+          name: p.name,
+          description: p.notes ? p.notes.slice(0, 150) : "",
+          modified_at: p.modified_at,
+          team: p.team?.name || null,
+        });
+      }
+
+      // Asana pagination: next_page has an offset or URI
+      nextPage = result.next_page?.uri
+        ? result.next_page.uri.replace("https://app.asana.com/api/1.0", "")
+        : null;
+    }
+
+    // Sort by most recently modified first
+    allProjects.sort((a, b) =>
+      (b.modified_at || "").localeCompare(a.modified_at || "")
     );
 
-    const projects = result.data.map(
-      (p: { gid: string; name: string; notes: string; modified_at: string; team?: { name: string } }) => ({
-        gid: p.gid,
-        name: p.name,
-        description: p.notes ? p.notes.slice(0, 150) : "",
-        modified_at: p.modified_at,
-        team: p.team?.name || null,
-      })
-    );
-
-    return NextResponse.json({ projects });
+    return NextResponse.json({ projects: allProjects, total: allProjects.length });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },
