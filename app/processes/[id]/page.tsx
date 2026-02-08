@@ -457,8 +457,8 @@ export default function ProcessDetailPage() {
       </div>
 
       {/* Metrics & Results — prominent position before documentation */}
-      {metrics.length > 0 && (
-        <Section title={`Metrics & Results (${metrics.length})`}>
+      <Section title={`Metrics & Results (${metrics.length})`}>
+        {metrics.length > 0 ? (
           <div className="space-y-2">
             {metrics.map((m) => {
               const sparkData = m.sparkline.map((v, i) => ({ i, v }));
@@ -525,8 +525,18 @@ export default function ProcessDetailPage() {
               );
             })}
           </div>
-        </Section>
-      )}
+        ) : (
+          <div className="bg-[#f79935]/10 border border-[#f79935]/30 rounded-lg px-4 py-3 text-sm text-[#324a4d] flex items-center justify-between">
+            <span>No metrics linked yet — adding metrics lets you track results and build LeTCI evidence for this process.</span>
+            <Link
+              href="/metric/new"
+              className="text-[#f79935] font-medium hover:underline whitespace-nowrap ml-4"
+            >
+              + Add Metric
+            </Link>
+          </div>
+        )}
+      </Section>
 
       {/* Description — hide for full templates when Charter has the full content */}
       {!(process.template_type === "full" && process.charter?.content) && (
