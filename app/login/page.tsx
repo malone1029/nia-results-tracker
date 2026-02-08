@@ -17,7 +17,8 @@ function LoginForm() {
       options: {
         redirectTo: `${window.location.origin}/api/auth/callback`,
         queryParams: {
-          hd: "nia.org",
+          hd: "thenia.org",
+          prompt: "select_account",
         },
       },
     });
@@ -45,7 +46,7 @@ function LoginForm() {
 
         {error === "domain" && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
-            Access is restricted to <strong>@nia.org</strong> email addresses.
+            Access is restricted to <strong>@thenia.org</strong> email addresses.
             Please sign in with your NIA account.
           </div>
         )}

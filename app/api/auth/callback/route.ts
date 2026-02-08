@@ -29,12 +29,12 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Check email domain — only @nia.org allowed
+      // Check email domain — only @thenia.org allowed
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (user?.email?.endsWith("@nia.org")) {
+      if (user?.email?.endsWith("@thenia.org")) {
         return NextResponse.redirect(`${origin}${next}`);
       } else {
         // Sign out non-NIA users and show error
