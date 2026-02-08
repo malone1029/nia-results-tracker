@@ -1,32 +1,11 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createSupabaseServer } from "@/lib/supabase-server";
 
 /**
  * Get a valid Asana access token for the current user.
  * Automatically refreshes if the token is expired.
  */
 export async function getAsanaToken(userId: string): Promise<string | null> {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Read-only context
-          }
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServer();
 
   const { data: tokenRow } = await supabase
     .from("user_asana_tokens")

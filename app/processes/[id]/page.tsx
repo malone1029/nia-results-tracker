@@ -43,6 +43,8 @@ interface ProcessDetail {
   workflow: Workflow | null;
   baldrige_connections: BaldigeConnections | null;
   updated_at: string;
+  asana_project_gid: string | null;
+  asana_project_url: string | null;
 }
 
 interface LinkedMetric {
@@ -107,6 +109,10 @@ function ProcessDetailContent() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [asanaExporting, setAsanaExporting] = useState(false);
+  const [asanaConfirm, setAsanaConfirm] = useState(false);
+  const [asanaResult, setAsanaResult] = useState<{ action: string; asanaUrl: string } | null>(null);
+  const [asanaError, setAsanaError] = useState("");
 
   async function fetchProcess() {
       // Fetch process with category name
@@ -269,6 +275,31 @@ function ProcessDetailContent() {
     router.push("/processes");
   }
 
+  async function handleAsanaExport() {
+    if (!process) return;
+    setAsanaExporting(true);
+    setAsanaError("");
+    setAsanaResult(null);
+    try {
+      const res = await fetch("/api/asana/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ processId: process.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAsanaError(data.error || "Export failed");
+      } else {
+        setAsanaResult(data);
+        setAsanaConfirm(false);
+        fetchProcess(); // Refresh to pick up new asana_project_gid
+      }
+    } catch (e) {
+      setAsanaError("Export failed: " + (e as Error).message);
+    }
+    setAsanaExporting(false);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -344,6 +375,12 @@ function ProcessDetailContent() {
           </div>
         </div>
         <div className="flex gap-2 flex-shrink-0">
+          <button
+            onClick={() => setAsanaConfirm(true)}
+            className="bg-[#b1bd37] text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium"
+          >
+            {process.asana_project_gid ? "Sync to Asana" : "Export to Asana"}
+          </button>
           <Link
             href={`/processes/${process.id}/edit`}
             className="bg-[#324a4d] text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium"
@@ -358,6 +395,80 @@ function ProcessDetailContent() {
           </button>
         </div>
       </div>
+
+      {/* Asana export result */}
+      {asanaResult && (
+        <div className="bg-[#b1bd37]/20 border border-[#b1bd37] rounded-lg p-4 flex items-center justify-between">
+          <p className="text-sm text-[#324a4d]">
+            {asanaResult.action === "created" ? "Exported to new Asana project!" : "Synced to Asana!"}
+          </p>
+          <a
+            href={asanaResult.asanaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-[#55787c] hover:text-[#324a4d]"
+          >
+            View in Asana &rarr;
+          </a>
+        </div>
+      )}
+
+      {/* Asana export error */}
+      {asanaError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+          {asanaError}
+        </div>
+      )}
+
+      {/* Asana export confirmation */}
+      {asanaConfirm && (
+        <div className="bg-[#55787c]/10 border border-[#55787c] rounded-lg p-4">
+          <p className="text-sm text-[#324a4d] mb-1 font-medium">
+            {process.asana_project_gid
+              ? "Sync to Asana"
+              : "Export to Asana"}
+          </p>
+          <p className="text-sm text-gray-600 mb-3">
+            {process.asana_project_gid
+              ? `This will update the linked Asana project with the latest charter and ADLI content.`
+              : `This will create a new Asana project named "${process.name}" with charter and ADLI sections.`}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAsanaExport}
+              disabled={asanaExporting}
+              className="bg-[#b1bd37] text-white rounded-lg py-1.5 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              {asanaExporting
+                ? "Exporting..."
+                : process.asana_project_gid
+                  ? "Sync Now"
+                  : "Create Project"}
+            </button>
+            <button
+              onClick={() => setAsanaConfirm(false)}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Asana link */}
+      {process.asana_project_url && !asanaConfirm && !asanaResult && (
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <span>Linked to Asana:</span>
+          <a
+            href={process.asana_project_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#55787c] hover:text-[#324a4d] font-medium"
+          >
+            View project &rarr;
+          </a>
+        </div>
+      )}
 
       {/* Delete confirmation */}
       {deleteConfirm && (
