@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase";
 import { FormSkeleton } from "@/components/skeleton";
 import type {
   ProcessStatus,
-  TemplateType,
   Charter,
   AdliApproach,
   AdliDeployment,
@@ -45,8 +44,6 @@ export default function EditProcessPage() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [allRequirements, setAllRequirements] = useState<ReqOption[]>([]);
   const [linkedReqIds, setLinkedReqIds] = useState<Set<number>>(new Set());
-  const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(false);
-
   // Form fields
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
@@ -55,12 +52,7 @@ export default function EditProcessPage() {
   const [isKey, setIsKey] = useState(false);
   const [reviewer, setReviewer] = useState("");
   const [status, setStatus] = useState<ProcessStatus>("draft");
-  const [templateType, setTemplateType] = useState<TemplateType>("quick");
   const [description, setDescription] = useState("");
-  const [basicSteps, setBasicSteps] = useState<string[]>([""]);
-  const [participants, setParticipants] = useState<string[]>([""]);
-  const [metricsSummary, setMetricsSummary] = useState("");
-  const [connections, setConnections] = useState("");
 
   // Full template fields
   const [charter, setCharter] = useState<Charter>({});
@@ -94,12 +86,7 @@ export default function EditProcessPage() {
         setIsKey(p.is_key || false);
         setReviewer(p.reviewer || "");
         setStatus(p.status || "draft");
-        setTemplateType(p.template_type || "quick");
         setDescription(p.description || "");
-        setBasicSteps(p.basic_steps?.length ? p.basic_steps : [""]);
-        setParticipants(p.participants?.length ? p.participants : [""]);
-        setMetricsSummary(p.metrics_summary || "");
-        setConnections(p.connections || "");
         if (p.charter) setCharter(p.charter);
         if (p.adli_approach) setApproach(p.adli_approach);
         if (p.adli_deployment) setDeployment(p.adli_deployment);
@@ -114,11 +101,6 @@ export default function EditProcessPage() {
     }
     fetchData();
   }, [id]);
-
-  function handleUpgrade() {
-    setTemplateType("full");
-    setShowUpgradeConfirm(false);
-  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -135,19 +117,14 @@ export default function EditProcessPage() {
         is_key: isKey,
         reviewer: reviewer.trim() || null,
         status,
-        template_type: templateType,
         description: description.trim() || null,
-        basic_steps: basicSteps.filter((s) => s.trim()),
-        participants: participants.filter((p) => p.trim()),
-        metrics_summary: metricsSummary.trim() || null,
-        connections: connections.trim() || null,
-        charter: templateType === "full" ? charter : null,
-        adli_approach: templateType === "full" ? approach : null,
-        adli_deployment: templateType === "full" ? deployment : null,
-        adli_learning: templateType === "full" ? learning : null,
-        adli_integration: templateType === "full" ? integration : null,
-        workflow: templateType === "full" ? workflow : null,
-        baldrige_connections: templateType === "full" ? baldrigeConn : null,
+        charter,
+        adli_approach: approach,
+        adli_deployment: deployment,
+        adli_learning: learning,
+        adli_integration: integration,
+        workflow,
+        baldrige_connections: baldrigeConn,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
@@ -181,7 +158,7 @@ export default function EditProcessPage() {
       <div>
         <h1 className="text-3xl font-bold text-nia-dark">Edit Process</h1>
         <p className="text-gray-500 mt-1">
-          {templateType === "quick" ? "Quick" : "Full ADLI"} Template
+          Full ADLI Template
         </p>
       </div>
 
@@ -286,8 +263,8 @@ export default function EditProcessPage() {
           </span>
         </label>
 
-        {/* Description — hide for full templates when Charter has the full content */}
-        {!(templateType === "full" && charter.content) && (
+        {/* Description — only show when no charter content */}
+        {!charter.content && (
           <CollapsibleSection title="What is this process?" defaultOpen>
             <textarea
               value={description}
@@ -299,88 +276,7 @@ export default function EditProcessPage() {
           </CollapsibleSection>
         )}
 
-        {/* These quick-only fields are redundant for full templates (covered by Charter + ADLI) */}
-        {templateType === "quick" && (
-          <>
-            <CollapsibleSection title="How do we do it? (Basic Steps)" defaultOpen>
-              <ListEditor
-                items={basicSteps}
-                onChange={setBasicSteps}
-                placeholder="Step"
-                numbered
-              />
-            </CollapsibleSection>
-
-            <CollapsibleSection title="Who's involved?" defaultOpen>
-              <ListEditor
-                items={participants}
-                onChange={setParticipants}
-                placeholder="e.g., CEO, HR Director"
-              />
-            </CollapsibleSection>
-
-            <CollapsibleSection title="How do we know it's working?" defaultOpen>
-              <textarea
-                value={metricsSummary}
-                onChange={(e) => setMetricsSummary(e.target.value)}
-                rows={2}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                placeholder="What metrics or indicators show this process is effective?"
-              />
-            </CollapsibleSection>
-
-            <CollapsibleSection title="What does this connect to?" defaultOpen>
-              <textarea
-                value={connections}
-                onChange={(e) => setConnections(e.target.value)}
-                rows={2}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                placeholder="Related processes, strategic goals..."
-              />
-            </CollapsibleSection>
-          </>
-        )}
-
-        {/* Upgrade to Full Template */}
-        {templateType === "quick" && (
-          <div className="bg-nia-grey-blue/10 rounded-lg p-4">
-            <p className="text-sm text-nia-dark mb-2">
-              Ready to add more detail? Upgrade to the Full ADLI template to document Approach, Deployment, Learning, Integration, and more.
-            </p>
-            {showUpgradeConfirm ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-nia-dark">This will add ADLI framework sections. Continue?</span>
-                <button
-                  type="button"
-                  onClick={handleUpgrade}
-                  className="text-sm bg-nia-dark text-white px-3 py-1 rounded-lg hover:opacity-90"
-                >
-                  Yes, Upgrade
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowUpgradeConfirm(false)}
-                  className="text-sm text-gray-500"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowUpgradeConfirm(true)}
-                className="text-sm bg-nia-dark text-white px-4 py-2 rounded-lg hover:opacity-90 font-medium"
-              >
-                Upgrade to Full Template
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Full Template Sections */}
-        {templateType === "full" && (
-          <>
-            {/* Charter */}
+        {/* Charter */}
             <CollapsibleSection
               title="Charter"
               subtitle={charter.content ? "imported" : countFilled([charter.purpose, charter.scope_includes, charter.scope_excludes, charter.mission_alignment, charter.stakeholders?.length ? "yes" : undefined])}
@@ -622,8 +518,6 @@ export default function EditProcessPage() {
                 )}
               </div>
             </CollapsibleSection>
-          </>
-        )}
 
         {/* Linked Key Requirements */}
         <CollapsibleSection

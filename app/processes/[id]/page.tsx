@@ -30,14 +30,9 @@ interface ProcessDetail {
   baldrige_item: string | null;
   is_key: boolean;
   status: ProcessStatus;
-  template_type: "quick" | "full";
   owner: string | null;
   reviewer: string | null;
   charter: Charter | null;
-  basic_steps: string[] | null;
-  participants: string[] | null;
-  metrics_summary: string | null;
-  connections: string | null;
   adli_approach: AdliApproach | null;
   adli_deployment: AdliDeployment | null;
   adli_learning: AdliLearning | null;
@@ -72,6 +67,21 @@ interface HistoryEntry {
   id: number;
   change_description: string;
   changed_at: string;
+}
+
+interface ImprovementEntry {
+  id: number;
+  section_affected: string;
+  change_type: string;
+  title: string;
+  description: string | null;
+  status: string;
+  source: string;
+  committed_date: string;
+  implemented_date: string | null;
+  impact_notes: string | null;
+  before_snapshot: Record<string, unknown> | null;
+  after_snapshot: Record<string, unknown> | null;
 }
 
 const STATUS_CONFIG: Record<ProcessStatus, { label: string; color: string }> = {
@@ -109,6 +119,7 @@ function ProcessDetailContent() {
   const [metrics, setMetrics] = useState<LinkedMetric[]>([]);
   const [requirements, setRequirements] = useState<LinkedRequirement[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [improvements, setImprovements] = useState<ImprovementEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [asanaExporting, setAsanaExporting] = useState(false);
@@ -232,6 +243,15 @@ function ProcessDetailContent() {
 
       if (histData) setHistory(histData);
 
+      // Fetch improvements
+      const { data: impData } = await supabase
+        .from("process_improvements")
+        .select("*")
+        .eq("process_id", id)
+        .order("committed_date", { ascending: false });
+
+      if (impData) setImprovements(impData);
+
       setLoading(false);
   }
 
@@ -354,8 +374,6 @@ function ProcessDetailContent() {
                 <span>Item {process.baldrige_item}</span>
               </>
             )}
-            <span>&middot;</span>
-            <span className="capitalize">{process.template_type} template</span>
             {process.owner && (
               <>
                 <span>&middot;</span>
@@ -731,59 +749,15 @@ function ProcessDetailContent() {
         )}
       </Section>
 
-      {/* Description — hide for full templates when Charter has the full content */}
-      {!(process.template_type === "full" && process.charter?.content) && (
+      {/* Description — only show when no charter content */}
+      {!process.charter?.content && (
         <Section title="What is this process?">
           <TextContent text={process.description} />
         </Section>
       )}
 
-      {/* These quick-only fields are redundant for full templates (covered by Charter + ADLI) */}
-      {process.template_type === "quick" && (
-        <>
-          <Section title="How do we do it?">
-            {process.basic_steps && process.basic_steps.length > 0 ? (
-              <ol className="list-decimal list-inside space-y-1 text-nia-dark">
-                {process.basic_steps.map((step, i) => (
-                  <li key={i}>{step}</li>
-                ))}
-              </ol>
-            ) : (
-              <EmptyText />
-            )}
-          </Section>
-
-          <Section title="Who's involved?">
-            {process.participants && process.participants.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {process.participants.map((p, i) => (
-                  <span
-                    key={i}
-                    className="bg-nia-grey-blue/10 text-nia-dark px-3 py-1 rounded-full text-sm"
-                  >
-                    {p}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <EmptyText />
-            )}
-          </Section>
-
-          <Section title="How do we know it's working?">
-            <TextContent text={process.metrics_summary} />
-          </Section>
-
-          <Section title="What does this connect to?">
-            <TextContent text={process.connections} />
-          </Section>
-        </>
-      )}
-
-      {/* Full Template Sections (only for full template type) */}
-      {process.template_type === "full" && (
-        <>
-          <Section title="Charter">
+      {/* Charter & ADLI Sections */}
+      <Section title="Charter">
             {process.charter ? (
               process.charter.content ? (
                 <MarkdownContent content={process.charter.content} />
@@ -950,8 +924,6 @@ function ProcessDetailContent() {
               <EmptyText />
             )}
           </Section>
-        </>
-      )}
 
       {/* Linked Key Requirements */}
       <Section title="Linked Key Requirements">
@@ -977,9 +949,39 @@ function ProcessDetailContent() {
         )}
       </Section>
 
-      {/* History */}
+      {/* Improvement History */}
+      {improvements.length > 0 && (
+        <Section title={`Improvement History (${improvements.length})`}>
+          <div className="space-y-3">
+            {improvements.map((imp) => (
+              <ImprovementCard
+                key={imp.id}
+                improvement={imp}
+                onStatusUpdate={async (newStatus) => {
+                  const res = await fetch("/api/improvements", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: imp.id, status: newStatus }),
+                  });
+                  if (res.ok) {
+                    setImprovements((prev) =>
+                      prev.map((i) =>
+                        i.id === imp.id
+                          ? { ...i, status: newStatus, ...(newStatus === "implemented" ? { implemented_date: new Date().toISOString() } : {}) }
+                          : i
+                      )
+                    );
+                  }
+                }}
+              />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Change Log */}
       {history.length > 0 && (
-        <Section title="History">
+        <Section title="Change Log">
           <div className="space-y-2">
             {history.map((h) => (
               <div
@@ -1121,5 +1123,125 @@ function AdliSection({
         })}
       </div>
     </Section>
+  );
+}
+
+const SECTION_COLORS: Record<string, string> = {
+  approach: "#55787c",
+  deployment: "#f79935",
+  learning: "#b1bd37",
+  integration: "#324a4d",
+  charter: "#6b7280",
+  workflow: "#a855f7",
+};
+
+const STATUS_PILLS: Record<string, { label: string; bg: string; text: string }> = {
+  committed: { label: "Committed", bg: "#dbeafe", text: "#2563eb" },
+  in_progress: { label: "In Progress", bg: "#fef3c7", text: "#d97706" },
+  implemented: { label: "Implemented", bg: "#dcfce7", text: "#16a34a" },
+  deferred: { label: "Deferred", bg: "#f3f4f6", text: "#6b7280" },
+  cancelled: { label: "Cancelled", bg: "#fee2e2", text: "#dc2626" },
+};
+
+function ImprovementCard({
+  improvement,
+  onStatusUpdate,
+}: {
+  improvement: ImprovementEntry;
+  onStatusUpdate: (status: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const sectionColor = SECTION_COLORS[improvement.section_affected] || "#6b7280";
+  const statusPill = STATUS_PILLS[improvement.status] || STATUS_PILLS.committed;
+
+  const nextStatus: Record<string, string> = {
+    committed: "in_progress",
+    in_progress: "implemented",
+  };
+  const nextAction = nextStatus[improvement.status];
+
+  return (
+    <div className="border border-gray-100 rounded-lg p-3 hover:border-gray-200 transition-colors">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span
+            className="text-xs font-medium px-2 py-0.5 rounded capitalize flex-shrink-0"
+            style={{ backgroundColor: sectionColor + "15", color: sectionColor }}
+          >
+            {improvement.section_affected}
+          </span>
+          <span className="text-sm font-medium text-nia-dark truncate">
+            {improvement.title}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span
+            className="text-xs font-medium px-2 py-0.5 rounded"
+            style={{ backgroundColor: statusPill.bg, color: statusPill.text }}
+          >
+            {statusPill.label}
+          </span>
+          {improvement.source === "ai_suggestion" && (
+            <span className="text-xs text-gray-400" title="AI suggestion">AI</span>
+          )}
+        </div>
+      </div>
+
+      {improvement.description && (
+        <p className="text-xs text-gray-500 mt-1.5">{improvement.description}</p>
+      )}
+
+      <div className="flex items-center justify-between mt-2">
+        <span className="text-xs text-gray-400">
+          {new Date(improvement.committed_date).toLocaleDateString()}
+          {improvement.implemented_date && (
+            <> &middot; Implemented {new Date(improvement.implemented_date).toLocaleDateString()}</>
+          )}
+        </span>
+        <div className="flex items-center gap-2">
+          {(improvement.before_snapshot || improvement.after_snapshot) && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-nia-grey-blue hover:text-nia-dark"
+            >
+              {expanded ? "Hide details" : "Show details"}
+            </button>
+          )}
+          {nextAction && (
+            <button
+              onClick={() => onStatusUpdate(nextAction)}
+              className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium"
+            >
+              {nextAction === "in_progress" ? "Start" : "Mark Done"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {expanded && (improvement.before_snapshot || improvement.after_snapshot) && (
+        <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-3">
+          {improvement.before_snapshot && (
+            <div>
+              <span className="text-xs font-medium text-gray-400 uppercase">Before</span>
+              <pre className="text-xs text-gray-600 mt-1 bg-gray-50 rounded p-2 overflow-auto max-h-40 whitespace-pre-wrap">
+                {typeof improvement.before_snapshot === "object" && (improvement.before_snapshot as Record<string, unknown>).content
+                  ? String((improvement.before_snapshot as Record<string, unknown>).content).slice(0, 500)
+                  : JSON.stringify(improvement.before_snapshot, null, 2).slice(0, 500)}
+              </pre>
+            </div>
+          )}
+          {improvement.after_snapshot && (
+            <div>
+              <span className="text-xs font-medium text-gray-400 uppercase">After</span>
+              <pre className="text-xs text-gray-600 mt-1 bg-gray-50 rounded p-2 overflow-auto max-h-40 whitespace-pre-wrap">
+                {typeof improvement.after_snapshot === "object" && (improvement.after_snapshot as Record<string, unknown>).content
+                  ? String((improvement.after_snapshot as Record<string, unknown>).content).slice(0, 500)
+                  : JSON.stringify(improvement.after_snapshot, null, 2).slice(0, 500)}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

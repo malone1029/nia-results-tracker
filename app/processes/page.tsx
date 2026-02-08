@@ -14,15 +14,10 @@ interface ProcessRow {
   category_display_name: string;
   is_key: boolean;
   status: ProcessStatus;
-  template_type: "quick" | "full";
   owner: string | null;
   baldrige_item: string | null;
   // JSONB fields for completeness check
   charter: Record<string, unknown> | null;
-  basic_steps: string[] | null;
-  participants: string[] | null;
-  metrics_summary: string | null;
-  connections: string | null;
   adli_approach: Record<string, unknown> | null;
   adli_deployment: Record<string, unknown> | null;
   adli_learning: Record<string, unknown> | null;
@@ -36,23 +31,12 @@ interface CompletenessSection {
 }
 
 function getCompleteness(p: ProcessRow): CompletenessSection[] {
-  const isFull = p.template_type === "full" || p.charter || p.adli_approach || p.adli_deployment || p.adli_learning || p.adli_integration;
-
-  if (isFull) {
-    return [
-      { label: "Charter", filled: p.charter !== null },
-      { label: "Approach", filled: p.adli_approach !== null },
-      { label: "Deployment", filled: p.adli_deployment !== null },
-      { label: "Learning", filled: p.adli_learning !== null },
-      { label: "Integration", filled: p.adli_integration !== null },
-    ];
-  }
-
   return [
-    { label: "Steps", filled: p.basic_steps !== null && p.basic_steps.length > 0 },
-    { label: "Participants", filled: p.participants !== null && p.participants.length > 0 },
-    { label: "Metrics", filled: p.metrics_summary !== null && p.metrics_summary.length > 0 },
-    { label: "Connections", filled: p.connections !== null && p.connections.length > 0 },
+    { label: "Charter", filled: p.charter !== null },
+    { label: "Approach", filled: p.adli_approach !== null },
+    { label: "Deployment", filled: p.adli_deployment !== null },
+    { label: "Learning", filled: p.adli_learning !== null },
+    { label: "Integration", filled: p.adli_integration !== null },
   ];
 }
 
@@ -103,9 +87,8 @@ export default function ProcessesPage() {
       const { data: procData } = await supabase
         .from("processes")
         .select(`
-          id, name, category_id, is_key, status, template_type, owner, baldrige_item,
-          charter, basic_steps, participants, metrics_summary, connections,
-          adli_approach, adli_deployment, adli_learning, adli_integration,
+          id, name, category_id, is_key, status, owner, baldrige_item,
+          charter, adli_approach, adli_deployment, adli_learning, adli_integration,
           asana_project_gid,
           categories!inner ( display_name )
         `)
@@ -121,14 +104,9 @@ export default function ProcessesPage() {
             category_display_name: cat.display_name as string,
             is_key: p.is_key as boolean,
             status: (p.status as ProcessStatus) || "draft",
-            template_type: (p.template_type as "quick" | "full") || "quick",
             owner: p.owner as string | null,
             baldrige_item: p.baldrige_item as string | null,
             charter: p.charter as Record<string, unknown> | null,
-            basic_steps: p.basic_steps as string[] | null,
-            participants: p.participants as string[] | null,
-            metrics_summary: p.metrics_summary as string | null,
-            connections: p.connections as string | null,
             adli_approach: p.adli_approach as Record<string, unknown> | null,
             adli_deployment: p.adli_deployment as Record<string, unknown> | null,
             adli_learning: p.adli_learning as Record<string, unknown> | null,
@@ -366,7 +344,6 @@ export default function ProcessesPage() {
                   <th className="px-4 py-3">Process</th>
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Completeness</th>
                   <th className="px-4 py-3">Owner</th>
                 </tr>
@@ -425,9 +402,6 @@ export default function ProcessesPage() {
                       >
                         {STATUS_CONFIG[process.status].label}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 capitalize">
-                      {process.template_type}
                     </td>
                     <td className="px-4 py-3">
                       {(() => {
@@ -513,7 +487,6 @@ export default function ProcessesPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                  <span className="capitalize">{process.template_type}</span>
                   {(() => {
                     const sections = getCompleteness(process);
                     const filled = sections.filter((s) => s.filled).length;

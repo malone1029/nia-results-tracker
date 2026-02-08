@@ -2,7 +2,6 @@
 // Handles both Full (ADLI) and Quick templates
 
 import type {
-  TemplateType,
   ProcessStatus,
   Charter,
   AdliApproach,
@@ -16,7 +15,7 @@ import type {
 export interface ParsedProcess {
   name: string;
   status: ProcessStatus;
-  template_type: TemplateType;
+  template_type: "full";
   owner: string | null;
   reviewer: string | null;
   baldrige_category: string | null; // display name like "Leadership"
@@ -244,11 +243,10 @@ export function parseObsidianProcess(markdown: string): ParsedProcess {
   const titleLine = lines.find((l) => /^# /.test(l));
   const name = titleLine ? titleLine.replace(/^# /, "").trim() : "Untitled Process";
 
-  // ── Detect template type ──
+  // ── Detect document structure ──
   const hasADLI = lines.some((l) => l.startsWith("## ADLI Framework") || l.startsWith("### Approach"));
   const hasCharter = lines.some((l) => l.startsWith("## Process Charter"));
   const isQuick = lines.some((l) => l.startsWith("## What is this process?"));
-  const templateType: TemplateType = hasADLI || hasCharter ? "full" : "quick";
 
   // ── Parse status (frontmatter first, then body fallback) ──
   const statusRaw = frontmatter["status"] || bodyMeta["status"] || "";
@@ -441,13 +439,10 @@ export function parseObsidianProcess(markdown: string): ParsedProcess {
     charter = { content: fullBody };
   }
 
-  // If we have a charter, treat as full template so Charter section is shown
-  const finalTemplateType: TemplateType = charter || adli_approach ? "full" : templateType;
-
   return {
     name,
     status,
-    template_type: finalTemplateType,
+    template_type: "full" as const,
     owner,
     reviewer,
     baldrige_category,

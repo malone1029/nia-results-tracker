@@ -25,8 +25,14 @@ interface UploadedFile {
   uploaded_at: string;
 }
 
-interface AdliSuggestion {
+interface CoachSuggestion {
+  id: string;
   field: string;
+  priority: "quick-win" | "important" | "long-term";
+  effort: "minimal" | "moderate" | "substantial";
+  title: string;
+  whyMatters: string;
+  preview: string;
   content: string;
 }
 
@@ -51,35 +57,41 @@ function parseAdliScores(text: string): { scores: AdliScores | null; cleanedText
   }
 }
 
-// Parse adli-suggestion blocks from AI response (supports multiple)
-function parseAdliSuggestions(text: string): { suggestions: AdliSuggestion[]; cleanedText: string } {
-  const suggestions: AdliSuggestion[] = [];
-  let cleanedText = text;
-
-  // Match fenced code blocks: ```adli-suggestion\n{...}\n```
-  const fencedPattern = /```adli-suggestion\s*\n([\s\S]*?)\n```/g;
-  let match;
-  while ((match = fencedPattern.exec(text)) !== null) {
-    try {
-      suggestions.push(JSON.parse(match[1]) as AdliSuggestion);
-    } catch { /* skip malformed */ }
-  }
-  cleanedText = cleanedText.replace(/```adli-suggestion\s*\n[\s\S]*?\n```\s*\n?/g, "").trim();
-
-  // Also match bare JSON objects with "field" and "content" keys (AI sometimes skips the fence)
-  if (suggestions.length === 0) {
-    const barePattern = /\{"field":\s*"(adli_\w+|charter)",\s*"content":\s*"((?:[^"\\]|\\.)*)"\}/g;
-    while ((match = barePattern.exec(text)) !== null) {
+// Parse coach-suggestions code block from AI response
+function parseCoachSuggestions(text: string): { suggestions: CoachSuggestion[]; cleanedText: string } {
+  const match = text.match(/```coach-suggestions\s*\n([\s\S]*?)\n```/);
+  if (!match) {
+    // Backward compat: also try old adli-suggestion format
+    const oldMatch = text.match(/```adli-suggestion\s*\n([\s\S]*?)\n```/);
+    if (oldMatch) {
       try {
-        suggestions.push(JSON.parse(match[0]) as AdliSuggestion);
-      } catch { /* skip malformed */ }
+        const old = JSON.parse(oldMatch[1]) as { field: string; content: string };
+        const cleanedText = text.replace(/```adli-suggestion\s*\n[\s\S]*?\n```\s*\n?/g, "").trim();
+        return {
+          suggestions: [{
+            id: "legacy",
+            field: old.field,
+            priority: "important",
+            effort: "moderate",
+            title: `Update ${FIELD_LABELS[old.field] || old.field}`,
+            whyMatters: "AI-suggested improvement for this section.",
+            preview: "Apply the suggested content to this section.",
+            content: old.content,
+          }],
+          cleanedText,
+        };
+      } catch { /* fall through */ }
     }
-    if (suggestions.length > 0) {
-      cleanedText = cleanedText.replace(/\{"field":\s*"(adli_\w+|charter)",\s*"content":\s*"(?:[^"\\]|\\.)*"\}\s*/g, "").trim();
-    }
+    return { suggestions: [], cleanedText: text };
   }
 
-  return { suggestions, cleanedText };
+  try {
+    const suggestions = JSON.parse(match[1]) as CoachSuggestion[];
+    const cleanedText = text.replace(/```coach-suggestions\s*\n[\s\S]*?\n```\s*\n?/, "").trim();
+    return { suggestions, cleanedText };
+  } catch {
+    return { suggestions: [], cleanedText: text };
+  }
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -101,7 +113,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adliScores, setAdliScores] = useState<AdliScores | null>(null);
-  const [pendingSuggestions, setPendingSuggestions] = useState<AdliSuggestion[]>([]);
+  const [pendingSuggestions, setPendingSuggestions] = useState<CoachSuggestion[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -127,7 +139,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       setIsOpen(true);
       // Small delay to let the panel render before sending
       setTimeout(() => {
-        sendMessage("Analyze this process. Give me an ADLI maturity assessment with scores, identify the key gaps, and suggest the top improvements.");
+        sendMessage("Analyze this process using the ADLI framework. Score each dimension, identify the biggest gaps, and suggest the 2-3 most impactful improvements with effort estimates.");
       }, 500);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -256,7 +268,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
           }),
         }).catch(() => { /* silent — non-critical */ });
       }
-      const { suggestions } = parseAdliSuggestions(assistantContent);
+      const { suggestions } = parseCoachSuggestions(assistantContent);
       if (suggestions.length > 0) {
         setPendingSuggestions(suggestions);
       }
@@ -288,10 +300,15 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
 
   function handleImprove(dimension: string) {
     const dimLabel = FIELD_LABELS[`adli_${dimension}`] || dimension;
-    sendMessage(`Improve my ${dimLabel} section. Rewrite it to be stronger based on your analysis. Keep what's good, fill in what's missing, and make it more complete.`);
+    sendMessage(`Coach me on improving the ${dimLabel} section. What are the 2-3 most impactful changes I could make? Include effort estimates so I can prioritize.`);
   }
 
-  async function applySuggestion(suggestion: AdliSuggestion) {
+  function handleTellMeMore(suggestion: CoachSuggestion) {
+    const fieldLabel = FIELD_LABELS[suggestion.field] || suggestion.field;
+    sendMessage(`Tell me more about "${suggestion.title}" for the ${fieldLabel} section. What specifically would change and why does it matter?`);
+  }
+
+  async function applySuggestion(suggestion: CoachSuggestion) {
     if (isApplying) return;
 
     setIsApplying(true);
@@ -303,6 +320,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
           processId,
           field: suggestion.field,
           content: suggestion.content,
+          suggestionTitle: suggestion.title,
         }),
       });
 
@@ -314,14 +332,14 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       const fieldLabel = FIELD_LABELS[suggestion.field] || suggestion.field;
 
       // Remove this suggestion from pending list
-      setPendingSuggestions((prev) => prev.filter((s) => s.field !== suggestion.field));
+      setPendingSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
 
       // Add a success message to the chat
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: `**Applied!** The ${fieldLabel} section has been updated. The previous version was saved to process history.`,
+          content: `**Applied!** "${suggestion.title}" has been applied to the ${fieldLabel} section. The previous version was saved to improvement history.`,
         },
       ]);
 
@@ -376,7 +394,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   <circle cx="15" cy="10" r="1" fill="currentColor" />
                 </svg>
                 <div className="min-w-0">
-                  <div className="font-semibold text-sm">AI Process Advisor</div>
+                  <div className="font-semibold text-sm">AI Process Coach</div>
                   <div className="text-xs text-white/70 truncate">{processName}</div>
                 </div>
               </div>
@@ -421,21 +439,21 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Quick Actions</p>
                     <button
-                      onClick={() => handleQuickAction("Analyze this process using the ADLI framework. Score each dimension (Approach, Deployment, Learning, Integration), identify the biggest gaps, and suggest what to improve first.")}
+                      onClick={() => handleQuickAction("Analyze this process using the ADLI framework. Score each dimension (Approach, Deployment, Learning, Integration), identify the biggest gaps, and suggest the 2-3 most impactful improvements with effort estimates.")}
                       className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-orange/30 bg-nia-orange/5 text-sm text-nia-dark hover:bg-nia-orange/10 transition-colors"
                     >
                       <span className="font-medium text-nia-orange">Analyze This Process</span>
-                      <span className="text-gray-500 ml-1">— ADLI gap analysis with scores</span>
+                      <span className="text-gray-500 ml-1">— ADLI scores + top gaps</span>
                     </button>
                     <button
-                      onClick={() => handleQuickAction("What are the top 3 things I should improve about this process to make it stronger? Be specific and reference what's currently documented.")}
-                      className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-grey-blue/30 bg-nia-grey-blue/5 text-sm text-nia-dark hover:bg-nia-grey-blue/10 transition-colors"
+                      onClick={() => handleQuickAction("Coach me on this process. What are the 2-3 quickest wins I could tackle right now to improve maturity? Focus on what will make the biggest difference with the least effort.")}
+                      className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-green/30 bg-nia-green/5 text-sm text-nia-dark hover:bg-nia-green/10 transition-colors"
                     >
-                      <span className="font-medium text-nia-grey-blue">Top Improvements</span>
-                      <span className="text-gray-500 ml-1">— 3 most impactful changes</span>
+                      <span className="font-medium text-nia-green">Coach Me</span>
+                      <span className="text-gray-500 ml-1">— quick wins with effort estimates</span>
                     </button>
                     <button
-                      onClick={() => handleQuickAction("Help me strengthen this process by asking me targeted questions about what's missing or underdeveloped. Start with the weakest area.")}
+                      onClick={() => handleQuickAction("Help me strengthen this process by asking me targeted questions about what's missing or underdeveloped. Start with the weakest area. Ask 2-3 questions at a time.")}
                       className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-grey-blue/30 bg-nia-grey-blue/5 text-sm text-nia-dark hover:bg-nia-grey-blue/10 transition-colors"
                     >
                       <span className="font-medium text-nia-grey-blue">Interview Me</span>
@@ -460,7 +478,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                 let displayContent = msg.content;
                 if (msg.role === "assistant") {
                   displayContent = parseAdliScores(displayContent).cleanedText;
-                  displayContent = parseAdliSuggestions(displayContent).cleanedText;
+                  displayContent = parseCoachSuggestions(displayContent).cleanedText;
                 }
 
                 return (
@@ -491,51 +509,40 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                 );
               })}
 
-              {/* Apply suggestion buttons */}
+              {/* Coach suggestion cards */}
               {pendingSuggestions.length > 0 && !isLoading && (
-                <div className="bg-nia-green/10 border border-nia-green/30 rounded-lg p-3 space-y-3">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-nia-dark">
-                      {pendingSuggestions.length === 1 ? "Ready to apply:" : `${pendingSuggestions.length} sections ready to apply:`}
+                    <p className="text-sm font-semibold text-nia-dark">
+                      Suggested Improvements
                     </p>
                     <button
                       onClick={() => setPendingSuggestions([])}
                       className="text-xs text-gray-400 hover:text-gray-600"
                     >
-                      Dismiss all
+                      Dismiss
                     </button>
                   </div>
 
-                  <div className="space-y-2">
-                    {pendingSuggestions.map((suggestion) => (
-                      <div key={suggestion.field} className="flex items-center justify-between bg-white rounded px-3 py-2">
-                        <span className="text-sm text-nia-dark font-medium">
-                          {FIELD_LABELS[suggestion.field] || suggestion.field}
-                        </span>
-                        <button
-                          onClick={() => applySuggestion(suggestion)}
-                          disabled={isApplying}
-                          className="text-xs bg-nia-green text-white rounded px-3 py-1 font-medium hover:opacity-90 disabled:opacity-50"
-                        >
-                          {isApplying ? "..." : "Apply"}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                  {pendingSuggestions.map((suggestion) => (
+                    <CoachSuggestionCard
+                      key={suggestion.id}
+                      suggestion={suggestion}
+                      onApply={() => applySuggestion(suggestion)}
+                      onTellMore={() => handleTellMeMore(suggestion)}
+                      isApplying={isApplying}
+                    />
+                  ))}
 
                   {pendingSuggestions.length > 1 && (
                     <button
                       onClick={applyAllSuggestions}
                       disabled={isApplying}
-                      className="w-full bg-nia-green text-white rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
+                      className="w-full bg-nia-dark text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
                     >
-                      {isApplying ? "Applying..." : "Apply All"}
+                      {isApplying ? "Applying..." : "Apply All Suggestions"}
                     </button>
                   )}
-
-                  <p className="text-xs text-gray-500">
-                    Previous versions will be saved to process history.
-                  </p>
                 </div>
               )}
 
@@ -646,6 +653,79 @@ function TypingIndicator() {
       <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
       <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
       <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+    </div>
+  );
+}
+
+const PRIORITY_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  "quick-win": { bg: "bg-nia-green/15", text: "text-nia-green", label: "Quick Win" },
+  "important": { bg: "bg-nia-orange/15", text: "text-nia-orange", label: "Important" },
+  "long-term": { bg: "bg-nia-grey-blue/15", text: "text-nia-grey-blue", label: "Long-term" },
+};
+
+const EFFORT_LABELS: Record<string, string> = {
+  minimal: "< 30 min",
+  moderate: "1-2 hours",
+  substantial: "Half day+",
+};
+
+function CoachSuggestionCard({
+  suggestion,
+  onApply,
+  onTellMore,
+  isApplying,
+}: {
+  suggestion: CoachSuggestion;
+  onApply: () => void;
+  onTellMore: () => void;
+  isApplying: boolean;
+}) {
+  const priority = PRIORITY_STYLES[suggestion.priority] || PRIORITY_STYLES["important"];
+  const fieldLabel = FIELD_LABELS[suggestion.field] || suggestion.field;
+  const effortLabel = EFFORT_LABELS[suggestion.effort] || suggestion.effort;
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      {/* Header with badges */}
+      <div className="px-3 py-2.5 border-b border-gray-100">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${priority.bg} ${priority.text}`}>
+            {priority.label}
+          </span>
+          <span className="text-xs text-gray-400 flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            {effortLabel}
+          </span>
+          <span className="text-xs text-gray-400 ml-auto">{fieldLabel}</span>
+        </div>
+        <p className="text-sm font-semibold text-nia-dark">{suggestion.title}</p>
+      </div>
+
+      {/* Why it matters + preview */}
+      <div className="px-3 py-2 space-y-1.5">
+        <p className="text-xs text-gray-600 italic">{suggestion.whyMatters}</p>
+        <p className="text-xs text-gray-500">{suggestion.preview}</p>
+      </div>
+
+      {/* Action buttons */}
+      <div className="px-3 py-2 border-t border-gray-100 flex items-center gap-2">
+        <button
+          onClick={onApply}
+          disabled={isApplying}
+          className="text-xs bg-nia-dark text-white rounded px-3 py-1.5 font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
+        >
+          {isApplying ? "Applying..." : "Apply This"}
+        </button>
+        <button
+          onClick={onTellMore}
+          className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium px-2 py-1.5 transition-colors"
+        >
+          Tell Me More
+        </button>
+      </div>
     </div>
   );
 }

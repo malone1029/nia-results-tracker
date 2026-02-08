@@ -246,7 +246,7 @@ export default function ImportProcessPage() {
           category_id: catId,
           baldrige_item: parsed.baldrige_item,
           status: parsed.status,
-          template_type: parsed.template_type,
+          template_type: "full",
           owner: parsed.owner,
           reviewer: parsed.reviewer,
           description: parsed.description,
@@ -809,7 +809,6 @@ export default function ImportProcessPage() {
 
               <div className="space-y-3 text-sm">
                 <PreviewField label="Name" value={parsed.name} />
-                <PreviewField label="Template Type" value={parsed.template_type === "full" ? "Full (ADLI)" : "Quick"} />
                 <PreviewField label="Status" value={parsed.status.replace(/_/g, " ")} />
                 <PreviewField label="Owner" value={parsed.owner} />
                 <PreviewField label="Detected Category" value={parsed.baldrige_category} />

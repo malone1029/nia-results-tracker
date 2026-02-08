@@ -22,10 +22,6 @@ export default function NewProcessPage() {
   const [owner, setOwner] = useState("");
   const [isKey, setIsKey] = useState(false);
   const [description, setDescription] = useState("");
-  const [basicSteps, setBasicSteps] = useState<string[]>([""]);
-  const [participants, setParticipants] = useState<string[]>([""]);
-  const [metricsSummary, setMetricsSummary] = useState("");
-  const [connections, setConnections] = useState("");
 
   useEffect(() => {
     document.title = "Create Process | NIA Excellence Hub";
@@ -56,11 +52,7 @@ export default function NewProcessPage() {
         is_key: isKey,
         description: description.trim() || null,
         status: "draft",
-        template_type: "quick",
-        basic_steps: basicSteps.filter((s) => s.trim()),
-        participants: participants.filter((p) => p.trim()),
-        metrics_summary: metricsSummary.trim() || null,
-        connections: connections.trim() || null,
+        template_type: "full",
       })
       .select("id")
       .single();
@@ -82,8 +74,7 @@ export default function NewProcessPage() {
           Create New Process
         </h1>
         <p className="text-gray-500 mt-1">
-          Start with the Quick template — capture the basics now, add detail
-          later.
+          Start with the basics, then use the edit page or AI to build out Charter and ADLI sections.
         </p>
       </div>
 
@@ -213,129 +204,6 @@ export default function NewProcessPage() {
             rows={3}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
             placeholder="Briefly describe what this process does and why it matters..."
-          />
-        </div>
-
-        {/* Basic Steps */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">
-            How do we do it?{" "}
-            <span className="text-gray-400 font-normal">(basic steps)</span>
-          </label>
-          <div className="space-y-2">
-            {basicSteps.map((step, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-sm text-gray-400 w-6 text-right">
-                  {i + 1}.
-                </span>
-                <input
-                  type="text"
-                  value={step}
-                  onChange={(e) => {
-                    const updated = [...basicSteps];
-                    updated[i] = e.target.value;
-                    setBasicSteps(updated);
-                  }}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                  placeholder={`Step ${i + 1}...`}
-                />
-                {basicSteps.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setBasicSteps(basicSteps.filter((_, idx) => idx !== i))
-                    }
-                    className="text-red-400 hover:text-red-600 text-sm px-2"
-                    title="Remove step"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setBasicSteps([...basicSteps, ""])}
-              className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors font-medium"
-            >
-              + Add Step
-            </button>
-          </div>
-        </div>
-
-        {/* Participants */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">
-            Who&apos;s involved?{" "}
-            <span className="text-gray-400 font-normal">
-              (roles or names)
-            </span>
-          </label>
-          <div className="space-y-2">
-            {participants.map((p, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={p}
-                  onChange={(e) => {
-                    const updated = [...participants];
-                    updated[i] = e.target.value;
-                    setParticipants(updated);
-                  }}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                  placeholder={`e.g., CEO, HR Director...`}
-                />
-                {participants.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setParticipants(
-                        participants.filter((_, idx) => idx !== i)
-                      )
-                    }
-                    className="text-red-400 hover:text-red-600 text-sm px-2"
-                    title="Remove"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setParticipants([...participants, ""])}
-              className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors font-medium"
-            >
-              + Add Participant
-            </button>
-          </div>
-        </div>
-
-        {/* Metrics Summary */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">
-            How do we know it&apos;s working?
-          </label>
-          <textarea
-            value={metricsSummary}
-            onChange={(e) => setMetricsSummary(e.target.value)}
-            rows={2}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            placeholder="What metrics or indicators show this process is effective?"
-          />
-        </div>
-
-        {/* Connections */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">
-            What does this connect to?
-          </label>
-          <textarea
-            value={connections}
-            onChange={(e) => setConnections(e.target.value)}
-            rows={2}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            placeholder="Related processes, strategic goals, or other systems..."
           />
         </div>
 

@@ -71,10 +71,10 @@ export async function POST(request: Request) {
       }, { status: 409 });
     }
 
-    // Fetch project details
+    // Fetch project details with expanded fields
     const project = await asanaFetch(
       token,
-      `/projects/${projectGid}?opt_fields=name,notes,html_notes,owner.name`
+      `/projects/${projectGid}?opt_fields=name,notes,html_notes,owner.name,due_on,start_on,custom_fields,members.name`
     );
 
     // Fetch sections
@@ -84,26 +84,39 @@ export async function POST(request: Request) {
     );
     const sections = sectionsRes.data;
 
-    // Fetch tasks for each section
-    const sectionData: { name: string; tasks: { name: string; notes: string; completed: boolean; assignee: string | null }[] }[] = [];
+    // Fetch tasks for each section with expanded fields
+    const sectionData: { name: string; gid: string; tasks: { name: string; notes: string; completed: boolean; assignee: string | null; due_on: string | null; num_subtasks: number; permalink_url: string | null }[] }[] = [];
 
     for (const section of sections) {
       const tasksRes = await asanaFetch(
         token,
-        `/sections/${section.gid}/tasks?opt_fields=name,notes,completed,assignee.name&limit=100`
+        `/sections/${section.gid}/tasks?opt_fields=name,notes,completed,assignee.name,due_on,due_at,num_subtasks,permalink_url,custom_fields&limit=100`
       );
       sectionData.push({
         name: section.name,
+        gid: section.gid,
         tasks: tasksRes.data.map(
-          (t: { name: string; notes: string; completed: boolean; assignee?: { name: string } }) => ({
+          /* eslint-disable @typescript-eslint/no-explicit-any */
+          (t: any) => ({
             name: t.name,
             notes: t.notes || "",
             completed: t.completed,
             assignee: t.assignee?.name || null,
+            due_on: t.due_on || t.due_at || null,
+            num_subtasks: t.num_subtasks || 0,
+            permalink_url: t.permalink_url || null,
           })
+          /* eslint-enable @typescript-eslint/no-explicit-any */
         ),
       });
     }
+
+    // Store full raw Asana data for AI context
+    const asanaRawData = {
+      project: project.data,
+      sections: sectionData,
+      fetched_at: new Date().toISOString(),
+    };
 
     // Build the process fields from Asana data
     const projectName = project.data.name;
@@ -150,8 +163,12 @@ export async function POST(request: Request) {
       if (adliField && section.tasks.length > 0) {
         const taskLines = section.tasks
           .map((t) => {
-            const assignee = t.assignee ? ` (${t.assignee})` : "";
-            const line = `- ${t.name}${assignee}`;
+            const parts: string[] = [];
+            if (t.assignee) parts.push(t.assignee);
+            if (t.due_on) parts.push(`due ${t.due_on}`);
+            if (t.completed) parts.push("done");
+            const meta = parts.length > 0 ? ` (${parts.join(", ")})` : "";
+            const line = `- ${t.completed ? "~~" : ""}${t.name}${t.completed ? "~~" : ""}${meta}`;
             return t.notes ? `${line}\n  ${t.notes}` : line;
           })
           .join("\n");
@@ -160,11 +177,6 @@ export async function POST(request: Request) {
         };
       }
     }
-
-    const hasAdli = Object.keys(adliFields).length > 0;
-
-    // Always use "full" template — AI can work with it better
-    const templateType = "full";
 
     // Short description for the list view (first sentence or 200 chars)
     const shortDesc = projectNotes
@@ -177,7 +189,7 @@ export async function POST(request: Request) {
       category_id: 6, // Default to Operations; user can change later
       description: shortDesc,
       status: "draft",
-      template_type: templateType,
+      template_type: "full",
       owner: ownerName,
       charter,
       adli_approach: adliFields.adli_approach || null,
@@ -187,6 +199,7 @@ export async function POST(request: Request) {
       workflow: null,
       asana_project_gid: projectGid,
       asana_project_url: `https://app.asana.com/0/${projectGid}`,
+      asana_raw_data: asanaRawData,
     };
 
     // Insert into database
@@ -209,7 +222,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       id: newProcess.id,
       name: projectName,
-      templateType,
+      templateType: "full",
       sectionsImported: sectionData.length,
       adliMapped: Object.keys(adliFields).length,
     });

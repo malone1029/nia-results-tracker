@@ -15,8 +15,6 @@ export type ProcessStatus =
   | "revisions_needed"
   | "approved";
 
-export type TemplateType = "quick" | "full";
-
 // JSONB field types for structured process data
 // Each type has an optional `content` field that stores the full markdown
 // of that section (preserved during Obsidian import so nothing is lost).
@@ -93,14 +91,9 @@ export interface Process {
   description: string | null;
   baldrige_item: string | null;
   status: ProcessStatus;
-  template_type: TemplateType;
   owner: string | null;
   reviewer: string | null;
   charter: Charter | null;
-  basic_steps: string[] | null;
-  participants: string[] | null;
-  metrics_summary: string | null;
-  connections: string | null;
   adli_approach: AdliApproach | null;
   adli_deployment: AdliDeployment | null;
   adli_learning: AdliLearning | null;
@@ -108,6 +101,7 @@ export interface Process {
   workflow: Workflow | null;
   baldrige_connections: BaldigeConnections | null;
   is_key: boolean;
+  asana_raw_data: Record<string, unknown> | null;
   updated_at: string;
 }
 
@@ -123,6 +117,33 @@ export interface ProcessHistory {
   version: string | null;
   change_description: string;
   changed_at: string;
+}
+
+export type ImprovementSection = "approach" | "deployment" | "learning" | "integration" | "charter" | "workflow";
+export type ImprovementChangeType = "addition" | "modification" | "removal";
+export type ImprovementStatus = "committed" | "in_progress" | "implemented" | "deferred" | "cancelled";
+export type ImprovementSource = "ai_suggestion" | "user_initiated" | "review_finding" | "import";
+
+export interface ProcessImprovement {
+  id: number;
+  process_id: number;
+  section_affected: ImprovementSection;
+  change_type: ImprovementChangeType;
+  title: string;
+  description: string | null;
+  trigger: ImprovementSource | null;
+  trigger_detail: string | null;
+  before_snapshot: Record<string, unknown> | null;
+  after_snapshot: Record<string, unknown> | null;
+  status: ImprovementStatus;
+  committed_by: string | null;
+  committed_date: string;
+  implemented_date: string | null;
+  impact_assessed: boolean;
+  impact_assessment_date: string | null;
+  impact_notes: string | null;
+  source: ImprovementSource;
+  created_at: string;
 }
 
 export interface Metric {

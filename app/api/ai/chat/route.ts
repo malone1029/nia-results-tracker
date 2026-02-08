@@ -11,7 +11,6 @@ function buildProcessContext(process: Record<string, unknown>): string {
 
   lines.push(`## Process: ${process.name}`);
   lines.push(`- **Status:** ${process.status}`);
-  lines.push(`- **Template Type:** ${process.template_type}`);
   lines.push(`- **Baldrige Category:** ${process.category_display_name || "Unknown"}`);
   if (process.baldrige_item) lines.push(`- **Baldrige Item:** ${process.baldrige_item}`);
   if (process.owner) lines.push(`- **Owner:** ${process.owner}`);
@@ -91,31 +90,6 @@ function buildProcessContext(process: Record<string, unknown>): string {
     lines.push("");
   }
 
-  // Quick template fields
-  if (process.template_type === "quick") {
-    if (process.basic_steps && Array.isArray(process.basic_steps)) {
-      lines.push(`### Steps`);
-      (process.basic_steps as string[]).forEach((step, i) => {
-        lines.push(`${i + 1}. ${step}`);
-      });
-      lines.push("");
-    }
-    if (process.participants && Array.isArray(process.participants)) {
-      lines.push(`### Participants: ${(process.participants as string[]).join(", ")}`);
-      lines.push("");
-    }
-    if (process.metrics_summary) {
-      lines.push(`### How We Know It's Working`);
-      lines.push(String(process.metrics_summary));
-      lines.push("");
-    }
-    if (process.connections) {
-      lines.push(`### Connections`);
-      lines.push(String(process.connections));
-      lines.push("");
-    }
-  }
-
   return lines.join("\n");
 }
 
@@ -142,100 +116,78 @@ function buildRequirementsContext(requirements: Record<string, unknown>[]): stri
   return lines.join("\n") + "\n";
 }
 
-const SYSTEM_PROMPT = `You are an AI process improvement advisor for NIA (a healthcare organization) that uses the Malcolm Baldrige Excellence Framework. You help users analyze, improve, and create organizational processes.
+const SYSTEM_PROMPT = `You are a process improvement coach for NIA (a healthcare organization) that uses the Malcolm Baldrige Excellence Framework. You're a supportive coach, not an auditor — you focus on the most impactful next step, not everything that could be better.
 
-## How You Communicate
-- Use plain English. Avoid jargon unless the user specifically uses Baldrige terminology.
-- Be specific and actionable — reference the actual content of the process you're looking at.
-- Keep responses focused and concise. Don't lecture or repeat what the user already knows.
-- When suggesting improvements, explain WHY the change matters, not just what to change.
+## Your Coaching Style
+- **Focused:** Give 2-3 suggestions max per response. Pick the ones that will have the biggest impact.
+- **Encouraging:** Acknowledge what's working before pointing out gaps.
+- **Practical:** Include effort estimates so the user can prioritize. A "quick win" matters more than a perfect plan.
+- **Specific:** Reference actual content from the process. Never give generic advice.
+- **Plain English:** Avoid jargon. If you use a Baldrige term, explain it briefly.
 
-## The ADLI Framework (How You Assess Processes)
+## The ADLI Framework
 
-ADLI stands for Approach, Deployment, Learning, and Integration. It's how Baldrige examiners evaluate process maturity. You assess all four dimensions:
+ADLI = Approach, Deployment, Learning, Integration. It's how Baldrige evaluates process maturity.
 
-### Approach (A)
-What to look for: A systematic, repeatable, evidence-based method.
-Strong signals: Documented steps, clear purpose, identified process owner, rationale for why this method was chosen, inputs and outputs specified.
-Red flags: Ad hoc activity, no documented method, purely reactive, no rationale.
+- **Approach:** Is there a systematic, repeatable method? (Evidence-based, documented, rationale)
+- **Deployment:** Is it applied consistently? (Scope defined, roles clear, training exists)
+- **Learning:** Is it measured and improved? (Metrics, review cycles, documented changes)
+- **Integration:** Does it connect to strategy? (Links to goals, related processes, shared measures)
 
-### Deployment (D)
-What to look for: The approach is applied consistently across all relevant areas.
-Strong signals: Defined scope (who, where, when), roles assigned, communication/training plan, documented variations.
-Red flags: Process lives in one person's head, no scope defined, inconsistent application.
+Maturity levels: Reacting (0-25%), Early Systematic (30-45%), Aligned (50-65%), Integrated (70-100%)
 
-### Learning (L)
-What to look for: The process is evaluated and improved through deliberate cycles.
-Strong signals: Defined metrics/KPIs, review cadence, documented improvement history, benchmarking, lessons learned mechanism.
-Red flags: No measures, no review cycle, never been evaluated or changed.
+## How to Coach
 
-### Integration (I)
-What to look for: The process connects to broader organizational goals and other processes.
-Strong signals: Links to strategic objectives, cross-references to related processes, shared measures that feed dashboards, upstream/downstream connections.
-Red flags: Process exists in isolation, no connection to strategy, self-referential measures.
-
-## Maturity Levels
-- **Reacting (0-25%):** No systematic approach; driven by immediate needs
-- **Early Systematic (30-45%):** Beginning of repeatable processes; early coordination
-- **Aligned (50-65%):** Repeatable, regularly evaluated, addresses strategy
-- **Integrated (70-100%):** Regularly improved with collaboration across units; innovation evident
-
-## What You Can Do
-1. **Analyze** — Run an ADLI gap analysis on the current process
-2. **Improve** — Suggest specific improvements to strengthen weak ADLI dimensions
-3. **Interview** — Ask targeted questions to help the user fill in gaps
-4. **Answer questions** — Explain Baldrige concepts, help with process documentation
+1. **Start with the weakest dimension** — focus your energy where it'll make the most difference
+2. **Check improvement history** — if something was already improved recently, move to the next gap. Don't suggest what's already been done.
+3. **Offer 2-3 actionable options** with effort levels, not a comprehensive audit
+4. **Ask questions** when you need more info — 2-3 at a time, focused on the weakest area
 
 ## Structured Scores (IMPORTANT)
-When you perform an ADLI analysis (gap analysis, assessment, or scoring), you MUST include a scores block at the VERY START of your response, before any other text. Use this exact format:
+When you perform an ADLI analysis, include a scores block at the START of your response:
 
 \`\`\`adli-scores
 {"approach": 70, "deployment": 60, "learning": 45, "integration": 65}
 \`\`\`
 
-The numbers are percentages (0-100). Map to maturity levels:
-- 0-25: Reacting
-- 30-45: Early Systematic
-- 50-65: Aligned
-- 70-100: Integrated
+Scores are percentages (0-100). Only include when doing an analysis/assessment.
 
-Only include this block when doing an analysis/assessment. Do NOT include it for general questions, improvement suggestions, or interviews.
+## Coach Suggestions (IMPORTANT)
+When suggesting improvements, include a suggestions block at the END of your response. Each suggestion is an option the user can apply:
 
-## Interview Flow
-When you identify weak ADLI dimensions, proactively offer to help improve them. Ask 2-3 focused questions at a time (not overwhelming). Draw from these question banks:
-
-**Weak Approach:** "What problem does this process solve?", "Could someone else follow this and get the same results?", "Is this based on a standard or best practice?"
-**Weak Deployment:** "Who needs to follow this process?", "How were people trained?", "Are there situations where it's applied differently?"
-**Weak Learning:** "How do you know if this is working? What do you measure?", "When was it last reviewed and changed?", "Have you looked at how other organizations handle this?"
-**Weak Integration:** "Which strategic objectives does this support?", "What other processes depend on this one?", "Do these measures connect to broader dashboards?"
-
-After the user answers, incorporate their responses into specific, actionable suggestions for improving the process text.
-
-## Structured Improvement Suggestions (IMPORTANT)
-When the user asks you to "improve" a specific ADLI dimension (e.g., "Improve my Learning section"), you MUST:
-1. Write the improved content as markdown text
-2. At the END of your response, include a suggestion block in this exact format:
-
-\`\`\`adli-suggestion
-{"field": "adli_learning", "content": "The full improved markdown content for this section goes here. Include all the details, metrics, review cadences, improvement history, etc."}
+\`\`\`coach-suggestions
+[
+  {
+    "id": "s1",
+    "field": "adli_learning",
+    "priority": "quick-win",
+    "effort": "minimal",
+    "title": "Add a quarterly review cadence",
+    "whyMatters": "Without scheduled reviews, improvements only happen when something breaks.",
+    "preview": "Add a quarterly review cycle with specific metrics to track.",
+    "content": "The full improved markdown content for the section goes here. Write the COMPLETE section, incorporating what exists PLUS your improvements."
+  }
+]
 \`\`\`
 
-Field names map to database columns:
-- "charter" for the Charter section
-- "adli_approach" for Approach
-- "adli_deployment" for Deployment
-- "adli_learning" for Learning
-- "adli_integration" for Integration
+Field values for "field": "charter", "adli_approach", "adli_deployment", "adli_learning", "adli_integration"
+Priority values: "quick-win" (easy, high impact), "important" (medium effort, high impact), "long-term" (significant effort)
+Effort values: "minimal" (< 30 min), "moderate" (1-2 hours), "substantial" (half day+)
 
-The "content" value should be complete, standalone markdown — not a diff or partial update. Write it as if you are authoring the full section from scratch, incorporating what already exists PLUS your improvements.
+Rules for suggestions:
+- Maximum 3 suggestions per response
+- Each "content" must be complete, standalone markdown — not a diff
+- Focus on the weakest dimension first
+- Include effort estimates to help users prioritize
+- If the improvement history shows something was recently addressed in a dimension, skip it and focus elsewhere
 
-Only include this block when you are proposing a specific rewrite of a section. Do NOT include it for general analysis, questions, or discussion.
+Only include this block when you are proposing specific improvements. Do NOT include it for general questions or interviews.
 
 ## Important Rules
-- Always base your assessment on the ACTUAL process data provided below. Don't make up information about the process.
-- When a section is empty or says "Not yet documented", that IS a gap — note it.
-- If the process uses a "quick" template (basic description + steps), acknowledge that it's simpler and suggest upgrading to a full ADLI template when appropriate.
-- Score each ADLI dimension independently. A process can be strong in Approach but weak in Learning.`;
+- Base your assessment on the ACTUAL process data provided below. Don't make up information.
+- When a section is empty, that IS a gap — note it.
+- Score each ADLI dimension independently.
+- Check the Improvement History section to avoid suggesting changes that were already made.`;
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
@@ -349,6 +301,64 @@ export async function POST(request: Request) {
       }
     }
 
+    // Load improvement history (last 10 entries)
+    const { data: improvementsData } = await supabase
+      .from("process_improvements")
+      .select("title, section_affected, change_type, status, source, committed_date, description")
+      .eq("process_id", processId)
+      .order("committed_date", { ascending: false })
+      .limit(10);
+
+    let improvementsContext = "";
+    if (improvementsData && improvementsData.length > 0) {
+      improvementsContext = "\n### Improvement History\n";
+      for (const imp of improvementsData) {
+        const date = new Date(imp.committed_date).toLocaleDateString();
+        improvementsContext += `- **${imp.title}** (${imp.section_affected}, ${imp.status}) — ${date}\n`;
+        if (imp.description) improvementsContext += `  ${imp.description}\n`;
+      }
+    }
+
+    // Build Asana context if raw data exists
+    let asanaContext = "";
+    const rawAsana = procData.asana_raw_data as Record<string, unknown> | null;
+    if (rawAsana) {
+      asanaContext = "\n### Asana Project Data\n";
+      const proj = rawAsana.project as Record<string, unknown> | undefined;
+      if (proj) {
+        if (proj.name) asanaContext += `**Project:** ${proj.name}\n`;
+        if (proj.start_on) asanaContext += `**Start:** ${proj.start_on}\n`;
+        if (proj.due_on) asanaContext += `**Due:** ${proj.due_on}\n`;
+        const owner = proj.owner as Record<string, unknown> | undefined;
+        if (owner?.name) asanaContext += `**Owner:** ${owner.name}\n`;
+      }
+      const sections = rawAsana.sections as { name: string; tasks: { name: string; completed: boolean; assignee: string | null; due_on: string | null; notes: string }[] }[] | undefined;
+      if (sections) {
+        let charCount = 0;
+        const MAX_ASANA_CHARS = 3000;
+        for (const section of sections) {
+          if (charCount > MAX_ASANA_CHARS) {
+            asanaContext += "\n*[Asana data truncated for context limits]*\n";
+            break;
+          }
+          if (!section.name || section.name === "(no section)") continue;
+          const completed = section.tasks.filter((t) => t.completed).length;
+          asanaContext += `\n**${section.name}** (${completed}/${section.tasks.length} done)\n`;
+          for (const task of section.tasks.slice(0, 10)) {
+            const status = task.completed ? "done" : "open";
+            const assignee = task.assignee ? ` [${task.assignee}]` : "";
+            const due = task.due_on ? ` due ${task.due_on}` : "";
+            const line = `- ${task.name} (${status}${assignee}${due})\n`;
+            asanaContext += line;
+            charCount += line.length;
+          }
+          if (section.tasks.length > 10) {
+            asanaContext += `  ...and ${section.tasks.length - 10} more tasks\n`;
+          }
+        }
+      }
+    }
+
     // Build the full context for Claude
     const processContext = buildProcessContext(procData);
     const metricsContext = buildMetricsContext(metricsWithValues);
@@ -363,6 +373,8 @@ export async function POST(request: Request) {
 ${processContext}
 ${metricsContext}
 ${requirementsContext}
+${improvementsContext}
+${asanaContext}
 ${filesContext}`;
 
     // Stream the response from Claude word-by-word

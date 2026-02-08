@@ -9,10 +9,19 @@ const ALLOWED_FIELDS = [
   "adli_integration",
 ];
 
+// Map field names to improvement section names
+const FIELD_TO_SECTION: Record<string, string> = {
+  charter: "charter",
+  adli_approach: "approach",
+  adli_deployment: "deployment",
+  adli_learning: "learning",
+  adli_integration: "integration",
+};
+
 export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
   try {
-    const { processId, field, content } = await request.json();
+    const { processId, field, content, suggestionTitle } = await request.json();
 
     if (!processId || !field || !content) {
       return Response.json(
@@ -67,16 +76,10 @@ export async function POST(request: Request) {
       content: content,
     };
 
-    // Auto-upgrade template from "quick" to "full" when applying ADLI sections
-    const isAdliField = field.startsWith("adli_");
-    const currentTemplate = (process as Record<string, unknown>).template_type;
     const updatePayload: Record<string, unknown> = {
       [field]: updatedData,
       updated_at: new Date().toISOString(),
     };
-    if (isAdliField && currentTemplate === "quick") {
-      updatePayload.template_type = "full";
-    }
 
     // Update the process field
     const { error: updateError } = await supabase
@@ -91,6 +94,23 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    // Create improvement history entry with before/after snapshots
+    const sectionName = FIELD_TO_SECTION[field] || field;
+    try {
+      await supabase.from("process_improvements").insert({
+        process_id: processId,
+        section_affected: sectionName,
+        change_type: previousValue ? "modification" : "addition",
+        title: suggestionTitle || `AI updated ${fieldLabel}`,
+        description: `Applied AI suggestion to ${fieldLabel} section`,
+        trigger: "ai_suggestion",
+        before_snapshot: previousValue || null,
+        after_snapshot: updatedData,
+        source: "ai_suggestion",
+        status: "committed",
+      });
+    } catch { /* non-critical — don't block the main update */ }
 
     return Response.json({ success: true, field: fieldLabel });
   } catch (error) {
