@@ -110,6 +110,12 @@ export default function Nav() {
                   </p>
                   <p className="text-xs text-gray-500 truncate">{user.email}</p>
                 </div>
+                <a
+                  href="/settings"
+                  className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Settings
+                </a>
                 <button
                   onClick={signOut}
                   className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -170,15 +176,24 @@ export default function Nav() {
               </Link>
             ))}
             {user && (
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  signOut();
-                }}
-                className="text-left text-white/60 hover:text-[#f79935] transition-colors"
-              >
-                Sign Out
-              </button>
+              <>
+                <Link
+                  href="/settings"
+                  onClick={() => setMenuOpen(false)}
+                  className="text-white/60 hover:text-[#f79935] transition-colors"
+                >
+                  Settings
+                </Link>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    signOut();
+                  }}
+                  className="text-left text-white/60 hover:text-[#f79935] transition-colors"
+                >
+                  Sign Out
+                </button>
+              </>
             )}
           </nav>
         </div>
