@@ -8,9 +8,37 @@ interface Message {
   content: string;
 }
 
+interface AdliScores {
+  approach: number;
+  deployment: number;
+  learning: number;
+  integration: number;
+}
+
 interface AiChatPanelProps {
   processId: number;
   processName: string;
+}
+
+// Parse adli-scores code block from AI response, return scores and cleaned text
+function parseAdliScores(text: string): { scores: AdliScores | null; cleanedText: string } {
+  const match = text.match(/```adli-scores\s*\n([\s\S]*?)\n```/);
+  if (!match) return { scores: null, cleanedText: text };
+
+  try {
+    const scores = JSON.parse(match[1]) as AdliScores;
+    const cleanedText = text.replace(/```adli-scores\s*\n[\s\S]*?\n```\s*\n?/, "").trim();
+    return { scores, cleanedText };
+  } catch {
+    return { scores: null, cleanedText: text };
+  }
+}
+
+function getMaturityLevel(score: number): { label: string; color: string; bgColor: string } {
+  if (score >= 70) return { label: "Integrated", color: "#324a4d", bgColor: "#324a4d" };
+  if (score >= 50) return { label: "Aligned", color: "#b1bd37", bgColor: "#b1bd37" };
+  if (score >= 30) return { label: "Early Systematic", color: "#f79935", bgColor: "#f79935" };
+  return { label: "Reacting", color: "#dc2626", bgColor: "#dc2626" };
 }
 
 export default function AiChatPanel({ processId, processName }: AiChatPanelProps) {
@@ -20,6 +48,7 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adliScores, setAdliScores] = useState<AdliScores | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -86,6 +115,12 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
           };
           return updated;
         });
+      }
+
+      // After streaming is done, check for ADLI scores in the response
+      const { scores } = parseAdliScores(assistantContent);
+      if (scores) {
+        setAdliScores(scores);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -219,8 +254,17 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
                 </div>
               )}
 
+              {/* ADLI Scorecard */}
+              {adliScores && <AdliScorecard scores={adliScores} />}
+
               {/* Message bubbles */}
-              {messages.map((msg, i) => (
+              {messages.map((msg, i) => {
+                // Strip adli-scores block from displayed text
+                const displayContent = msg.role === "assistant"
+                  ? parseAdliScores(msg.content).cleanedText
+                  : msg.content;
+
+                return (
                 <div
                   key={i}
                   className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
@@ -233,9 +277,9 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
                     }`}
                   >
                     {msg.role === "assistant" ? (
-                      msg.content ? (
+                      displayContent ? (
                         <div className="text-sm">
-                          <MarkdownContent content={msg.content} />
+                          <MarkdownContent content={displayContent} />
                         </div>
                       ) : (
                         <TypingIndicator />
@@ -245,7 +289,8 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {/* Error message */}
               {error && (
@@ -298,6 +343,62 @@ function TypingIndicator() {
       <div className="w-2 h-2 bg-[#55787c] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
       <div className="w-2 h-2 bg-[#55787c] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
       <div className="w-2 h-2 bg-[#55787c] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+    </div>
+  );
+}
+
+function AdliScorecard({ scores }: { scores: AdliScores }) {
+  const dimensions = [
+    { key: "approach" as const, label: "Approach" },
+    { key: "deployment" as const, label: "Deployment" },
+    { key: "learning" as const, label: "Learning" },
+    { key: "integration" as const, label: "Integration" },
+  ];
+
+  const overall = Math.round(
+    (scores.approach + scores.deployment + scores.learning + scores.integration) / 4
+  );
+  const overallLevel = getMaturityLevel(overall);
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-[#324a4d]">ADLI Assessment</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500">Overall:</span>
+          <span
+            className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
+            style={{ backgroundColor: overallLevel.bgColor }}
+          >
+            {overall}% — {overallLevel.label}
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {dimensions.map(({ key, label }) => {
+          const score = scores[key];
+          const level = getMaturityLevel(score);
+
+          return (
+            <div key={key} className="flex items-center gap-3">
+              <span className="text-xs font-medium text-gray-500 w-24">{label}</span>
+              <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${score}%`,
+                    backgroundColor: level.bgColor,
+                  }}
+                />
+              </div>
+              <span className="text-xs font-medium w-8 text-right" style={{ color: level.color }}>
+                {score}%
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
