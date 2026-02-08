@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus, formatDate, formatValue } from "@/lib/review-status";
+import { FormSkeleton } from "@/components/skeleton";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
 
@@ -166,13 +167,7 @@ export default function LogDataPage() {
     (m) => m.review_status === "overdue" || m.review_status === "due-soon" || m.review_status === "no-data"
   );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-[#55787c] text-lg">Loading metrics...</div>
-      </div>
-    );
-  }
+  if (loading) return <FormSkeleton fields={3} />;
 
   return (
     <div className="space-y-6">

@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { DetailSkeleton } from "@/components/skeleton";
 import { getReviewStatus, getStatusColor, getStatusLabel, formatValue } from "@/lib/review-status";
 import type {
   ProcessStatus,
@@ -300,13 +301,7 @@ function ProcessDetailContent() {
     setAsanaExporting(false);
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-[#55787c] text-lg">Loading process...</div>
-      </div>
-    );
-  }
+  if (loading) return <DetailSkeleton sections={5} />;
 
   if (!process) {
     return (

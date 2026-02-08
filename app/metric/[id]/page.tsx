@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { DetailSkeleton } from "@/components/skeleton";
 import {
   getReviewStatus,
   getStatusColor,
@@ -145,13 +146,7 @@ export default function MetricDetailPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-[#55787c] text-lg">Loading metric...</div>
-      </div>
-    );
-  }
+  if (loading) return <DetailSkeleton sections={3} />;
 
   if (!metric) {
     return (

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { ProcessStatus } from "@/lib/types";
+import { CategoryGridSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 
 interface ProcessRow {
@@ -175,13 +176,7 @@ export default function ProcessesPage() {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-[#55787c] text-lg">Loading processes...</div>
-      </div>
-    );
-  }
+  if (loading) return <CategoryGridSkeleton />;
 
   // Apply filters
   const filtered = processes.filter((p) => {

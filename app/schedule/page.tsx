@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValue } from "@/lib/review-status";
+import { ListPageSkeleton } from "@/components/skeleton";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
 
@@ -83,13 +84,7 @@ export default function SchedulePage() {
     fetch();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-[#55787c] text-lg">Loading schedule...</div>
-      </div>
-    );
-  }
+  if (loading) return <ListPageSkeleton showStats statCount={4} />;
 
   // Filter by key process if active
   const filteredMetrics = showKeyOnly

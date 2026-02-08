@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValue } from "@/lib/review-status";
+import { CategoryGridSkeleton } from "@/components/skeleton";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
 
@@ -207,13 +208,7 @@ export default function CategoriesPage() {
     });
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-[#55787c] text-lg">Loading categories...</div>
-      </div>
-    );
-  }
+  if (loading) return <CategoryGridSkeleton />;
 
   return (
     <div className="space-y-8">

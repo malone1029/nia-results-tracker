@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValue } from "@/lib/review-status";
+import { DashboardSkeleton } from "@/components/skeleton";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
@@ -200,13 +201,7 @@ export default function Dashboard() {
   const current = metrics.filter((m) => m.review_status === "current");
   const needsTargets = metrics.filter((m) => m.target_value === null);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-[#55787c] text-lg">Loading dashboard...</div>
-      </div>
-    );
-  }
+  if (loading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-6">

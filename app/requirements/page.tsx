@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getTrendDirection } from "@/lib/review-status";
+import { ListPageSkeleton } from "@/components/skeleton";
 import type { KeyRequirementWithStatus } from "@/lib/types";
 import Link from "next/link";
 
@@ -295,13 +296,7 @@ export default function RequirementsPage() {
     setRefreshKey((k) => k + 1);
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-[#55787c] text-lg">Loading key requirements...</div>
-      </div>
-    );
-  }
+  if (loading) return <ListPageSkeleton showStats statCount={4} />;
 
   // Summary stats
   const total = requirements.length;

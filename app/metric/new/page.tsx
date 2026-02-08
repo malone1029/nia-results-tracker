@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { FormSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 
 interface ProcessOption {
@@ -120,13 +121,7 @@ export default function NewMetricPage() {
     setSaving(false);
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-[#55787c] text-lg">Loading...</div>
-      </div>
-    );
-  }
+  if (loading) return <FormSkeleton fields={6} />;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
