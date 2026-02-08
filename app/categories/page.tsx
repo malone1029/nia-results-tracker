@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { getReviewStatus, getStatusColor, getStatusLabel, formatDate } from "@/lib/review-status";
+import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValue } from "@/lib/review-status";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
 
@@ -403,13 +403,11 @@ export default function CategoriesPage() {
                                     {metric.data_source || "—"}
                                   </td>
                                   <td className="px-4 py-2 text-right font-medium">
-                                    {metric.last_entry_value !== null
-                                      ? `${metric.last_entry_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
-                                      : "—"}
+                                    {formatValue(metric.last_entry_value, metric.unit)}
                                   </td>
                                   <td className="px-4 py-2 text-right text-gray-400">
                                     {metric.target_value !== null
-                                      ? `${metric.target_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
+                                      ? formatValue(metric.target_value, metric.unit)
                                       : "TBD"}
                                   </td>
                                   <td className="px-4 py-2 text-right text-gray-400">
@@ -445,10 +443,10 @@ export default function CategoriesPage() {
                                   {metric.data_source && <span>{metric.data_source}</span>}
                                   <span className="font-medium text-[#324a4d]">
                                     {metric.last_entry_value !== null
-                                      ? `${metric.last_entry_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
+                                      ? formatValue(metric.last_entry_value, metric.unit)
                                       : "No data"}
                                     {metric.target_value !== null && (
-                                      <span className="text-gray-400 font-normal"> / {metric.target_value}{metric.unit === "%" ? "%" : ` ${metric.unit}`}</span>
+                                      <span className="text-gray-400 font-normal"> / {formatValue(metric.target_value, metric.unit)}</span>
                                     )}
                                   </span>
                                   <span>{formatDate(metric.last_entry_date)}</span>

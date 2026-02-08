@@ -10,6 +10,7 @@ import {
   toFiscalYear,
   getTrendDirection,
   formatDate,
+  formatValue,
 } from "@/lib/review-status";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
@@ -266,14 +267,14 @@ export default function MetricDetailPage() {
           <div className="text-center">
             <div className="text-xs text-gray-400 uppercase">Last Value</div>
             <div className="font-medium text-[#324a4d]">
-              {lastEntry ? `${lastEntry.value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}` : "—"}
+              {lastEntry ? formatValue(lastEntry.value, metric.unit) : "—"}
             </div>
           </div>
           <div className="text-center">
             <div className="text-xs text-gray-400 uppercase">Target</div>
             <div className="font-medium text-[#324a4d]">
               {metric.target_value !== null
-                ? `${metric.target_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
+                ? formatValue(metric.target_value, metric.unit)
                 : "Not set"}
             </div>
           </div>
@@ -395,7 +396,7 @@ export default function MetricDetailPage() {
                   borderRadius: "8px",
                 }}
                 formatter={(value: unknown) => [
-                  `${value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`,
+                  formatValue(value as number, metric.unit),
                   metric.name,
                 ]}
                 labelFormatter={(label: unknown) => String(label)}
@@ -462,7 +463,7 @@ export default function MetricDetailPage() {
             ready={letci.level}
             detail={
               letci.level
-                ? `${entries.length} data point${entries.length !== 1 ? "s" : ""} recorded. Latest: ${lastEntry?.value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
+                ? `${entries.length} data point${entries.length !== 1 ? "s" : ""} recorded. Latest: ${formatValue(lastEntry?.value ?? null, metric.unit)}`
                 : "No data logged yet. Use the Log New Value button to add your first entry."
             }
           />
@@ -484,7 +485,7 @@ export default function MetricDetailPage() {
             ready={letci.comparison}
             detail={
               letci.comparison
-                ? `Comparison: ${metric.comparison_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`} (${metric.comparison_source})`
+                ? `Comparison: ${formatValue(metric.comparison_value, metric.unit)} (${metric.comparison_source})`
                 : "No comparison value set. Add a benchmark, industry standard, or peer comparison to strengthen this dimension."
             }
           />
@@ -525,8 +526,7 @@ export default function MetricDetailPage() {
                   <td className="px-4 py-2 text-gray-600">{formatDate(entry.date)}</td>
                   <td className="px-4 py-2 text-gray-400">{toFiscalYear(entry.date)}</td>
                   <td className="px-4 py-2 text-right font-medium text-[#324a4d]">
-                    {entry.value}
-                    {metric.unit === "%" ? "%" : ` ${metric.unit}`}
+                    {formatValue(entry.value, metric.unit)}
                   </td>
                   <td className="px-4 py-2 text-gray-500">{entry.note_analysis || "—"}</td>
                   <td className="px-4 py-2">

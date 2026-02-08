@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { getReviewStatus, getStatusColor, getStatusLabel, formatDate } from "@/lib/review-status";
+import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValue } from "@/lib/review-status";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
 
@@ -269,9 +269,7 @@ function CadenceSection({
                   </td>
                   <td className="px-4 py-2 text-gray-400">{metric.data_source || "—"}</td>
                   <td className="px-4 py-2 text-right font-medium">
-                    {metric.last_entry_value !== null
-                      ? `${metric.last_entry_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
-                      : "—"}
+                    {formatValue(metric.last_entry_value, metric.unit)}
                   </td>
                   <td className="px-4 py-2 text-right text-gray-400">
                     {formatDate(metric.last_entry_date)}
@@ -309,7 +307,7 @@ function CadenceSection({
                   {metric.data_source && <span>{metric.data_source}</span>}
                   <span className="font-medium text-[#324a4d]">
                     {metric.last_entry_value !== null
-                      ? `${metric.last_entry_value}${metric.unit === "%" ? "%" : ` ${metric.unit}`}`
+                      ? formatValue(metric.last_entry_value, metric.unit)
                       : "No data"}
                   </span>
                   <span>{formatDate(metric.last_entry_date)}</span>

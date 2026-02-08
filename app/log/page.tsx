@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { getReviewStatus, formatDate } from "@/lib/review-status";
+import { getReviewStatus, formatDate, formatValue } from "@/lib/review-status";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
 
@@ -266,7 +266,7 @@ export default function LogDataPage() {
                           {metric.category_display_name} &middot; {metric.process_name} &middot;{" "}
                           <span className="capitalize">{metric.cadence}</span>
                           {metric.target_value !== null && (
-                            <> &middot; Target: {metric.target_value}{metric.unit === "%" ? "%" : ` ${metric.unit}`}</>
+                            <> &middot; Target: {formatValue(metric.target_value, metric.unit)}</>
                           )}
                           {metric.last_entry_date && (
                             <> &middot; Last: {formatDate(metric.last_entry_date)}</>
@@ -532,7 +532,7 @@ function RecentEntries({ metricId, unit }: { metricId: number; unit: string }) {
           <div key={entry.id} className="flex justify-between text-sm py-1 border-b border-gray-50">
             <span className="text-gray-500">{formatDate(entry.date)}</span>
             <span className="font-medium text-[#324a4d]">
-              {entry.value}{unit === "%" ? "%" : ` ${unit}`}
+              {formatValue(entry.value, unit)}
             </span>
           </div>
         ))}

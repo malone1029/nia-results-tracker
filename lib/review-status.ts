@@ -86,6 +86,15 @@ export function toFiscalYear(date: Date | string): string {
   return `FY${String(fy).slice(-2)}`;
 }
 
+// Format a metric value with its unit
+// Handles special units: "%" appended directly, "currency" shown as $X.XX
+export function formatValue(value: number | null, unit: string): string {
+  if (value === null) return "—";
+  if (unit === "%") return `${value}%`;
+  if (unit === "currency") return `$${value.toFixed(2)}`;
+  return `${value} ${unit}`;
+}
+
 // Determine trend direction from recent values
 export function getTrendDirection(
   values: number[],

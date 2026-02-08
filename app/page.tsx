@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { getReviewStatus, getStatusColor, getStatusLabel, formatDate } from "@/lib/review-status";
+import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValue } from "@/lib/review-status";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
@@ -525,8 +525,7 @@ function MetricSection({
                 {metric.last_entry_value !== null && (
                   <div className="text-right">
                     <div className="font-medium text-[#324a4d]">
-                      {metric.last_entry_value}
-                      {metric.unit === "%" ? "%" : ` ${metric.unit}`}
+                      {formatValue(metric.last_entry_value, metric.unit)}
                     </div>
                     <div className="text-xs text-gray-400">
                       {formatDate(metric.last_entry_date)}

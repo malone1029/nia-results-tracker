@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { getReviewStatus, getStatusColor, getStatusLabel } from "@/lib/review-status";
+import { getReviewStatus, getStatusColor, getStatusLabel, formatValue } from "@/lib/review-status";
 import type {
   ProcessStatus,
   Charter,
@@ -500,7 +500,7 @@ export default function ProcessDetailPage() {
                     {m.last_value !== null ? (
                       <>
                         <div className="text-sm font-medium text-[#324a4d]">
-                          {m.last_value}{m.unit === "%" ? "%" : ` ${m.unit}`}
+                          {formatValue(m.last_value, m.unit)}
                         </div>
                         {m.on_target !== null && (
                           <div className="text-xs" style={{ color: m.on_target ? "#b1bd37" : "#dc2626" }}>
