@@ -207,7 +207,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Success message */}
       {successMessage && (
-        <div className="bg-[#b1bd37]/20 border border-[#b1bd37] text-[#324a4d] px-4 py-3 rounded-lg">
+        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] text-[#324a4d] px-4 py-3 rounded-lg">
           {successMessage}
         </div>
       )}
@@ -478,8 +478,8 @@ function MetricSection({
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <span className="text-gray-400 text-sm">
-            {isOpen ? "▼" : "▶"}
+          <span className={`section-chevron text-gray-400 text-sm ${isOpen ? "open" : ""}`}>
+            ▶
           </span>
           <div>
             <span className="text-lg font-bold text-[#324a4d]">{title}</span>
@@ -491,7 +491,8 @@ function MetricSection({
         <span className="text-xs text-gray-400">{subtitle}</span>
       </button>
 
-      {isOpen && (
+      <div className={`section-body ${isOpen ? "open" : ""}`}>
+        <div>
         <div className="border-t border-gray-100 space-y-0">
           {metrics.map((metric) => (
             <div
@@ -553,7 +554,8 @@ function MetricSection({
             </div>
           ))}
         </div>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

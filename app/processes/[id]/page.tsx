@@ -393,7 +393,7 @@ function ProcessDetailContent() {
 
       {/* Asana export result */}
       {asanaResult && (
-        <div className="bg-[#b1bd37]/20 border border-[#b1bd37] rounded-lg p-4 flex items-center justify-between">
+        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] rounded-lg p-4 flex items-center justify-between">
           <p className="text-sm text-[#324a4d]">
             {asanaResult.action === "created" ? "Exported to new Asana project!" : "Synced to Asana!"}
           </p>
@@ -410,7 +410,7 @@ function ProcessDetailContent() {
 
       {/* Asana export error */}
       {asanaError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+        <div className="banner-enter bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
           {asanaError}
         </div>
       )}
@@ -942,15 +942,17 @@ function Section({
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
       >
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 text-sm">
-            {isOpen ? "\u25BC" : "\u25B6"}
+          <span className={`section-chevron text-gray-400 text-sm ${isOpen ? "open" : ""}`}>
+            ▶
           </span>
           <h2 className="text-lg font-semibold text-[#324a4d]">{title}</h2>
         </div>
       </button>
-      {isOpen && (
-        <div className="border-t border-gray-100 px-4 py-3">{children}</div>
-      )}
+      <div className={`section-body ${isOpen ? "open" : ""}`}>
+        <div>
+          <div className="border-t border-gray-100 px-4 py-3">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }

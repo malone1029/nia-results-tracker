@@ -34,6 +34,83 @@ main h2 {
   font-family: var(--font-display);
 }
 
+/* ─── Micro-interactions ──────────────────────────────────────── */
+
+/* Smooth expand/collapse for sections using CSS grid trick */
+.section-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms ease-out;
+}
+.section-body.open {
+  grid-template-rows: 1fr;
+}
+.section-body > div {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Chevron rotation on expand */
+.section-chevron {
+  display: inline-block;
+  transition: transform 300ms ease-out;
+}
+.section-chevron.open {
+  transform: rotate(90deg);
+}
+
+/* Button press feedback — all buttons in main get a subtle press effect */
+main button:active:not(:disabled),
+main a.btn-press:active {
+  transform: scale(0.97);
+}
+main button {
+  transition: transform 100ms ease, opacity 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 200ms ease;
+}
+
+/* Banner slide-in animation */
+@keyframes banner-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.banner-enter {
+  animation: banner-enter 350ms ease-out;
+}
+
+/* Staggered fade-in for page content on load */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+main > .space-y-6 > *,
+main > .space-y-8 > * {
+  animation: fade-in-up 400ms ease-out both;
+}
+main > .space-y-6 > *:nth-child(1) { animation-delay: 0ms; }
+main > .space-y-6 > *:nth-child(2) { animation-delay: 50ms; }
+main > .space-y-6 > *:nth-child(3) { animation-delay: 100ms; }
+main > .space-y-6 > *:nth-child(4) { animation-delay: 150ms; }
+main > .space-y-6 > *:nth-child(5) { animation-delay: 200ms; }
+main > .space-y-6 > *:nth-child(n+6) { animation-delay: 250ms; }
+main > .space-y-8 > *:nth-child(1) { animation-delay: 0ms; }
+main > .space-y-8 > *:nth-child(2) { animation-delay: 50ms; }
+main > .space-y-8 > *:nth-child(3) { animation-delay: 100ms; }
+main > .space-y-8 > *:nth-child(4) { animation-delay: 150ms; }
+main > .space-y-8 > *:nth-child(5) { animation-delay: 200ms; }
+main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
+
 /* Markdown content styling for imported process documents */
 .markdown-content table {
   width: 100%;

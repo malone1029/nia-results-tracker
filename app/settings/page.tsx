@@ -64,7 +64,7 @@ function SettingsContent() {
 
       {/* Success / Error banners */}
       {asanaConnected && (
-        <div className="bg-[#b1bd37]/20 border border-[#b1bd37] rounded-lg p-3 text-sm text-[#324a4d]">
+        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] rounded-lg p-3 text-sm text-[#324a4d]">
           Asana connected successfully!
         </div>
       )}

@@ -205,7 +205,7 @@ export default function LogDataPage() {
 
       {/* Success message */}
       {successMessage && (
-        <div className="bg-[#b1bd37]/20 border border-[#b1bd37] text-[#324a4d] px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] text-[#324a4d] px-4 py-3 rounded-lg flex items-center justify-between">
           <span>{successMessage}</span>
           <Link href="/" className="text-sm text-[#55787c] hover:underline">
             Back to Dashboard

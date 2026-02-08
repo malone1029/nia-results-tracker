@@ -198,7 +198,7 @@ export default function MetricDetailPage() {
     <div className="space-y-6">
       {/* Success message */}
       {successMessage && (
-        <div className="bg-[#b1bd37]/20 border border-[#b1bd37] text-[#324a4d] px-4 py-3 rounded-lg">
+        <div className="banner-enter bg-[#b1bd37]/20 border border-[#b1bd37] text-[#324a4d] px-4 py-3 rounded-lg">
           {successMessage}
         </div>
       )}
