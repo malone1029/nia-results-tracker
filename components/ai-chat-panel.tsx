@@ -15,6 +15,7 @@ interface AiChatPanelProps {
 
 export default function AiChatPanel({ processId, processName }: AiChatPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -139,7 +140,7 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
           />
 
           {/* Panel */}
-          <div className="fixed right-0 top-0 h-full w-full sm:w-[420px] bg-white shadow-2xl z-50 flex flex-col">
+          <div className={`fixed right-0 top-0 h-full w-full bg-white shadow-2xl z-50 flex flex-col transition-all duration-200 ${isExpanded ? "sm:w-[720px]" : "sm:w-[420px]"}`}>
             {/* Header */}
             <div className="bg-[#324a4d] text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2 min-w-0">
@@ -153,15 +154,25 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
                   <div className="text-xs text-white/70 truncate">{processName}</div>
                 </div>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-white/80 hover:text-white p-1"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Expand/collapse toggle */}
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-white/80 hover:text-white text-xs border border-white/30 rounded px-2 py-1 hover:bg-white/10 transition-colors"
+                  title={isExpanded ? "Collapse panel" : "Expand panel"}
+                >
+                  {isExpanded ? "Collapse" : "Expand"}
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-white/80 hover:text-white p-1"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Messages area */}
@@ -215,10 +226,10 @@ export default function AiChatPanel({ processId, processName }: AiChatPanelProps
                   className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                    className={`rounded-lg px-3 py-2 ${
                       msg.role === "user"
-                        ? "bg-[#324a4d] text-white"
-                        : "bg-gray-100 text-[#324a4d]"
+                        ? "max-w-[85%] bg-[#324a4d] text-white"
+                        : "w-full bg-gray-100 text-[#324a4d]"
                     }`}
                   >
                     {msg.role === "assistant" ? (
