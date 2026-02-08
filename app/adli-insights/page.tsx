@@ -6,6 +6,7 @@ import EmptyState from "@/components/empty-state";
 import AdliRadar from "@/components/adli-radar";
 import { ListPageSkeleton } from "@/components/skeleton";
 import { getMaturityLevel } from "@/lib/colors";
+import { DimBar, MiniBar } from "@/components/adli-bars";
 
 interface ScoreRow {
   id: number;
@@ -43,7 +44,7 @@ export default function AiInsightsPage() {
   const [sortBy, setSortBy] = useState<"category" | "score">("category");
 
   useEffect(() => {
-    document.title = "AI Insights | NIA Excellence Hub";
+    document.title = "ADLI Insights | NIA Excellence Hub";
 
     async function fetchScores() {
       const res = await fetch("/api/ai/scores");
@@ -106,7 +107,7 @@ export default function AiInsightsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-nia-dark">AI Insights</h1>
+        <h1 className="text-3xl font-bold text-nia-dark">ADLI Insights</h1>
         <p className="text-gray-500 mt-1">
           ADLI maturity scores across all assessed processes.
         </p>
@@ -330,38 +331,3 @@ export default function AiInsightsPage() {
   );
 }
 
-function DimBar({ label, score }: { label: string; score: number }) {
-  const level = getMaturityLevel(score);
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-nia-dark">{label}</span>
-        <span className="text-sm font-bold" style={{ color: level.color }}>
-          {score}%
-        </span>
-      </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
-        <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${score}%`, backgroundColor: level.bgColor }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function MiniBar({ label, score }: { label: string; score: number }) {
-  const level = getMaturityLevel(score);
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[10px] text-gray-400 w-3">{label}</span>
-      <div className="flex-1 bg-gray-200 rounded-full h-1.5">
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${score}%`, backgroundColor: level.bgColor }}
-        />
-      </div>
-      <span className="text-[10px] text-gray-500 w-6 text-right">{score}%</span>
-    </div>
-  );
-}

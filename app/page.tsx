@@ -1,687 +1,505 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValue } from "@/lib/review-status";
+import { getReviewStatus } from "@/lib/review-status";
+import { getMaturityLevel, STATUS_COLORS } from "@/lib/colors";
 import { DashboardSkeleton } from "@/components/skeleton";
-import type { Metric, Entry } from "@/lib/types";
-import Link from "next/link";
+import AdliRadar from "@/components/adli-radar";
+import { DimBar, MiniBar } from "@/components/adli-bars";
 import EmptyState from "@/components/empty-state";
-import { LineChart, Line, ResponsiveContainer } from "recharts";
+import Link from "next/link";
 
-interface MetricRow extends Metric {
-  process_name: string;
-  category_display_name: string;
-  last_entry_date: string | null;
-  last_entry_value: number | null;
-  review_status: "current" | "due-soon" | "overdue" | "no-data";
+interface ProcessRow {
+  id: number;
+  name: string;
+  status: string;
+  owner: string | null;
+  is_key: boolean;
+  asana_project_gid: string | null;
+  asana_project_url: string | null;
+  categories: { display_name: string };
 }
 
-interface KeyProcessSummary {
-  total: number;
-  key: number;
-  keyApproved: number;
-  keyInProgress: number;
-  keyDraft: number;
+interface ScoreRow {
+  process_id: number;
+  approach_score: number;
+  deployment_score: number;
+  learning_score: number;
+  integration_score: number;
+  overall_score: number;
+  assessed_at: string;
 }
 
-interface LogFormData {
-  metricId: number;
-  value: string;
-  date: string;
-  noteAnalysis: string;
-  noteCourseCorrection: string;
+interface ActionItem {
+  type: "overdue" | "due-soon" | "draft";
+  label: string;
+  href: string;
 }
 
-export default function Dashboard() {
-  const [metrics, setMetrics] = useState<MetricRow[]>([]);
-  const [sparklineData, setSparklineData] = useState<Map<number, number[]>>(new Map());
-  const [processSummary, setProcessSummary] = useState<KeyProcessSummary | null>(null);
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Draft",
+  ready_for_review: "Ready for Review",
+  in_review: "In Review",
+  revisions_needed: "Revisions Needed",
+  approved: "Approved",
+};
+
+export default function ProcessOwnerDashboard() {
   const [loading, setLoading] = useState(true);
-  const [logForm, setLogForm] = useState<LogFormData | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const logFormRef = useRef<HTMLDivElement>(null);
-
-  async function fetchMetrics() {
-    // Fetch all metrics with their process and category names
-    const { data: metricsData, error: metricsError } = await supabase
-      .from("metrics")
-      .select(`
-        *,
-        processes!inner (
-          name,
-          categories!inner (
-            display_name
-          )
-        )
-      `);
-
-    if (metricsError) {
-      console.error("Error fetching metrics:", metricsError);
-      setLoading(false);
-      return;
-    }
-
-    // Fetch the latest entry for each metric
-    const { data: entriesData, error: entriesError } = await supabase
-      .from("entries")
-      .select("metric_id, value, date")
-      .order("date", { ascending: false });
-
-    if (entriesError) {
-      console.error("Error fetching entries:", entriesError);
-    }
-
-    // Build a map of metric_id -> latest entry
-    const latestEntries = new Map<number, { value: number; date: string }>();
-    // Build sparkline data: last 6 values per metric in chronological order
-    const sparklines = new Map<number, number[]>();
-    if (entriesData) {
-      for (const entry of entriesData) {
-        if (!latestEntries.has(entry.metric_id)) {
-          latestEntries.set(entry.metric_id, {
-            value: entry.value,
-            date: entry.date,
-          });
-        }
-        // Collect up to 6 entries per metric (data is desc, so we reverse later)
-        const existing = sparklines.get(entry.metric_id) || [];
-        if (existing.length < 6) {
-          existing.push(entry.value);
-          sparklines.set(entry.metric_id, existing);
-        }
-      }
-      // Reverse each array to chronological order (oldest first)
-      for (const [id, values] of sparklines) {
-        sparklines.set(id, values.reverse());
-      }
-    }
-
-    // Combine metrics with their status
-    const rows: MetricRow[] = (metricsData || []).map((m: Record<string, unknown>) => {
-      const process = m.processes as Record<string, unknown>;
-      const category = process.categories as Record<string, unknown>;
-      const latest = latestEntries.get(m.id as number);
-
-      return {
-        ...(m as unknown as Metric),
-        process_name: process.name as string,
-        category_display_name: category.display_name as string,
-        last_entry_date: latest?.date || null,
-        last_entry_value: latest?.value || null,
-        review_status: getReviewStatus(
-          m.cadence as string,
-          latest?.date || null
-        ),
-      };
-    });
-
-    // Sort: overdue first, then due-soon, then no-data, then current
-    const statusOrder = { overdue: 0, "due-soon": 1, "no-data": 2, current: 3 };
-    rows.sort(
-      (a, b) => statusOrder[a.review_status] - statusOrder[b.review_status]
-    );
-
-    setMetrics(rows);
-    setSparklineData(sparklines);
-    setLoading(false);
-  }
+  const [userName, setUserName] = useState("");
+  const [processes, setProcesses] = useState<ProcessRow[]>([]);
+  const [scores, setScores] = useState<ScoreRow[]>([]);
+  const [overdueMetrics, setOverdueMetrics] = useState<{ id: number; name: string; processOwner: string | null }[]>([]);
+  const [dueSoonMetrics, setDueSoonMetrics] = useState<{ id: number; name: string; processOwner: string | null }[]>([]);
+  const [selectedOwner, setSelectedOwner] = useState<string>("__all__");
+  const [owners, setOwners] = useState<string[]>([]);
 
   useEffect(() => {
-    document.title = "Results Dashboard | NIA Excellence Hub";
-    fetchMetrics();
+    document.title = "Dashboard | NIA Excellence Hub";
 
-    async function fetchProcessSummary() {
-      const { data } = await supabase
-        .from("processes")
-        .select("is_key, status");
-      if (data) {
-        const all = data as { is_key: boolean; status: string }[];
-        const keyProcs = all.filter((p) => p.is_key);
-        setProcessSummary({
-          total: all.length,
-          key: keyProcs.length,
-          keyApproved: keyProcs.filter((p) => p.status === "approved").length,
-          keyInProgress: keyProcs.filter((p) =>
-            ["ready_for_review", "in_review", "revisions_needed"].includes(p.status)
-          ).length,
-          keyDraft: keyProcs.filter((p) => p.status === "draft").length,
-        });
+    async function fetchAll() {
+      const [userRes, procRes, scoresRes, metricsRes, entriesRes] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("processes").select("id, name, status, owner, is_key, asana_project_gid, asana_project_url, categories(display_name)"),
+        fetch("/api/ai/scores").then((r) => r.ok ? r.json() : []),
+        supabase.from("metrics").select("id, name, cadence, process_id, processes!inner(owner)"),
+        supabase.from("entries").select("metric_id, date").order("date", { ascending: false }),
+      ]);
+
+      // User
+      const fullName = userRes.data?.user?.user_metadata?.full_name || "";
+      setUserName(fullName);
+
+      // Processes
+      const procs = (procRes.data || []) as unknown as ProcessRow[];
+      setProcesses(procs);
+
+      // Owners (deduplicated, sorted)
+      const ownerSet = new Set<string>();
+      for (const p of procs) {
+        if (p.owner) ownerSet.add(p.owner);
       }
+      const sortedOwners = [...ownerSet].sort();
+      setOwners(sortedOwners);
+
+      // Auto-select logged-in user if they own processes
+      if (fullName) {
+        const match = sortedOwners.find(
+          (o) => o.toLowerCase() === fullName.toLowerCase()
+        );
+        if (match) setSelectedOwner(match);
+      }
+
+      // Scores
+      const scoreRows = (scoresRes || []).map((s: Record<string, unknown>) => ({
+        process_id: s.process_id as number,
+        approach_score: s.approach_score as number,
+        deployment_score: s.deployment_score as number,
+        learning_score: s.learning_score as number,
+        integration_score: s.integration_score as number,
+        overall_score: s.overall_score as number,
+        assessed_at: s.assessed_at as string,
+      }));
+      setScores(scoreRows);
+
+      // Metric review status for action items
+      const metricsData = (metricsRes.data || []) as unknown as { id: number; name: string; cadence: string; process_id: number; processes: { owner: string | null } }[];
+      const entriesData = (entriesRes.data || []) as { metric_id: number; date: string }[];
+
+      // Latest entry per metric
+      const latestDates = new Map<number, string>();
+      for (const e of entriesData) {
+        if (!latestDates.has(e.metric_id)) {
+          latestDates.set(e.metric_id, e.date);
+        }
+      }
+
+      const overdue: typeof overdueMetrics = [];
+      const dueSoon: typeof dueSoonMetrics = [];
+      for (const m of metricsData) {
+        const status = getReviewStatus(m.cadence, latestDates.get(m.id) || null);
+        if (status === "overdue") {
+          overdue.push({ id: m.id, name: m.name, processOwner: m.processes?.owner || null });
+        } else if (status === "due-soon") {
+          dueSoon.push({ id: m.id, name: m.name, processOwner: m.processes?.owner || null });
+        }
+      }
+      setOverdueMetrics(overdue);
+      setDueSoonMetrics(dueSoon);
+
+      setLoading(false);
     }
-    fetchProcessSummary();
+    fetchAll();
   }, []);
-
-  async function handleLogSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!logForm) return;
-
-    setSaving(true);
-    const { error } = await supabase.from("entries").insert({
-      metric_id: logForm.metricId,
-      value: parseFloat(logForm.value),
-      date: logForm.date,
-      note_analysis: logForm.noteAnalysis || null,
-      note_course_correction: logForm.noteCourseCorrection || null,
-    });
-
-    if (error) {
-      console.error("Error saving entry:", error);
-      alert("Failed to save: " + error.message);
-    } else {
-      setSuccessMessage(
-        `Logged ${logForm.value} for ${metrics.find((m) => m.id === logForm.metricId)?.name}`
-      );
-      setLogForm(null);
-      // Refresh the data
-      await fetchMetrics();
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(""), 3000);
-    }
-    setSaving(false);
-  }
-
-  function openLogForm(metricId: number) {
-    setLogForm({
-      metricId,
-      value: "",
-      date: new Date().toISOString().split("T")[0],
-      noteAnalysis: "",
-      noteCourseCorrection: "",
-    });
-    setTimeout(() => {
-      logFormRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 50);
-  }
-
-  const today = new Date().toISOString().split("T")[0];
-  const overdue = metrics.filter((m) => m.review_status === "overdue");
-  const dueSoon = metrics.filter((m) => m.review_status === "due-soon");
-  const noData = metrics.filter((m) => m.review_status === "no-data");
-  const current = metrics.filter((m) => m.review_status === "current");
-  const needsTargets = metrics.filter((m) => m.target_value === null);
 
   if (loading) return <DashboardSkeleton />;
 
-  return (
-    <div className="space-y-6">
-      {/* Success message */}
-      {successMessage && (
-        <div className="banner-enter bg-nia-green/20 border border-nia-green text-nia-dark px-4 py-3 rounded-lg">
-          {successMessage}
-        </div>
-      )}
+  // Filter by selected owner
+  const isAll = selectedOwner === "__all__";
+  const filteredProcesses = isAll
+    ? processes
+    : processes.filter((p) => p.owner === selectedOwner);
+  const filteredProcessIds = new Set(filteredProcesses.map((p) => p.id));
+  const filteredScores = scores.filter((s) => filteredProcessIds.has(s.process_id));
+  const filteredOverdue = isAll
+    ? overdueMetrics
+    : overdueMetrics.filter((m) => m.processOwner === selectedOwner);
+  const filteredDueSoon = isAll
+    ? dueSoonMetrics
+    : dueSoonMetrics.filter((m) => m.processOwner === selectedOwner);
+  const filteredDraftProcesses = filteredProcesses.filter((p) => p.status === "draft");
 
-      {/* Hero metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Data Health ring */}
-        <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-5">
-          <HealthRing
-            percentage={
-              metrics.length > 0
-                ? Math.round(
-                    ((metrics.length - noData.length) / metrics.length) * 100
-                  )
-                : 0
-            }
-          />
-          <div>
-            <div className="text-base font-semibold text-nia-dark">
-              Data Health
-            </div>
-            <div className="text-sm text-gray-400 mt-0.5">
-              {metrics.length - noData.length} of {metrics.length} metrics
-              tracked
-            </div>
-          </div>
-        </div>
+  // Stat cards
+  const processCount = filteredProcesses.length;
+  const avgAdli = filteredScores.length > 0
+    ? Math.round(filteredScores.reduce((s, r) => s + r.overall_score, 0) / filteredScores.length)
+    : 0;
+  const asanaLinked = filteredProcesses.filter((p) => p.asana_project_gid).length;
 
-        {/* Overdue */}
-        <HeroCard
-          label="Overdue"
-          value={overdue.length}
-          color="#dc2626"
-          subtitle="past review date"
-        />
+  // ADLI dimension averages
+  const dimAvgs = filteredScores.length > 0
+    ? {
+        approach: Math.round(filteredScores.reduce((s, r) => s + r.approach_score, 0) / filteredScores.length),
+        deployment: Math.round(filteredScores.reduce((s, r) => s + r.deployment_score, 0) / filteredScores.length),
+        learning: Math.round(filteredScores.reduce((s, r) => s + r.learning_score, 0) / filteredScores.length),
+        integration: Math.round(filteredScores.reduce((s, r) => s + r.integration_score, 0) / filteredScores.length),
+      }
+    : null;
 
-        {/* Due Soon */}
-        <HeroCard
-          label="Due Soon"
-          value={dueSoon.length}
-          color="#f79935"
-          subtitle="review within 7 days"
-        />
-      </div>
+  const maturityLevel = getMaturityLevel(avgAdli);
 
-      {/* Secondary stats ribbon */}
-      <div className="grid grid-cols-3 gap-3">
-        <MiniStat label="Total Metrics" value={metrics.length} color="#324a4d" />
-        <MiniStat label="Current" value={current.length} color="#b1bd37" />
-        <MiniStat
-          label="Need Targets"
-          value={needsTargets.length}
-          color="#55787c"
-        />
-      </div>
-
-      {/* Key Process Summary */}
-      {processSummary && processSummary.key > 0 && (
-        <Link
-          href="/processes"
-          className="block bg-white rounded-lg shadow p-4 border-l-4 border-nia-grey-blue hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                Key Processes
-              </h2>
-              <p className="text-nia-dark mt-1">
-                <span className="text-2xl font-bold">{processSummary.key}</span>
-                <span className="text-gray-400 text-sm"> of {processSummary.total} processes marked as key</span>
-              </p>
-            </div>
-            <div className="flex gap-4 text-center">
-              {processSummary.keyApproved > 0 && (
-                <div>
-                  <div className="text-lg font-bold text-nia-green">{processSummary.keyApproved}</div>
-                  <div className="text-xs text-gray-400">Approved</div>
-                </div>
-              )}
-              {processSummary.keyInProgress > 0 && (
-                <div>
-                  <div className="text-lg font-bold text-nia-orange">{processSummary.keyInProgress}</div>
-                  <div className="text-xs text-gray-400">In Review</div>
-                </div>
-              )}
-              {processSummary.keyDraft > 0 && (
-                <div>
-                  <div className="text-lg font-bold text-gray-400">{processSummary.keyDraft}</div>
-                  <div className="text-xs text-gray-400">Draft</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </Link>
-      )}
-
-      {/* Inline log form */}
-      {logForm && (
-        <div ref={logFormRef} className="bg-white rounded-lg shadow p-6 border-l-4 border-nia-orange">
-          <h3 className="font-bold text-nia-dark mb-4">
-            Log Value:{" "}
-            {metrics.find((m) => m.id === logForm.metricId)?.name}
-          </h3>
-          <form onSubmit={handleLogSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-nia-dark mb-1">
-                  Value *
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  required
-                  value={logForm.value}
-                  onChange={(e) =>
-                    setLogForm({ ...logForm, value: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                  placeholder="Enter value"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-nia-dark mb-1">
-                  Date *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={logForm.date}
-                  onChange={(e) =>
-                    setLogForm({ ...logForm, date: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-nia-dark mb-1">
-                Analysis Note{" "}
-                <span className="text-gray-400 font-normal">
-                  (context or explanation)
-                </span>
-              </label>
-              <input
-                type="text"
-                value={logForm.noteAnalysis}
-                onChange={(e) =>
-                  setLogForm({ ...logForm, noteAnalysis: e.target.value })
-                }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                placeholder="e.g., New survey methodology used this cycle"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-nia-dark mb-1">
-                Course Correction{" "}
-                <span className="text-gray-400 font-normal">
-                  (action taken if missing target)
-                </span>
-              </label>
-              <input
-                type="text"
-                value={logForm.noteCourseCorrection}
-                onChange={(e) =>
-                  setLogForm({
-                    ...logForm,
-                    noteCourseCorrection: e.target.value,
-                  })
-                }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                placeholder="e.g., Added mandatory re-training for repeat offenders"
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save Entry"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setLogForm(null)}
-                className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Overdue section */}
-      {overdue.length > 0 && (
-        <MetricSection
-          title="Overdue"
-          subtitle="These metrics are past their review date"
-          metrics={overdue}
-          sparklineData={sparklineData}
-          onLogClick={openLogForm}
-          accentColor="#dc2626"
-        />
-      )}
-
-      {/* Due Soon section */}
-      {dueSoon.length > 0 && (
-        <MetricSection
-          title="Due Soon"
-          subtitle="These metrics are due for review within the next 7 days"
-          metrics={dueSoon}
-          sparklineData={sparklineData}
-          onLogClick={openLogForm}
-          accentColor="#f79935"
-        />
-      )}
-
-      {/* All caught up empty state */}
-      {overdue.length === 0 && dueSoon.length === 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-nia-green/30">
-          <EmptyState
-            illustration="check"
-            title="All caught up!"
-            description="No metrics are overdue or due soon. Check back later or log new data to keep your results current."
-            action={{ label: "Log Data", href: "/log" }}
-          />
-        </div>
-      )}
-
-      {/* No Data section — collapsed by default */}
-      {noData.length > 0 && (
-        <MetricSection
-          title="No Data Yet"
-          subtitle="These metrics have never been logged"
-          metrics={noData}
-          sparklineData={sparklineData}
-          defaultOpen={false}
-          onLogClick={openLogForm}
-          accentColor="#55787c"
-        />
-      )}
-
-      {/* Current section — collapsed by default */}
-      {current.length > 0 && (
-        <MetricSection
-          title="Current"
-          subtitle="These metrics are up to date"
-          metrics={current}
-          sparklineData={sparklineData}
-          defaultOpen={false}
-          onLogClick={openLogForm}
-          accentColor="#b1bd37"
-        />
-      )}
-    </div>
-  );
-}
-
-function HealthRing({ percentage }: { percentage: number }) {
-  const [mounted, setMounted] = useState(false);
-  const radius = 38;
-  const circumference = 2 * Math.PI * radius;
-  const offset = mounted
-    ? circumference - (percentage / 100) * circumference
-    : circumference;
-  const color =
-    percentage >= 80 ? "#b1bd37" : percentage >= 50 ? "#f79935" : "#dc2626";
-
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 100);
-    return () => clearTimeout(t);
-  }, []);
-
-  return (
-    <div className="relative w-28 h-28 flex-shrink-0">
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-        <circle
-          cx="50" cy="50" r={radius}
-          fill="none" stroke="#e5e7eb" strokeWidth="7"
-        />
-        <circle
-          cx="50" cy="50" r={radius}
-          fill="none" stroke={color} strokeWidth="7"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: "stroke-dashoffset 1s ease-out" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl font-bold text-nia-dark">
-          {percentage}<span className="text-sm">%</span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function HeroCard({
-  label,
-  value,
-  color,
-  subtitle,
-}: {
-  label: string;
-  value: number;
-  color: string;
-  subtitle: string;
-}) {
-  return (
-    <div
-      className="rounded-xl shadow-sm p-5 flex flex-col justify-center border-l-4 hover:shadow-md transition-all duration-200"
-      style={{ backgroundColor: `${color}08`, borderLeftColor: color }}
-    >
-      <div className="text-4xl font-bold tracking-tight" style={{ color }}>
-        {value}
-      </div>
-      <div className="text-base font-semibold text-nia-dark mt-1">{label}</div>
-      <div className="text-sm text-gray-400 mt-0.5">{subtitle}</div>
-    </div>
-  );
-}
-
-function MiniStat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 bg-white rounded-lg shadow-sm px-4 py-3">
-      <div className="text-xl font-bold" style={{ color }}>
-        {value}
-      </div>
-      <div className="text-sm text-gray-500">{label}</div>
-    </div>
-  );
-}
-
-function MetricSection({
-  title,
-  subtitle,
-  metrics,
-  sparklineData,
-  onLogClick,
-  defaultOpen = true,
-  accentColor,
-}: {
-  title: string;
-  subtitle: string;
-  metrics: MetricRow[];
-  sparklineData: Map<number, number[]>;
-  onLogClick: (metricId: number) => void;
-  defaultOpen?: boolean;
-  accentColor?: string;
-}) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  return (
-    <div
-      className="bg-white rounded-lg shadow overflow-hidden"
-      style={accentColor ? { borderLeft: `4px solid ${accentColor}` } : {}}
-    >
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors text-left"
-        style={accentColor ? { backgroundColor: `${accentColor}08` } : {}}
-      >
-        <div className="flex items-center gap-3">
-          <span className={`section-chevron text-gray-400 text-sm ${isOpen ? "open" : ""}`}>
-            ▶
-          </span>
-          <div>
-            <span className="text-lg font-bold text-nia-dark">{title}</span>
-            <span className="text-sm text-gray-400 ml-3">
-              {metrics.length} metric{metrics.length !== 1 ? "s" : ""}
-            </span>
-          </div>
-        </div>
-        <span className="text-xs text-gray-400">{subtitle}</span>
-      </button>
-
-      <div className={`section-body ${isOpen ? "open" : ""}`}>
-        <div>
-        <div className="border-t border-gray-100 space-y-0">
-          {metrics.map((metric) => (
-            <div
-              key={metric.id}
-              className="px-4 py-3 flex items-center justify-between border-b border-gray-50 last:border-b-0 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-3 h-3 rounded-full flex-shrink-0"
-                  style={{
-                    backgroundColor: getStatusColor(metric.review_status),
-                  }}
-                />
-                <div>
-                  <Link href={`/metric/${metric.id}`} className="font-medium text-nia-dark hover:text-nia-orange transition-colors">
-                    {metric.name}
-                  </Link>
-                  <div className="text-sm text-gray-500">
-                    {metric.category_display_name} &middot; {metric.process_name}{" "}
-                    &middot; {metric.cadence}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <Sparkline
-                  values={sparklineData.get(metric.id) || []}
-                  isHigherBetter={metric.is_higher_better}
-                />
-                {metric.last_entry_value !== null && (
-                  <div className="text-right">
-                    <div className="font-medium text-nia-dark">
-                      {formatValue(metric.last_entry_value, metric.unit)}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {formatDate(metric.last_entry_date)}
-                    </div>
-                  </div>
-                )}
-                <span
-                  className="text-xs px-2 py-1 rounded-full font-medium"
-                  style={{
-                    backgroundColor:
-                      getStatusColor(metric.review_status) + "20",
-                    color: getStatusColor(metric.review_status),
-                  }}
-                >
-                  {getStatusLabel(metric.review_status)}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onLogClick(metric.id);
-                  }}
-                  className="bg-nia-dark text-white text-sm rounded-lg py-1.5 px-3 hover:opacity-90"
-                >
-                  Log Now
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Sparkline({ values, isHigherBetter }: { values: number[]; isHigherBetter: boolean }) {
-  if (values.length < 2) {
-    return <span className="text-gray-300 text-xs w-16 text-center inline-block">&mdash;</span>;
+  // Status breakdown
+  const statusCounts: Record<string, number> = {};
+  for (const p of filteredProcesses) {
+    statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
   }
 
-  const first = values[0];
-  const last = values[values.length - 1];
-  const trend = last > first ? "up" : last < first ? "down" : "flat";
-  const improving = (trend === "up" && isHigherBetter) || (trend === "down" && !isHigherBetter);
-  const color = improving ? "#b1bd37" : trend === "flat" ? "#55787c" : "#dc2626";
-  const data = values.map((v, i) => ({ i, v }));
+  // Score map for process list
+  const scoreMap = new Map<number, ScoreRow>();
+  for (const s of filteredScores) {
+    scoreMap.set(s.process_id, s);
+  }
+
+  // Action items
+  const actionItems: ActionItem[] = [
+    ...filteredOverdue.map((m) => ({
+      type: "overdue" as const,
+      label: m.name,
+      href: `/metric/${m.id}`,
+    })),
+    ...filteredDueSoon.map((m) => ({
+      type: "due-soon" as const,
+      label: m.name,
+      href: `/metric/${m.id}`,
+    })),
+    ...filteredDraftProcesses.map((p) => ({
+      type: "draft" as const,
+      label: p.name,
+      href: `/processes/${p.id}`,
+    })),
+  ];
 
   return (
-    <div className="w-20 h-10 flex-shrink-0">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
-          <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-        </LineChart>
-      </ResponsiveContainer>
+    <div className="space-y-6">
+      {/* Header + owner selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-nia-dark">
+            Process Owner Dashboard
+          </h1>
+          <p className="text-gray-500 mt-1">
+            {isAll ? "Organization-wide view" : `Showing ${selectedOwner}'s processes`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="owner-select" className="text-sm text-gray-500">
+            Owner:
+          </label>
+          <select
+            id="owner-select"
+            value={selectedOwner}
+            onChange={(e) => setSelectedOwner(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-nia-dark bg-white focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30"
+          >
+            <option value="__all__">All Owners</option>
+            {owners.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="Processes" value={processCount} color="#324a4d" />
+        <StatCard
+          label="Avg ADLI"
+          value={filteredScores.length > 0 ? `${avgAdli}%` : "--"}
+          color={maturityLevel.color}
+          subtitle={filteredScores.length > 0 ? maturityLevel.label : undefined}
+        />
+        <StatCard
+          label="Overdue Metrics"
+          value={filteredOverdue.length}
+          color={filteredOverdue.length > 0 ? "#dc2626" : "#b1bd37"}
+        />
+        <StatCard label="Asana Linked" value={asanaLinked} color="#55787c" />
+      </div>
+
+      {processCount === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <EmptyState
+            illustration="document"
+            title={isAll ? "No processes yet" : `No processes for ${selectedOwner}`}
+            description={
+              isAll
+                ? "Create your first process to get started with the Excellence Hub."
+                : "Try selecting a different owner or create a new process."
+            }
+            action={{ label: "Go to Processes", href: "/processes" }}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left column: ADLI Overview + Status Breakdown */}
+          <div className="space-y-6">
+            {/* ADLI Overview */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                ADLI Overview
+              </h2>
+              {dimAvgs ? (
+                <>
+                  <div className="flex justify-center mb-4">
+                    <AdliRadar
+                      approach={dimAvgs.approach}
+                      deployment={dimAvgs.deployment}
+                      learning={dimAvgs.learning}
+                      integration={dimAvgs.integration}
+                      size={200}
+                    />
+                  </div>
+                  <div className="text-center mb-4">
+                    <span
+                      className="text-3xl font-bold"
+                      style={{ color: maturityLevel.color }}
+                    >
+                      {avgAdli}%
+                    </span>
+                    <span
+                      className="text-sm font-medium ml-2"
+                      style={{ color: maturityLevel.color }}
+                    >
+                      {maturityLevel.label}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    <DimBar label="Approach" score={dimAvgs.approach} />
+                    <DimBar label="Deployment" score={dimAvgs.deployment} />
+                    <DimBar label="Learning" score={dimAvgs.learning} />
+                    <DimBar label="Integration" score={dimAvgs.integration} />
+                  </div>
+                </>
+              ) : (
+                <EmptyState
+                  illustration="radar"
+                  title="No ADLI scores yet"
+                  description="Run an AI analysis on any process to see maturity scores here."
+                  compact
+                />
+              )}
+            </div>
+
+            {/* Status Breakdown */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                Status Breakdown
+              </h2>
+              <div className="space-y-2">
+                {Object.entries(STATUS_LABELS).map(([status, label]) => {
+                  const count = statusCounts[status] || 0;
+                  if (count === 0) return null;
+                  return (
+                    <div key={status} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: STATUS_COLORS[status] || "#9ca3af" }}
+                        />
+                        <span className="text-sm text-nia-dark">{label}</span>
+                      </div>
+                      <span className="text-sm font-bold text-nia-dark">
+                        {count}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Right column: Action Items + My Processes */}
+          <div className="space-y-6">
+            {/* Action Items */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                Action Items
+              </h2>
+              {actionItems.length === 0 ? (
+                <EmptyState
+                  illustration="check"
+                  title="All caught up!"
+                  description="No overdue metrics or draft processes."
+                  compact
+                />
+              ) : (
+                <div className="space-y-2">
+                  {actionItems.slice(0, 8).map((item, i) => (
+                    <Link
+                      key={`${item.type}-${i}`}
+                      href={item.href}
+                      className="flex items-center gap-2.5 py-1.5 px-2 rounded-md hover:bg-gray-50 transition-colors group"
+                    >
+                      <div
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor:
+                            item.type === "overdue"
+                              ? "#dc2626"
+                              : item.type === "due-soon"
+                              ? "#f79935"
+                              : "#9ca3af",
+                        }}
+                      />
+                      <span className="text-sm text-nia-dark group-hover:text-nia-orange transition-colors truncate">
+                        {item.label}
+                      </span>
+                      <span className="text-[10px] text-gray-400 flex-shrink-0 ml-auto">
+                        {item.type === "overdue"
+                          ? "overdue"
+                          : item.type === "due-soon"
+                          ? "due soon"
+                          : "draft"}
+                      </span>
+                    </Link>
+                  ))}
+                  {actionItems.length > 8 && (
+                    <p className="text-xs text-gray-400 px-2 pt-1">
+                      +{actionItems.length - 8} more
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* My Processes */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                  {isAll ? "All Processes" : "My Processes"}
+                </h2>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {filteredProcesses.map((proc) => {
+                  const score = scoreMap.get(proc.id);
+                  const pLevel = score ? getMaturityLevel(score.overall_score) : null;
+                  return (
+                    <Link
+                      key={proc.id}
+                      href={`/processes/${proc.id}`}
+                      className="block px-5 py-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-medium text-nia-dark truncate">
+                            {proc.name}
+                          </span>
+                          {proc.is_key && (
+                            <span className="text-[10px] bg-nia-orange/10 text-nia-orange px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                              KEY
+                            </span>
+                          )}
+                          {proc.asana_project_gid && (
+                            <svg
+                              className="w-3.5 h-3.5 text-gray-400 flex-shrink-0"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <circle cx="12" cy="6" r="4.5" />
+                              <circle cx="5" cy="18" r="4.5" />
+                              <circle cx="19" cy="18" r="4.5" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                            style={{
+                              backgroundColor: (STATUS_COLORS[proc.status] || "#9ca3af") + "20",
+                              color: STATUS_COLORS[proc.status] || "#9ca3af",
+                            }}
+                          >
+                            {STATUS_LABELS[proc.status] || proc.status}
+                          </span>
+                          {pLevel && (
+                            <span
+                              className="text-xs font-bold px-2 py-0.5 rounded-full text-white flex-shrink-0"
+                              style={{ backgroundColor: pLevel.bgColor }}
+                            >
+                              {score!.overall_score}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {score && (
+                        <div className="grid grid-cols-4 gap-2">
+                          <MiniBar label="A" score={score.approach_score} />
+                          <MiniBar label="D" score={score.deployment_score} />
+                          <MiniBar label="L" score={score.learning_score} />
+                          <MiniBar label="I" score={score.integration_score} />
+                        </div>
+                      )}
+                      <div className="text-[10px] text-gray-400 mt-1">
+                        {proc.categories?.display_name}
+                        {proc.owner && ` · ${proc.owner}`}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  color,
+  subtitle,
+}: {
+  label: string;
+  value: number | string;
+  color: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+      <div className="text-2xl font-bold" style={{ color }}>
+        {value}
+      </div>
+      <div className="text-sm text-gray-500 mt-0.5">{label}</div>
+      {subtitle && (
+        <div className="text-xs mt-0.5" style={{ color }}>
+          {subtitle}
+        </div>
+      )}
     </div>
   );
 }

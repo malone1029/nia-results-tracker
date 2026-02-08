@@ -119,6 +119,19 @@ main > .space-y-8 > *:nth-child(4) { animation-delay: 150ms; }
 main > .space-y-8 > *:nth-child(5) { animation-delay: 200ms; }
 main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
+/* Sidebar slide-in animation for mobile */
+@keyframes sidebar-enter {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.sidebar-enter {
+  animation: sidebar-enter 200ms ease-out;
+}
+
 /* Stepper active-step pulse ring */
 @keyframes stepper-pulse {
   0%, 100% { transform: scale(1); opacity: 0.25; }

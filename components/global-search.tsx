@@ -18,7 +18,7 @@ interface GroupedResults {
   requirements: SearchResult[];
 }
 
-export default function GlobalSearch({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
+export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: { mobile?: boolean; onNavigate?: () => void; variant?: "dark" | "light" }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GroupedResults>({
@@ -239,7 +239,9 @@ export default function GlobalSearch({ mobile, onNavigate }: { mobile?: boolean;
       <div className="relative">
         {/* Magnifying glass icon */}
         <svg
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none"
+          className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${
+            variant === "light" ? "text-gray-400" : "text-white/50"
+          }`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -261,7 +263,11 @@ export default function GlobalSearch({ mobile, onNavigate }: { mobile?: boolean;
             if (query.length >= 2 && flatResults.length > 0) setOpen(true);
           }}
           placeholder="Search… ⌘K"
-          className="w-full bg-white/15 text-white placeholder-white/50 text-sm rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-orange/50 focus:bg-white/25 transition-colors"
+          className={`w-full text-sm rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 transition-colors ${
+            variant === "light"
+              ? "bg-gray-100 text-gray-800 placeholder-gray-400 focus:ring-nia-grey-blue/30 focus:bg-gray-50"
+              : "bg-white/15 text-white placeholder-white/50 focus:ring-nia-orange/50 focus:bg-white/25"
+          }`}
         />
       </div>
 

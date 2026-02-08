@@ -9,6 +9,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/ai-insights",
+        destination: "/adli-insights",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
