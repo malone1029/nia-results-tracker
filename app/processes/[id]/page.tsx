@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getReviewStatus, getStatusColor, getStatusLabel } from "@/lib/review-status";
 import type {
   ProcessStatus,
   Charter,
@@ -15,6 +16,7 @@ import type {
 } from "@/lib/types";
 import Link from "next/link";
 import MarkdownContent from "@/components/markdown-content";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface ProcessDetail {
   id: number;
@@ -47,6 +49,12 @@ interface LinkedMetric {
   name: string;
   last_value: number | null;
   unit: string;
+  cadence: string;
+  target_value: number | null;
+  is_higher_better: boolean;
+  review_status: "current" | "due-soon" | "overdue" | "no-data";
+  on_target: boolean | null;
+  sparkline: number[];
 }
 
 interface LinkedRequirement {
@@ -115,33 +123,59 @@ export default function ProcessDetailPage() {
       // Fetch linked metrics
       const { data: metricsData } = await supabase
         .from("metrics")
-        .select("id, name, unit")
+        .select("id, name, unit, cadence, target_value, is_higher_better")
         .eq("process_id", id);
 
       if (metricsData) {
-        // Get latest entry for each metric
+        // Get entries for each metric (desc for latest, collect up to 6 for sparklines)
         const { data: entries } = await supabase
           .from("entries")
           .select("metric_id, value, date")
           .in("metric_id", metricsData.map((m) => m.id))
           .order("date", { ascending: false });
 
-        const latestByMetric = new Map<number, number>();
+        const latestByMetric = new Map<number, { value: number; date: string }>();
+        const sparklinesByMetric = new Map<number, number[]>();
         if (entries) {
           for (const e of entries) {
             if (!latestByMetric.has(e.metric_id)) {
-              latestByMetric.set(e.metric_id, e.value);
+              latestByMetric.set(e.metric_id, { value: e.value, date: e.date });
             }
+            const existing = sparklinesByMetric.get(e.metric_id) || [];
+            if (existing.length < 6) {
+              existing.push(e.value);
+              sparklinesByMetric.set(e.metric_id, existing);
+            }
+          }
+          // Reverse to chronological order
+          for (const [mid, vals] of sparklinesByMetric) {
+            sparklinesByMetric.set(mid, vals.reverse());
           }
         }
 
         setMetrics(
-          metricsData.map((m) => ({
-            id: m.id,
-            name: m.name,
-            last_value: latestByMetric.get(m.id) ?? null,
-            unit: m.unit,
-          }))
+          metricsData.map((m) => {
+            const latest = latestByMetric.get(m.id);
+            const lastValue = latest?.value ?? null;
+            let onTarget: boolean | null = null;
+            if (m.target_value !== null && lastValue !== null) {
+              onTarget = m.is_higher_better
+                ? lastValue >= m.target_value
+                : lastValue <= m.target_value;
+            }
+            return {
+              id: m.id,
+              name: m.name,
+              last_value: lastValue,
+              unit: m.unit,
+              cadence: m.cadence,
+              target_value: m.target_value,
+              is_higher_better: m.is_higher_better,
+              review_status: getReviewStatus(m.cadence, latest?.date || null),
+              on_target: onTarget,
+              sparkline: sparklinesByMetric.get(m.id) || [],
+            };
+          })
         );
       }
 
@@ -422,6 +456,78 @@ export default function ProcessDetailPage() {
         )}
       </div>
 
+      {/* Metrics & Results — prominent position before documentation */}
+      {metrics.length > 0 && (
+        <Section title={`Metrics & Results (${metrics.length})`}>
+          <div className="space-y-2">
+            {metrics.map((m) => {
+              const sparkData = m.sparkline.map((v, i) => ({ i, v }));
+              const first = m.sparkline[0];
+              const last = m.sparkline[m.sparkline.length - 1];
+              const trend = m.sparkline.length >= 2
+                ? (last > first ? "up" : last < first ? "down" : "flat")
+                : null;
+              const improving = trend && ((trend === "up" && m.is_higher_better) || (trend === "down" && !m.is_higher_better));
+              const sparkColor = improving ? "#b1bd37" : trend === "flat" ? "#55787c" : trend ? "#dc2626" : "#9ca3af";
+
+              return (
+                <Link
+                  key={m.id}
+                  href={`/metric/${m.id}`}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: getStatusColor(m.review_status) }}
+                    title={getStatusLabel(m.review_status)}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-[#324a4d]">{m.name}</span>
+                    <span className="text-xs text-gray-400 ml-2 capitalize">{m.cadence}</span>
+                  </div>
+                  {m.sparkline.length >= 2 ? (
+                    <div className="w-16 h-6 flex-shrink-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={sparkData}>
+                          <Line type="monotone" dataKey="v" stroke={sparkColor} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <span className="text-gray-300 text-xs w-16 text-center flex-shrink-0">&mdash;</span>
+                  )}
+                  <div className="text-right flex-shrink-0 w-24">
+                    {m.last_value !== null ? (
+                      <>
+                        <div className="text-sm font-medium text-[#324a4d]">
+                          {m.last_value}{m.unit === "%" ? "%" : ` ${m.unit}`}
+                        </div>
+                        {m.on_target !== null && (
+                          <div className="text-xs" style={{ color: m.on_target ? "#b1bd37" : "#dc2626" }}>
+                            {m.on_target ? "On Target" : "Below"}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-400">No data</span>
+                    )}
+                  </div>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                    style={{
+                      backgroundColor: getStatusColor(m.review_status) + "20",
+                      color: getStatusColor(m.review_status),
+                    }}
+                  >
+                    {getStatusLabel(m.review_status)}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
       {/* Description — hide for full templates when Charter has the full content */}
       {!(process.template_type === "full" && process.charter?.content) && (
         <Section title="What is this process?">
@@ -643,35 +749,6 @@ export default function ProcessDetailPage() {
           </Section>
         </>
       )}
-
-      {/* Linked Metrics */}
-      <Section title="Linked Metrics">
-        {metrics.length > 0 ? (
-          <div className="space-y-2">
-            {metrics.map((m) => (
-              <Link
-                key={m.id}
-                href={`/metric/${m.id}`}
-                className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-sm text-[#324a4d] hover:text-[#f79935]">
-                  {m.name}
-                </span>
-                <span className="text-sm text-gray-400">
-                  {m.last_value !== null
-                    ? `${m.last_value}${m.unit === "%" ? "%" : ` ${m.unit}`}`
-                    : "No data"}
-                </span>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-400 italic">
-            No metrics are linked to this process yet. Metrics are linked via
-            the Categories page.
-          </p>
-        )}
-      </Section>
 
       {/* Linked Key Requirements */}
       <Section title="Linked Key Requirements">
