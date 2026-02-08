@@ -131,48 +131,48 @@ export default function AiInsightsPage() {
         <>
           {/* Organization summary — radar + stats */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2">
-              {/* Radar chart */}
-              <div className="flex items-center justify-center p-6 bg-gray-50/50 border-b md:border-b-0 md:border-r border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr]">
+              {/* Radar chart — generous space */}
+              <div className="flex items-center justify-center p-8 bg-gray-50/50 border-b md:border-b-0 md:border-r border-gray-100">
                 {dimAvgs && (
                   <AdliRadar
                     approach={dimAvgs.approach}
                     deployment={dimAvgs.deployment}
                     learning={dimAvgs.learning}
                     integration={dimAvgs.integration}
-                    size={200}
+                    size={300}
                   />
                 )}
               </div>
 
               {/* Stats panel */}
-              <div className="p-6 space-y-4">
+              <div className="p-6 flex flex-col justify-center space-y-5">
                 <div>
                   <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
                     Overall Maturity
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span
-                      className="text-4xl font-bold"
+                      className="text-5xl font-bold"
                       style={{ color: orgLevel.color }}
                     >
                       {orgAvg}%
                     </span>
                     <span
-                      className="text-sm font-medium"
+                      className="text-base font-medium"
                       style={{ color: orgLevel.color }}
                     >
                       {orgLevel.label}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">
+                  <div className="text-sm text-gray-400 mt-1">
                     {scores.length} process
                     {scores.length !== 1 ? "es" : ""} assessed
                   </div>
                 </div>
 
                 {dimAvgs && (
-                  <div className="space-y-3 pt-2 border-t border-gray-100">
+                  <div className="space-y-3 pt-3 border-t border-gray-100">
                     <DimBar label="Approach" score={dimAvgs.approach} />
                     <DimBar label="Deployment" score={dimAvgs.deployment} />
                     <DimBar label="Learning" score={dimAvgs.learning} />
@@ -207,74 +207,129 @@ export default function AiInsightsPage() {
             </div>
           </div>
 
-          {/* Category groups */}
-          <div className="space-y-6">
-            {categoryGroups.map((group) => {
-              const groupLevel = getMaturityLevel(group.avgOverall);
-              return (
-                <div key={group.name} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  {/* Category header */}
-                  <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                    <h3 className="font-semibold text-[#324a4d] text-sm">{group.name}</h3>
-                    <span
-                      className="text-xs font-bold px-2.5 py-0.5 rounded-full text-white"
-                      style={{ backgroundColor: groupLevel.bgColor }}
-                    >
-                      Avg: {group.avgOverall}%
-                    </span>
-                  </div>
-
-                  {/* Process rows */}
-                  <div className="divide-y divide-gray-100">
-                    {group.processes.map((s) => {
-                      const level = getMaturityLevel(s.overall_score);
-                      return (
-                        <Link
-                          key={s.process_id}
-                          href={`/processes/${s.process_id}`}
-                          className="block px-5 py-3 hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-sm font-medium text-[#324a4d] truncate">
-                                {s.processes.name}
+          {/* Process scores list */}
+          {sortBy === "score" ? (
+            /* Flat list sorted by score (highest first) */
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="divide-y divide-gray-100">
+                {[...scores]
+                  .sort((a, b) => b.overall_score - a.overall_score)
+                  .map((s, rank) => {
+                    const level = getMaturityLevel(s.overall_score);
+                    return (
+                      <Link
+                        key={s.process_id}
+                        href={`/processes/${s.process_id}`}
+                        className="block px-5 py-3 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xs text-gray-400 font-mono w-5">
+                              {rank + 1}.
+                            </span>
+                            <span className="text-sm font-medium text-[#324a4d] truncate">
+                              {s.processes.name}
+                            </span>
+                            {s.processes.is_key && (
+                              <span className="text-[10px] bg-[#f79935]/10 text-[#f79935] px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                                KEY
                               </span>
-                              {s.processes.is_key && (
-                                <span className="text-[10px] bg-[#f79935]/10 text-[#f79935] px-1.5 py-0.5 rounded font-medium flex-shrink-0">
-                                  KEY
+                            )}
+                            <span className="text-[10px] text-gray-400 flex-shrink-0">
+                              {s.processes.categories.display_name}
+                            </span>
+                          </div>
+                          <span
+                            className="text-xs font-bold px-2 py-0.5 rounded-full text-white flex-shrink-0"
+                            style={{ backgroundColor: level.bgColor }}
+                          >
+                            {s.overall_score}%
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2 pl-7">
+                          <MiniBar label="A" score={s.approach_score} />
+                          <MiniBar label="D" score={s.deployment_score} />
+                          <MiniBar label="L" score={s.learning_score} />
+                          <MiniBar label="I" score={s.integration_score} />
+                        </div>
+
+                        <div className="text-[10px] text-gray-400 mt-1.5 pl-7">
+                          Assessed {new Date(s.assessed_at).toLocaleDateString()}
+                          {s.processes.owner && ` · Owner: ${s.processes.owner}`}
+                        </div>
+                      </Link>
+                    );
+                  })}
+              </div>
+            </div>
+          ) : (
+            /* Category groups */
+            <div className="space-y-6">
+              {categoryGroups.map((group) => {
+                const groupLevel = getMaturityLevel(group.avgOverall);
+                return (
+                  <div key={group.name} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    {/* Category header */}
+                    <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                      <h3 className="font-semibold text-[#324a4d] text-sm">{group.name}</h3>
+                      <span
+                        className="text-xs font-bold px-2.5 py-0.5 rounded-full text-white"
+                        style={{ backgroundColor: groupLevel.bgColor }}
+                      >
+                        Avg: {group.avgOverall}%
+                      </span>
+                    </div>
+
+                    {/* Process rows */}
+                    <div className="divide-y divide-gray-100">
+                      {group.processes.map((s) => {
+                        const level = getMaturityLevel(s.overall_score);
+                        return (
+                          <Link
+                            key={s.process_id}
+                            href={`/processes/${s.process_id}`}
+                            className="block px-5 py-3 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-sm font-medium text-[#324a4d] truncate">
+                                  {s.processes.name}
                                 </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                                {s.processes.is_key && (
+                                  <span className="text-[10px] bg-[#f79935]/10 text-[#f79935] px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                                    KEY
+                                  </span>
+                                )}
+                              </div>
                               <span
-                                className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
+                                className="text-xs font-bold px-2 py-0.5 rounded-full text-white flex-shrink-0"
                                 style={{ backgroundColor: level.bgColor }}
                               >
                                 {s.overall_score}%
                               </span>
                             </div>
-                          </div>
 
-                          {/* Mini bar chart */}
-                          <div className="grid grid-cols-4 gap-2">
-                            <MiniBar label="A" score={s.approach_score} />
-                            <MiniBar label="D" score={s.deployment_score} />
-                            <MiniBar label="L" score={s.learning_score} />
-                            <MiniBar label="I" score={s.integration_score} />
-                          </div>
+                            <div className="grid grid-cols-4 gap-2">
+                              <MiniBar label="A" score={s.approach_score} />
+                              <MiniBar label="D" score={s.deployment_score} />
+                              <MiniBar label="L" score={s.learning_score} />
+                              <MiniBar label="I" score={s.integration_score} />
+                            </div>
 
-                          <div className="text-[10px] text-gray-400 mt-1.5">
-                            Assessed {new Date(s.assessed_at).toLocaleDateString()}
-                            {s.processes.owner && ` · Owner: ${s.processes.owner}`}
-                          </div>
-                        </Link>
-                      );
-                    })}
+                            <div className="text-[10px] text-gray-400 mt-1.5">
+                              Assessed {new Date(s.assessed_at).toLocaleDateString()}
+                              {s.processes.owner && ` · Owner: ${s.processes.owner}`}
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
     </div>
