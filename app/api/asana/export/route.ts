@@ -58,8 +58,13 @@ export async function POST(request: Request) {
 
   try {
     // Build the project description from charter
-    const charterText = fieldToText(proc.charter as Record<string, unknown>);
-    const projectDescription = charterText || proc.description || "";
+    // Use charter.purpose (the overview) for Asana — NOT charter.content which may
+    // contain imported task dumps. Fall back to structured fields, then description.
+    const charter = proc.charter as Record<string, unknown> | null;
+    const charterPurpose = charter?.purpose && typeof charter.purpose === "string"
+      ? charter.purpose
+      : null;
+    const projectDescription = charterPurpose || fieldToText(charter) || proc.description || "";
 
     // Build ADLI section content
     const adliSections = [

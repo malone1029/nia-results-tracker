@@ -110,43 +110,35 @@ export async function POST(request: Request) {
     const projectNotes = project.data.notes || "";
     const ownerName = project.data.owner?.name || null;
 
-    // Build a full markdown document from all Asana content
-    // This becomes the charter.content — a rich, readable representation
-    const contentParts: string[] = [];
-    if (projectNotes) {
-      contentParts.push(`## Overview\n\n${projectNotes}`);
-    }
-
     // Collect all unique assignees as stakeholders
     const assignees = new Set<string>();
 
+    // Build a section summary (just section names + task counts) for the charter
+    const sectionSummaryParts: string[] = [];
     for (const section of sectionData) {
-      const sectionLabel = section.name && section.name !== "(no section)"
-        ? section.name
-        : "General Tasks";
-
-      if (section.tasks.length > 0) {
-        const taskLines = section.tasks.map((t) => {
-          if (t.assignee) assignees.add(t.assignee);
-          const assignee = t.assignee ? ` *(${t.assignee})*` : "";
-          const status = t.completed ? " ~~done~~" : "";
-          const line = `- **${t.name}**${assignee}${status}`;
-          return t.notes ? `${line}\n  ${t.notes}` : line;
-        }).join("\n");
-        contentParts.push(`## ${sectionLabel}\n\n${taskLines}`);
+      for (const t of section.tasks) {
+        if (t.assignee) assignees.add(t.assignee);
+      }
+      if (section.name && section.name !== "(no section)" && section.tasks.length > 0) {
+        sectionSummaryParts.push(`- **${section.name}** (${section.tasks.length} tasks)`);
       }
     }
 
-    const fullContent = contentParts.join("\n\n---\n\n");
+    // Charter: only the project overview text — NOT all the tasks
+    // Tasks stay in Asana as tasks; we don't duplicate them in the charter
+    const charterContent = projectNotes
+      ? (sectionSummaryParts.length > 0
+        ? `${projectNotes}\n\n## Asana Project Sections\n\n${sectionSummaryParts.join("\n")}`
+        : projectNotes)
+      : null;
 
-    // Charter: full overview in content, first paragraph as purpose
     const charter = {
       purpose: projectNotes || null,
       scope_includes: null,
       scope_excludes: null,
       stakeholders: Array.from(assignees),
       mission_alignment: null,
-      content: fullContent || null,
+      content: charterContent,
     };
 
     // Map sections to ADLI dimensions if names match
