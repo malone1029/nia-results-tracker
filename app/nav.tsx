@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import GlobalSearch from "@/components/global-search";
 
 const links = [
   { href: "/requirements", label: "Key Requirements" },
@@ -32,13 +33,16 @@ export default function Nav() {
   return (
     <>
       {/* Desktop nav */}
-      <nav className="hidden md:flex gap-4 text-sm">
-        {links.map((link) => (
-          <Link key={link.href} href={link.href} className={linkClass(link.href)}>
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      <div className="hidden md:flex items-center gap-4">
+        <GlobalSearch />
+        <nav className="flex gap-4 text-sm">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} className={linkClass(link.href)}>
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
 
       {/* Mobile hamburger button */}
       <button
@@ -52,6 +56,9 @@ export default function Nav() {
       {/* Mobile menu dropdown */}
       {menuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-[#324a4d] shadow-lg z-50">
+          <div className="px-4 pt-3">
+            <GlobalSearch mobile />
+          </div>
           <nav className="flex flex-col px-4 py-3 gap-3 text-sm">
             {links.map((link) => (
               <Link
