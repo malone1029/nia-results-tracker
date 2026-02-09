@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { FormSkeleton } from "@/components/skeleton";
 import Link from "next/link";
@@ -20,7 +20,17 @@ interface RequirementOption {
 }
 
 export default function NewMetricPage() {
+  return (
+    <Suspense>
+      <NewMetricContent />
+    </Suspense>
+  );
+}
+
+function NewMetricContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedProcessId = searchParams.get("processId");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -29,7 +39,7 @@ export default function NewMetricPage() {
   // Form fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [processId, setProcessId] = useState<number>(0);
+  const [processId, setProcessId] = useState<number>(preselectedProcessId ? Number(preselectedProcessId) : 0);
   const [cadence, setCadence] = useState("quarterly");
   const [targetValue, setTargetValue] = useState("");
   const [comparisonValue, setComparisonValue] = useState("");
@@ -116,7 +126,7 @@ export default function NewMetricPage() {
     }
 
     if (data) {
-      router.push(`/metric/${data.id}`);
+      router.push(preselectedProcessId ? `/processes/${preselectedProcessId}` : `/metric/${data.id}`);
     }
     setSaving(false);
   }
@@ -128,6 +138,12 @@ export default function NewMetricPage() {
       {/* Breadcrumb */}
       <div className="text-sm text-gray-500">
         <Link href="/" className="hover:text-nia-grey-blue">Dashboard</Link>
+        {preselectedProcessId && (
+          <>
+            {" / "}
+            <Link href={`/processes/${preselectedProcessId}`} className="hover:text-nia-grey-blue">Process</Link>
+          </>
+        )}
         {" / "}
         <span className="text-nia-dark">Add Metric</span>
       </div>
@@ -356,7 +372,7 @@ export default function NewMetricPage() {
             {saving ? "Creating..." : "Create Metric"}
           </button>
           <Link
-            href="/"
+            href={preselectedProcessId ? `/processes/${preselectedProcessId}` : "/"}
             className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300 inline-flex items-center"
           >
             Cancel

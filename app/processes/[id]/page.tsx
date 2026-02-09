@@ -127,6 +127,11 @@ function ProcessDetailContent() {
   const [asanaProjects, setAsanaProjects] = useState<{ gid: string; name: string; description: string; team: string | null; modified_at: string }[]>([]);
   const [asanaProjectsLoading, setAsanaProjectsLoading] = useState(false);
   const [asanaSearch, setAsanaSearch] = useState("");
+  const [metricDialogOpen, setMetricDialogOpen] = useState(false);
+  const [metricPickerOpen, setMetricPickerOpen] = useState(false);
+  const [availableMetrics, setAvailableMetrics] = useState<{ id: number; name: string; unit: string; cadence: string }[]>([]);
+  const [metricSearch, setMetricSearch] = useState("");
+  const [linkingMetric, setLinkingMetric] = useState<number | null>(null);
 
   async function fetchProcess() {
       // Fetch process with category name
@@ -258,6 +263,30 @@ function ProcessDetailContent() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchProcess(); }, [id]);
+
+  async function fetchAvailableMetrics() {
+    const { data } = await supabase
+      .from("metrics")
+      .select("id, name, unit, cadence")
+      .is("process_id", null)
+      .order("name");
+    if (data) setAvailableMetrics(data);
+  }
+
+  async function linkExistingMetric(metricId: number) {
+    setLinkingMetric(metricId);
+    const { error } = await supabase
+      .from("metrics")
+      .update({ process_id: Number(id) })
+      .eq("id", metricId);
+    if (!error) {
+      setMetricPickerOpen(false);
+      setMetricDialogOpen(false);
+      setMetricSearch("");
+      fetchProcess();
+    }
+    setLinkingMetric(null);
+  }
 
   async function handleStatusChange(newStatus: ProcessStatus) {
     if (!process) return;
@@ -712,17 +741,115 @@ function ProcessDetailContent() {
                 </Link>
               );
             })}
+            {/* Add metric button when metrics already exist */}
+            <button
+              onClick={() => { setMetricDialogOpen(true); fetchAvailableMetrics(); }}
+              className="w-full text-sm text-nia-grey-blue hover:text-nia-dark py-2 rounded-lg border border-dashed border-gray-300 hover:border-nia-grey-blue transition-colors"
+            >
+              + Add Metric
+            </button>
           </div>
         ) : (
-          <EmptyState
-            illustration="chart"
-            title="No metrics linked"
-            description="Add metrics to track results and build LeTCI evidence for this process."
-            action={{ label: "+ Add Metric", href: "/metric/new" }}
-            compact
-          />
+          <div className="flex flex-col items-center text-center py-6 px-4">
+            <div className="text-4xl mb-3">📊</div>
+            <h3 className="text-sm font-semibold text-nia-dark mb-1">No metrics linked</h3>
+            <p className="text-xs text-gray-500 mb-3">Add metrics to track results and build LeTCI evidence for this process.</p>
+            <button
+              onClick={() => { setMetricDialogOpen(true); fetchAvailableMetrics(); }}
+              className="text-sm font-medium text-white bg-nia-dark rounded-lg px-4 py-2 hover:opacity-90 transition-opacity"
+            >
+              + Add Metric
+            </button>
+          </div>
         )}
       </Section>
+
+      {/* Add Metric Dialog */}
+      {metricDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setMetricDialogOpen(false); setMetricPickerOpen(false); setMetricSearch(""); }}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-nia-dark">Add Metric</h3>
+              <p className="text-sm text-gray-500 mt-1">Link an existing metric or create a new one for this process.</p>
+            </div>
+
+            {!metricPickerOpen ? (
+              <div className="p-5 space-y-3">
+                <button
+                  onClick={() => setMetricPickerOpen(true)}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-nia-grey-blue hover:bg-nia-grey-blue/5 transition-colors group"
+                >
+                  <div className="text-sm font-medium text-nia-dark group-hover:text-nia-grey-blue">Link Existing Metric</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Choose from metrics that aren&apos;t linked to a process yet</div>
+                </button>
+                <Link
+                  href={`/metric/new?processId=${id}`}
+                  className="block w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-nia-grey-blue hover:bg-nia-grey-blue/5 transition-colors group"
+                >
+                  <div className="text-sm font-medium text-nia-dark group-hover:text-nia-grey-blue">Create New Metric</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Build a new metric and link it to this process</div>
+                </Link>
+              </div>
+            ) : (
+              <div className="p-5 space-y-3">
+                <button onClick={() => setMetricPickerOpen(false)} className="text-xs text-gray-500 hover:text-nia-dark flex items-center gap-1">
+                  ← Back
+                </button>
+                <input
+                  type="text"
+                  placeholder="Search metrics..."
+                  value={metricSearch}
+                  onChange={(e) => setMetricSearch(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30"
+                  autoFocus
+                />
+                <div className="max-h-60 overflow-y-auto space-y-1">
+                  {availableMetrics
+                    .filter((m) => m.name.toLowerCase().includes(metricSearch.toLowerCase()))
+                    .map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => linkExistingMetric(m.id)}
+                        disabled={linkingMetric === m.id}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between disabled:opacity-50"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-nia-dark">{m.name}</div>
+                          <div className="text-xs text-gray-400 capitalize">{m.cadence} · {m.unit}</div>
+                        </div>
+                        {linkingMetric === m.id ? (
+                          <span className="text-xs text-gray-400">Linking...</span>
+                        ) : (
+                          <span className="text-xs text-nia-grey-blue font-medium">Link</span>
+                        )}
+                      </button>
+                    ))}
+                  {availableMetrics.filter((m) => m.name.toLowerCase().includes(metricSearch.toLowerCase())).length === 0 && (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500">No unlinked metrics found</p>
+                      <Link
+                        href={`/metric/new?processId=${id}`}
+                        className="text-sm text-nia-grey-blue hover:underline mt-1 inline-block"
+                      >
+                        Create a new metric instead
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="px-5 py-3 border-t border-gray-100">
+              <button
+                onClick={() => { setMetricDialogOpen(false); setMetricPickerOpen(false); setMetricSearch(""); }}
+                className="text-sm text-gray-500 hover:text-nia-dark"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Description — only show when no charter content */}
       {!process.charter?.content && (
