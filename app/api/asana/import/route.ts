@@ -3,7 +3,9 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
 
 // Map common Asana section names to ADLI dimensions
+// Includes both ADLI names and PDCA names (Plan/Execute/Evaluate/Improve)
 const SECTION_TO_ADLI: Record<string, string> = {
+  // ADLI dimension names
   approach: "adli_approach",
   "how we do it": "adli_approach",
   methodology: "adli_approach",
@@ -20,6 +22,19 @@ const SECTION_TO_ADLI: Record<string, string> = {
   alignment: "adli_integration",
   connections: "adli_integration",
   "how it connects": "adli_integration",
+  // PDCA cycle names (Plan/Execute/Evaluate/Improve)
+  plan: "adli_approach",
+  planning: "adli_approach",
+  execute: "adli_deployment",
+  execution: "adli_deployment",
+  do: "adli_deployment",
+  evaluate: "adli_learning",
+  evaluation: "adli_learning",
+  check: "adli_learning",
+  improve: "adli_integration",
+  improvement: "adli_integration",
+  improvements: "adli_integration",
+  act: "adli_integration",
 };
 
 function matchAdliDimension(sectionName: string): string | null {

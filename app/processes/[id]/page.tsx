@@ -82,6 +82,7 @@ interface ImprovementEntry {
   impact_notes: string | null;
   before_snapshot: Record<string, unknown> | null;
   after_snapshot: Record<string, unknown> | null;
+  trigger_detail: string | null;
 }
 
 const STATUS_CONFIG: Record<ProcessStatus, { label: string; color: string }> = {
@@ -126,6 +127,10 @@ function ProcessDetailContent() {
   const [asanaConfirm, setAsanaConfirm] = useState(false);
   const [asanaResult, setAsanaResult] = useState<{ action: string; asanaUrl: string } | null>(null);
   const [asanaError, setAsanaError] = useState("");
+  const [asanaPickerOpen, setAsanaPickerOpen] = useState(false);
+  const [asanaProjects, setAsanaProjects] = useState<{ gid: string; name: string; description: string; team: string | null; modified_at: string }[]>([]);
+  const [asanaProjectsLoading, setAsanaProjectsLoading] = useState(false);
+  const [asanaSearch, setAsanaSearch] = useState("");
 
   async function fetchProcess() {
       // Fetch process with category name
@@ -297,7 +302,7 @@ function ProcessDetailContent() {
     router.push("/processes");
   }
 
-  async function handleAsanaExport() {
+  async function handleAsanaExport(forceNew = false) {
     if (!process) return;
     setAsanaExporting(true);
     setAsanaError("");
@@ -306,7 +311,7 @@ function ProcessDetailContent() {
       const res = await fetch("/api/asana/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ processId: process.id }),
+        body: JSON.stringify({ processId: process.id, forceNew }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -318,6 +323,55 @@ function ProcessDetailContent() {
       }
     } catch (e) {
       setAsanaError("Export failed: " + (e as Error).message);
+    }
+    setAsanaExporting(false);
+  }
+
+  async function loadAsanaProjects() {
+    setAsanaProjectsLoading(true);
+    try {
+      const res = await fetch("/api/asana/projects");
+      if (!res.ok) throw new Error("Failed to load projects");
+      const data = await res.json();
+      setAsanaProjects(data.projects || []);
+    } catch {
+      setAsanaError("Failed to load Asana projects");
+    }
+    setAsanaProjectsLoading(false);
+  }
+
+  async function handleLinkToProject(projectGid: string) {
+    if (!process) return;
+    setAsanaExporting(true);
+    setAsanaError("");
+    try {
+      // Update the Hub's link to point to the selected Asana project
+      const { error } = await supabase
+        .from("processes")
+        .update({
+          asana_project_gid: projectGid,
+          asana_project_url: `https://app.asana.com/0/${projectGid}`,
+        })
+        .eq("id", process.id);
+      if (error) throw error;
+
+      // Now sync to that project
+      const res = await fetch("/api/asana/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ processId: process.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAsanaError(data.error || "Sync failed");
+      } else {
+        setAsanaResult(data);
+        setAsanaConfirm(false);
+        setAsanaPickerOpen(false);
+        fetchProcess();
+      }
+    } catch (e) {
+      setAsanaError("Link failed: " + (e as Error).message);
     }
     setAsanaExporting(false);
   }
@@ -437,35 +491,103 @@ function ProcessDetailContent() {
       {/* Asana export confirmation */}
       {asanaConfirm && (
         <div className="bg-nia-grey-blue/10 border border-nia-grey-blue rounded-lg p-4">
-          <p className="text-sm text-nia-dark mb-1 font-medium">
-            {process.asana_project_gid
-              ? "Sync to Asana"
-              : "Export to Asana"}
-          </p>
-          <p className="text-sm text-gray-600 mb-3">
-            {process.asana_project_gid
-              ? `This will update the linked Asana project with the latest charter and ADLI content.`
-              : `This will create a new Asana project named "${process.name}" with charter and ADLI sections.`}
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={handleAsanaExport}
-              disabled={asanaExporting}
-              className="bg-nia-green text-white rounded-lg py-1.5 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-            >
-              {asanaExporting
-                ? "Exporting..."
-                : process.asana_project_gid
-                  ? "Sync Now"
-                  : "Create Project"}
-            </button>
-            <button
-              onClick={() => setAsanaConfirm(false)}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Cancel
-            </button>
-          </div>
+          <p className="text-sm text-nia-dark mb-1 font-medium">Export to Asana</p>
+          {!asanaPickerOpen ? (
+            <>
+              <p className="text-sm text-gray-600 mb-3">
+                {process.asana_project_gid
+                  ? "Sync the linked project, link to a different project, or create a new one."
+                  : `Create a new Asana project or link to an existing one.`}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {process.asana_project_gid && (
+                  <button
+                    onClick={() => handleAsanaExport(false)}
+                    disabled={asanaExporting}
+                    className="bg-nia-green text-white rounded-lg py-1.5 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                  >
+                    {asanaExporting ? "Syncing..." : "Sync Linked Project"}
+                  </button>
+                )}
+                <button
+                  onClick={() => { setAsanaPickerOpen(true); loadAsanaProjects(); }}
+                  disabled={asanaExporting}
+                  className="bg-nia-grey-blue text-white rounded-lg py-1.5 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                >
+                  Link to Existing Project
+                </button>
+                <button
+                  onClick={() => handleAsanaExport(true)}
+                  disabled={asanaExporting}
+                  className="bg-nia-dark text-white rounded-lg py-1.5 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                >
+                  {asanaExporting ? "Creating..." : "Create New Project"}
+                </button>
+                <button
+                  onClick={() => setAsanaConfirm(false)}
+                  className="text-sm text-gray-500 hover:text-gray-700 px-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-600 mb-3">
+                Select an Asana project to link and sync with this process.
+              </p>
+              {asanaProjectsLoading && (
+                <p className="text-sm text-nia-grey-blue py-2">Loading projects...</p>
+              )}
+              {!asanaProjectsLoading && asanaProjects.length > 0 && (
+                <>
+                  <input
+                    type="text"
+                    value={asanaSearch}
+                    onChange={(e) => setAsanaSearch(e.target.value)}
+                    placeholder="Search projects..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+                  />
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto mb-3">
+                    {asanaProjects
+                      .filter((p) => p.name.toLowerCase().includes(asanaSearch.toLowerCase()))
+                      .map((project) => (
+                        <div
+                          key={project.gid}
+                          className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-gray-100 hover:border-nia-grey-blue/30 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-nia-dark truncate">{project.name}</p>
+                            <div className="flex gap-3 text-xs text-gray-400">
+                              {project.team && <span>{project.team}</span>}
+                              {project.modified_at && (
+                                <span>Updated {new Date(project.modified_at).toLocaleDateString()}</span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleLinkToProject(project.gid)}
+                            disabled={asanaExporting}
+                            className="bg-nia-dark text-white rounded py-1 px-3 text-xs font-medium hover:opacity-90 disabled:opacity-50 flex-shrink-0"
+                          >
+                            {asanaExporting ? "Linking..." : "Link"}
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </>
+              )}
+              {!asanaProjectsLoading && asanaProjects.length === 0 && !asanaError && (
+                <p className="text-sm text-gray-400 py-2">No projects found in your Asana workspace.</p>
+              )}
+              <button
+                onClick={() => { setAsanaPickerOpen(false); setAsanaSearch(""); }}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                &larr; Back
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -1183,6 +1305,21 @@ function ImprovementCard({
           </span>
           {improvement.source === "ai_suggestion" && (
             <span className="text-xs text-gray-400" title="AI suggestion">AI</span>
+          )}
+          {improvement.trigger_detail && improvement.trigger_detail.startsWith("http") && (
+            <a
+              href={improvement.trigger_detail}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-nia-grey-blue hover:text-nia-dark transition-colors"
+              title="View Asana task"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="18" r="4" />
+                <circle cx="5" cy="8" r="4" />
+                <circle cx="19" cy="8" r="4" />
+              </svg>
+            </a>
           )}
         </div>
       </div>

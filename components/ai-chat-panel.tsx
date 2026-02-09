@@ -321,6 +321,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
           field: suggestion.field,
           content: suggestion.content,
           suggestionTitle: suggestion.title,
+          whyMatters: suggestion.whyMatters,
         }),
       });
 
@@ -329,17 +330,28 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
         throw new Error(errData.error || "Failed to apply suggestion");
       }
 
+      const data = await response.json();
       const fieldLabel = FIELD_LABELS[suggestion.field] || suggestion.field;
 
       // Remove this suggestion from pending list
       setPendingSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
+
+      // Build success message based on Asana status
+      let successMsg = `**Applied!** "${suggestion.title}" has been applied to the ${fieldLabel} section.`;
+      if (data.asanaStatus === "created") {
+        successMsg += ` An Asana task was created to track this improvement.`;
+      } else if (data.asanaStatus === "not_linked") {
+        successMsg += ` Export this process to Asana to track improvements as tasks.`;
+      } else if (data.asanaStatus === "no_token" || data.asanaStatus === "failed") {
+        successMsg += ` (Couldn't create Asana task — check your Asana connection in Settings.)`;
+      }
 
       // Add a success message to the chat
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: `**Applied!** "${suggestion.title}" has been applied to the ${fieldLabel} section. The previous version was saved to improvement history.`,
+          content: successMsg,
         },
       ]);
 
