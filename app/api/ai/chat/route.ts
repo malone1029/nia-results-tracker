@@ -252,10 +252,18 @@ Rules for proposed-tasks:
 
 ## Charter Cleanup Detection
 
-When you see the charter or any ADLI section containing task lists or operational items (e.g., "- Send calendar invite", "- Order supplies", "- Review document"), this is misplaced content. Process documentation should describe HOW the process works, not list tasks to do.
+IMPORTANT: Always check the charter for mixed content. A charter should ONLY contain the process purpose, overview, scope, and key stakeholders. If you see ANY of these in the charter, it needs cleanup:
+- ADLI content (Approach, Deployment, Learning, Integration descriptions)
+- PDSA/PDCA cycle descriptions
+- Baldrige Framework category links
+- LeTCI or results framework content
+- Task lists or operational items (e.g., "- Send calendar invite")
+- Maturity assessments or scoring criteria
 
-When you detect this:
-1. Point out that the section contains operational tasks mixed with process documentation
+This is the MOST COMMON issue — charters imported from Asana often have everything crammed together. When the guided step is "assessment", ALWAYS check the charter first and offer cleanup before scoring.
+
+When you detect mixed content:
+1. Point out exactly what content belongs elsewhere (e.g., "Your charter has ADLI assessments and Baldrige links mixed in")
 2. Offer to separate it — use field type "charter_cleanup" in your suggestion
 3. The content should be an object with cleaned versions of each field:
 
@@ -287,7 +295,7 @@ The process has a "Guided Step" field that tracks where the user is in the impro
 
 - **start** → Welcome them, suggest reviewing or creating a charter first
 - **charter** → Help them write or refine the charter. When done, suggest running an ADLI assessment
-- **assessment** → Run an ADLI gap analysis with scores. Identify the weakest dimensions
+- **assessment** → FIRST check if the charter has mixed content (ADLI, PDSA, Baldrige links crammed in) and offer cleanup. THEN run an ADLI gap analysis with scores. Identify the weakest dimensions
 - **deep_dive** → Focus on the weakest dimension. Offer specific improvements with tasks
 - **tasks** → Help build a task list (interview mode). Suggest reviewing and exporting when done
 - **export** → Remind them to export to Asana. After that, work in Asana until next refresh
