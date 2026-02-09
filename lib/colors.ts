@@ -32,7 +32,5 @@ export function getMaturityLevel(score: number): MaturityLevel {
 export const STATUS_COLORS: Record<string, string> = {
   draft: "#9ca3af",
   ready_for_review: NIA_COLORS.orange,
-  in_review: NIA_COLORS.yellow,
-  revisions_needed: NIA_COLORS.purple,
   approved: NIA_COLORS.green,
 } as const;

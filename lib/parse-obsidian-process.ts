@@ -39,9 +39,7 @@ export interface ParsedProcess {
 function parseStatus(raw: string): ProcessStatus {
   const lower = raw.toLowerCase().trim();
   if (lower.includes("approved")) return "approved";
-  if (lower.includes("in review") || lower.includes("in_review")) return "in_review";
-  if (lower.includes("revisions") || lower.includes("revision")) return "revisions_needed";
-  if (lower.includes("ready for review") || lower.includes("ready_for_review")) return "ready_for_review";
+  if (lower.includes("ready for review") || lower.includes("ready_for_review") || lower.includes("review")) return "ready_for_review";
   return "draft";
 }
 

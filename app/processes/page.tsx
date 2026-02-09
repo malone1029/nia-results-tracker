@@ -46,22 +46,18 @@ interface CategorySummary {
   display_name: string;
   process_count: number;
   approved_count: number;
-  in_progress_count: number; // ready_for_review + in_review + revisions_needed
+  in_progress_count: number; // ready_for_review
 }
 
 const STATUS_CONFIG: Record<ProcessStatus, { label: string; color: string }> = {
   draft: { label: "Draft", color: "#9ca3af" },
   ready_for_review: { label: "Ready for Review", color: "#f79935" },
-  in_review: { label: "In Review", color: "#eab308" },
-  revisions_needed: { label: "Revisions Needed", color: "#a855f7" },
   approved: { label: "Approved", color: "#b1bd37" },
 };
 
 const STATUS_OPTIONS: ProcessStatus[] = [
   "draft",
   "ready_for_review",
-  "in_review",
-  "revisions_needed",
   "approved",
 ];
 
@@ -124,7 +120,7 @@ export default function ProcessesPage() {
           );
           const approved = catProcesses.filter((p) => p.status === "approved").length;
           const inProgress = catProcesses.filter((p) =>
-            ["ready_for_review", "in_review", "revisions_needed"].includes(p.status)
+            p.status === "ready_for_review"
           ).length;
           return {
             id: c.id as number,
@@ -211,7 +207,7 @@ export default function ProcessesPage() {
             const count = catProcesses.length;
             const approved = catProcesses.filter((p) => p.status === "approved").length;
             const inProgress = catProcesses.filter((p) =>
-              ["ready_for_review", "in_review", "revisions_needed"].includes(p.status)
+              p.status === "ready_for_review"
             ).length;
             const isEmpty = count === 0;
             const isSelected = filterCategory === cat.id;

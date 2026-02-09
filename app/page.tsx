@@ -40,8 +40,6 @@ interface ActionItem {
 const STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
   ready_for_review: "Ready for Review",
-  in_review: "In Review",
-  revisions_needed: "Revisions Needed",
   approved: "Approved",
 };
 

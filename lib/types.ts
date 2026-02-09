@@ -7,12 +7,10 @@ export interface Category {
   sort_order: number;
 }
 
-// Status workflow: draft → ready_for_review → in_review → revisions_needed → approved
+// Status workflow: draft → ready_for_review → approved
 export type ProcessStatus =
   | "draft"
   | "ready_for_review"
-  | "in_review"
-  | "revisions_needed"
   | "approved";
 
 // JSONB field types for structured process data

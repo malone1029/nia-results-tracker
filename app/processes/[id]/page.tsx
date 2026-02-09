@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense, Fragment } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { DetailSkeleton } from "@/components/skeleton";
@@ -88,16 +88,12 @@ interface ImprovementEntry {
 const STATUS_CONFIG: Record<ProcessStatus, { label: string; color: string }> = {
   draft: { label: "Draft", color: "#9ca3af" },
   ready_for_review: { label: "Ready for Review", color: "#f79935" },
-  in_review: { label: "In Review", color: "#eab308" },
-  revisions_needed: { label: "Revisions Needed", color: "#a855f7" },
   approved: { label: "Approved", color: "#b1bd37" },
 };
 
 const STATUS_ORDER: ProcessStatus[] = [
   "draft",
   "ready_for_review",
-  "in_review",
-  "revisions_needed",
   "approved",
 ];
 
@@ -392,13 +388,6 @@ function ProcessDetailContent() {
     );
   }
 
-  // Determine next status for "Advance" button
-  const currentIdx = STATUS_ORDER.indexOf(process.status);
-  const nextStatus =
-    currentIdx < STATUS_ORDER.length - 1 && process.status !== "revisions_needed"
-      ? STATUS_ORDER[currentIdx + 1]
-      : null;
-
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Back link */}
@@ -630,165 +619,29 @@ function ProcessDetailContent() {
         </div>
       )}
 
-      {/* Status Workflow Stepper */}
+      {/* Workflow Status */}
       <div className="bg-white rounded-xl shadow p-5">
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
             Workflow Status
           </h2>
-          <div className="flex gap-2">
-            {nextStatus && (
-              <button
-                onClick={() => handleStatusChange(nextStatus)}
-                className="text-xs bg-nia-dark text-white px-3 py-1.5 rounded-lg hover:opacity-90 font-medium transition-opacity"
-              >
-                Advance to {STATUS_CONFIG[nextStatus].label} &rarr;
-              </button>
-            )}
-            {process.status === "in_review" && (
-              <button
-                onClick={() => handleStatusChange("revisions_needed")}
-                className="text-xs border border-nia-purple text-nia-purple px-3 py-1.5 rounded-lg hover:bg-nia-purple/10 font-medium transition-colors"
-              >
-                Request Revisions
-              </button>
-            )}
-            {process.status === "revisions_needed" && (
-              <button
-                onClick={() => handleStatusChange("ready_for_review")}
-                className="text-xs border border-nia-orange text-nia-orange px-3 py-1.5 rounded-lg hover:bg-nia-orange/10 font-medium transition-colors"
-              >
-                Resubmit for Review
-              </button>
-            )}
-          </div>
+          <select
+            value={process.status}
+            onChange={(e) => handleStatusChange(e.target.value as ProcessStatus)}
+            className="text-sm font-medium rounded-lg px-3 py-1.5 border cursor-pointer focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30"
+            style={{
+              borderColor: STATUS_CONFIG[process.status].color + "40",
+              color: STATUS_CONFIG[process.status].color,
+              backgroundColor: STATUS_CONFIG[process.status].color + "10",
+            }}
+          >
+            {STATUS_ORDER.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_CONFIG[s].label}
+              </option>
+            ))}
+          </select>
         </div>
-
-        {/* Stepper track */}
-        <div className="flex items-start">
-          {STATUS_ORDER.filter((s) => s !== "revisions_needed").map(
-            (status, i, arr) => {
-              const statusIdx = STATUS_ORDER.indexOf(status);
-              const currentStatusIdx = STATUS_ORDER.indexOf(process.status);
-              const effectiveCurrentIdx =
-                process.status === "revisions_needed"
-                  ? STATUS_ORDER.indexOf("in_review")
-                  : currentStatusIdx;
-              const isActive =
-                status === process.status ||
-                (process.status === "revisions_needed" && status === "in_review");
-              const isCompleted = statusIdx < effectiveCurrentIdx;
-              const isFuture = !isActive && !isCompleted;
-              const color =
-                isActive && process.status === "revisions_needed"
-                  ? STATUS_CONFIG.revisions_needed.color
-                  : STATUS_CONFIG[status].color;
-
-              return (
-                <Fragment key={status}>
-                  <div className="flex flex-col items-center" style={{ width: 48 }}>
-                    {/* Circle with optional pulse */}
-                    <div className="relative">
-                      {isActive && (
-                        <div
-                          className="absolute -inset-1.5 rounded-full stepper-pulse"
-                          style={{ backgroundColor: color }}
-                        />
-                      )}
-                      <div
-                        className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-500 ${
-                          isFuture
-                            ? "bg-gray-100 border-2 border-gray-200 text-gray-400"
-                            : "text-white"
-                        }`}
-                        style={
-                          !isFuture
-                            ? {
-                                backgroundColor: color,
-                                boxShadow: isActive
-                                  ? `0 0 0 4px ${color}25, 0 4px 12px ${color}20`
-                                  : `0 2px 4px ${color}30`,
-                              }
-                            : undefined
-                        }
-                      >
-                        {isCompleted ? (
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={3}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        ) : (
-                          i + 1
-                        )}
-                      </div>
-                    </div>
-                    {/* Label */}
-                    <span
-                      className={`text-[11px] mt-2 text-center leading-tight max-w-[56px] ${
-                        isActive
-                          ? "font-bold"
-                          : isCompleted
-                            ? "font-medium text-gray-600"
-                            : "text-gray-400"
-                      }`}
-                      style={isActive ? { color } : undefined}
-                    >
-                      {STATUS_CONFIG[status].label}
-                    </span>
-                  </div>
-                  {/* Connector line */}
-                  {i < arr.length - 1 && (
-                    <div className="flex-1 pt-[19px]">
-                      <div
-                        className="h-0.5 w-full rounded-full transition-all duration-500"
-                        style={{
-                          background: isCompleted
-                            ? color
-                            : isActive
-                              ? `linear-gradient(to right, ${color}, #e5e7eb)`
-                              : "#e5e7eb",
-                        }}
-                      />
-                    </div>
-                  )}
-                </Fragment>
-              );
-            }
-          )}
-        </div>
-
-        {/* Revisions needed banner */}
-        {process.status === "revisions_needed" && (
-          <div className="mt-4 flex items-center gap-3 bg-nia-purple/5 border border-nia-purple/20 rounded-lg px-4 py-2.5">
-            <div className="w-6 h-6 rounded-full bg-nia-purple flex items-center justify-center flex-shrink-0">
-              <svg
-                className="w-3.5 h-3.5 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            </div>
-            <span className="text-sm font-medium text-nia-purple">
-              Revisions needed — address feedback and resubmit for review
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Metrics & Results — prominent position before documentation */}
@@ -1095,6 +948,14 @@ function ProcessDetailContent() {
                     );
                   }
                 }}
+                onDelete={async () => {
+                  const res = await fetch(`/api/improvements?id=${imp.id}`, {
+                    method: "DELETE",
+                  });
+                  if (res.ok) {
+                    setImprovements((prev) => prev.filter((i) => i.id !== imp.id));
+                  }
+                }}
               />
             ))}
           </div>
@@ -1268,11 +1129,14 @@ const STATUS_PILLS: Record<string, { label: string; bg: string; text: string }> 
 function ImprovementCard({
   improvement,
   onStatusUpdate,
+  onDelete,
 }: {
   improvement: ImprovementEntry;
   onStatusUpdate: (status: string) => void;
+  onDelete: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const sectionColor = SECTION_COLORS[improvement.section_affected] || "#6b7280";
   const statusPill = STATUS_PILLS[improvement.status] || STATUS_PILLS.committed;
 
@@ -1352,8 +1216,37 @@ function ImprovementCard({
               {nextAction === "in_progress" ? "Start" : "Mark Done"}
             </button>
           )}
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="text-xs text-gray-300 hover:text-red-500 transition-colors"
+            title="Delete improvement"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
         </div>
       </div>
+
+      {confirmDelete && (
+        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+          <span className="text-xs text-red-700">Delete this improvement?</span>
+          <div className="flex gap-2">
+            <button
+              onClick={onDelete}
+              className="text-xs font-medium text-white bg-red-500 px-2 py-0.5 rounded hover:bg-red-600"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {expanded && (improvement.before_snapshot || improvement.after_snapshot) && (
         <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-3">

@@ -135,9 +135,7 @@ export default function DataHealthPage() {
           total: all.length,
           key: keyProcs.length,
           keyApproved: keyProcs.filter((p) => p.status === "approved").length,
-          keyInProgress: keyProcs.filter((p) =>
-            ["ready_for_review", "in_review", "revisions_needed"].includes(p.status)
-          ).length,
+          keyInProgress: keyProcs.filter((p) => p.status === "ready_for_review").length,
           keyDraft: keyProcs.filter((p) => p.status === "draft").length,
         });
       }

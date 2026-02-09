@@ -29,8 +29,6 @@ interface ReqOption {
 const STATUS_OPTIONS: { value: ProcessStatus; label: string }[] = [
   { value: "draft", label: "Draft" },
   { value: "ready_for_review", label: "Ready for Review" },
-  { value: "in_review", label: "In Review" },
-  { value: "revisions_needed", label: "Revisions Needed" },
   { value: "approved", label: "Approved" },
 ];
 
