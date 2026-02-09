@@ -1,8 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServer } from "@/lib/supabase-server";
 
+// Allow up to 60 seconds for AI streaming responses
+export const maxDuration = 60;
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
+  timeout: 55_000,
+  maxRetries: 0,
 });
 
 const SYSTEM_PROMPT = `You are an AI process creation assistant for NIA (a healthcare organization) that uses the Malcolm Baldrige Excellence Framework. You help users create new organizational processes through a guided conversation.
@@ -180,10 +185,24 @@ export async function POST(request: Request) {
             controller.enqueue(encoder.encode(text));
           });
 
+          stream.on("error", (error) => {
+            console.error("Anthropic stream error:", error);
+            const errMsg = "\n\n*Connection to AI was interrupted. Please try again.*";
+            controller.enqueue(encoder.encode(errMsg));
+            controller.close();
+          });
+
           await stream.finalMessage();
           controller.close();
         } catch (err) {
-          controller.error(err);
+          console.error("Stream setup error:", err);
+          try {
+            const errMsg = "\n\n*AI request failed. Please try again.*";
+            controller.enqueue(encoder.encode(errMsg));
+            controller.close();
+          } catch {
+            controller.error(err);
+          }
         }
       },
     });
@@ -191,6 +210,8 @@ export async function POST(request: Request) {
     return new Response(readableStream, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
+        "X-Accel-Buffering": "no",
+        "Cache-Control": "no-cache, no-transform",
       },
     });
   } catch (error) {

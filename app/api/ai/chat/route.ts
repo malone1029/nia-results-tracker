@@ -1,8 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServer } from "@/lib/supabase-server";
 
+// Allow up to 60 seconds for AI streaming responses (Vercel default is 10s)
+export const maxDuration = 60;
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
+  timeout: 55_000, // 55s — slightly under maxDuration so we can send a clean error
+  maxRetries: 0, // Don't retry on timeout — the user can retry manually
 });
 
 // Build a readable summary of the process for the AI context
@@ -425,10 +430,26 @@ ${filesContext}`;
             controller.enqueue(encoder.encode(text));
           });
 
+          stream.on("error", (error) => {
+            console.error("Anthropic stream error:", error);
+            // Send error message as final chunk so user sees something useful
+            const errMsg = "\n\n*Connection to AI was interrupted. Please try again or simplify your request.*";
+            controller.enqueue(encoder.encode(errMsg));
+            controller.close();
+          });
+
           await stream.finalMessage();
           controller.close();
         } catch (err) {
-          controller.error(err);
+          console.error("Stream setup error:", err);
+          // Try to send a useful error message as the stream content
+          try {
+            const errMsg = "\n\n*AI request failed. Please try again.*";
+            controller.enqueue(encoder.encode(errMsg));
+            controller.close();
+          } catch {
+            controller.error(err);
+          }
         }
       },
     });
@@ -436,6 +457,8 @@ ${filesContext}`;
     return new Response(readableStream, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
+        "X-Accel-Buffering": "no", // Disable proxy buffering (nginx, Vercel edge)
+        "Cache-Control": "no-cache, no-transform", // Prevent CDN from holding chunks
       },
     });
   } catch (error) {

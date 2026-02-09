@@ -436,11 +436,17 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       const finalMessages = [...updatedMessages, { role: "assistant" as const, content: assistantContent }];
       saveConversation(finalMessages, latestScores);
     } catch (err) {
-      const message = err instanceof DOMException && err.name === "AbortError"
-        ? "Request timed out. Try a simpler question or try again."
-        : err instanceof Error ? err.message : "Something went wrong";
+      let message = "Something went wrong. Please try again.";
+      if (err instanceof DOMException && err.name === "AbortError") {
+        message = "Request timed out after 3 minutes. Try a simpler question or break your request into smaller parts.";
+      } else if (err instanceof TypeError && (err.message.includes("fetch") || err.message.includes("network"))) {
+        message = "Network connection was lost — the AI response may have taken too long. Try again, or ask a more focused question to get a shorter response.";
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
       setError(message);
       // Remove the empty assistant message if there was an error
+      // But keep partial content if the stream started successfully
       setMessages((prev) => {
         if (prev.length > 0 && prev[prev.length - 1].role === "assistant" && !prev[prev.length - 1].content) {
           return prev.slice(0, -1);
