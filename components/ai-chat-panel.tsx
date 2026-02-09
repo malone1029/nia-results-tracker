@@ -201,17 +201,12 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
     }
   }, [isOpen]);
 
-  // Auto-open and trigger analysis if autoAnalyze prop is set
+  // Auto-open panel if autoAnalyze prop is set (don't auto-send — let user pick a step button)
   useEffect(() => {
     if (autoAnalyze && !autoAnalyzeRef.current) {
       autoAnalyzeRef.current = true;
       setIsOpen(true);
-      // Small delay to let the panel render before sending
-      setTimeout(() => {
-        sendMessage("Analyze this process using the ADLI framework. Score each dimension, identify the biggest gaps, and suggest the 2-3 most impactful improvements with effort estimates.");
-      }, 500);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoAnalyze]);
 
   // Load uploaded files and latest conversation when panel opens
