@@ -147,7 +147,7 @@ async function syncAdliTasks(
     const existingGid = currentGids[dimension];
 
     if (existingGid) {
-      // Try to update existing task
+      // Try to update existing task (and move to correct section if needed)
       try {
         await asanaFetch(token, `/tasks/${existingGid}`, {
           method: "PUT",
@@ -158,6 +158,13 @@ async function syncAdliTasks(
             },
           }),
         });
+        // Move task to the correct PDCA section (in case it was placed wrong before)
+        if (sectionGid) {
+          await asanaFetch(token, `/sections/${sectionGid}/addTask`, {
+            method: "POST",
+            body: JSON.stringify({ data: { task: existingGid } }),
+          });
+        }
         updated++;
         continue;
       } catch {
@@ -165,7 +172,7 @@ async function syncAdliTasks(
       }
     }
 
-    // Create new ADLI task
+    // Create new ADLI task — use memberships only (not projects) so it goes to the right section
     if (sectionGid) {
       try {
         const result = await asanaFetch(token, "/tasks", {
@@ -174,7 +181,6 @@ async function syncAdliTasks(
             data: {
               name: taskName,
               notes,
-              projects: [projectGid],
               memberships: [{ project: projectGid, section: sectionGid }],
             },
           }),
