@@ -1,12 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServer } from "@/lib/supabase-server";
 
-// Allow up to 60 seconds for AI streaming responses
-export const maxDuration = 60;
+// Allow up to 120 seconds for AI streaming responses (requires Vercel Pro)
+export const maxDuration = 120;
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
-  timeout: 55_000,
+  timeout: 115_000,
   maxRetries: 0,
 });
 
