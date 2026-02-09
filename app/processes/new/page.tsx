@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { Card, Button, Input, Select } from "@/components/ui";
+import { Textarea } from "@/components/ui/input";
 
 interface CategoryOption {
   id: number;
@@ -104,72 +106,19 @@ export default function NewProcessPage() {
       </Link>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Process Name */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">
-            Process Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            placeholder="e.g., Voice of Customer Process"
-          />
-        </div>
+        <Input label="Process Name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Voice of Customer Process" />
 
-        {/* Category + Baldrige Item row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">
-              Baldrige Category <span className="text-red-500">*</span>
-            </label>
-            <select
-              required
-              value={categoryId}
-              onChange={(e) =>
-                setCategoryId(e.target.value ? Number(e.target.value) : "")
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            >
-              <option value="">Select a category...</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.display_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">
-              Baldrige Item{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={baldrigeItem}
-              onChange={(e) => setBaldrigeItem(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-              placeholder="e.g., 3.1a"
-            />
-          </div>
+          <Select label="Baldrige Category" required value={categoryId} onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}>
+            <option value="">Select a category...</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.display_name}</option>
+            ))}
+          </Select>
+          <Input label="Baldrige Item" hint="optional" value={baldrigeItem} onChange={(e) => setBaldrigeItem(e.target.value)} placeholder="e.g., 3.1a" />
         </div>
 
-        {/* Owner */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">
-            Owner{" "}
-            <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <input
-            type="text"
-            value={owner}
-            onChange={(e) => setOwner(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            placeholder="e.g., Jon Malone"
-          />
-        </div>
+        <Input label="Owner" hint="optional" value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="e.g., Jon Malone" />
 
         {/* Key Process Toggle */}
         <label className="flex items-center gap-3 cursor-pointer">
@@ -193,36 +142,12 @@ export default function NewProcessPage() {
           </span>
         </label>
 
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">
-            What is this process?
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            placeholder="Briefly describe what this process does and why it matters..."
-          />
-        </div>
+        <Textarea label="What is this process?" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Briefly describe what this process does and why it matters..." />
 
         {/* Actions */}
         <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
-          >
-            {saving ? "Creating..." : "Create Process"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/processes")}
-            className="bg-gray-200 text-nia-dark rounded-lg py-2 px-6 hover:bg-gray-300"
-          >
-            Cancel
-          </button>
+          <Button type="submit" loading={saving}>{saving ? "Creating..." : "Create Process"}</Button>
+          <Button variant="ghost" onClick={() => router.push("/processes")}>Cancel</Button>
         </div>
       </form>
     </div>

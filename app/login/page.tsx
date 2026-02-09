@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui";
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -57,10 +58,12 @@ function LoginForm() {
           </div>
         )}
 
-        <button
+        <Button
+          variant="secondary"
+          size="lg"
           onClick={signInWithGoogle}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full"
         >
           <svg width="18" height="18" viewBox="0 0 18 18">
             <path
@@ -81,7 +84,7 @@ function LoginForm() {
             />
           </svg>
           {loading ? "Signing in..." : "Sign in with Google"}
-        </button>
+        </Button>
 
         <p className="text-xs text-gray-400 mt-6">
           Access restricted to NIA team members

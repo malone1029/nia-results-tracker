@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MarkdownContent from "@/components/markdown-content";
+import { Button, Badge } from "@/components/ui";
 
 interface Message {
   role: "user" | "assistant";
@@ -228,12 +229,7 @@ export default function AiCreateProcessPage() {
           <h1 className="text-2xl font-bold text-nia-dark">Create with AI</h1>
           <ProgressSteps currentStep={currentStep} />
         </div>
-        <Link
-          href="/processes/new"
-          className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors border border-gray-200 rounded-lg px-3 py-1.5"
-        >
-          Use manual form
-        </Link>
+        <Button variant="secondary" size="sm" href="/processes/new">Use manual form</Button>
       </div>
 
       {/* Side-by-side layout: chat left, preview right */}
@@ -340,13 +336,9 @@ export default function AiCreateProcessPage() {
                 <span className="font-semibold text-sm">Draft Preview</span>
                 <span className="text-xs text-white/60">{filledSections}/5 sections</span>
               </div>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="text-xs bg-nia-green text-white rounded px-3 py-1 font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
-              >
+              <Button variant="success" size="xs" onClick={handleSave} disabled={isSaving} loading={isSaving}>
                 {isSaving ? "Saving..." : "Save Process"}
-              </button>
+              </Button>
             </div>
 
             {/* Scrollable preview content */}
@@ -379,9 +371,7 @@ export default function AiCreateProcessPage() {
                   <span className="bg-gray-100 rounded px-2 py-0.5">{draft.category_suggestion}</span>
                   {draft.owner && <span className="bg-gray-100 rounded px-2 py-0.5">{draft.owner}</span>}
                   {draft.is_key && (
-                    <span className="bg-nia-orange/10 text-nia-orange px-2 py-0.5 rounded font-medium">
-                      Key Process
-                    </span>
+                    <Badge color="orange" size="xs">Key Process</Badge>
                   )}
                 </div>
               </div>
@@ -454,21 +444,10 @@ export default function AiCreateProcessPage() {
                           id={`edit-${section.key}`}
                         />
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              const el = document.getElementById(`edit-${section.key}`) as HTMLTextAreaElement;
-                              if (el) updateDraftSection(section.field, el.value);
-                            }}
-                            className="text-xs bg-nia-dark text-white rounded px-3 py-1 font-medium hover:bg-nia-grey-blue transition-colors"
-                          >
+                          <Button size="xs" onClick={() => { const el = document.getElementById(`edit-${section.key}`) as HTMLTextAreaElement; if (el) updateDraftSection(section.field, el.value); }}>
                             Done
-                          </button>
-                          <button
-                            onClick={() => setEditingSection(null)}
-                            className="text-xs text-gray-500 hover:text-gray-700"
-                          >
-                            Cancel
-                          </button>
+                          </Button>
+                          <Button variant="ghost" size="xs" onClick={() => setEditingSection(null)}>Cancel</Button>
                         </div>
                       </div>
                     ) : content ? (
@@ -491,19 +470,10 @@ export default function AiCreateProcessPage() {
 
               {/* Save footer */}
               <div className="pt-3 border-t border-gray-200 flex gap-2">
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex-1 bg-nia-green text-white rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 transition-colors text-sm"
-                >
+                <Button variant="success" onClick={handleSave} disabled={isSaving} loading={isSaving} className="flex-1">
                   {isSaving ? "Saving..." : "Save as New Process"}
-                </button>
-                <button
-                  onClick={() => setDraft(null)}
-                  className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
-                >
-                  Discard
-                </button>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setDraft(null)}>Discard</Button>
               </div>
             </div>
           </div>

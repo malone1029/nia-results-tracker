@@ -16,6 +16,7 @@ import type {
   BaldigeConnections,
 } from "@/lib/types";
 import Link from "next/link";
+import { Card, Badge, Button, Input } from "@/components/ui";
 import EmptyState from "@/components/empty-state";
 import MarkdownContent from "@/components/markdown-content";
 import AiChatPanel from "@/components/ai-chat-panel";
@@ -480,9 +481,7 @@ function ProcessDetailContent() {
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold text-nia-dark">{process.name}</h1>
             {process.is_key && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-nia-orange/15 text-nia-orange-dark">
-                <span className="text-nia-orange">&#9733;</span> Key Process
-              </span>
+              <Badge color="orange" size="sm">★ Key Process</Badge>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-500">
@@ -508,24 +507,11 @@ function ProcessDetailContent() {
           </div>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <button
-            onClick={() => setAsanaConfirm(true)}
-            className="bg-nia-green text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium"
-          >
+          <Button variant="success" size="sm" onClick={() => setAsanaConfirm(true)}>
             {process.asana_project_gid ? "Sync to Asana" : "Export to Asana"}
-          </button>
-          <Link
-            href={`/processes/${process.id}/edit`}
-            className="bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium"
-          >
-            Edit
-          </Link>
-          <button
-            onClick={() => setDeleteConfirm(true)}
-            className="bg-red-100 text-red-600 rounded-lg py-2 px-4 hover:bg-red-200 text-sm font-medium"
-          >
-            Delete
-          </button>
+          </Button>
+          <Button size="sm" href={`/processes/${process.id}/edit`}>Edit</Button>
+          <Button variant="danger" size="sm" onClick={() => setDeleteConfirm(true)}>Delete</Button>
         </div>
       </div>
 
@@ -566,34 +552,19 @@ function ProcessDetailContent() {
               </p>
               <div className="flex flex-wrap gap-2">
                 {process.asana_project_gid && (
-                  <button
-                    onClick={() => handleAsanaExport(false)}
-                    disabled={asanaExporting}
-                    className="bg-nia-green text-white rounded-lg py-1.5 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-                  >
+                  <Button variant="success" size="sm" onClick={() => handleAsanaExport(false)} disabled={asanaExporting} loading={asanaExporting}>
                     {asanaExporting ? "Syncing..." : "Sync Linked Project"}
-                  </button>
+                  </Button>
                 )}
-                <button
-                  onClick={() => { setAsanaPickerOpen(true); loadAsanaProjects(); }}
-                  disabled={asanaExporting}
-                  className="bg-nia-grey-blue text-white rounded-lg py-1.5 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-                >
+                <Button variant="secondary" size="sm" onClick={() => { setAsanaPickerOpen(true); loadAsanaProjects(); }} disabled={asanaExporting}>
                   Link to Existing Project
-                </button>
-                <button
-                  onClick={() => handleAsanaExport(true)}
-                  disabled={asanaExporting}
-                  className="bg-nia-dark text-white rounded-lg py-1.5 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-                >
+                </Button>
+                <Button size="sm" onClick={() => handleAsanaExport(true)} disabled={asanaExporting} loading={asanaExporting}>
                   {asanaExporting ? "Creating..." : "Create New Project"}
-                </button>
-                <button
-                  onClick={() => setAsanaConfirm(false)}
-                  className="text-sm text-gray-500 hover:text-gray-700 px-2"
-                >
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setAsanaConfirm(false)}>
                   Cancel
-                </button>
+                </Button>
               </div>
             </>
           ) : (
@@ -606,13 +577,7 @@ function ProcessDetailContent() {
               )}
               {!asanaProjectsLoading && asanaProjects.length > 0 && (
                 <>
-                  <input
-                    type="text"
-                    value={asanaSearch}
-                    onChange={(e) => setAsanaSearch(e.target.value)}
-                    placeholder="Search projects..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                  />
+                  <Input value={asanaSearch} onChange={(e) => setAsanaSearch(e.target.value)} placeholder="Search projects..." className="mb-3" />
                   <div className="space-y-1.5 max-h-64 overflow-y-auto mb-3">
                     {asanaProjects
                       .filter((p) => p.name.toLowerCase().includes(asanaSearch.toLowerCase()))
@@ -630,13 +595,9 @@ function ProcessDetailContent() {
                               )}
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleLinkToProject(project.gid)}
-                            disabled={asanaExporting}
-                            className="bg-nia-dark text-white rounded py-1 px-3 text-xs font-medium hover:opacity-90 disabled:opacity-50 flex-shrink-0"
-                          >
+                          <Button size="xs" onClick={() => handleLinkToProject(project.gid)} disabled={asanaExporting} loading={asanaExporting} className="flex-shrink-0">
                             {asanaExporting ? "Linking..." : "Link"}
-                          </button>
+                          </Button>
                         </div>
                       ))}
                   </div>
@@ -645,12 +606,9 @@ function ProcessDetailContent() {
               {!asanaProjectsLoading && asanaProjects.length === 0 && !asanaError && (
                 <p className="text-sm text-gray-400 py-2">No projects found in your Asana workspace.</p>
               )}
-              <button
-                onClick={() => { setAsanaPickerOpen(false); setAsanaSearch(""); }}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
+              <Button variant="ghost" size="sm" onClick={() => { setAsanaPickerOpen(false); setAsanaSearch(""); }}>
                 &larr; Back
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -662,7 +620,7 @@ function ProcessDetailContent() {
           <p className="text-sm text-blue-800">
             Asana data refreshed: {asanaResyncResult.tasks} tasks, {asanaResyncResult.subtasks} subtasks loaded. AI coach now has full context.
           </p>
-          <button onClick={() => setAsanaResyncResult(null)} className="text-blue-500 hover:text-blue-700 text-sm ml-3">Dismiss</button>
+          <Button variant="ghost" size="xs" onClick={() => setAsanaResyncResult(null)} className="ml-3">Dismiss</Button>
         </div>
       )}
 
@@ -691,26 +649,16 @@ function ProcessDetailContent() {
 
       {/* Delete confirmation */}
       {deleteConfirm && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <Card accent="red" padding="sm">
           <p className="text-red-700 text-sm mb-3">
             Are you sure you want to delete &quot;{process.name}&quot;? This
             cannot be undone. Linked metrics will be preserved but unlinked.
           </p>
           <div className="flex gap-2">
-            <button
-              onClick={handleDelete}
-              className="bg-red-600 text-white rounded-lg py-1.5 px-4 text-sm hover:bg-red-700"
-            >
-              Delete
-            </button>
-            <button
-              onClick={() => setDeleteConfirm(false)}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Cancel
-            </button>
+            <Button variant="danger" size="sm" onClick={handleDelete}>Delete</Button>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(false)}>Cancel</Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Improvement Stepper — only shown when linked to Asana */}
@@ -768,7 +716,7 @@ function ProcessDetailContent() {
       {activeTab === "content" && <>
 
       {/* Workflow Status */}
-      <div className="bg-white rounded-xl shadow p-5">
+      <Card padding="sm">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
             Workflow Status
@@ -790,7 +738,7 @@ function ProcessDetailContent() {
             ))}
           </select>
         </div>
-      </div>
+      </Card>
 
       {/* Metrics & Results — prominent position before documentation */}
       <Section title={`Metrics & Results (${metrics.length})`}>
@@ -848,37 +796,25 @@ function ProcessDetailContent() {
                       <span className="text-xs text-gray-400">No data</span>
                     )}
                   </div>
-                  <span
-                    className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-                    style={{
-                      backgroundColor: getStatusColor(m.review_status) + "20",
-                      color: getStatusColor(m.review_status),
-                    }}
-                  >
+                  <Badge color={m.review_status === "current" ? "green" : m.review_status === "overdue" ? "red" : m.review_status === "due-soon" ? "orange" : "gray"} size="xs" className="flex-shrink-0">
                     {getStatusLabel(m.review_status)}
-                  </span>
+                  </Badge>
                 </Link>
               );
             })}
             {/* Add metric button when metrics already exist */}
-            <button
-              onClick={() => { setMetricDialogOpen(true); fetchAvailableMetrics(); }}
-              className="w-full text-sm text-nia-grey-blue hover:text-nia-dark py-2 rounded-lg border border-dashed border-gray-300 hover:border-nia-grey-blue transition-colors"
-            >
+            <Button variant="secondary" size="sm" onClick={() => { setMetricDialogOpen(true); fetchAvailableMetrics(); }} className="w-full border-dashed">
               + Add Metric
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="flex flex-col items-center text-center py-6 px-4">
             <div className="text-4xl mb-3">📊</div>
             <h3 className="text-sm font-semibold text-nia-dark mb-1">No metrics linked</h3>
             <p className="text-xs text-gray-500 mb-3">Add metrics to track results and build LeTCI evidence for this process.</p>
-            <button
-              onClick={() => { setMetricDialogOpen(true); fetchAvailableMetrics(); }}
-              className="text-sm font-medium text-white bg-nia-dark rounded-lg px-4 py-2 hover:opacity-90 transition-opacity"
-            >
+            <Button size="sm" onClick={() => { setMetricDialogOpen(true); fetchAvailableMetrics(); }}>
               + Add Metric
-            </button>
+            </Button>
           </div>
         )}
       </Section>
@@ -911,17 +847,10 @@ function ProcessDetailContent() {
               </div>
             ) : (
               <div className="p-5 space-y-3">
-                <button onClick={() => setMetricPickerOpen(false)} className="text-xs text-gray-500 hover:text-nia-dark flex items-center gap-1">
+                <Button variant="ghost" size="xs" onClick={() => setMetricPickerOpen(false)}>
                   ← Back
-                </button>
-                <input
-                  type="text"
-                  placeholder="Search metrics..."
-                  value={metricSearch}
-                  onChange={(e) => setMetricSearch(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30"
-                  autoFocus
-                />
+                </Button>
+                <Input placeholder="Search metrics..." value={metricSearch} onChange={(e) => setMetricSearch(e.target.value)} autoFocus />
                 <div className="max-h-60 overflow-y-auto space-y-1">
                   {availableMetrics
                     .filter((m) => m.name.toLowerCase().includes(metricSearch.toLowerCase()))
@@ -959,12 +888,9 @@ function ProcessDetailContent() {
             )}
 
             <div className="px-5 py-3 border-t border-gray-100">
-              <button
-                onClick={() => { setMetricDialogOpen(false); setMetricPickerOpen(false); setMetricSearch(""); }}
-                className="text-sm text-gray-500 hover:text-nia-dark"
-              >
+              <Button variant="ghost" size="sm" onClick={() => { setMetricDialogOpen(false); setMetricPickerOpen(false); setMetricSearch(""); }}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1246,7 +1172,7 @@ function Section({
 }) {
   const [isOpen, setIsOpen] = useState(true);
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-nia-orange">
+    <Card accent="orange" className="overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
@@ -1263,7 +1189,7 @@ function Section({
           <div className="border-t border-gray-100 px-4 py-3">{children}</div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -1449,20 +1375,14 @@ function ImprovementCard({
         </span>
         <div className="flex items-center gap-2">
           {(improvement.before_snapshot || improvement.after_snapshot) && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="text-xs text-nia-grey-blue hover:text-nia-dark"
-            >
+            <Button variant="ghost" size="xs" onClick={() => setExpanded(!expanded)}>
               {expanded ? "Hide details" : "Show details"}
-            </button>
+            </Button>
           )}
           {nextAction && (
-            <button
-              onClick={() => onStatusUpdate(nextAction)}
-              className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium"
-            >
+            <Button variant="ghost" size="xs" onClick={() => onStatusUpdate(nextAction)}>
               {nextAction === "in_progress" ? "Start" : "Mark Done"}
-            </button>
+            </Button>
           )}
           <button
             onClick={() => setConfirmDelete(true)}
@@ -1480,18 +1400,8 @@ function ImprovementCard({
         <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
           <span className="text-xs text-red-700">Delete this improvement?</span>
           <div className="flex gap-2">
-            <button
-              onClick={onDelete}
-              className="text-xs font-medium text-white bg-red-500 px-2 py-0.5 rounded hover:bg-red-600"
-            >
-              Delete
-            </button>
-            <button
-              onClick={() => setConfirmDelete(false)}
-              className="text-xs text-gray-500 hover:text-gray-700"
-            >
-              Cancel
-            </button>
+            <Button variant="danger" size="xs" onClick={onDelete}>Delete</Button>
+            <Button variant="ghost" size="xs" onClick={() => setConfirmDelete(false)}>Cancel</Button>
           </div>
         </div>
       )}

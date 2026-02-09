@@ -14,6 +14,7 @@ import type {
   Workflow,
   BaldigeConnections,
 } from "@/lib/types";
+import { Card, Button, Input, Select } from "@/components/ui";
 
 interface CategoryOption {
   id: number;
@@ -162,81 +163,26 @@ export default function EditProcessPage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Core fields */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">
-            Process Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-          />
-        </div>
+        <Input label="Process Name" required value={name} onChange={(e) => setName(e.target.value)} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">
-              Baldrige Category <span className="text-red-500">*</span>
-            </label>
-            <select
-              required
-              value={categoryId}
-              onChange={(e) => setCategoryId(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            >
-              <option value="">Select...</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.display_name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">
-              Baldrige Item
-            </label>
-            <input
-              type="text"
-              value={baldrigeItem}
-              onChange={(e) => setBaldrigeItem(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-              placeholder="e.g., 1.1a"
-            />
-          </div>
+          <Select label="Baldrige Category" required value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))}>
+            <option value="">Select...</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.display_name}</option>
+            ))}
+          </Select>
+          <Input label="Baldrige Item" value={baldrigeItem} onChange={(e) => setBaldrigeItem(e.target.value)} placeholder="e.g., 1.1a" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">Owner</label>
-            <input
-              type="text"
-              value={owner}
-              onChange={(e) => setOwner(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">Reviewer</label>
-            <input
-              type="text"
-              value={reviewer}
-              onChange={(e) => setReviewer(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as ProcessStatus)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-          </div>
+          <Input label="Owner" value={owner} onChange={(e) => setOwner(e.target.value)} />
+          <Input label="Reviewer" value={reviewer} onChange={(e) => setReviewer(e.target.value)} />
+          <Select label="Status" value={status} onChange={(e) => setStatus(e.target.value as ProcessStatus)}>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </Select>
         </div>
 
         {/* Key Process Toggle */}
@@ -557,20 +503,8 @@ export default function EditProcessPage() {
 
         {/* Save / Cancel */}
         <div className="flex gap-3 pt-2 pb-8">
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push(`/processes/${id}`)}
-            className="bg-gray-200 text-nia-dark rounded-lg py-2 px-6 hover:bg-gray-300"
-          >
-            Cancel
-          </button>
+          <Button type="submit" loading={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+          <Button variant="ghost" onClick={() => router.push(`/processes/${id}`)}>Cancel</Button>
         </div>
       </form>
     </div>
@@ -592,7 +526,7 @@ function CollapsibleSection({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-nia-orange">
+    <Card accent="orange" className="overflow-hidden">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -605,7 +539,7 @@ function CollapsibleSection({
         {subtitle && <span className="text-xs text-gray-400">{subtitle}</span>}
       </button>
       {isOpen && <div className="border-t border-gray-100 px-4 py-3">{children}</div>}
-    </div>
+    </Card>
   );
 }
 
@@ -664,23 +598,15 @@ function ListEditor({
             placeholder={placeholder}
           />
           {items.length > 1 && (
-            <button
-              type="button"
-              onClick={() => onChange(items.filter((_, idx) => idx !== i))}
-              className="text-red-400 hover:text-red-600 text-sm px-2"
-            >
+            <Button variant="ghost" size="xs" type="button" onClick={() => onChange(items.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600">
               ✕
-            </button>
+            </Button>
           )}
         </div>
       ))}
-      <button
-        type="button"
-        onClick={() => onChange([...items, ""])}
-        className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors font-medium"
-      >
+      <Button variant="ghost" size="xs" type="button" onClick={() => onChange([...items, ""])}>
         + Add
-      </button>
+      </Button>
     </div>
   );
 }
@@ -698,13 +624,9 @@ function WorkflowStepEditor({
         <div key={i} className="bg-gray-50 rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-nia-dark">Step {i + 1}</span>
-            <button
-              type="button"
-              onClick={() => onChange(steps.filter((_, idx) => idx !== i))}
-              className="text-red-400 hover:text-red-600 text-xs"
-            >
+            <Button variant="ghost" size="xs" type="button" onClick={() => onChange(steps.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600">
               Remove
-            </button>
+            </Button>
           </div>
           <textarea
             value={step.action}
@@ -754,13 +676,9 @@ function WorkflowStepEditor({
           </div>
         </div>
       ))}
-      <button
-        type="button"
-        onClick={() => onChange([...steps, { responsible: "", action: "", output: "", timing: "" }])}
-        className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors font-medium"
-      >
+      <Button variant="ghost" size="xs" type="button" onClick={() => onChange([...steps, { responsible: "", action: "", output: "", timing: "" }])}>
         + Add Step
-      </button>
+      </Button>
     </div>
   );
 }

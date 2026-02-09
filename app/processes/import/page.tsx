@@ -8,6 +8,7 @@ import {
   type ParsedProcess,
 } from "@/lib/parse-obsidian-process";
 import Link from "next/link";
+import { Card, Button, Input, Select } from "@/components/ui";
 
 interface CategoryOption {
   id: number;
@@ -446,7 +447,7 @@ export default function ImportProcessPage() {
 
       {/* Bulk import results */}
       {importResults.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-4">
+        <Card padding="sm">
           <h3 className="font-semibold text-nia-dark mb-2">Import Results</h3>
           <div className="space-y-1 text-sm">
             {importResults.map((r, i) => (
@@ -478,7 +479,7 @@ export default function ImportProcessPage() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Error */}
@@ -495,21 +496,12 @@ export default function ImportProcessPage() {
             <strong>{showAnalyzePrompt.name}</strong> imported! Want AI to analyze it for ADLI gaps?
           </p>
           <div className="flex gap-2 flex-shrink-0">
-            <button
-              onClick={() => router.push(`/processes/${showAnalyzePrompt.id}?analyze=true`)}
-              className="bg-nia-green text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90"
-            >
+            <Button variant="success" size="sm" onClick={() => router.push(`/processes/${showAnalyzePrompt.id}?analyze=true`)}>
               Analyze Now
-            </button>
-            <button
-              onClick={() => {
-                setShowAnalyzePrompt(null);
-                router.push(`/processes/${showAnalyzePrompt.id}`);
-              }}
-              className="text-sm text-gray-500 hover:text-nia-dark py-2 px-3"
-            >
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => { setShowAnalyzePrompt(null); router.push(`/processes/${showAnalyzePrompt.id}`); }}>
               Skip
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -550,7 +542,7 @@ export default function ImportProcessPage() {
 
       {/* ═══ ASANA TAB ═══ */}
       {tab === "asana" && (
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-nia-orange">
+        <Card accent="orange" padding="sm">
           <h2 className="font-semibold text-nia-dark mb-1">
             Import from Asana
           </h2>
@@ -563,12 +555,7 @@ export default function ImportProcessPage() {
               <p className="text-nia-grey-blue text-sm font-medium mb-2">
                 Connect your Asana account first
               </p>
-              <Link
-                href="/settings"
-                className="inline-block bg-nia-dark text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90"
-              >
-                Go to Settings
-              </Link>
+              <Button size="sm" href="/settings">Go to Settings</Button>
             </div>
           )}
 
@@ -590,13 +577,7 @@ export default function ImportProcessPage() {
             <>
               {/* Count + Search filter */}
               <p className="text-xs text-gray-400 mb-2">{asanaProjects.length} projects found</p>
-              <input
-                type="text"
-                value={asanaSearch}
-                onChange={(e) => setAsanaSearch(e.target.value)}
-                placeholder="Search projects..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-              />
+              <Input value={asanaSearch} onChange={(e) => setAsanaSearch(e.target.value)} placeholder="Search projects..." className="mb-4" />
 
               {/* Project list */}
               <div className="space-y-2 max-h-[500px] overflow-y-auto">
@@ -640,13 +621,9 @@ export default function ImportProcessPage() {
                               Imported
                             </span>
                           ) : (
-                            <button
-                              onClick={() => handleAsanaImport(project.gid)}
-                              disabled={isImporting || asanaImporting !== null}
-                              className="bg-nia-dark text-white rounded-lg py-1.5 px-3 text-xs font-medium hover:opacity-90 disabled:opacity-50"
-                            >
+                            <Button size="xs" onClick={() => handleAsanaImport(project.gid)} disabled={isImporting || asanaImporting !== null} loading={isImporting}>
                               {isImporting ? "Importing..." : "Import"}
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -655,12 +632,12 @@ export default function ImportProcessPage() {
               </div>
             </>
           )}
-        </div>
+        </Card>
       )}
 
       {/* ═══ VAULT TAB ═══ */}
       {tab === "vault" && (
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-nia-orange">
+        <Card accent="orange" padding="sm">
           <h2 className="font-semibold text-nia-dark mb-1">
             Select Processes to Import
           </h2>
@@ -686,13 +663,9 @@ export default function ImportProcessPage() {
           {!vaultLoading && !vaultError && (
             <>
               {/* Select all / none */}
-              <div className="flex gap-3 mb-3 text-sm">
-                <button onClick={selectAll} className="text-nia-grey-blue hover:text-nia-dark font-medium">
-                  Select all new
-                </button>
-                <button onClick={selectNone} className="text-gray-400 hover:text-nia-dark">
-                  Clear selection
-                </button>
+              <div className="flex gap-3 mb-3 text-sm items-center">
+                <Button variant="ghost" size="xs" onClick={selectAll}>Select all new</Button>
+                <Button variant="ghost" size="xs" onClick={selectNone}>Clear selection</Button>
                 <span className="text-gray-400 ml-auto">
                   {selectedFiles.size} selected
                 </span>
@@ -748,25 +721,21 @@ export default function ImportProcessPage() {
                 {importProgress && (
                   <p className="text-sm text-nia-grey-blue mb-2">{importProgress}</p>
                 )}
-                <button
-                  onClick={handleBulkImport}
-                  disabled={importing || selectedFiles.size === 0}
-                  className="bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
-                >
+                <Button onClick={handleBulkImport} disabled={importing || selectedFiles.size === 0} loading={importing}>
                   {importing
                     ? "Importing..."
                     : `Import ${selectedFiles.size} Process${selectedFiles.size !== 1 ? "es" : ""}`}
-                </button>
+                </Button>
               </div>
             </>
           )}
-        </div>
+        </Card>
       )}
 
       {/* ═══ PASTE TAB ═══ */}
       {tab === "paste" && (
         <>
-          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-nia-orange">
+          <Card accent="orange" padding="sm">
             <h2 className="font-semibold text-nia-dark mb-2">
               Paste Markdown
             </h2>
@@ -784,17 +753,13 @@ export default function ImportProcessPage() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue font-mono text-sm"
               placeholder="Paste your Obsidian markdown here..."
             />
-            <button
-              onClick={handleParse}
-              disabled={!markdown.trim()}
-              className="mt-3 bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50 text-sm font-medium"
-            >
+            <Button size="sm" onClick={handleParse} disabled={!markdown.trim()} className="mt-3">
               Parse Content
-            </button>
-          </div>
+            </Button>
+          </Card>
 
           {parsed && (
-            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-nia-orange">
+            <Card accent="orange" padding="sm">
               <h2 className="font-semibold text-nia-dark mb-3">
                 Review Parsed Data
               </h2>
@@ -816,29 +781,18 @@ export default function ImportProcessPage() {
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-100">
-                <label className="block text-sm font-medium text-nia-dark mb-1">
-                  Assign to Baldrige Category <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                >
+                <Select label="Assign to Baldrige Category" required value={categoryId} onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}>
                   <option value="">Select category...</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.display_name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
 
-              <button
-                onClick={handleManualImport}
-                disabled={saving || categoryId === "" || isDuplicate}
-                className="mt-4 bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
-              >
+              <Button onClick={handleManualImport} disabled={saving || categoryId === "" || isDuplicate} loading={saving} className="mt-4">
                 {saving ? "Importing..." : "Import Process"}
-              </button>
-            </div>
+              </Button>
+            </Card>
           )}
         </>
       )}
