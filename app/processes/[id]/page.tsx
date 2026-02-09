@@ -19,6 +19,7 @@ import Link from "next/link";
 import EmptyState from "@/components/empty-state";
 import MarkdownContent from "@/components/markdown-content";
 import AiChatPanel from "@/components/ai-chat-panel";
+import TaskReviewPanel from "@/components/task-review-panel";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface ProcessDetail {
@@ -132,6 +133,8 @@ function ProcessDetailContent() {
   const [availableMetrics, setAvailableMetrics] = useState<{ id: number; name: string; unit: string; cadence: string }[]>([]);
   const [metricSearch, setMetricSearch] = useState("");
   const [linkingMetric, setLinkingMetric] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"content" | "tasks">("content");
+  const [taskCount, setTaskCount] = useState(0);
 
   async function fetchProcess() {
       // Fetch process with category name
@@ -664,6 +667,43 @@ function ProcessDetailContent() {
         </div>
       )}
 
+      {/* Tab switcher */}
+      <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+        <button
+          onClick={() => setActiveTab("content")}
+          className={`flex-1 text-sm font-medium rounded-md py-2 px-4 transition-colors ${
+            activeTab === "content"
+              ? "bg-white text-nia-dark shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Content
+        </button>
+        <button
+          onClick={() => setActiveTab("tasks")}
+          className={`flex-1 text-sm font-medium rounded-md py-2 px-4 transition-colors relative ${
+            activeTab === "tasks"
+              ? "bg-white text-nia-dark shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Tasks
+          {taskCount > 0 && (
+            <span className="ml-1.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold bg-nia-orange text-white">
+              {taskCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Tasks tab */}
+      {activeTab === "tasks" && (
+        <TaskReviewPanel processId={process.id} onTaskCountChange={setTaskCount} />
+      )}
+
+      {/* Content tab */}
+      {activeTab === "content" && <>
+
       {/* Workflow Status */}
       <div className="bg-white rounded-xl shadow p-5">
         <div className="flex items-center justify-between">
@@ -1123,6 +1163,8 @@ function ProcessDetailContent() {
           </div>
         </Section>
       )}
+
+      </>}
 
       {/* AI Chat Panel */}
       <AiChatPanel processId={process.id} processName={process.name} onProcessUpdated={fetchProcess} autoAnalyze={autoAnalyze} />

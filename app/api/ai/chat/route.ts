@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { ADLI_TO_PDCA_PROMPT } from "@/lib/pdca";
 
 // Allow up to 120 seconds for AI streaming responses (requires Vercel Pro)
 export const maxDuration = 120;
@@ -170,7 +171,21 @@ When suggesting improvements, include a suggestions block at the END of your res
     "title": "Add a quarterly review cadence",
     "whyMatters": "Without scheduled reviews, improvements only happen when something breaks.",
     "preview": "Add a quarterly review cycle with specific metrics to track.",
-    "content": "The full improved markdown content for the section goes here. Write the COMPLETE section, incorporating what exists PLUS your improvements."
+    "content": "The full improved markdown content for the section goes here. Write the COMPLETE section, incorporating what exists PLUS your improvements.",
+    "tasks": [
+      {
+        "title": "Design quarterly review template",
+        "description": "Create a standard template for quarterly process reviews including metrics checklist and improvement log.",
+        "pdcaSection": "plan",
+        "adliDimension": "learning"
+      },
+      {
+        "title": "Schedule first quarterly review meeting",
+        "description": "Set up a recurring quarterly review meeting with all process stakeholders.",
+        "pdcaSection": "evaluate",
+        "adliDimension": "learning"
+      }
+    ]
   }
 ]
 \`\`\`
@@ -178,6 +193,8 @@ When suggesting improvements, include a suggestions block at the END of your res
 Field values for "field": "charter", "adli_approach", "adli_deployment", "adli_learning", "adli_integration"
 Priority values: "quick-win" (easy, high impact), "important" (medium effort, high impact), "long-term" (significant effort)
 Effort values: "minimal" (< 30 min), "moderate" (1-2 hours), "substantial" (half day+)
+Task pdcaSection values: "plan", "execute", "evaluate", "improve"
+Task adliDimension values: "approach", "deployment", "learning", "integration"
 
 Rules for suggestions:
 - Maximum 3 suggestions per response
@@ -185,8 +202,52 @@ Rules for suggestions:
 - Focus on the weakest dimension first
 - Include effort estimates to help users prioritize
 - If the improvement history shows something was recently addressed in a dimension, skip it and focus elsewhere
+- **Each suggestion MUST include a "tasks" array** with 1-5 concrete, assignable tasks
+- Tasks should be spread across at least 1-2 PDCA sections (use the mapping rules below)
+- Each task title should be action-oriented and specific (e.g., "Train nursing staff on new intake form" not "Do training")
 
-Only include this block when you are proposing specific improvements. Do NOT include it for general questions or interviews.
+Only include this block when you are proposing specific improvements. Do NOT include it for general questions or task-building interviews.
+
+${ADLI_TO_PDCA_PROMPT}
+
+## Build Task List Mode (Interview)
+
+When the user asks you to "Build Task List" or help them create process tasks:
+
+1. **Interview first, don't guess.** Ask 2-3 focused questions at a time about the process steps, who does what, when, and how success is measured.
+2. **Work through PDCA systematically:**
+   - Start with **Plan** — what needs to be documented, designed, or prepared?
+   - Then **Execute** — who does the work, what training is needed, how is it communicated?
+   - Then **Evaluate** — how do you measure success, what data do you collect, how often do you review?
+   - Then **Improve** — what changes have been made, what's the cycle for improvements?
+3. **After 3-5 exchanges** (or when you have enough context), generate a batch of tasks using the proposed-tasks block.
+4. **Reference the process documentation** to pre-fill what you already know — don't ask about things that are documented in the charter or ADLI sections.
+
+When generating tasks, use this block format:
+
+\`\`\`proposed-tasks
+[
+  {
+    "title": "Document the intake assessment procedure",
+    "description": "Write step-by-step instructions for the initial client intake assessment including required forms and timeline.",
+    "pdcaSection": "plan",
+    "adliDimension": "approach"
+  },
+  {
+    "title": "Train front-desk staff on new intake form",
+    "description": "Schedule and deliver a 30-minute training session covering the updated intake form and common questions.",
+    "pdcaSection": "execute",
+    "adliDimension": "deployment"
+  }
+]
+\`\`\`
+
+Rules for proposed-tasks:
+- Generate 3-8 tasks per batch, spread across at least 2-3 PDCA sections
+- Each task should be concrete and assignable (specific action + who/what/when)
+- Use the ADLI-to-PDCA mapping rules above
+- Include a brief description (1-2 sentences) for each task
+- You can also update process text (charter/ADLI) alongside generating tasks — include coach-suggestions blocks when the process documentation itself should change
 
 ## Important Rules
 - Base your assessment on the ACTUAL process data provided below. Don't make up information.

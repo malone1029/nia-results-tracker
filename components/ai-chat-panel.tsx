@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import MarkdownContent from "./markdown-content";
 import AdliRadar from "./adli-radar";
 import { getMaturityLevel } from "@/lib/colors";
+import { PDCA_SECTIONS } from "@/lib/pdca";
+import type { PdcaSection } from "@/lib/types";
 
 interface Message {
   role: "user" | "assistant";
@@ -25,6 +27,13 @@ interface UploadedFile {
   uploaded_at: string;
 }
 
+interface SuggestionTask {
+  title: string;
+  description: string;
+  pdcaSection: "plan" | "execute" | "evaluate" | "improve";
+  adliDimension: "approach" | "deployment" | "learning" | "integration";
+}
+
 interface CoachSuggestion {
   id: string;
   field: string;
@@ -34,6 +43,7 @@ interface CoachSuggestion {
   whyMatters: string;
   preview: string;
   content: string;
+  tasks?: SuggestionTask[];
 }
 
 interface ConversationSummary {
@@ -101,28 +111,46 @@ function parseCoachSuggestions(text: string): { suggestions: CoachSuggestion[]; 
   }
 }
 
+// Parse proposed-tasks code block from AI response
+function parseProposedTasks(text: string): { tasks: SuggestionTask[]; cleanedText: string } {
+  const match = text.match(/```proposed-tasks\s*\n([\s\S]*?)\n```/);
+  if (!match) return { tasks: [], cleanedText: text };
+
+  try {
+    const tasks = JSON.parse(match[1]) as SuggestionTask[];
+    const cleanedText = text.replace(/```proposed-tasks\s*\n[\s\S]*?\n```\s*\n?/, "").trim();
+    return { tasks, cleanedText };
+  } catch {
+    return { tasks: [], cleanedText: text };
+  }
+}
+
 // Strip partial (still-streaming) structured blocks so raw JSON isn't visible
 function stripPartialBlocks(text: string): string {
-  // Remove complete structured blocks (scores + suggestions)
+  // Remove complete structured blocks (scores + suggestions + proposed-tasks)
   let cleaned = text;
   cleaned = cleaned.replace(/```adli-scores\s*\n[\s\S]*?\n```\s*\n?/g, "");
   cleaned = cleaned.replace(/```coach-suggestions\s*\n[\s\S]*?\n```\s*\n?/g, "");
   cleaned = cleaned.replace(/```adli-suggestion\s*\n[\s\S]*?\n```\s*\n?/g, "");
+  cleaned = cleaned.replace(/```proposed-tasks\s*\n[\s\S]*?\n```\s*\n?/g, "");
 
   // Remove PARTIAL blocks that started but haven't closed yet (still streaming)
   cleaned = cleaned.replace(/```adli-scores[\s\S]*$/g, "");
   cleaned = cleaned.replace(/```coach-suggestions[\s\S]*$/g, "");
   cleaned = cleaned.replace(/```adli-suggestion[\s\S]*$/g, "");
+  cleaned = cleaned.replace(/```proposed-tasks[\s\S]*$/g, "");
 
   return cleaned.trim();
 }
 
 // Check if a response has an in-progress structured block (started but not closed)
-function hasPartialBlock(text: string): "scores" | "suggestions" | null {
+function hasPartialBlock(text: string): "scores" | "suggestions" | "tasks" | null {
   // Check for partial adli-scores (opened but not closed)
   if (/```adli-scores(?![\s\S]*?```)[\s\S]*$/.test(text)) return "scores";
   // Check for partial coach-suggestions (opened but not closed)
   if (/```coach-suggestions(?![\s\S]*?```)[\s\S]*$/.test(text)) return "suggestions";
+  // Check for partial proposed-tasks (opened but not closed)
+  if (/```proposed-tasks(?![\s\S]*?```)[\s\S]*$/.test(text)) return "tasks";
   return null;
 }
 
@@ -148,6 +176,8 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
   const [pendingSuggestions, setPendingSuggestions] = useState<CoachSuggestion[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [proposedTasks, setProposedTasks] = useState<SuggestionTask[]>([]);
+  const [isQueuing, setIsQueuing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -296,6 +326,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
     setMessages([]);
     setAdliScores(null);
     setPendingSuggestions([]);
+    setProposedTasks([]);
     setShowHistory(false);
     setError(null);
   }
@@ -431,6 +462,10 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       if (suggestions.length > 0) {
         setPendingSuggestions(suggestions);
       }
+      const { tasks: newProposedTasks } = parseProposedTasks(assistantContent);
+      if (newProposedTasks.length > 0) {
+        setProposedTasks(newProposedTasks);
+      }
 
       // Save conversation after each complete AI response
       const finalMessages = [...updatedMessages, { role: "assistant" as const, content: assistantContent }];
@@ -494,6 +529,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
           content: suggestion.content,
           suggestionTitle: suggestion.title,
           whyMatters: suggestion.whyMatters,
+          tasks: suggestion.tasks || [],
         }),
       });
 
@@ -508,14 +544,10 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       // Remove this suggestion from pending list
       setPendingSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
 
-      // Build success message based on Asana status
+      // Build success message with task count
       let successMsg = `**Applied!** "${suggestion.title}" has been applied to the ${fieldLabel} section.`;
-      if (data.asanaStatus === "created") {
-        successMsg += ` An Asana task was created to track this improvement.`;
-      } else if (data.asanaStatus === "not_linked") {
-        successMsg += ` Export this process to Asana to track improvements as tasks.`;
-      } else if (data.asanaStatus === "no_token" || data.asanaStatus === "failed") {
-        successMsg += ` (Couldn't create Asana task — check your Asana connection in Settings.)`;
+      if (data.tasksQueued > 0) {
+        successMsg += ` ${data.tasksQueued} task${data.tasksQueued !== 1 ? "s" : ""} queued for review — check the Tasks tab to review and export to Asana.`;
       }
 
       // Add a success message to the chat and save
@@ -540,6 +572,64 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
   async function applyAllSuggestions() {
     for (const suggestion of pendingSuggestions) {
       await applySuggestion(suggestion);
+    }
+  }
+
+  async function queueTask(task: SuggestionTask) {
+    setIsQueuing(true);
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          process_id: processId,
+          title: task.title,
+          description: task.description || null,
+          pdca_section: task.pdcaSection,
+          adli_dimension: task.adliDimension || null,
+          source: "ai_interview",
+        }),
+      });
+      if (res.ok) {
+        setProposedTasks((prev) => prev.filter((t) => t.title !== task.title));
+      }
+    } catch {
+      setError("Failed to queue task");
+    } finally {
+      setIsQueuing(false);
+    }
+  }
+
+  async function queueAllTasks() {
+    if (proposedTasks.length === 0) return;
+    setIsQueuing(true);
+    try {
+      const rows = proposedTasks.map((t) => ({
+        process_id: processId,
+        title: t.title,
+        description: t.description || null,
+        pdca_section: t.pdcaSection,
+        adli_dimension: t.adliDimension || null,
+        source: "ai_interview",
+      }));
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rows),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProposedTasks([]);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant" as const, content: `**Queued ${data.count} tasks!** Check the Tasks tab to review and export them to Asana.` },
+        ]);
+        onProcessUpdated?.();
+      }
+    } catch {
+      setError("Failed to queue tasks");
+    } finally {
+      setIsQueuing(false);
     }
   }
 
@@ -708,6 +798,13 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                       <span className="font-medium text-nia-grey-blue">Interview Me</span>
                       <span className="text-gray-500 ml-1">— guided questions to fill gaps</span>
                     </button>
+                    <button
+                      onClick={() => handleQuickAction("Help me build a task list for this process. Interview me about what needs to happen — the key steps, who does what, how we measure success, and what training is needed. Work through Plan, Execute, Evaluate, and Improve sections systematically. Ask 2-3 questions at a time, and generate tasks when you have enough context.")}
+                      className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-dark/20 bg-nia-dark/5 text-sm text-nia-dark hover:bg-nia-dark/10 transition-colors"
+                    >
+                      <span className="font-medium text-nia-dark">Build Task List</span>
+                      <span className="text-gray-500 ml-1">— AI interviews you, generates PDCA tasks</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -767,9 +864,12 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                     <div className="w-1.5 h-1.5 bg-nia-orange rounded-full animate-pulse" style={{ animationDelay: "600ms" }} />
                   </div>
                   <span className="text-xs font-medium text-nia-orange">
-                    {hasPartialBlock(messages[messages.length - 1].content) === "scores"
-                      ? "Calculating ADLI scores..."
-                      : "Preparing improvement suggestions..."}
+                    {(() => {
+                      const blockType = hasPartialBlock(messages[messages.length - 1].content);
+                      if (blockType === "scores") return "Calculating ADLI scores...";
+                      if (blockType === "tasks") return "Building task list...";
+                      return "Preparing improvement suggestions...";
+                    })()}
                   </span>
                 </div>
               )}
@@ -799,6 +899,66 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                     />
                   ))}
 
+                </div>
+              )}
+
+              {/* Proposed tasks from interview mode */}
+              {proposedTasks.length > 0 && !isLoading && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-nia-dark">
+                      Proposed Tasks ({proposedTasks.length})
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setProposedTasks([])}
+                        className="text-xs text-gray-400 hover:text-gray-600"
+                      >
+                        Dismiss
+                      </button>
+                      <button
+                        onClick={queueAllTasks}
+                        disabled={isQueuing}
+                        className="text-xs bg-nia-dark text-white rounded px-3 py-1.5 font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
+                      >
+                        {isQueuing ? "Queuing..." : "Queue All"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {proposedTasks.map((task, idx) => {
+                    const section = PDCA_SECTIONS[task.pdcaSection as PdcaSection];
+                    return (
+                      <div key={idx} className="bg-white rounded-lg border border-gray-200 p-3">
+                        <div className="flex items-start gap-2">
+                          <span
+                            className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white flex-shrink-0 mt-0.5"
+                            style={{ backgroundColor: section?.color || "#6b7280" }}
+                          >
+                            {section?.label || task.pdcaSection}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-nia-dark">{task.title}</p>
+                            {task.description && (
+                              <p className="text-xs text-gray-500 mt-0.5">{task.description}</p>
+                            )}
+                            {task.adliDimension && (
+                              <span className="text-[10px] text-nia-grey-blue capitalize mt-1 inline-block">
+                                {task.adliDimension}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => queueTask(task)}
+                            disabled={isQueuing}
+                            className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium flex-shrink-0 disabled:opacity-50"
+                          >
+                            Queue
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -985,6 +1145,31 @@ function CoachSuggestionCard({
         <p className="text-xs text-gray-500">{suggestion.preview}</p>
       </div>
 
+      {/* Task preview — shows proposed PDCA tasks if present */}
+      {suggestion.tasks && suggestion.tasks.length > 0 && (
+        <div className="px-3 py-2 border-t border-gray-100">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5">
+            Tasks ({suggestion.tasks.length})
+          </p>
+          <div className="space-y-1">
+            {suggestion.tasks.map((task, idx) => {
+              const section = PDCA_SECTIONS[task.pdcaSection as PdcaSection];
+              return (
+                <div key={idx} className="flex items-start gap-1.5">
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded mt-0.5 flex-shrink-0 text-white"
+                    style={{ backgroundColor: section?.color || "#6b7280" }}
+                  >
+                    {section?.label || task.pdcaSection}
+                  </span>
+                  <span className="text-xs text-gray-600">{task.title}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Action buttons */}
       <div className="px-3 py-2 border-t border-gray-100 flex items-center gap-2">
         <button
@@ -992,7 +1177,7 @@ function CoachSuggestionCard({
           disabled={isApplying}
           className="text-xs bg-nia-dark text-white rounded px-3 py-1.5 font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
         >
-          {isApplying ? "Applying..." : "Apply This"}
+          {isApplying ? "Applying..." : `Apply${suggestion.tasks?.length ? ` + Queue ${suggestion.tasks.length} Task${suggestion.tasks.length !== 1 ? "s" : ""}` : ""}`}
         </button>
         <button
           onClick={onTellMore}

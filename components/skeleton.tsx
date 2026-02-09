@@ -3,11 +3,11 @@
  * mirror the layout of real content while data is loading.
  */
 
-/** Base skeleton element — a pulsing gray rounded rectangle */
+/** Base skeleton element — a shimmer sweep effect that implies loading activity */
 function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse bg-gray-200 rounded ${className}`}
+      className={`skeleton-shimmer ${className}`}
     />
   );
 }

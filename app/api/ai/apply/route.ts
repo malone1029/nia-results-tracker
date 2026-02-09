@@ -1,5 +1,4 @@
 import { createSupabaseServer } from "@/lib/supabase-server";
-import { getAsanaToken, asanaFetch } from "@/lib/asana";
 
 // Fields that can be updated by the AI
 const ALLOWED_FIELDS = [
@@ -22,7 +21,7 @@ const FIELD_TO_SECTION: Record<string, string> = {
 export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
   try {
-    const { processId, field, content, suggestionTitle, whyMatters } = await request.json();
+    const { processId, field, content, suggestionTitle, whyMatters, tasks } = await request.json();
 
     if (!processId || !field || !content) {
       return Response.json(
@@ -98,9 +97,8 @@ export async function POST(request: Request) {
 
     // Create improvement history entry with before/after snapshots
     const sectionName = FIELD_TO_SECTION[field] || field;
-    let improvementId: number | null = null;
     try {
-      const { data: impRow } = await supabase.from("process_improvements").insert({
+      await supabase.from("process_improvements").insert({
         process_id: processId,
         section_affected: sectionName,
         change_type: previousValue ? "modification" : "addition",
@@ -111,92 +109,41 @@ export async function POST(request: Request) {
         after_snapshot: updatedData,
         source: "ai_suggestion",
         status: "committed",
-      }).select("id").single();
-      if (impRow) improvementId = impRow.id;
+      });
     } catch { /* non-critical — don't block the main update */ }
 
-    // Try to create an Asana task if the process is linked to an Asana project
-    let asanaTaskCreated = false;
-    let asanaTaskUrl: string | null = null;
-    let asanaStatus: "created" | "not_linked" | "no_token" | "failed" = "not_linked";
-
-    if (currentProcess.asana_project_gid) {
+    // Queue tasks from the suggestion into process_tasks (pending for review)
+    let tasksQueued = 0;
+    if (Array.isArray(tasks) && tasks.length > 0) {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          asanaStatus = "no_token";
-        } else {
-          const asanaToken = await getAsanaToken(user.id);
-          if (!asanaToken) {
-            asanaStatus = "no_token";
-          } else {
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nia-results-tracker.vercel.app";
-            const taskName = `[${fieldLabel}] ${suggestionTitle || "AI improvement"}`;
-            const taskNotes = [
-              whyMatters || `Applied AI suggestion to ${fieldLabel} section.`,
-              "",
-              `View process: ${appUrl}/processes/${processId}`,
-            ].join("\n");
+        const taskRows = tasks.map((t: { title: string; description?: string; pdcaSection: string; adliDimension?: string }) => ({
+          process_id: processId,
+          title: t.title,
+          description: t.description || null,
+          pdca_section: t.pdcaSection,
+          adli_dimension: t.adliDimension || null,
+          source: "ai_suggestion",
+          source_detail: suggestionTitle || null,
+        }));
 
-            // Find the "Improve" section to place the task in
-            const improveNames = ["improve", "act", "improvement", "improvements", "act (improve)"];
-            let improveSectionGid: string | null = null;
-            try {
-              const sectionsRes = await asanaFetch(
-                asanaToken,
-                `/projects/${currentProcess.asana_project_gid}/sections?opt_fields=name`
-              );
-              for (const s of sectionsRes.data) {
-                if (improveNames.includes(s.name.toLowerCase())) {
-                  improveSectionGid = s.gid;
-                  break;
-                }
-              }
-            } catch { /* fall back to project root */ }
+        const { data: insertedTasks, error: taskError } = await supabase
+          .from("process_tasks")
+          .insert(taskRows)
+          .select("id");
 
-            // Build task data — place in Improve section if found
-            const taskData: Record<string, unknown> = {
-              name: taskName,
-              notes: taskNotes,
-              projects: [currentProcess.asana_project_gid],
-            };
-            if (improveSectionGid) {
-              taskData.memberships = [{
-                project: currentProcess.asana_project_gid,
-                section: improveSectionGid,
-              }];
-            }
-
-            const result = await asanaFetch(asanaToken, "/tasks", {
-              method: "POST",
-              body: JSON.stringify({ data: taskData }),
-            });
-
-            asanaTaskUrl = result.data?.permalink_url || null;
-            asanaTaskCreated = true;
-            asanaStatus = "created";
-
-            // Store the Asana task URL in trigger_detail on the improvement record
-            if (asanaTaskUrl && improvementId) {
-              await supabase
-                .from("process_improvements")
-                .update({ trigger_detail: asanaTaskUrl })
-                .eq("id", improvementId);
-            }
-          }
+        if (!taskError && insertedTasks) {
+          tasksQueued = insertedTasks.length;
         }
-      } catch (asanaErr) {
-        console.error("Asana task creation failed (non-blocking):", asanaErr);
-        asanaStatus = "failed";
+      } catch (taskErr) {
+        console.error("Task queuing failed (non-blocking):", taskErr);
+        // Non-blocking: the process text update still succeeded
       }
     }
 
     return Response.json({
       success: true,
       field: fieldLabel,
-      asanaTaskCreated,
-      asanaTaskUrl,
-      asanaStatus,
+      tasksQueued,
     });
   } catch (error) {
     console.error("Apply suggestion error:", error);

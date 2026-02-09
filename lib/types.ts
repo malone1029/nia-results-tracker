@@ -189,6 +189,28 @@ export interface MetricRequirement {
   requirement_id: number;
 }
 
+// ── PDCA Task types ──────────────────────────────────────────
+
+export type PdcaSection = "plan" | "execute" | "evaluate" | "improve";
+export type AdliDimension = "approach" | "deployment" | "learning" | "integration";
+export type TaskSource = "ai_suggestion" | "ai_interview" | "user_created";
+export type TaskStatus = "pending" | "exported";
+
+export interface ProcessTask {
+  id: number;
+  process_id: number;
+  title: string;
+  description: string | null;
+  pdca_section: PdcaSection;
+  adli_dimension: AdliDimension | null;
+  source: TaskSource;
+  source_detail: string | null;
+  status: TaskStatus;
+  asana_task_gid: string | null;
+  asana_task_url: string | null;
+  created_at: string;
+}
+
 // Extended types for UI (joins data from multiple tables)
 
 export interface KeyRequirementWithStatus extends KeyRequirement {
