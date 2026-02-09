@@ -70,6 +70,13 @@ export default function ProcessesPage() {
   const [filterStatus, setFilterStatus] = useState<ProcessStatus | null>(null);
   const [showKeyOnly, setShowKeyOnly] = useState(false);
 
+  // Bulk edit state
+  const [editMode, setEditMode] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [newOwner, setNewOwner] = useState("");
+  const [updating, setUpdating] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
   useEffect(() => {
     document.title = "Processes | NIA Excellence Hub";
 
@@ -152,6 +159,57 @@ export default function ProcessesPage() {
     );
   }
 
+  // Bulk edit helpers
+  const uniqueOwners = [...new Set(processes.map((p) => p.owner).filter(Boolean))] as string[];
+
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectByOwner(owner: string) {
+    const ids = filtered.filter((p) => p.owner === owner).map((p) => p.id);
+    const allSelected = ids.every((id) => selected.has(id));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => (allSelected ? next.delete(id) : next.add(id)));
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelected(new Set(filtered.map((p) => p.id)));
+  }
+
+  function deselectAll() {
+    setSelected(new Set());
+  }
+
+  function exitEditMode() {
+    setEditMode(false);
+    setSelected(new Set());
+    setNewOwner("");
+  }
+
+  async function bulkUpdateOwner() {
+    if (selected.size === 0 || !newOwner.trim()) return;
+    setUpdating(true);
+    const ids = [...selected];
+    const trimmed = newOwner.trim();
+    await supabase.from("processes").update({ owner: trimmed }).in("id", ids);
+    setProcesses((prev) =>
+      prev.map((p) => (ids.includes(p.id) ? { ...p, owner: trimmed } : p))
+    );
+    setSuccessMsg(`Updated ${ids.length} process${ids.length > 1 ? "es" : ""} to "${trimmed}"`);
+    exitEditMode();
+    setTimeout(() => setSuccessMsg(null), 4000);
+    setUpdating(false);
+  }
+
   if (loading) return <CategoryGridSkeleton />;
 
   // Apply filters
@@ -179,6 +237,15 @@ export default function ProcessesPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {!editMode && (
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => setEditMode(true)}
+            >
+              Edit Owners
+            </Button>
+          )}
           <Button variant="secondary" size="md" href="/processes/import">
             Import Processes
           </Button>
@@ -309,6 +376,46 @@ export default function ProcessesPage() {
         )}
       </div>
 
+      {/* Success message */}
+      {successMsg && (
+        <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium">
+          {successMsg}
+        </div>
+      )}
+
+      {/* Edit mode toolbar */}
+      {editMode && (
+        <div className="flex flex-wrap items-center gap-3 bg-nia-dark/5 rounded-lg px-4 py-3">
+          <span className="text-sm font-medium text-nia-dark">Select by owner:</span>
+          <div className="flex flex-wrap gap-2">
+            {uniqueOwners.map((owner) => {
+              const ownerIds = filtered.filter((p) => p.owner === owner).map((p) => p.id);
+              const allChecked = ownerIds.length > 0 && ownerIds.every((id) => selected.has(id));
+              return (
+                <button
+                  key={owner}
+                  onClick={() => selectByOwner(owner)}
+                  className={`text-sm px-3 py-1 rounded-full transition-colors ${
+                    allChecked
+                      ? "bg-nia-dark text-white"
+                      : "bg-white text-nia-dark border border-gray-300 hover:border-nia-dark"
+                  }`}
+                >
+                  {owner}
+                </button>
+              );
+            })}
+          </div>
+          <span className="text-gray-300">|</span>
+          <button onClick={selectAll} className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors">
+            Select All
+          </button>
+          <button onClick={deselectAll} className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors">
+            Deselect All
+          </button>
+        </div>
+      )}
+
       {/* Process List */}
       {filtered.length === 0 ? (
         <Card>
@@ -334,6 +441,7 @@ export default function ProcessesPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  {editMode && <th className="px-4 py-3 w-10"></th>}
                   <th className="px-4 py-3">Process</th>
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Status</th>
@@ -347,6 +455,16 @@ export default function ProcessesPage() {
                     key={process.id}
                     className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50/80 transition-colors"
                   >
+                    {editMode && (
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(process.id)}
+                          onChange={() => toggleSelect(process.id)}
+                          className="w-4 h-4 rounded border-gray-300 text-nia-dark focus:ring-nia-grey-blue cursor-pointer"
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1">
                         <button
@@ -421,10 +539,18 @@ export default function ProcessesPage() {
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {filtered.map((process) => (
+              <div key={process.id} className={editMode ? "flex items-start gap-3" : ""}>
+                {editMode && (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(process.id)}
+                    onChange={() => toggleSelect(process.id)}
+                    className="w-4 h-4 mt-4 rounded border-gray-300 text-nia-dark focus:ring-nia-grey-blue cursor-pointer flex-shrink-0"
+                  />
+                )}
               <Link
-                key={process.id}
                 href={`/processes/${process.id}`}
-                className="block"
+                className="block flex-1"
               >
                 <Card variant="interactive" accent="dark" padding="sm" className="p-4">
                   <div className="flex items-start justify-between">
@@ -492,9 +618,49 @@ export default function ProcessesPage() {
                   </div>
                 </Card>
               </Link>
+              </div>
             ))}
           </div>
         </>
+      )}
+
+      {/* Floating action bar for edit mode */}
+      {editMode && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 px-4 py-3">
+          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center gap-3">
+            <span className="text-sm font-medium text-nia-dark whitespace-nowrap">
+              {selected.size} process{selected.size !== 1 ? "es" : ""} selected
+            </span>
+            <div className="flex-1 relative w-full sm:max-w-xs">
+              <input
+                type="text"
+                value={newOwner}
+                onChange={(e) => setNewOwner(e.target.value)}
+                placeholder="New owner name..."
+                list="owner-suggestions"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-nia-dark bg-white placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/40 focus:border-nia-grey-blue hover:border-gray-400"
+              />
+              <datalist id="owner-suggestions">
+                {uniqueOwners.map((o) => (
+                  <option key={o} value={o} />
+                ))}
+              </datalist>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={bulkUpdateOwner}
+                disabled={selected.size === 0 || !newOwner.trim() || updating}
+              >
+                {updating ? "Updating..." : "Update Owner"}
+              </Button>
+              <Button variant="secondary" size="md" onClick={exitEditMode}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
