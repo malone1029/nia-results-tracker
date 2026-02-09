@@ -58,6 +58,7 @@ interface AiChatPanelProps {
   processName: string;
   onProcessUpdated?: () => void;
   autoAnalyze?: boolean;
+  guidedStep?: string | null;
 }
 
 // Parse adli-scores code block from AI response, return scores and cleaned text
@@ -163,7 +164,7 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 
-export default function AiChatPanel({ processId, processName, onProcessUpdated, autoAnalyze }: AiChatPanelProps) {
+export default function AiChatPanel({ processId, processName, onProcessUpdated, autoAnalyze, guidedStep }: AiChatPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const autoAnalyzeRef = useRef(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -779,38 +780,8 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                     </ul>
                   </div>
 
-                  {/* Quick action buttons */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Quick Actions</p>
-                    <button
-                      onClick={() => handleQuickAction("Analyze this process using the ADLI framework. Score each dimension (Approach, Deployment, Learning, Integration), identify the biggest gaps, and suggest the 2-3 most impactful improvements with effort estimates.")}
-                      className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-orange/30 bg-nia-orange/5 text-sm text-nia-dark hover:bg-nia-orange/10 transition-colors"
-                    >
-                      <span className="font-medium text-nia-orange">Analyze This Process</span>
-                      <span className="text-gray-500 ml-1">— ADLI scores + top gaps</span>
-                    </button>
-                    <button
-                      onClick={() => handleQuickAction("Coach me on this process. What are the 2-3 quickest wins I could tackle right now to improve maturity? Focus on what will make the biggest difference with the least effort.")}
-                      className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-green/30 bg-nia-green/5 text-sm text-nia-dark hover:bg-nia-green/10 transition-colors"
-                    >
-                      <span className="font-medium text-nia-green">Coach Me</span>
-                      <span className="text-gray-500 ml-1">— quick wins with effort estimates</span>
-                    </button>
-                    <button
-                      onClick={() => handleQuickAction("Help me strengthen this process by asking me targeted questions about what's missing or underdeveloped. Start with the weakest area. Ask 2-3 questions at a time.")}
-                      className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-grey-blue/30 bg-nia-grey-blue/5 text-sm text-nia-dark hover:bg-nia-grey-blue/10 transition-colors"
-                    >
-                      <span className="font-medium text-nia-grey-blue">Interview Me</span>
-                      <span className="text-gray-500 ml-1">— guided questions to fill gaps</span>
-                    </button>
-                    <button
-                      onClick={() => handleQuickAction("Help me build a task list for this process. Interview me about what needs to happen — the key steps, who does what, how we measure success, and what training is needed. Work through Plan, Execute, Evaluate, and Improve sections systematically. Ask 2-3 questions at a time, and generate tasks when you have enough context.")}
-                      className="w-full text-left px-3 py-2.5 rounded-lg border border-nia-dark/20 bg-nia-dark/5 text-sm text-nia-dark hover:bg-nia-dark/10 transition-colors"
-                    >
-                      <span className="font-medium text-nia-dark">Build Task List</span>
-                      <span className="text-gray-500 ml-1">— AI interviews you, generates PDCA tasks</span>
-                    </button>
-                  </div>
+                  {/* Step-aware action buttons */}
+                  <StepActions guidedStep={guidedStep} onAction={handleQuickAction} />
                 </div>
               )}
 
@@ -1090,6 +1061,165 @@ function TypingIndicator() {
       <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
       <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
       <div className="w-2 h-2 bg-nia-grey-blue rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+    </div>
+  );
+}
+
+// Step-aware quick action buttons
+// Shows a primary action based on the current guided step, plus secondary options
+
+interface StepAction {
+  label: string;
+  description: string;
+  prompt: string;
+  color: string; // border + text color class prefix (e.g., "nia-orange")
+  borderClass: string;
+  bgClass: string;
+  textClass: string;
+}
+
+const STEP_ACTIONS: Record<string, { primary: StepAction; secondary: StepAction[] }> = {
+  start: {
+    primary: {
+      label: "Get Started",
+      description: "welcome + overview of the improvement cycle",
+      prompt: "Welcome me to this process and give me an overview of where things stand. What should I focus on first?",
+      color: "nia-orange",
+      borderClass: "border-nia-orange/30",
+      bgClass: "bg-nia-orange/5 hover:bg-nia-orange/10",
+      textClass: "text-nia-orange",
+    },
+    secondary: [
+      { label: "Analyze", description: "ADLI scores + gaps", prompt: "Analyze this process using the ADLI framework. Score each dimension, identify the biggest gaps, and suggest the 2-3 most impactful improvements with effort estimates.", color: "nia-grey-blue", borderClass: "border-nia-grey-blue/30", bgClass: "bg-nia-grey-blue/5 hover:bg-nia-grey-blue/10", textClass: "text-nia-grey-blue" },
+    ],
+  },
+  charter: {
+    primary: {
+      label: "Review My Charter",
+      description: "check for mixed content, suggest cleanup",
+      prompt: "Review this charter carefully. Check if it has ADLI content, PDSA/PDCA cycles, Baldrige framework links, LeTCI content, or task lists mixed in. If it does, offer to separate the content into the correct ADLI fields using a charter cleanup suggestion. The charter should only contain the process purpose, overview, scope, and key stakeholders.",
+      color: "nia-orange",
+      borderClass: "border-nia-orange/30",
+      bgClass: "bg-nia-orange/5 hover:bg-nia-orange/10",
+      textClass: "text-nia-orange",
+    },
+    secondary: [
+      { label: "Coach Me", description: "quick wins", prompt: "Coach me on this process. What are the 2-3 quickest wins I could tackle right now to improve maturity?", color: "nia-green", borderClass: "border-nia-green/30", bgClass: "bg-nia-green/5 hover:bg-nia-green/10", textClass: "text-nia-green" },
+      { label: "Interview Me", description: "guided questions", prompt: "Help me strengthen this process by asking me targeted questions about what's missing or underdeveloped. Start with the weakest area. Ask 2-3 questions at a time.", color: "nia-grey-blue", borderClass: "border-nia-grey-blue/30", bgClass: "bg-nia-grey-blue/5 hover:bg-nia-grey-blue/10", textClass: "text-nia-grey-blue" },
+    ],
+  },
+  assessment: {
+    primary: {
+      label: "Run ADLI Assessment",
+      description: "score each dimension, find gaps",
+      prompt: "Run a full ADLI assessment. Score each dimension (Approach, Deployment, Learning, Integration) from 0-100. Identify the weakest dimensions and suggest the 2-3 most impactful improvements with effort estimates.",
+      color: "nia-orange",
+      borderClass: "border-nia-orange/30",
+      bgClass: "bg-nia-orange/5 hover:bg-nia-orange/10",
+      textClass: "text-nia-orange",
+    },
+    secondary: [
+      { label: "Review Charter", description: "check for mixed content", prompt: "Review this charter carefully. Check if it has ADLI content, PDSA/PDCA cycles, Baldrige framework links, or task lists mixed in. If it does, offer to separate the content into the correct ADLI fields using a charter cleanup suggestion.", color: "nia-grey-blue", borderClass: "border-nia-grey-blue/30", bgClass: "bg-nia-grey-blue/5 hover:bg-nia-grey-blue/10", textClass: "text-nia-grey-blue" },
+      { label: "Coach Me", description: "quick wins", prompt: "Coach me on this process. What are the 2-3 quickest wins I could tackle right now to improve maturity?", color: "nia-green", borderClass: "border-nia-green/30", bgClass: "bg-nia-green/5 hover:bg-nia-green/10", textClass: "text-nia-green" },
+    ],
+  },
+  deep_dive: {
+    primary: {
+      label: "Improve Weakest Area",
+      description: "focused suggestions for lowest-scoring dimension",
+      prompt: "Focus on the weakest ADLI dimension for this process. Give me specific, actionable improvements with content I can apply. Include effort estimates and tasks.",
+      color: "nia-orange",
+      borderClass: "border-nia-orange/30",
+      bgClass: "bg-nia-orange/5 hover:bg-nia-orange/10",
+      textClass: "text-nia-orange",
+    },
+    secondary: [
+      { label: "Interview Me", description: "guided questions to fill gaps", prompt: "Help me strengthen this process by asking me targeted questions about what's missing or underdeveloped. Start with the weakest area. Ask 2-3 questions at a time.", color: "nia-grey-blue", borderClass: "border-nia-grey-blue/30", bgClass: "bg-nia-grey-blue/5 hover:bg-nia-grey-blue/10", textClass: "text-nia-grey-blue" },
+      { label: "Analyze Again", description: "re-score after improvements", prompt: "Run a fresh ADLI assessment. Score each dimension and compare to where we started. What's improved and what still needs work?", color: "nia-green", borderClass: "border-nia-green/30", bgClass: "bg-nia-green/5 hover:bg-nia-green/10", textClass: "text-nia-green" },
+    ],
+  },
+  tasks: {
+    primary: {
+      label: "Build Task List",
+      description: "AI interviews you, generates PDCA tasks",
+      prompt: "Help me build a task list for this process. Interview me about what needs to happen — the key steps, who does what, how we measure success, and what training is needed. Work through Plan, Execute, Evaluate, and Improve sections systematically. Ask 2-3 questions at a time, and generate tasks when you have enough context.",
+      color: "nia-dark",
+      borderClass: "border-nia-dark/20",
+      bgClass: "bg-nia-dark/5 hover:bg-nia-dark/10",
+      textClass: "text-nia-dark",
+    },
+    secondary: [
+      { label: "Coach Me", description: "quick wins", prompt: "Coach me on this process. What are the 2-3 quickest wins I could tackle right now?", color: "nia-green", borderClass: "border-nia-green/30", bgClass: "bg-nia-green/5 hover:bg-nia-green/10", textClass: "text-nia-green" },
+    ],
+  },
+  export: {
+    primary: {
+      label: "Review Before Export",
+      description: "check what's ready and what needs work",
+      prompt: "Review this process before I export to Asana. Summarize what's strong, what's still weak, and whether the charter and ADLI sections are ready. Flag anything I should fix first.",
+      color: "nia-green",
+      borderClass: "border-nia-green/30",
+      bgClass: "bg-nia-green/5 hover:bg-nia-green/10",
+      textClass: "text-nia-green",
+    },
+    secondary: [
+      { label: "Build More Tasks", description: "add tasks before export", prompt: "Help me build more tasks for this process before I export. What's missing from the task list?", color: "nia-dark", borderClass: "border-nia-dark/20", bgClass: "bg-nia-dark/5 hover:bg-nia-dark/10", textClass: "text-nia-dark" },
+    ],
+  },
+};
+
+// Fallback for processes without a guided step (not linked to Asana)
+const DEFAULT_ACTIONS: { primary: StepAction; secondary: StepAction[] } = {
+  primary: {
+    label: "Analyze This Process",
+    description: "ADLI scores + top gaps",
+    prompt: "Analyze this process using the ADLI framework. Score each dimension (Approach, Deployment, Learning, Integration), identify the biggest gaps, and suggest the 2-3 most impactful improvements with effort estimates.",
+    color: "nia-orange",
+    borderClass: "border-nia-orange/30",
+    bgClass: "bg-nia-orange/5 hover:bg-nia-orange/10",
+    textClass: "text-nia-orange",
+  },
+  secondary: [
+    { label: "Coach Me", description: "quick wins with effort estimates", prompt: "Coach me on this process. What are the 2-3 quickest wins I could tackle right now to improve maturity? Focus on what will make the biggest difference with the least effort.", color: "nia-green", borderClass: "border-nia-green/30", bgClass: "bg-nia-green/5 hover:bg-nia-green/10", textClass: "text-nia-green" },
+    { label: "Interview Me", description: "guided questions to fill gaps", prompt: "Help me strengthen this process by asking me targeted questions about what's missing or underdeveloped. Start with the weakest area. Ask 2-3 questions at a time.", color: "nia-grey-blue", borderClass: "border-nia-grey-blue/30", bgClass: "bg-nia-grey-blue/5 hover:bg-nia-grey-blue/10", textClass: "text-nia-grey-blue" },
+    { label: "Build Task List", description: "AI interviews you, generates PDCA tasks", prompt: "Help me build a task list for this process. Interview me about what needs to happen — the key steps, who does what, how we measure success, and what training is needed. Work through Plan, Execute, Evaluate, and Improve sections systematically. Ask 2-3 questions at a time, and generate tasks when you have enough context.", color: "nia-dark", borderClass: "border-nia-dark/20", bgClass: "bg-nia-dark/5 hover:bg-nia-dark/10", textClass: "text-nia-dark" },
+  ],
+};
+
+function StepActions({ guidedStep, onAction }: { guidedStep?: string | null; onAction: (prompt: string) => void }) {
+  const actions = (guidedStep && STEP_ACTIONS[guidedStep]) || DEFAULT_ACTIONS;
+
+  return (
+    <div className="space-y-2">
+      {guidedStep && STEP_ACTIONS[guidedStep] && (
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+          Next Step: {guidedStep.replace(/_/g, " ")}
+        </p>
+      )}
+      {!guidedStep && (
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Quick Actions</p>
+      )}
+
+      {/* Primary action — larger, more prominent */}
+      <button
+        onClick={() => onAction(actions.primary.prompt)}
+        className={`w-full text-left px-3 py-3 rounded-lg border ${actions.primary.borderClass} ${actions.primary.bgClass} text-sm text-nia-dark transition-colors`}
+      >
+        <span className={`font-semibold ${actions.primary.textClass}`}>{actions.primary.label}</span>
+        <span className="text-gray-500 ml-1">— {actions.primary.description}</span>
+      </button>
+
+      {/* Secondary actions — smaller */}
+      {actions.secondary.map((action) => (
+        <button
+          key={action.label}
+          onClick={() => onAction(action.prompt)}
+          className={`w-full text-left px-3 py-2.5 rounded-lg border ${action.borderClass} ${action.bgClass} text-sm text-nia-dark transition-colors`}
+        >
+          <span className={`font-medium ${action.textClass}`}>{action.label}</span>
+          <span className="text-gray-500 ml-1">— {action.description}</span>
+        </button>
+      ))}
     </div>
   );
 }

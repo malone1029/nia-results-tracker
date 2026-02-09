@@ -10,7 +10,7 @@ import { fetchProjectSections, findAdliTasks } from "@/lib/asana-helpers";
  * 2. Fetches fresh data from Asana (sections, tasks, subtasks)
  * 3. Updates charter from Asana project notes
  * 4. Updates ADLI fields from [ADLI: ...] task descriptions
- * 5. Sets guided_step = 'assessment' to restart the improvement cycle
+ * 5. Sets guided_step = 'charter' to restart the improvement cycle (charter needs review first)
  *
  * Body: { processId: number }
  */
@@ -95,8 +95,8 @@ export async function POST(request: Request) {
       asana_raw_data_previous: proc.asana_raw_data || null,
       // Fresh data
       asana_raw_data: asanaRawData,
-      // Restart guided flow at assessment
-      guided_step: "assessment",
+      // Restart guided flow at charter review (not assessment — charter needs review first)
+      guided_step: "charter",
       updated_at: new Date().toISOString(),
     };
 

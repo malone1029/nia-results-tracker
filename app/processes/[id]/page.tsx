@@ -1230,7 +1230,7 @@ function ProcessDetailContent() {
       </>}
 
       {/* AI Chat Panel */}
-      <AiChatPanel processId={process.id} processName={process.name} onProcessUpdated={fetchProcess} autoAnalyze={autoAnalyze} />
+      <AiChatPanel processId={process.id} processName={process.name} onProcessUpdated={fetchProcess} autoAnalyze={autoAnalyze} guidedStep={process.guided_step} />
     </div>
   );
 }
