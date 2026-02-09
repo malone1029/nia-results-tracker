@@ -36,6 +36,13 @@ interface CoachSuggestion {
   content: string;
 }
 
+interface ConversationSummary {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface AiChatPanelProps {
   processId: number;
   processName: string;
@@ -94,6 +101,31 @@ function parseCoachSuggestions(text: string): { suggestions: CoachSuggestion[]; 
   }
 }
 
+// Strip partial (still-streaming) structured blocks so raw JSON isn't visible
+function stripPartialBlocks(text: string): string {
+  // Remove complete structured blocks (scores + suggestions)
+  let cleaned = text;
+  cleaned = cleaned.replace(/```adli-scores\s*\n[\s\S]*?\n```\s*\n?/g, "");
+  cleaned = cleaned.replace(/```coach-suggestions\s*\n[\s\S]*?\n```\s*\n?/g, "");
+  cleaned = cleaned.replace(/```adli-suggestion\s*\n[\s\S]*?\n```\s*\n?/g, "");
+
+  // Remove PARTIAL blocks that started but haven't closed yet (still streaming)
+  cleaned = cleaned.replace(/```adli-scores[\s\S]*$/g, "");
+  cleaned = cleaned.replace(/```coach-suggestions[\s\S]*$/g, "");
+  cleaned = cleaned.replace(/```adli-suggestion[\s\S]*$/g, "");
+
+  return cleaned.trim();
+}
+
+// Check if a response has an in-progress structured block (started but not closed)
+function hasPartialBlock(text: string): "scores" | "suggestions" | null {
+  // Check for partial adli-scores (opened but not closed)
+  if (/```adli-scores(?![\s\S]*?```)[\s\S]*$/.test(text)) return "scores";
+  // Check for partial coach-suggestions (opened but not closed)
+  if (/```coach-suggestions(?![\s\S]*?```)[\s\S]*$/.test(text)) return "suggestions";
+  return null;
+}
+
 const FIELD_LABELS: Record<string, string> = {
   charter: "Charter",
   adli_approach: "ADLI: Approach",
@@ -120,6 +152,12 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Conversation persistence state
+  const conversationIdRef = useRef<number | null>(null);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const historyLoadedRef = useRef(false);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -145,10 +183,19 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoAnalyze]);
 
-  // Load uploaded files when panel opens
+  // Load uploaded files and latest conversation when panel opens
   useEffect(() => {
     if (isOpen) {
       fetchFiles();
+      // Load latest conversation on first open (unless autoAnalyze will start fresh)
+      if (!historyLoadedRef.current && !autoAnalyze) {
+        historyLoadedRef.current = true;
+        loadLatestConversation();
+      } else if (!historyLoadedRef.current && autoAnalyze) {
+        // For autoAnalyze, just load the list (not the latest conversation)
+        historyLoadedRef.current = true;
+        fetchConversations();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -159,6 +206,109 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       const data = await res.json();
       setUploadedFiles(data);
     }
+  }
+
+  // --- Conversation persistence ---
+
+  async function fetchConversations() {
+    try {
+      const res = await fetch(`/api/ai/conversations?processId=${processId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(data);
+      }
+    } catch { /* silent */ }
+  }
+
+  async function loadLatestConversation() {
+    try {
+      const res = await fetch(`/api/ai/conversations?processId=${processId}`);
+      if (!res.ok) return;
+      const list: ConversationSummary[] = await res.json();
+      setConversations(list);
+      if (list.length === 0) return;
+
+      // Load the most recent conversation
+      const latest = list[0];
+      const detailRes = await fetch(`/api/ai/conversations?id=${latest.id}`);
+      if (!detailRes.ok) return;
+      const detail = await detailRes.json();
+
+      conversationIdRef.current = detail.id;
+      setMessages(detail.messages || []);
+      if (detail.adli_scores) setAdliScores(detail.adli_scores);
+    } catch { /* silent — show empty state */ }
+  }
+
+  async function loadConversation(id: number) {
+    try {
+      const res = await fetch(`/api/ai/conversations?id=${id}`);
+      if (!res.ok) return;
+      const detail = await res.json();
+
+      conversationIdRef.current = detail.id;
+      setMessages(detail.messages || []);
+      setAdliScores(detail.adli_scores || null);
+      setPendingSuggestions([]);
+      setShowHistory(false);
+    } catch { /* silent */ }
+  }
+
+  async function saveConversation(msgs: Message[], scores: AdliScores | null) {
+    const title = msgs.find((m) => m.role === "user")?.content.slice(0, 60) || "New Conversation";
+
+    try {
+      if (conversationIdRef.current) {
+        // Update existing conversation
+        await fetch("/api/ai/conversations", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: conversationIdRef.current,
+            messages: msgs,
+            adli_scores: scores,
+          }),
+        });
+      } else {
+        // Create new conversation
+        const res = await fetch("/api/ai/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            process_id: processId,
+            title,
+            messages: msgs,
+            adli_scores: scores,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          conversationIdRef.current = data.id;
+        }
+      }
+      // Refresh the conversation list in the background
+      fetchConversations();
+    } catch { /* silent — fire-and-forget */ }
+  }
+
+  function startNewChat() {
+    conversationIdRef.current = null;
+    setMessages([]);
+    setAdliScores(null);
+    setPendingSuggestions([]);
+    setShowHistory(false);
+    setError(null);
+  }
+
+  async function deleteConversation(id: number) {
+    try {
+      await fetch(`/api/ai/conversations?id=${id}`, { method: "DELETE" });
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      // If we deleted the active conversation, clear it
+      if (conversationIdRef.current === id) {
+        startNewChat();
+      }
+    } catch { /* silent */ }
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -209,6 +359,10 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
     setIsLoading(true);
 
     try {
+      // 3-minute timeout — AI responses with suggestions can be large
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180000);
+
       const response = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -216,7 +370,10 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
           processId,
           messages: updatedMessages,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
@@ -253,7 +410,9 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
 
       // After streaming is done, check for structured data in the response
       const { scores } = parseAdliScores(assistantContent);
+      let latestScores = adliScores;
       if (scores) {
+        latestScores = scores;
         setAdliScores(scores);
         // Persist scores to database
         fetch("/api/ai/scores", {
@@ -272,8 +431,15 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       if (suggestions.length > 0) {
         setPendingSuggestions(suggestions);
       }
+
+      // Save conversation after each complete AI response
+      const finalMessages = [...updatedMessages, { role: "assistant" as const, content: assistantContent }];
+      saveConversation(finalMessages, latestScores);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const message = err instanceof DOMException && err.name === "AbortError"
+        ? "Request timed out. Try a simpler question or try again."
+        : err instanceof Error ? err.message : "Something went wrong";
+      setError(message);
       // Remove the empty assistant message if there was an error
       setMessages((prev) => {
         if (prev.length > 0 && prev[prev.length - 1].role === "assistant" && !prev[prev.length - 1].content) {
@@ -346,14 +512,16 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
         successMsg += ` (Couldn't create Asana task — check your Asana connection in Settings.)`;
       }
 
-      // Add a success message to the chat
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: successMsg,
-        },
-      ]);
+      // Add a success message to the chat and save
+      setMessages((prev) => {
+        const updated = [
+          ...prev,
+          { role: "assistant" as const, content: successMsg },
+        ];
+        // Fire-and-forget save
+        saveConversation(updated, adliScores);
+        return updated;
+      });
 
       onProcessUpdated?.();
     } catch (err) {
@@ -410,7 +578,70 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   <div className="text-xs text-white/70 truncate">{processName}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                {/* New Chat button */}
+                <button
+                  onClick={startNewChat}
+                  className="text-white/80 hover:text-white text-xs border border-white/30 rounded px-2 py-1 hover:bg-white/10 transition-colors"
+                  title="Start a new conversation"
+                >
+                  + New
+                </button>
+                {/* Conversation history toggle */}
+                <div className="relative">
+                  <button
+                    onClick={() => { setShowHistory(!showHistory); if (!showHistory) fetchConversations(); }}
+                    className={`text-white/80 hover:text-white p-1 rounded hover:bg-white/10 transition-colors ${showHistory ? "bg-white/20 text-white" : ""}`}
+                    title="Conversation history"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                  </button>
+                  {/* History dropdown */}
+                  {showHistory && (
+                    <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-80 overflow-y-auto">
+                      <div className="p-2 border-b border-gray-100">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Past Conversations</p>
+                      </div>
+                      {conversations.length === 0 ? (
+                        <div className="p-3 text-xs text-gray-400 text-center">No conversations yet</div>
+                      ) : (
+                        conversations.map((conv) => (
+                          <div
+                            key={conv.id}
+                            className={`flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-50 ${conversationIdRef.current === conv.id ? "bg-nia-dark/5" : ""}`}
+                          >
+                            <button
+                              onClick={() => loadConversation(conv.id)}
+                              className="flex-1 text-left min-w-0"
+                            >
+                              <p className="text-sm text-nia-dark truncate font-medium">
+                                {conv.title}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {new Date(conv.updated_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                {" · "}
+                                {new Date(conv.updated_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                              </p>
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
+                              className="text-gray-300 hover:text-red-400 flex-shrink-0 p-1"
+                              title="Delete conversation"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
                 {/* Expand/collapse toggle */}
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
@@ -486,12 +717,10 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
 
               {/* Message bubbles */}
               {messages.map((msg, i) => {
-                // Strip structured blocks from displayed text
-                let displayContent = msg.content;
-                if (msg.role === "assistant") {
-                  displayContent = parseAdliScores(displayContent).cleanedText;
-                  displayContent = parseCoachSuggestions(displayContent).cleanedText;
-                }
+                // Strip structured blocks (complete AND partial) from displayed text
+                const displayContent = msg.role === "assistant"
+                  ? stripPartialBlocks(msg.content)
+                  : msg.content;
 
                 return (
                 <div
@@ -520,6 +749,24 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                 </div>
                 );
               })}
+
+              {/* "Preparing suggestions" indicator — visible while structured block is streaming */}
+              {isLoading && messages.length > 0 &&
+                messages[messages.length - 1].role === "assistant" &&
+                hasPartialBlock(messages[messages.length - 1].content) && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-nia-orange/5 border border-nia-orange/20">
+                  <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 bg-nia-orange rounded-full animate-pulse" />
+                    <div className="w-1.5 h-1.5 bg-nia-orange rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
+                    <div className="w-1.5 h-1.5 bg-nia-orange rounded-full animate-pulse" style={{ animationDelay: "600ms" }} />
+                  </div>
+                  <span className="text-xs font-medium text-nia-orange">
+                    {hasPartialBlock(messages[messages.length - 1].content) === "scores"
+                      ? "Calculating ADLI scores..."
+                      : "Preparing improvement suggestions..."}
+                  </span>
+                </div>
+              )}
 
               {/* Coach suggestion cards */}
               {pendingSuggestions.length > 0 && !isLoading && (
