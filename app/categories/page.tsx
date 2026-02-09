@@ -113,22 +113,39 @@ export default function CategoriesPage() {
         setDbCategories(catData);
       }
 
-      const { data: metricsData } = await supabase
-        .from("metrics")
-        .select(`
-          *,
-          processes!inner (
-            id,
-            name,
-            is_key,
-            categories!inner ( id, display_name, sort_order )
-          )
-        `);
+      // Fetch metrics, junction links, processes, and entries separately
+      const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
+        supabase.from("metrics").select("*"),
+        supabase.from("metric_processes").select("metric_id, process_id"),
+        supabase.from("processes").select("id, name, is_key, categories!inner ( id, display_name, sort_order )"),
+        supabase.from("entries").select("metric_id, value, date").order("date", { ascending: false }),
+      ]);
 
-      const { data: entriesData } = await supabase
-        .from("entries")
-        .select("metric_id, value, date")
-        .order("date", { ascending: false });
+      const metricsData = metricsRes.data || [];
+      const entriesData = entriesRes.data || [];
+
+      // Build process lookup
+      const processMap = new Map<number, { id: number; name: string; is_key: boolean; category_id: number; category_display_name: string; category_sort_order: number }>();
+      for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
+        const cat = p.categories as Record<string, unknown>;
+        processMap.set(p.id as number, {
+          id: p.id as number,
+          name: p.name as string,
+          is_key: p.is_key as boolean,
+          category_id: cat.id as number,
+          category_display_name: cat.display_name as string,
+          category_sort_order: cat.sort_order as number,
+        });
+      }
+
+      // Build metric -> process IDs lookup
+      const metricToProcessIds = new Map<number, number[]>();
+      for (const link of linksRes.data || []) {
+        if (!metricToProcessIds.has(link.metric_id)) {
+          metricToProcessIds.set(link.metric_id, []);
+        }
+        metricToProcessIds.get(link.metric_id)!.push(link.process_id);
+      }
 
       const latestEntries = new Map<number, { value: number; date: string }>();
       if (entriesData) {
@@ -139,24 +156,28 @@ export default function CategoriesPage() {
         }
       }
 
-      // Build metric rows
-      const rows: MetricRow[] = (metricsData || []).map((m: Record<string, unknown>) => {
-        const process = m.processes as Record<string, unknown>;
-        const category = process.categories as Record<string, unknown>;
+      // Build metric rows — a metric linked to multiple processes produces multiple rows
+      const rows: MetricRow[] = [];
+      for (const m of metricsData as Record<string, unknown>[]) {
+        const processIds = metricToProcessIds.get(m.id as number) || [];
         const latest = latestEntries.get(m.id as number);
-        return {
-          ...(m as unknown as Metric),
-          process_id: process.id as number,
-          process_name: process.name as string,
-          is_key_process: process.is_key as boolean,
-          category_id: category.id as number,
-          category_display_name: category.display_name as string,
-          category_sort_order: category.sort_order as number,
-          last_entry_date: latest?.date || null,
-          last_entry_value: latest?.value || null,
-          review_status: getReviewStatus(m.cadence as string, latest?.date || null),
-        };
-      });
+        for (const pid of processIds) {
+          const proc = processMap.get(pid);
+          if (!proc) continue;
+          rows.push({
+            ...(m as unknown as Metric),
+            process_id: proc.id,
+            process_name: proc.name,
+            is_key_process: proc.is_key,
+            category_id: proc.category_id,
+            category_display_name: proc.category_display_name,
+            category_sort_order: proc.category_sort_order,
+            last_entry_date: latest?.date || null,
+            last_entry_value: latest?.value || null,
+            review_status: getReviewStatus(m.cadence as string, latest?.date || null),
+          });
+        }
+      }
 
       setAllRows(rows);
       setLoading(false);

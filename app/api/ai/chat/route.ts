@@ -219,11 +219,20 @@ export async function POST(request: Request) {
     const cat = procData.categories as Record<string, unknown>;
     procData.category_display_name = cat.display_name;
 
-    // Load linked metrics
-    const { data: metricsData } = await supabase
-      .from("metrics")
-      .select("id, name, unit, cadence, target_value, is_higher_better")
+    // Load linked metrics via junction table
+    const { data: metricLinks } = await supabase
+      .from("metric_processes")
+      .select("metric_id")
       .eq("process_id", processId);
+
+    const metricIds = (metricLinks || []).map((l: { metric_id: number }) => l.metric_id);
+
+    const { data: metricsData } = metricIds.length > 0
+      ? await supabase
+          .from("metrics")
+          .select("id, name, unit, cadence, target_value, is_higher_better")
+          .in("id", metricIds)
+      : { data: [] as { id: number; name: string; unit: string; cadence: string; target_value: number | null; is_higher_better: boolean }[] };
 
     let metricsWithValues: Record<string, unknown>[] = [];
     if (metricsData && metricsData.length > 0) {

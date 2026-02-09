@@ -57,11 +57,12 @@ export default function ProcessOwnerDashboard() {
     document.title = "Dashboard | NIA Excellence Hub";
 
     async function fetchAll() {
-      const [userRes, procRes, scoresRes, metricsRes, entriesRes] = await Promise.all([
+      const [userRes, procRes, scoresRes, metricsRes, metricProcessLinksRes, entriesRes] = await Promise.all([
         supabase.auth.getUser(),
         supabase.from("processes").select("id, name, status, owner, is_key, asana_project_gid, asana_project_url, categories(display_name)"),
         fetch("/api/ai/scores").then((r) => r.ok ? r.json() : []),
-        supabase.from("metrics").select("id, name, cadence, process_id, processes!inner(owner)"),
+        supabase.from("metrics").select("id, name, cadence"),
+        supabase.from("metric_processes").select("metric_id, process_id"),
         supabase.from("entries").select("metric_id, date").order("date", { ascending: false }),
       ]);
 
@@ -102,8 +103,25 @@ export default function ProcessOwnerDashboard() {
       setScores(scoreRows);
 
       // Metric review status for action items
-      const metricsData = (metricsRes.data || []) as unknown as { id: number; name: string; cadence: string; process_id: number; processes: { owner: string | null } }[];
+      const metricsData = (metricsRes.data || []) as { id: number; name: string; cadence: string }[];
+      const metricProcessLinks = (metricProcessLinksRes.data || []) as { metric_id: number; process_id: number }[];
       const entriesData = (entriesRes.data || []) as { metric_id: number; date: string }[];
+
+      // Build process owner lookup
+      const processOwnerMap = new Map<number, string | null>();
+      for (const p of procs) {
+        processOwnerMap.set(p.id, p.owner);
+      }
+
+      // Build metric -> owners lookup (a metric linked to 2 processes = 2 owners)
+      const metricOwners = new Map<number, Set<string>>();
+      for (const link of metricProcessLinks) {
+        const owner = processOwnerMap.get(link.process_id);
+        if (owner) {
+          if (!metricOwners.has(link.metric_id)) metricOwners.set(link.metric_id, new Set());
+          metricOwners.get(link.metric_id)!.add(owner);
+        }
+      }
 
       // Latest entry per metric
       const latestDates = new Map<number, string>();
@@ -113,14 +131,28 @@ export default function ProcessOwnerDashboard() {
         }
       }
 
+      // A metric linked to 2 processes with different owners shows for both
       const overdue: typeof overdueMetrics = [];
       const dueSoon: typeof dueSoonMetrics = [];
       for (const m of metricsData) {
         const status = getReviewStatus(m.cadence, latestDates.get(m.id) || null);
+        const owners = metricOwners.get(m.id);
         if (status === "overdue") {
-          overdue.push({ id: m.id, name: m.name, processOwner: m.processes?.owner || null });
+          if (owners && owners.size > 0) {
+            for (const owner of owners) {
+              overdue.push({ id: m.id, name: m.name, processOwner: owner });
+            }
+          } else {
+            overdue.push({ id: m.id, name: m.name, processOwner: null });
+          }
         } else if (status === "due-soon") {
-          dueSoon.push({ id: m.id, name: m.name, processOwner: m.processes?.owner || null });
+          if (owners && owners.size > 0) {
+            for (const owner of owners) {
+              dueSoon.push({ id: m.id, name: m.name, processOwner: owner });
+            }
+          } else {
+            dueSoon.push({ id: m.id, name: m.name, processOwner: null });
+          }
         }
       }
       setOverdueMetrics(overdue);

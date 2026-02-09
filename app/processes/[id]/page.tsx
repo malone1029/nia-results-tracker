@@ -155,11 +155,20 @@ function ProcessDetailContent() {
       setProcess(proc);
       document.title = `${proc.name} | NIA Excellence Hub`;
 
-      // Fetch linked metrics
-      const { data: metricsData } = await supabase
-        .from("metrics")
-        .select("id, name, unit, cadence, target_value, is_higher_better")
+      // Fetch linked metrics via junction table
+      const { data: metricLinks } = await supabase
+        .from("metric_processes")
+        .select("metric_id")
         .eq("process_id", id);
+
+      const metricIds = (metricLinks || []).map((l) => l.metric_id);
+
+      const { data: metricsData } = metricIds.length > 0
+        ? await supabase
+            .from("metrics")
+            .select("id, name, unit, cadence, target_value, is_higher_better")
+            .in("id", metricIds)
+        : { data: [] as { id: number; name: string; unit: string; cadence: string; target_value: number | null; is_higher_better: boolean }[] };
 
       if (metricsData) {
         // Get entries for each metric (desc for latest, collect up to 6 for sparklines)
@@ -265,20 +274,32 @@ function ProcessDetailContent() {
   useEffect(() => { fetchProcess(); }, [id]);
 
   async function fetchAvailableMetrics() {
+    // Get metric IDs already linked to this process
+    const { data: existingLinks } = await supabase
+      .from("metric_processes")
+      .select("metric_id")
+      .eq("process_id", id);
+    const linkedIds = (existingLinks || []).map((l) => l.metric_id);
+
+    // Get all metrics, then filter out already-linked ones
     const { data } = await supabase
       .from("metrics")
       .select("id, name, unit, cadence")
-      .is("process_id", null)
       .order("name");
-    if (data) setAvailableMetrics(data);
+    if (data) {
+      setAvailableMetrics(
+        linkedIds.length > 0
+          ? data.filter((m) => !linkedIds.includes(m.id))
+          : data
+      );
+    }
   }
 
   async function linkExistingMetric(metricId: number) {
     setLinkingMetric(metricId);
     const { error } = await supabase
-      .from("metrics")
-      .update({ process_id: Number(id) })
-      .eq("id", metricId);
+      .from("metric_processes")
+      .insert({ metric_id: metricId, process_id: Number(id) });
     if (!error) {
       setMetricPickerOpen(false);
       setMetricDialogOpen(false);
@@ -316,13 +337,8 @@ function ProcessDetailContent() {
     if (!process) return;
     await supabase.from("process_history").delete().eq("process_id", process.id);
     await supabase.from("process_requirements").delete().eq("process_id", process.id);
-    // Unlink metrics (set process_id to null) - but since process_id is FK with cascade,
-    // we just need to handle it. Actually, we want to NOT delete metrics.
-    // The cascade on processes will delete metrics too. We need to unlink first.
-    await supabase
-      .from("metrics")
-      .update({ process_id: null as unknown as number })
-      .eq("process_id", process.id);
+    // metric_processes junction rows are cleaned up by CASCADE on delete
+    // Metrics themselves survive — they just lose this process link
     await supabase.from("processes").delete().eq("id", process.id);
     router.push("/processes");
   }
@@ -780,7 +796,7 @@ function ProcessDetailContent() {
                   className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-nia-grey-blue hover:bg-nia-grey-blue/5 transition-colors group"
                 >
                   <div className="text-sm font-medium text-nia-dark group-hover:text-nia-grey-blue">Link Existing Metric</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Choose from metrics that aren&apos;t linked to a process yet</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Choose from metrics not already linked to this process</div>
                 </button>
                 <Link
                   href={`/metric/new?processId=${id}`}

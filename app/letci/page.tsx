@@ -44,16 +44,34 @@ export default function LeTCIPage() {
         setAllCategoryOptions(catData.map((c: { display_name: string }) => c.display_name));
       }
 
-      const { data: metricsData } = await supabase
-        .from("metrics")
-        .select(`
-          *,
-          processes!inner (
-            name,
-            is_key,
-            categories!inner ( display_name, sort_order )
-          )
-        `);
+      // Fetch metrics, junction links, and processes separately
+      const [metricsRes, linksRes, processesRes] = await Promise.all([
+        supabase.from("metrics").select("*"),
+        supabase.from("metric_processes").select("metric_id, process_id"),
+        supabase.from("processes").select("id, name, is_key, categories!inner ( display_name, sort_order )"),
+      ]);
+
+      const metricsData = metricsRes.data;
+
+      // Build process lookup
+      const processMap = new Map<number, { name: string; is_key: boolean; category_display_name: string; category_sort_order: number }>();
+      for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
+        const cat = p.categories as Record<string, unknown>;
+        processMap.set(p.id as number, {
+          name: p.name as string,
+          is_key: p.is_key as boolean,
+          category_display_name: cat.display_name as string,
+          category_sort_order: cat.sort_order as number,
+        });
+      }
+
+      // Build metric -> first linked process lookup (for display)
+      const metricFirstProcess = new Map<number, { name: string; is_key: boolean; category_display_name: string; category_sort_order: number }>();
+      for (const link of linksRes.data || []) {
+        if (metricFirstProcess.has(link.metric_id)) continue;
+        const proc = processMap.get(link.process_id);
+        if (proc) metricFirstProcess.set(link.metric_id, proc);
+      }
 
       const { data: entriesData } = await supabase
         .from("entries")
@@ -95,8 +113,7 @@ export default function LeTCIPage() {
       }
 
       const rows: MetricLeTCI[] = (metricsData || []).map((m: Record<string, unknown>) => {
-        const process = m.processes as Record<string, unknown>;
-        const category = process.categories as Record<string, unknown>;
+        const proc = metricFirstProcess.get(m.id as number);
         const entries = entriesByMetric.get(m.id as number) || [];
         const values = entries.map((e) => e.value);
 
@@ -109,10 +126,10 @@ export default function LeTCIPage() {
 
         return {
           ...(m as unknown as Metric),
-          process_name: process.name as string,
-          is_key_process: process.is_key as boolean,
-          category_display_name: category.display_name as string,
-          category_sort_order: category.sort_order as number,
+          process_name: proc?.name || "Unlinked",
+          is_key_process: proc?.is_key || false,
+          category_display_name: proc?.category_display_name || "—",
+          category_sort_order: proc?.category_sort_order || 99,
           entry_count: entries.length,
           has_level: hasLevel,
           has_trend: hasTrend,

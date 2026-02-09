@@ -34,7 +34,7 @@ export default function EditMetricPage() {
   // Form fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [processId, setProcessId] = useState<number>(0);
+  const [selectedProcessIds, setSelectedProcessIds] = useState<Set<number>>(new Set());
   const [cadence, setCadence] = useState("quarterly");
   const [targetValue, setTargetValue] = useState("");
   const [comparisonValue, setComparisonValue] = useState("");
@@ -77,7 +77,6 @@ export default function EditMetricPage() {
       if (metric) {
         setName(metric.name);
         setDescription(metric.description || "");
-        setProcessId(metric.process_id);
         setCadence(metric.cadence);
         setTargetValue(metric.target_value !== null ? String(metric.target_value) : "");
         setComparisonValue(metric.comparison_value !== null ? String(metric.comparison_value) : "");
@@ -86,6 +85,15 @@ export default function EditMetricPage() {
         setCollectionMethod(metric.collection_method || "");
         setUnit(metric.unit || "%");
         setIsHigherBetter(metric.is_higher_better);
+      }
+
+      // Fetch current process links from junction table
+      const { data: processLinks } = await supabase
+        .from("metric_processes")
+        .select("process_id")
+        .eq("metric_id", metricId);
+      if (processLinks) {
+        setSelectedProcessIds(new Set(processLinks.map((l) => l.process_id)));
       }
 
       // Fetch all key requirements
@@ -125,7 +133,6 @@ export default function EditMetricPage() {
       .update({
         name,
         description: description || null,
-        process_id: processId,
         cadence,
         target_value: targetValue ? parseFloat(targetValue) : null,
         comparison_value: comparisonValue ? parseFloat(comparisonValue) : null,
@@ -141,6 +148,17 @@ export default function EditMetricPage() {
       alert("Failed to save: " + error.message);
       setSaving(false);
       return;
+    }
+
+    // Save process links: delete existing, insert new
+    await supabase.from("metric_processes").delete().eq("metric_id", metricId);
+    if (selectedProcessIds.size > 0) {
+      await supabase.from("metric_processes").insert(
+        Array.from(selectedProcessIds).map((pid) => ({
+          metric_id: metricId,
+          process_id: pid,
+        }))
+      );
     }
 
     // Save requirement links: delete existing, insert new
@@ -215,38 +233,69 @@ export default function EditMetricPage() {
           />
         </div>
 
-        {/* Process and Cadence */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Processes (multi-select checkboxes) */}
+        <div className="bg-nia-grey-blue/5 border border-nia-grey-blue/20 rounded-lg p-4 space-y-3">
           <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">Process *</label>
-            <select
-              required
-              value={processId}
-              onChange={(e) => setProcessId(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            >
-              <option value={0} disabled>Select a process</option>
-              {processes.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.category_display_name} — {p.name}
-                </option>
-              ))}
-            </select>
+            <span className="font-medium text-nia-dark">Linked Processes *</span>
+            <p className="text-xs text-gray-500 mt-1">
+              Select the processes this metric provides evidence for. A metric can be linked to multiple processes.
+            </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">Cadence *</label>
-            <select
-              required
-              value={cadence}
-              onChange={(e) => setCadence(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            >
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="semi-annual">Semi-Annual</option>
-              <option value="annual">Annual</option>
-            </select>
-          </div>
+          {(() => {
+            const groups = new Map<string, ProcessOption[]>();
+            for (const p of processes) {
+              if (!groups.has(p.category_display_name)) groups.set(p.category_display_name, []);
+              groups.get(p.category_display_name)!.push(p);
+            }
+            return Array.from(groups.entries()).map(([cat, procs]) => (
+              <div key={cat}>
+                <div className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">
+                  {cat}
+                </div>
+                <div className="space-y-1 ml-1">
+                  {procs.map((p) => (
+                    <label key={p.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedProcessIds.has(p.id)}
+                        onChange={() => {
+                          setSelectedProcessIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(p.id)) next.delete(p.id);
+                            else next.add(p.id);
+                            return next;
+                          });
+                        }}
+                        className="w-4 h-4 accent-nia-green"
+                      />
+                      <span className="text-sm text-nia-dark">{p.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
+          {selectedProcessIds.size > 0 && (
+            <div className="text-xs text-nia-green font-medium mt-2">
+              {selectedProcessIds.size} process{selectedProcessIds.size !== 1 ? "es" : ""} selected
+            </div>
+          )}
+        </div>
+
+        {/* Cadence */}
+        <div>
+          <label className="block text-sm font-medium text-nia-dark mb-1">Cadence *</label>
+          <select
+            required
+            value={cadence}
+            onChange={(e) => setCadence(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+          >
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="semi-annual">Semi-Annual</option>
+            <option value="annual">Annual</option>
+          </select>
         </div>
 
         {/* Unit and Direction */}

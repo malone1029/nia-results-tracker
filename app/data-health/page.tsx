@@ -10,8 +10,8 @@ import EmptyState from "@/components/empty-state";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface MetricRow extends Metric {
-  process_name: string;
-  category_display_name: string;
+  process_names: string;
+  category_display_names: string;
   last_entry_date: string | null;
   last_entry_value: number | null;
   review_status: "current" | "due-soon" | "overdue" | "no-data";
@@ -44,37 +44,53 @@ export default function DataHealthPage() {
   const logFormRef = useRef<HTMLDivElement>(null);
 
   async function fetchMetrics() {
-    const { data: metricsData, error: metricsError } = await supabase
-      .from("metrics")
-      .select(`
-        *,
-        processes!inner (
-          name,
-          categories!inner (
-            display_name
-          )
-        )
-      `);
+    // Fetch metrics, junction links, and processes separately
+    const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
+      supabase.from("metrics").select("*"),
+      supabase.from("metric_processes").select("metric_id, process_id"),
+      supabase.from("processes").select("id, name, categories!inner ( display_name )"),
+      supabase.from("entries").select("metric_id, value, date").order("date", { ascending: false }),
+    ]);
 
-    if (metricsError) {
-      console.error("Error fetching metrics:", metricsError);
+    if (metricsRes.error) {
+      console.error("Error fetching metrics:", metricsRes.error);
       setLoading(false);
       return;
     }
 
-    const { data: entriesData, error: entriesError } = await supabase
-      .from("entries")
-      .select("metric_id, value, date")
-      .order("date", { ascending: false });
+    if (entriesRes.error) {
+      console.error("Error fetching entries:", entriesRes.error);
+    }
 
-    if (entriesError) {
-      console.error("Error fetching entries:", entriesError);
+    // Build process lookup
+    const processMap = new Map<number, { name: string; category_display_name: string }>();
+    for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
+      const cat = p.categories as Record<string, unknown>;
+      processMap.set(p.id as number, {
+        name: p.name as string,
+        category_display_name: cat.display_name as string,
+      });
+    }
+
+    // Build metric -> process names lookup via junction table
+    const metricProcesses = new Map<number, { names: string[]; categories: string[] }>();
+    for (const link of linksRes.data || []) {
+      const proc = processMap.get(link.process_id);
+      if (!proc) continue;
+      if (!metricProcesses.has(link.metric_id)) {
+        metricProcesses.set(link.metric_id, { names: [], categories: [] });
+      }
+      const entry = metricProcesses.get(link.metric_id)!;
+      entry.names.push(proc.name);
+      if (!entry.categories.includes(proc.category_display_name)) {
+        entry.categories.push(proc.category_display_name);
+      }
     }
 
     const latestEntries = new Map<number, { value: number; date: string }>();
     const sparklines = new Map<number, number[]>();
-    if (entriesData) {
-      for (const entry of entriesData) {
+    if (entriesRes.data) {
+      for (const entry of entriesRes.data) {
         if (!latestEntries.has(entry.metric_id)) {
           latestEntries.set(entry.metric_id, {
             value: entry.value,
@@ -92,15 +108,14 @@ export default function DataHealthPage() {
       }
     }
 
-    const rows: MetricRow[] = (metricsData || []).map((m: Record<string, unknown>) => {
-      const proc = m.processes as Record<string, unknown>;
-      const category = proc.categories as Record<string, unknown>;
+    const rows: MetricRow[] = (metricsRes.data || []).map((m: Record<string, unknown>) => {
       const latest = latestEntries.get(m.id as number);
+      const procs = metricProcesses.get(m.id as number);
 
       return {
         ...(m as unknown as Metric),
-        process_name: proc.name as string,
-        category_display_name: category.display_name as string,
+        process_names: procs ? procs.names.join(", ") : "Unlinked",
+        category_display_names: procs ? procs.categories.join(", ") : "—",
         last_entry_date: latest?.date || null,
         last_entry_value: latest?.value || null,
         review_status: getReviewStatus(
@@ -606,7 +621,7 @@ function MetricSection({
                     {metric.name}
                   </Link>
                   <div className="text-sm text-gray-500">
-                    {metric.category_display_name} &middot; {metric.process_name}{" "}
+                    {metric.category_display_names} &middot; {metric.process_names}{" "}
                     &middot; {metric.cadence}
                   </div>
                 </div>

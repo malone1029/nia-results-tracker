@@ -144,9 +144,14 @@ export interface ProcessImprovement {
   created_at: string;
 }
 
+export interface MetricProcess {
+  id: number;
+  metric_id: number;
+  process_id: number;
+}
+
 export interface Metric {
   id: number;
-  process_id: number;
   name: string;
   description: string | null;
   cadence: "monthly" | "quarterly" | "semi-annual" | "annual";

@@ -36,7 +36,7 @@ async function upsertProcess(
   return data!.id;
 }
 
-// Helper: upsert a metric and return its ID
+// Helper: upsert a metric and link it to a process via junction table
 async function upsertMetric(
   processId: number,
   name: string,
@@ -55,16 +55,21 @@ async function upsertMetric(
   const { data: existing } = await supabase
     .from("metrics")
     .select("id")
-    .eq("process_id", processId)
     .eq("name", name)
     .single();
 
-  if (existing) return existing.id;
+  if (existing) {
+    // Ensure junction link exists
+    await supabase.from("metric_processes").upsert(
+      { metric_id: existing.id, process_id: processId },
+      { onConflict: "metric_id,process_id" }
+    );
+    return existing.id;
+  }
 
   const { data, error } = await supabase
     .from("metrics")
     .insert({
-      process_id: processId,
       name,
       description: opts.description || null,
       cadence: opts.cadence,
@@ -80,6 +85,13 @@ async function upsertMetric(
     .single();
 
   if (error) throw new Error(`Failed to insert metric "${name}": ${error.message}`);
+
+  // Create junction link
+  await supabase.from("metric_processes").insert({
+    metric_id: data!.id,
+    process_id: processId,
+  });
+
   return data!.id;
 }
 

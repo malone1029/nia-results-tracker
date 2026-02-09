@@ -79,28 +79,40 @@ export default function RequirementsPage() {
           )
         `);
 
-      // Fetch all metrics for the "Add Metric" picker
-      const { data: allMetricsData } = await supabase
-        .from("metrics")
-        .select(`
-          id, name,
-          processes!inner (
-            name,
-            categories!inner ( display_name )
-          )
-        `)
-        .order("name");
+      // Fetch all metrics for the "Add Metric" picker, using junction table
+      const [allMetricsRes, allLinksRes, allProcessesRes] = await Promise.all([
+        supabase.from("metrics").select("id, name").order("name"),
+        supabase.from("metric_processes").select("metric_id, process_id"),
+        supabase.from("processes").select("id, name, categories!inner ( display_name )"),
+      ]);
 
-      if (allMetricsData) {
+      // Build process lookup for metrics picker
+      const procLookup = new Map<number, { name: string; category_display_name: string }>();
+      for (const p of (allProcessesRes.data || []) as Record<string, unknown>[]) {
+        const cat = p.categories as Record<string, unknown>;
+        procLookup.set(p.id as number, {
+          name: p.name as string,
+          category_display_name: cat.display_name as string,
+        });
+      }
+
+      // Build metric -> first process lookup
+      const metricFirstProc = new Map<number, { name: string; category_display_name: string }>();
+      for (const link of allLinksRes.data || []) {
+        if (metricFirstProc.has(link.metric_id)) continue;
+        const proc = procLookup.get(link.process_id);
+        if (proc) metricFirstProc.set(link.metric_id, proc);
+      }
+
+      if (allMetricsRes.data) {
         setAllMetrics(
-          allMetricsData.map((m: Record<string, unknown>) => {
-            const proc = m.processes as Record<string, unknown>;
-            const cat = proc.categories as Record<string, unknown>;
+          allMetricsRes.data.map((m: Record<string, unknown>) => {
+            const proc = metricFirstProc.get(m.id as number);
             return {
               id: m.id as number,
               name: m.name as string,
-              process_name: proc.name as string,
-              category_display_name: cat.display_name as string,
+              process_name: proc?.name || "Unlinked",
+              category_display_name: proc?.category_display_name || "—",
             };
           })
         );

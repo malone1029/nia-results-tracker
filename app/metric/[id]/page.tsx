@@ -27,9 +27,14 @@ import {
   Legend,
 } from "recharts";
 
-interface MetricDetail extends Metric {
-  process_name: string;
+interface LinkedProcessInfo {
+  id: number;
+  name: string;
   category_display_name: string;
+}
+
+interface MetricDetail extends Metric {
+  linked_processes: LinkedProcessInfo[];
 }
 
 export default function MetricDetailPage() {
@@ -53,25 +58,35 @@ export default function MetricDetailPage() {
   async function fetchData() {
     const { data: metricData } = await supabase
       .from("metrics")
-      .select(`
-        *,
-        processes!inner (
-          name,
-          categories!inner ( display_name )
-        )
-      `)
+      .select("*")
       .eq("id", metricId)
       .single();
 
     if (metricData) {
-      const process = metricData.processes as Record<string, unknown>;
-      const category = process.categories as Record<string, unknown>;
       const name = metricData.name as string;
       document.title = `${name} | NIA Excellence Hub`;
+
+      // Fetch linked processes via junction table
+      const { data: processLinks } = await supabase
+        .from("metric_processes")
+        .select(`
+          process_id,
+          processes!inner ( id, name, categories!inner ( display_name ) )
+        `)
+        .eq("metric_id", metricId);
+
+      const linkedProcs: LinkedProcessInfo[] = (processLinks || []).map((link) => {
+        const proc = link.processes as unknown as { id: number; name: string; categories: { display_name: string } };
+        return {
+          id: proc.id,
+          name: proc.name,
+          category_display_name: proc.categories.display_name,
+        };
+      });
+
       setMetric({
         ...(metricData as unknown as Metric),
-        process_name: process.name as string,
-        category_display_name: category.display_name as string,
+        linked_processes: linkedProcs,
       });
     }
 
@@ -209,9 +224,18 @@ export default function MetricDetailPage() {
           Dashboard
         </Link>
         {" / "}
-        <Link href="/categories" className="hover:text-nia-grey-blue">
-          {metric.category_display_name}
-        </Link>
+        {metric.linked_processes.length > 0 ? (
+          <>
+            <Link href={`/processes/${metric.linked_processes[0].id}`} className="hover:text-nia-grey-blue">
+              {metric.linked_processes[0].name}
+            </Link>
+            {metric.linked_processes.length > 1 && (
+              <span className="text-gray-400"> (+{metric.linked_processes.length - 1} more)</span>
+            )}
+          </>
+        ) : (
+          <span className="text-gray-400">Unlinked</span>
+        )}
         {" / "}
         <span className="text-nia-dark">{metric.name}</span>
       </div>
@@ -222,7 +246,9 @@ export default function MetricDetailPage() {
           <div>
             <h1 className="text-3xl font-bold text-nia-dark">{metric.name}</h1>
             <p className="text-gray-500 mt-1">
-              {metric.category_display_name} &middot; {metric.process_name}
+              {metric.linked_processes.length > 0
+                ? metric.linked_processes.map((p) => p.name).join(", ")
+                : "No linked processes"}
             </p>
             {metric.description && (
               <p className="text-sm text-gray-400 mt-2">{metric.description}</p>

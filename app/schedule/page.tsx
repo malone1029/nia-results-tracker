@@ -38,40 +38,50 @@ export default function SchedulePage() {
   useEffect(() => {
     document.title = "Review Schedule | NIA Excellence Hub";
     async function fetch() {
-      const { data: metricsData } = await supabase
-        .from("metrics")
-        .select(`
-          *,
-          processes!inner (
-            name,
-            is_key,
-            categories!inner ( display_name )
-          )
-        `);
+      // Fetch metrics, junction links, and processes separately
+      const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
+        supabase.from("metrics").select("*"),
+        supabase.from("metric_processes").select("metric_id, process_id"),
+        supabase.from("processes").select("id, name, is_key, categories!inner ( display_name )"),
+        supabase.from("entries").select("metric_id, value, date").order("date", { ascending: false }),
+      ]);
 
-      const { data: entriesData } = await supabase
-        .from("entries")
-        .select("metric_id, value, date")
-        .order("date", { ascending: false });
+      // Build process lookup
+      const processMap = new Map<number, { name: string; is_key: boolean; category_display_name: string }>();
+      for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
+        const cat = p.categories as Record<string, unknown>;
+        processMap.set(p.id as number, {
+          name: p.name as string,
+          is_key: p.is_key as boolean,
+          category_display_name: cat.display_name as string,
+        });
+      }
+
+      // Build metric -> first process lookup
+      const metricFirstProcess = new Map<number, { name: string; is_key: boolean; category_display_name: string }>();
+      for (const link of linksRes.data || []) {
+        if (metricFirstProcess.has(link.metric_id)) continue;
+        const proc = processMap.get(link.process_id);
+        if (proc) metricFirstProcess.set(link.metric_id, proc);
+      }
 
       const latestEntries = new Map<number, { value: number; date: string }>();
-      if (entriesData) {
-        for (const entry of entriesData) {
+      if (entriesRes.data) {
+        for (const entry of entriesRes.data) {
           if (!latestEntries.has(entry.metric_id)) {
             latestEntries.set(entry.metric_id, { value: entry.value, date: entry.date });
           }
         }
       }
 
-      const rows: MetricRow[] = (metricsData || []).map((m: Record<string, unknown>) => {
-        const process = m.processes as Record<string, unknown>;
-        const category = process.categories as Record<string, unknown>;
+      const rows: MetricRow[] = (metricsRes.data || []).map((m: Record<string, unknown>) => {
+        const proc = metricFirstProcess.get(m.id as number);
         const latest = latestEntries.get(m.id as number);
         return {
           ...(m as unknown as Metric),
-          process_name: process.name as string,
-          is_key_process: process.is_key as boolean,
-          category_display_name: category.display_name as string,
+          process_name: proc?.name || "Unlinked",
+          is_key_process: proc?.is_key || false,
+          category_display_name: proc?.category_display_name || "—",
           last_entry_date: latest?.date || null,
           last_entry_value: latest?.value || null,
           review_status: getReviewStatus(m.cadence as string, latest?.date || null),

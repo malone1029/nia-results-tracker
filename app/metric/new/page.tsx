@@ -39,7 +39,9 @@ function NewMetricContent() {
   // Form fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [processId, setProcessId] = useState<number>(preselectedProcessId ? Number(preselectedProcessId) : 0);
+  const [selectedProcessIds, setSelectedProcessIds] = useState<Set<number>>(
+    preselectedProcessId ? new Set([Number(preselectedProcessId)]) : new Set()
+  );
   const [cadence, setCadence] = useState("quarterly");
   const [targetValue, setTargetValue] = useState("");
   const [comparisonValue, setComparisonValue] = useState("");
@@ -85,8 +87,8 @@ function NewMetricContent() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (processId === 0) {
-      alert("Please select a process");
+    if (selectedProcessIds.size === 0) {
+      alert("Please select at least one process");
       return;
     }
     setSaving(true);
@@ -96,7 +98,6 @@ function NewMetricContent() {
       .insert({
         name,
         description: description || null,
-        process_id: processId,
         cadence,
         target_value: targetValue ? parseFloat(targetValue) : null,
         comparison_value: comparisonValue ? parseFloat(comparisonValue) : null,
@@ -115,17 +116,27 @@ function NewMetricContent() {
       return;
     }
 
-    // Save requirement links
-    if (data && selectedReqIds.size > 0) {
-      await supabase.from("metric_requirements").insert(
-        Array.from(selectedReqIds).map((reqId) => ({
-          metric_id: data.id,
-          requirement_id: reqId,
-        }))
-      );
-    }
-
     if (data) {
+      // Save process links via junction table
+      if (selectedProcessIds.size > 0) {
+        await supabase.from("metric_processes").insert(
+          Array.from(selectedProcessIds).map((pid) => ({
+            metric_id: data.id,
+            process_id: pid,
+          }))
+        );
+      }
+
+      // Save requirement links
+      if (selectedReqIds.size > 0) {
+        await supabase.from("metric_requirements").insert(
+          Array.from(selectedReqIds).map((reqId) => ({
+            metric_id: data.id,
+            requirement_id: reqId,
+          }))
+        );
+      }
+
       router.push(preselectedProcessId ? `/processes/${preselectedProcessId}` : `/metric/${data.id}`);
     }
     setSaving(false);
@@ -178,38 +189,69 @@ function NewMetricContent() {
           />
         </div>
 
-        {/* Process and Cadence */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Processes (multi-select checkboxes) */}
+        <div className="bg-nia-grey-blue/5 border border-nia-grey-blue/20 rounded-lg p-4 space-y-3">
           <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">Process *</label>
-            <select
-              required
-              value={processId}
-              onChange={(e) => setProcessId(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            >
-              <option value={0} disabled>Select a process</option>
-              {processes.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.category_display_name} — {p.name}
-                </option>
-              ))}
-            </select>
+            <span className="font-medium text-nia-dark">Linked Processes *</span>
+            <p className="text-xs text-gray-500 mt-1">
+              Select the processes this metric provides evidence for. A metric can be linked to multiple processes.
+            </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">Cadence *</label>
-            <select
-              required
-              value={cadence}
-              onChange={(e) => setCadence(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            >
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="semi-annual">Semi-Annual</option>
-              <option value="annual">Annual</option>
-            </select>
-          </div>
+          {(() => {
+            const groups = new Map<string, ProcessOption[]>();
+            for (const p of processes) {
+              if (!groups.has(p.category_display_name)) groups.set(p.category_display_name, []);
+              groups.get(p.category_display_name)!.push(p);
+            }
+            return Array.from(groups.entries()).map(([cat, procs]) => (
+              <div key={cat}>
+                <div className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">
+                  {cat}
+                </div>
+                <div className="space-y-1 ml-1">
+                  {procs.map((p) => (
+                    <label key={p.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedProcessIds.has(p.id)}
+                        onChange={() => {
+                          setSelectedProcessIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(p.id)) next.delete(p.id);
+                            else next.add(p.id);
+                            return next;
+                          });
+                        }}
+                        className="w-4 h-4 accent-nia-green"
+                      />
+                      <span className="text-sm text-nia-dark">{p.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
+          {selectedProcessIds.size > 0 && (
+            <div className="text-xs text-nia-green font-medium mt-2">
+              {selectedProcessIds.size} process{selectedProcessIds.size !== 1 ? "es" : ""} selected
+            </div>
+          )}
+        </div>
+
+        {/* Cadence */}
+        <div>
+          <label className="block text-sm font-medium text-nia-dark mb-1">Cadence *</label>
+          <select
+            required
+            value={cadence}
+            onChange={(e) => setCadence(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+          >
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="semi-annual">Semi-Annual</option>
+            <option value="annual">Annual</option>
+          </select>
         </div>
 
         {/* Unit and Direction */}
