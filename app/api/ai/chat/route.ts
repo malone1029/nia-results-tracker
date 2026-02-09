@@ -30,12 +30,13 @@ function buildProcessContext(process: Record<string, unknown>): string {
     lines.push("");
   }
 
-  // Charter
+  // Charter (cap at 2000 chars to keep context lean — AI can request full text if needed)
   const charter = process.charter as Record<string, unknown> | null;
   if (charter) {
     lines.push(`### Charter`);
     if (charter.content) {
-      lines.push(String(charter.content));
+      const charterText = String(charter.content);
+      lines.push(charterText.length > 2000 ? charterText.slice(0, 2000) + "\n\n*[Charter truncated — full text available in process]*" : charterText);
     } else {
       if (charter.purpose) lines.push(`**Purpose:** ${charter.purpose}`);
       if (charter.scope_includes) lines.push(`**Scope (Includes):** ${charter.scope_includes}`);
@@ -61,7 +62,8 @@ function buildProcessContext(process: Record<string, unknown>): string {
     if (data) {
       lines.push(`### ADLI: ${section.label}`);
       if (data.content) {
-        lines.push(String(data.content));
+        const adliText = String(data.content);
+        lines.push(adliText.length > 1500 ? adliText.slice(0, 1500) + "\n*[Truncated]*" : adliText);
       } else {
         for (const [key, value] of Object.entries(data)) {
           if (key === "content" || !value) continue;

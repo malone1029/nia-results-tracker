@@ -1092,7 +1092,7 @@ const STEP_ACTIONS: Record<string, { primary: StepAction; secondary: StepAction[
     primary: {
       label: "Review My Charter",
       description: "check for mixed content, suggest cleanup",
-      prompt: "Review this charter carefully. Check if it has ADLI content, PDSA/PDCA cycles, Baldrige framework links, LeTCI content, or task lists mixed in. If it does, offer to separate the content into the correct ADLI fields using a charter cleanup suggestion. The charter should only contain the process purpose, overview, scope, and key stakeholders.",
+      prompt: "Review this charter briefly. List what content types are mixed in (e.g., ADLI assessments, PDSA cycles, Baldrige links, task lists). For each, say which field it should move to. Keep your response short — just the analysis, no rewritten content yet. I'll ask you to generate the cleanup if I want to proceed.",
       color: "nia-orange",
       borderClass: "border-nia-orange/30",
       bgClass: "bg-nia-orange/5 hover:bg-nia-orange/10",
@@ -1114,7 +1114,7 @@ const STEP_ACTIONS: Record<string, { primary: StepAction; secondary: StepAction[
       textClass: "text-nia-orange",
     },
     secondary: [
-      { label: "Review Charter", description: "check for mixed content", prompt: "Review this charter carefully. Check if it has ADLI content, PDSA/PDCA cycles, Baldrige framework links, or task lists mixed in. If it does, offer to separate the content into the correct ADLI fields using a charter cleanup suggestion.", color: "nia-grey-blue", borderClass: "border-nia-grey-blue/30", bgClass: "bg-nia-grey-blue/5 hover:bg-nia-grey-blue/10", textClass: "text-nia-grey-blue" },
+      { label: "Review Charter", description: "check for mixed content", prompt: "Review this charter briefly. List what content types are mixed in (e.g., ADLI assessments, PDSA cycles, Baldrige links). For each, say which field it should move to. Keep your response short — just the analysis.", color: "nia-grey-blue", borderClass: "border-nia-grey-blue/30", bgClass: "bg-nia-grey-blue/5 hover:bg-nia-grey-blue/10", textClass: "text-nia-grey-blue" },
       { label: "Coach Me", description: "quick wins", prompt: "Coach me on this process. What are the 2-3 quickest wins I could tackle right now to improve maturity?", color: "nia-green", borderClass: "border-nia-green/30", bgClass: "bg-nia-green/5 hover:bg-nia-green/10", textClass: "text-nia-green" },
     ],
   },
