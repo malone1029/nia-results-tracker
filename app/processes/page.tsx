@@ -222,7 +222,7 @@ export default function ProcessesPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 content-appear">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -283,7 +283,7 @@ export default function ProcessesPage() {
                 className={`rounded-xl p-3 text-center transition-all duration-200 ${
                   isSelected
                     ? "ring-2 ring-nia-dark shadow-md"
-                    : "shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                    : "shadow-sm card-hover-strong"
                 } ${isEmpty ? "opacity-60" : ""}`}
                 style={{ backgroundColor: isEmpty ? "#dc262608" : "#324a4d08", borderTop: `3px solid ${isEmpty ? "#dc2626" : "#55787c"}` }}
               >

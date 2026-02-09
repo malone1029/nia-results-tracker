@@ -176,14 +176,14 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         strokeDasharray="4 3"
       />
       {/* Plus icon accent */}
-      <circle cx="60" cy="60" r="10" fill="#55787c" opacity="0.12" />
-      <circle cx="60" cy="60" r="10" stroke="#55787c" strokeWidth="1.5" />
+      <circle cx="60" cy="60" r="10" fill="#f79935" opacity="0.12" />
+      <circle cx="60" cy="60" r="10" stroke="#f79935" strokeWidth="1.5" />
       <line
         x1="56"
         y1="60"
         x2="64"
         y2="60"
-        stroke="#55787c"
+        stroke="#f79935"
         strokeWidth="2"
         strokeLinecap="round"
       />
@@ -192,7 +192,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         y1="56"
         x2="60"
         y2="64"
-        stroke="#55787c"
+        stroke="#f79935"
         strokeWidth="2"
         strokeLinecap="round"
       />
@@ -256,8 +256,8 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         width="8"
         height="40"
         rx="2"
-        fill="#55787c"
-        opacity="0.15"
+        fill="#b1bd37"
+        opacity="0.18"
       />
       <rect
         x="50"
@@ -286,7 +286,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         width="8"
         height="40"
         rx="2"
-        stroke="#55787c"
+        stroke="#b1bd37"
         strokeWidth="1"
         strokeDasharray="3 2"
         fill="none"
@@ -336,7 +336,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
       <circle cx="14" cy="55" r="2" fill="#55787c" opacity="0.4" />
       <circle cx="14" cy="25" r="2" fill="#55787c" opacity="0.4" />
       {/* Center dot */}
-      <circle cx="40" cy="40" r="3" fill="#55787c" opacity="0.3" />
+      <circle cx="40" cy="40" r="3" fill="#f79935" opacity="0.4" />
     </svg>
   ),
 
@@ -357,7 +357,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         y1="47"
         x2="64"
         y2="64"
-        stroke="#d1d5db"
+        stroke="#55787c"
         strokeWidth="3"
         strokeLinecap="round"
       />

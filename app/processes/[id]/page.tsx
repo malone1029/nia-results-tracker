@@ -517,7 +517,7 @@ function ProcessDetailContent() {
 
       {/* Asana export result */}
       {asanaResult && (
-        <div className="banner-enter bg-nia-green/20 border border-nia-green rounded-lg p-4 flex items-center justify-between">
+        <div className="success-celebrate bg-nia-green/20 border border-nia-green rounded-lg p-4 flex items-center justify-between">
           <p className="text-sm text-nia-dark">
             {asanaResult.action === "created" ? "Exported to new Asana project!" : "Synced to Asana!"}
           </p>

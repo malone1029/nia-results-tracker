@@ -219,7 +219,7 @@ export default function DataHealthPage() {
   if (loading) return <DashboardSkeleton />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 content-appear">
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -239,7 +239,7 @@ export default function DataHealthPage() {
 
       {/* Success message */}
       {successMessage && (
-        <div className="banner-enter bg-nia-green/20 border border-nia-green text-nia-dark px-4 py-3 rounded-lg">
+        <div className="success-celebrate bg-nia-green/20 border border-nia-green text-nia-dark px-4 py-3 rounded-lg">
           {successMessage}
         </div>
       )}
@@ -528,8 +528,13 @@ function HeroCard({
     "#324a4d": "dark",
   };
 
+  const glowMap: Record<string, string> = {
+    "#dc2626": "glow-red",
+    "#f79935": "glow-orange",
+  };
+
   return (
-    <Card variant="elevated" accent={accentMap[color] || "none"} padding="md" className="flex flex-col justify-center">
+    <Card variant="elevated" accent={accentMap[color] || "none"} padding="md" className={`flex flex-col justify-center ${value > 0 && glowMap[color] ? glowMap[color] : ""}`}>
       <div className="text-4xl font-bold font-display number-pop tracking-tight" style={{ color }}>
         {value}
       </div>
@@ -615,7 +620,7 @@ function MetricSection({
             >
               <div className="flex items-center gap-3">
                 <div
-                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  className={`w-3 h-3 rounded-full flex-shrink-0 ${metric.review_status === "overdue" ? "overdue-pulse" : ""}`}
                   style={{
                     backgroundColor: getStatusColor(metric.review_status),
                   }}

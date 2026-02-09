@@ -161,7 +161,7 @@ export default function Sidebar({
                   onClick={onClose}
                   className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
                     isActive(link.href)
-                      ? "bg-white/15 text-white font-medium"
+                      ? "bg-white/15 text-white font-medium nav-link-active"
                       : "text-white/60 hover:text-white hover:bg-white/8"
                   }`}
                 >
@@ -181,7 +181,7 @@ export default function Sidebar({
           onClick={onClose}
           className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
             isActive("/settings")
-              ? "bg-white/15 text-white font-medium"
+              ? "bg-white/15 text-white font-medium nav-link-active"
               : "text-white/60 hover:text-white hover:bg-white/8"
           }`}
         >

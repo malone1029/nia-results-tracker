@@ -247,7 +247,7 @@ export default function ProcessOwnerDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 content-appear">
       {/* Header + owner selector */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -299,6 +299,7 @@ export default function ProcessOwnerDashboard() {
           label="Overdue Metrics"
           value={filteredOverdue.length}
           color={filteredOverdue.length > 0 ? "#dc2626" : "#b1bd37"}
+          glow={filteredOverdue.length > 0 ? "red" : undefined}
         />
         <StatCard label="Asana Linked" value={asanaLinked} color="#55787c" />
       </div>
@@ -416,7 +417,7 @@ export default function ProcessOwnerDashboard() {
                         className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 transition-colors group"
                       >
                         <div
-                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          className={`w-2 h-2 rounded-full flex-shrink-0 ${item.type === "overdue" ? "overdue-pulse" : ""}`}
                           style={{
                             backgroundColor:
                               item.type === "overdue"
@@ -530,14 +531,16 @@ function StatCard({
   value,
   color,
   subtitle,
+  glow,
 }: {
   label: string;
   value: number | string;
   color: string;
   subtitle?: string;
+  glow?: "red" | "orange" | "green" | "dark";
 }) {
   return (
-    <Card variant="elevated" padding="sm" className="p-4">
+    <Card variant="elevated" padding="sm" className={`p-4 ${glow ? `glow-${glow}` : ""}`}>
       <div className="text-2xl font-bold font-display number-pop" style={{ color }}>
         {value}
       </div>

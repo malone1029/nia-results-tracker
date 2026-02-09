@@ -213,7 +213,7 @@ export default function LogDataPage() {
 
       {/* Success message */}
       {successMessage && (
-        <div className="banner-enter bg-nia-green/20 border border-nia-green text-nia-dark px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="success-celebrate bg-nia-green/20 border border-nia-green text-nia-dark px-4 py-3 rounded-lg flex items-center justify-between">
           <span>{successMessage}</span>
           <Link href="/" className="text-sm text-nia-grey-blue hover:underline">
             Back to Dashboard

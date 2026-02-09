@@ -111,7 +111,7 @@ export default function AiInsightsPage() {
   if (loading) return <ListPageSkeleton showStats statCount={5} />;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 content-appear">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-nia-dark">ADLI Insights</h1>

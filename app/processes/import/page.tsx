@@ -425,7 +425,7 @@ export default function ImportProcessPage() {
 
       {/* Success messages */}
       {savedProcesses.length > 0 && (
-        <div className="banner-enter bg-nia-green/20 border border-nia-green rounded-lg p-4">
+        <div className="success-celebrate bg-nia-green/20 border border-nia-green rounded-lg p-4">
           <p className="text-sm text-nia-dark font-medium">
             Successfully imported {savedProcesses.length} process
             {savedProcesses.length !== 1 ? "es" : ""}:

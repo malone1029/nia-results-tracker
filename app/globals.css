@@ -201,6 +201,96 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   background-clip: text;
 }
 
+/* Overdue pulse — red status dots gently throb to draw attention */
+@keyframes overdue-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.7; }
+}
+.overdue-pulse {
+  animation: overdue-pulse 2s ease-in-out infinite;
+}
+
+/* Hero glow — colored box-shadow for stat cards */
+.glow-red    { box-shadow: 0 0 20px -4px rgba(220, 38, 38, 0.25); }
+.glow-orange { box-shadow: 0 0 20px -4px rgba(247, 153, 53, 0.25); }
+.glow-green  { box-shadow: 0 0 20px -4px rgba(177, 189, 55, 0.25); }
+.glow-dark   { box-shadow: 0 0 20px -4px rgba(50, 74, 77, 0.20); }
+
+/* Stronger lift for category grid cards */
+.card-hover-strong {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.card-hover-strong:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px -8px rgba(50, 74, 77, 0.15), 0 4px 12px -4px rgba(50, 74, 77, 0.08);
+}
+
+/* Dropdown scale-in from top-right (profile menu) */
+@keyframes dropdown-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+    transform-origin: top right;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    transform-origin: top right;
+  }
+}
+.dropdown-enter {
+  animation: dropdown-enter 150ms ease-out;
+}
+
+/* Orange accent bar on active sidebar link */
+.nav-link-active {
+  position: relative;
+}
+.nav-link-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background: var(--nia-orange);
+  border-radius: 0 2px 2px 0;
+  animation: nav-bar-in 200ms ease-out;
+}
+@keyframes nav-bar-in {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+/* Success banner with subtle bounce (green banners only) */
+@keyframes success-celebrate {
+  0%   { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  60%  { opacity: 1; transform: translateY(2px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.success-celebrate {
+  animation: success-celebrate 400ms ease-out;
+}
+
+/* Content fade-in-up for skeleton→content crossfade */
+@keyframes content-appear {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.content-appear {
+  animation: content-appear 300ms ease-out;
+}
+
+/* ─── Accessibility ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Markdown content styling for imported process documents */
 .markdown-content table {
   width: 100%;
