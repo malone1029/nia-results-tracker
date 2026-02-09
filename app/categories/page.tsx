@@ -6,6 +6,7 @@ import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValu
 import { CategoryGridSkeleton } from "@/components/skeleton";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
+import { Card, Badge, Button } from "@/components/ui";
 
 interface MetricRow extends Metric {
   process_id: number;
@@ -240,16 +241,14 @@ export default function CategoriesPage() {
             Metrics organized by Baldrige Category and process
           </p>
         </div>
-        <button
+        <Button
+          variant={showKeyOnly ? "accent" : "ghost"}
+          size="sm"
           onClick={() => setShowKeyOnly(!showKeyOnly)}
-          className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors self-start ${
-            showKeyOnly
-              ? "bg-nia-orange text-white"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-          }`}
+          className="self-start"
         >
           {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
-        </button>
+        </Button>
       </div>
 
       {/* Category overview cards */}
@@ -309,7 +308,7 @@ export default function CategoriesPage() {
         const isCatExpanded = expandedCategories.has(cat.id);
 
         return (
-          <div key={cat.id} id={`cat-${cat.id}`} className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-nia-orange">
+          <Card key={cat.id} accent="orange" className="overflow-hidden" id={`cat-${cat.id}`}>
             {/* Category header — clickable to expand */}
             <button
               onClick={() => toggleCategory(cat.id)}
@@ -365,9 +364,9 @@ export default function CategoriesPage() {
                           </span>
                         </div>
                         {needsAttention > 0 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-nia-orange/10 text-nia-orange font-medium">
+                          <Badge color="orange" size="xs">
                             {needsAttention} need attention
-                          </span>
+                          </Badge>
                         )}
                       </button>
 
@@ -394,16 +393,12 @@ export default function CategoriesPage() {
                                   className="border-t border-gray-200 hover:bg-gray-100"
                                 >
                                   <td className="px-4 py-2">
-                                    <span
-                                      className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                      style={{
-                                        backgroundColor:
-                                          getStatusColor(metric.review_status) + "20",
-                                        color: getStatusColor(metric.review_status),
-                                      }}
+                                    <Badge
+                                      color={metric.review_status === "current" ? "green" : metric.review_status === "overdue" ? "red" : metric.review_status === "due-soon" ? "orange" : "gray"}
+                                      size="xs"
                                     >
                                       {getStatusLabel(metric.review_status)}
-                                    </span>
+                                    </Badge>
                                   </td>
                                   <td className="px-4 py-2">
                                     <Link
@@ -445,15 +440,12 @@ export default function CategoriesPage() {
                                   >
                                     {metric.name}
                                   </Link>
-                                  <span
-                                    className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                    style={{
-                                      backgroundColor: getStatusColor(metric.review_status) + "20",
-                                      color: getStatusColor(metric.review_status),
-                                    }}
+                                  <Badge
+                                    color={metric.review_status === "current" ? "green" : metric.review_status === "overdue" ? "red" : metric.review_status === "due-soon" ? "orange" : "gray"}
+                                    size="xs"
                                   >
                                     {getStatusLabel(metric.review_status)}
-                                  </span>
+                                  </Badge>
                                 </div>
                                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-400">
                                   <span className="capitalize">{metric.cadence}</span>
@@ -478,7 +470,7 @@ export default function CategoriesPage() {
                 })}
               </div>
             )}
-          </div>
+          </Card>
         );
       })}
     </div>

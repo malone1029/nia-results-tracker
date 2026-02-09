@@ -15,6 +15,7 @@ import {
 } from "@/lib/review-status";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
+import { Card, Badge, Button, Input } from "@/components/ui";
 import {
   LineChart,
   Line,
@@ -241,7 +242,7 @@ export default function MetricDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <Card padding="lg">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold text-nia-dark">{metric.name}</h1>
@@ -255,27 +256,14 @@ export default function MetricDetailPage() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <span
-              className="text-xs px-2 py-1 rounded-full font-medium"
-              style={{
-                backgroundColor: getStatusColor(reviewStatus) + "20",
-                color: getStatusColor(reviewStatus),
-              }}
+            <Badge
+              color={reviewStatus === "current" ? "green" : reviewStatus === "overdue" ? "red" : reviewStatus === "due-soon" ? "orange" : "gray"}
+              size="sm"
             >
               {getStatusLabel(reviewStatus)}
-            </span>
-            <Link
-              href={`/metric/${metricId}/edit`}
-              className="bg-gray-200 text-nia-dark text-sm rounded-lg py-2 px-4 hover:bg-gray-300 inline-flex items-center"
-            >
-              Edit
-            </Link>
-            <button
-              onClick={() => setShowLogForm(!showLogForm)}
-              className="bg-nia-dark text-white text-sm rounded-lg py-2 px-4 hover:opacity-90"
-            >
-              Log New Value
-            </button>
+            </Badge>
+            <Button variant="ghost" size="sm" href={`/metric/${metricId}/edit`}>Edit</Button>
+            <Button size="sm" onClick={() => setShowLogForm(!showLogForm)}>Log New Value</Button>
           </div>
         </div>
 
@@ -323,81 +311,30 @@ export default function MetricDetailPage() {
             </Link>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Log form */}
       {showLogForm && (
-        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-nia-orange">
+        <Card accent="orange" padding="lg">
           <h3 className="font-bold text-nia-dark mb-4">Log New Value</h3>
           <form onSubmit={handleLogSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-nia-dark mb-1">Value *</label>
-                <input
-                  type="number"
-                  step="any"
-                  required
-                  value={logValue}
-                  onChange={(e) => setLogValue(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-nia-dark mb-1">Date *</label>
-                <input
-                  type="date"
-                  required
-                  value={logDate}
-                  onChange={(e) => setLogDate(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                />
-              </div>
+              <Input label="Value *" type="number" step="any" required value={logValue} onChange={(e) => setLogValue(e.target.value)} />
+              <Input label="Date *" type="date" required value={logDate} onChange={(e) => setLogDate(e.target.value)} />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-nia-dark mb-1">
-                Analysis Note <span className="text-gray-400 font-normal">(context)</span>
-              </label>
-              <input
-                type="text"
-                value={logAnalysis}
-                onChange={(e) => setLogAnalysis(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-nia-dark mb-1">
-                Course Correction <span className="text-gray-400 font-normal">(action if missing target)</span>
-              </label>
-              <input
-                type="text"
-                value={logCorrection}
-                onChange={(e) => setLogCorrection(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-              />
-            </div>
+            <Input label="Analysis Note" hint="context" value={logAnalysis} onChange={(e) => setLogAnalysis(e.target.value)} />
+            <Input label="Course Correction" hint="action if missing target" value={logCorrection} onChange={(e) => setLogCorrection(e.target.value)} />
             <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save Entry"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowLogForm(false)}
-                className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300"
-              >
-                Cancel
-              </button>
+              <Button type="submit" loading={saving}>{saving ? "Saving..." : "Save Entry"}</Button>
+              <Button variant="ghost" onClick={() => setShowLogForm(false)}>Cancel</Button>
             </div>
           </form>
-        </div>
+        </Card>
       )}
 
       {/* Trend Chart */}
       {entries.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
+        <Card padding="lg">
           <h2 className="text-xl font-bold text-nia-dark mb-4">Trend Chart</h2>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -462,11 +399,11 @@ export default function MetricDetailPage() {
               )}
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
       )}
 
       {/* LeTCI Assessment */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <Card padding="lg">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-nia-dark">LeTCI Assessment</h2>
           <span className="text-sm font-medium text-nia-grey-blue">
@@ -522,10 +459,10 @@ export default function MetricDetailPage() {
             }
           />
         </div>
-      </div>
+      </Card>
 
       {/* Entry History */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <Card padding="lg">
         <h2 className="text-xl font-bold text-nia-dark mb-4">Entry History</h2>
         {entries.length === 0 ? (
           <p className="text-gray-500 text-sm">No entries yet.</p>
@@ -573,7 +510,7 @@ export default function MetricDetailPage() {
             </tbody>
           </table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

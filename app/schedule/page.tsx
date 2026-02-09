@@ -6,6 +6,7 @@ import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValu
 import { ListPageSkeleton } from "@/components/skeleton";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
+import { Card, Badge, Button } from "@/components/ui";
 
 interface MetricRow extends Metric {
   process_name: string;
@@ -120,16 +121,14 @@ export default function SchedulePage() {
             Metrics organized by how often they need to be reviewed
           </p>
         </div>
-        <button
+        <Button
+          variant={showKeyOnly ? "accent" : "ghost"}
+          size="sm"
           onClick={() => setShowKeyOnly(!showKeyOnly)}
-          className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors self-start ${
-            showKeyOnly
-              ? "bg-nia-orange text-white"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-          }`}
+          className="self-start"
         >
           {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
-        </button>
+        </Button>
       </div>
 
       {/* Summary cards */}
@@ -140,21 +139,23 @@ export default function SchedulePage() {
             (m) => m.review_status === "overdue" || m.review_status === "no-data"
           ).length;
           return (
-            <a
-              key={cadence}
-              href={`#${cadence}`}
-              className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-              style={{ backgroundColor: needsAttention > 0 ? "#f7993508" : "#324a4d08", borderTop: `3px solid ${needsAttention > 0 ? "#f79935" : "#324a4d"}` }}
-            >
-              <div className="text-2xl font-bold text-nia-dark">{list.length}</div>
-              <div className="text-sm font-medium text-nia-grey-blue">
-                {CADENCE_LABELS[cadence]}
-              </div>
-              {needsAttention > 0 && (
-                <div className="text-xs text-nia-orange font-medium mt-1">
-                  {needsAttention} need attention
+            <a key={cadence} href={`#${cadence}`}>
+              <Card
+                variant="interactive"
+                accent={needsAttention > 0 ? "orange" : "dark"}
+                padding="sm"
+                className="text-center"
+              >
+                <div className="text-2xl font-bold font-display number-pop text-nia-dark">{list.length}</div>
+                <div className="text-sm font-medium text-nia-grey-blue">
+                  {CADENCE_LABELS[cadence]}
                 </div>
-              )}
+                {needsAttention > 0 && (
+                  <div className="text-xs text-nia-orange font-medium mt-1">
+                    {needsAttention} need attention
+                  </div>
+                )}
+              </Card>
             </a>
           );
         })}
@@ -207,7 +208,7 @@ function CadenceSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div id={id} className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-nia-orange">
+    <Card id={id} accent="orange">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
@@ -225,9 +226,9 @@ function CadenceSection({
         </div>
         <div className="flex items-center gap-3">
           {needsAttention > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-nia-orange/10 text-nia-orange font-medium">
+            <Badge color="orange" size="xs">
               {needsAttention} need attention
-            </span>
+            </Badge>
           )}
           <span className="text-xs text-gray-400">{description}</span>
         </div>
@@ -252,15 +253,12 @@ function CadenceSection({
               {metrics.map((metric) => (
                 <tr key={metric.id} className="border-t border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-2">
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full font-medium"
-                      style={{
-                        backgroundColor: getStatusColor(metric.review_status) + "20",
-                        color: getStatusColor(metric.review_status),
-                      }}
+                    <Badge
+                      color={metric.review_status === "current" ? "green" : metric.review_status === "overdue" ? "red" : metric.review_status === "due-soon" ? "orange" : "gray"}
+                      size="xs"
                     >
                       {getStatusLabel(metric.review_status)}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-4 py-2">
                     <Link
@@ -325,6 +323,6 @@ function CadenceSection({
         </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

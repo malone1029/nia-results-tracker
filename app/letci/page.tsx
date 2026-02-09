@@ -6,6 +6,7 @@ import { getTrendDirection } from "@/lib/review-status";
 import { ListPageSkeleton } from "@/components/skeleton";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
+import { Card, Button, Select } from "@/components/ui";
 
 interface MetricLeTCI extends Metric {
   process_name: string;
@@ -235,50 +236,45 @@ export default function LeTCIPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <div className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: "#324a4d08", borderTop: "3px solid #324a4d" }}>
-          <div className="text-2xl font-bold text-nia-dark">{total}</div>
+        <Card variant="interactive" accent="dark" padding="sm" className="text-center">
+          <div className="text-2xl font-bold font-display number-pop text-nia-dark">{total}</div>
           <div className="text-xs text-gray-400">Total Metrics</div>
-        </div>
-        <div className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: "#b1bd3708", borderTop: "3px solid #b1bd37" }}>
-          <div className="text-2xl font-bold text-nia-green">{withLevel}</div>
+        </Card>
+        <Card variant="interactive" accent="green" padding="sm" className="text-center">
+          <div className="text-2xl font-bold font-display number-pop text-nia-green">{withLevel}</div>
           <div className="text-xs text-gray-400">Have Levels</div>
-        </div>
+        </Card>
         {[
           { val: withTrend, label: "Have Trends" },
           { val: withComparison, label: "Have Comparisons" },
           { val: withIntegration, label: "Have Integration" },
-        ].map(({ val, label }) => {
-          const c = val > 0 ? "#b1bd37" : "#dc2626";
-          return (
-            <div key={label} className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: `${c}08`, borderTop: `3px solid ${c}` }}>
-              <div className="text-2xl font-bold" style={{ color: c }}>{val}</div>
-              <div className="text-xs text-gray-400">{label}</div>
-            </div>
-          );
-        })}
-        <div className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: "#b1bd3710", borderTop: "3px solid #b1bd37" }}>
-          <div className="text-2xl font-bold text-nia-green">{fullLeTCI}</div>
+        ].map(({ val, label }) => (
+          <Card key={label} variant="interactive" accent={val > 0 ? "green" : "red"} padding="sm" className="text-center">
+            <div className={`text-2xl font-bold font-display number-pop ${val > 0 ? "text-nia-green" : "text-nia-red"}`}>{val}</div>
+            <div className="text-xs text-gray-400">{label}</div>
+          </Card>
+        ))}
+        <Card variant="interactive" accent="green" padding="sm" className="text-center">
+          <div className="text-2xl font-bold font-display number-pop text-nia-green">{fullLeTCI}</div>
           <div className="text-xs text-gray-400">Full LeTCI (4/4)</div>
-        </div>
+        </Card>
       </div>
 
       {/* Filter */}
       <div className="flex items-center gap-4">
-        <button
+        <Button
+          variant={showKeyOnly ? "accent" : "ghost"}
+          size="sm"
           onClick={() => setShowKeyOnly(!showKeyOnly)}
-          className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors ${
-            showKeyOnly
-              ? "bg-nia-orange text-white"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-          }`}
         >
           {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
-        </button>
-        <label className="text-sm font-medium text-nia-dark">Filter by category:</label>
-        <select
+        </Button>
+        <Select
+          label=""
+          size="sm"
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+          className="w-auto"
         >
           <option value="all">All Categories</option>
           {categoryOptions.map((cat) => (
@@ -286,14 +282,14 @@ export default function LeTCIPage() {
               {cat}
             </option>
           ))}
-        </select>
+        </Select>
         <span className="text-sm text-gray-400">
           Click column headers to sort
         </span>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -384,7 +380,7 @@ export default function LeTCIPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

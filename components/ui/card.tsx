@@ -23,6 +23,7 @@ interface CardProps {
   padding?: "none" | "sm" | "md" | "lg";
   children: React.ReactNode;
   className?: string;
+  id?: string;
   onClick?: () => void;
 }
 
@@ -63,10 +64,12 @@ export default function Card({
   padding = "none",
   children,
   className = "",
+  id,
   onClick,
 }: CardProps) {
   return (
     <div
+      id={id}
       className={`${variantStyles[variant]} ${accentBorders[accent]} ${paddings[padding]} overflow-hidden ${className}`}
       onClick={onClick}
       role={onClick ? "button" : undefined}

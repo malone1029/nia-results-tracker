@@ -6,6 +6,7 @@ import { getTrendDirection } from "@/lib/review-status";
 import { ListPageSkeleton } from "@/components/skeleton";
 import type { KeyRequirementWithStatus } from "@/lib/types";
 import Link from "next/link";
+import { Card, Badge, Button, Input } from "@/components/ui";
 
 // The display order for stakeholder groups
 const GROUP_ORDER = [
@@ -373,16 +374,13 @@ export default function RequirementsPage() {
           Source: NIA Organizational Profile, Figure P-6
         </p>
         </div>
-        <button
+        <Button
+          variant={editMode ? "primary" : "ghost"}
+          size="sm"
           onClick={() => { setEditMode(!editMode); setEditingReq(null); setDeleteConfirm(null); setAddingToGroup(null); }}
-          className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
-            editMode
-              ? "bg-nia-dark text-white"
-              : "bg-gray-200 text-nia-dark hover:bg-gray-300"
-          }`}
         >
           {editMode ? "Done Editing" : "Edit Requirements"}
-        </button>
+        </Button>
       </div>
 
       {/* Summary cards */}
@@ -393,10 +391,10 @@ export default function RequirementsPage() {
           { val: gaps, label: "Gaps (No Metrics)", color: gaps > 0 ? "#f79935" : "#b1bd37" },
           { val: meetingTargets, label: "Meeting Targets", color: meetingTargets > 0 ? "#b1bd37" : "#9ca3af" },
         ].map(({ val, label, color }) => (
-          <div key={label} className="rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: `${color}08`, borderTop: `3px solid ${color}` }}>
-            <div className="text-2xl font-bold" style={{ color }}>{val}</div>
+          <Card key={label} variant="interactive" padding="sm" className="text-center">
+            <div className="text-2xl font-bold font-display number-pop" style={{ color }}>{val}</div>
             <div className="text-xs text-gray-400">{label}</div>
-          </div>
+          </Card>
         ))}
       </div>
 
@@ -433,7 +431,7 @@ export default function RequirementsPage() {
         }
 
         return (
-          <div className="bg-white rounded-lg shadow p-4">
+          <Card padding="sm">
             <h2 className="text-xl font-bold text-nia-dark mb-3">Coverage Heatmap</h2>
             <p className="text-xs text-gray-400 mb-3">Metric coverage by stakeholder group and Baldrige category</p>
             <div className="overflow-x-auto">
@@ -478,7 +476,7 @@ export default function RequirementsPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         );
       })()}
 
@@ -501,40 +499,28 @@ export default function RequirementsPage() {
               const isGap = req.linked_metrics.length === 0;
 
               return (
-                <div
+                <Card
                   key={req.id}
-                  className="bg-white rounded-lg shadow overflow-hidden border-l-4 border-nia-orange"
+                  accent="orange"
                 >
                   {/* Inline edit form */}
                   {editMode && editingReq === req.id ? (
                     <div className="px-4 py-3 space-y-2 bg-gray-50">
-                      <input
-                        type="text"
+                      <Input
                         value={editForm.requirement}
                         onChange={(e) => setEditForm({ ...editForm, requirement: e.target.value })}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                         placeholder="Requirement name"
+                        size="sm"
                       />
-                      <input
-                        type="text"
+                      <Input
                         value={editForm.description}
                         onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                         placeholder="Description (optional)"
+                        size="sm"
                       />
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => saveEdit(req.id)}
-                          className="text-sm bg-nia-dark text-white px-3 py-1 rounded-lg hover:opacity-90"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingReq(null)}
-                          className="text-sm text-gray-500 hover:text-gray-700"
-                        >
-                          Cancel
-                        </button>
+                        <Button size="xs" onClick={() => saveEdit(req.id)}>Save</Button>
+                        <Button variant="ghost" size="xs" onClick={() => setEditingReq(null)}>Cancel</Button>
                       </div>
                     </div>
                   ) : deleteConfirm === req.id ? (
@@ -546,18 +532,8 @@ export default function RequirementsPage() {
                         )}
                       </p>
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleDelete(req.id)}
-                          className="text-sm bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(null)}
-                          className="text-sm text-gray-500 hover:text-gray-700"
-                        >
-                          Cancel
-                        </button>
+                        <Button variant="danger" size="xs" onClick={() => handleDelete(req.id)}>Delete</Button>
+                        <Button variant="ghost" size="xs" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
                       </div>
                     </div>
                   ) : (
@@ -574,9 +550,7 @@ export default function RequirementsPage() {
                         )}
                         <span className="font-medium text-nia-dark">{req.requirement}</span>
                         {isGap && !editMode && (
-                          <span className="text-xs bg-nia-orange/10 text-nia-orange px-2 py-0.5 rounded-full font-medium">
-                            No metrics linked
-                          </span>
+                          <Badge color="orange" size="xs">No metrics linked</Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-3">
@@ -669,15 +643,9 @@ export default function RequirementsPage() {
                                   {m.latest_value !== null ? m.latest_value : "\u2014"}
                                 </span>
                                 {m.target_value !== null && m.latest_value !== null && (
-                                  <span
-                                    className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                    style={{
-                                      backgroundColor: m.on_target ? "#b1bd37" + "20" : "#dc2626" + "20",
-                                      color: m.on_target ? "#b1bd37" : "#dc2626",
-                                    }}
-                                  >
+                                  <Badge color={m.on_target ? "green" : "red"} size="xs">
                                     {m.on_target ? "On Target" : "Below"}
-                                  </span>
+                                  </Badge>
                                 )}
                                 <span
                                   className="font-bold"
@@ -748,43 +716,31 @@ export default function RequirementsPage() {
                       )}
                     </div>
                   )}
-                </div>
+                </Card>
               );
             })}
 
             {/* Add Requirement button (edit mode only) */}
             {editMode && (
               addingToGroup === groupName ? (
-                <div className="bg-white rounded-lg shadow p-4 space-y-2">
-                  <input
-                    type="text"
+                <Card padding="sm" className="space-y-2">
+                  <Input
                     value={newReqForm.requirement}
                     onChange={(e) => setNewReqForm({ ...newReqForm, requirement: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                     placeholder="Requirement name"
+                    size="sm"
                   />
-                  <input
-                    type="text"
+                  <Input
                     value={newReqForm.description}
                     onChange={(e) => setNewReqForm({ ...newReqForm, description: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                     placeholder="Description (optional)"
+                    size="sm"
                   />
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleAddRequirement(segment, groupName)}
-                      className="text-sm bg-nia-dark text-white px-3 py-1 rounded-lg hover:opacity-90"
-                    >
-                      Add
-                    </button>
-                    <button
-                      onClick={() => { setAddingToGroup(null); setNewReqForm({ requirement: "", description: "" }); }}
-                      className="text-sm text-gray-500 hover:text-gray-700"
-                    >
-                      Cancel
-                    </button>
+                    <Button size="xs" onClick={() => handleAddRequirement(segment, groupName)}>Add</Button>
+                    <Button variant="ghost" size="xs" onClick={() => { setAddingToGroup(null); setNewReqForm({ requirement: "", description: "" }); }}>Cancel</Button>
                   </div>
-                </div>
+                </Card>
               ) : (
                 <button
                   onClick={() => setAddingToGroup(groupName)}

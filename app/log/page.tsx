@@ -6,6 +6,7 @@ import { getReviewStatus, formatDate, formatValue } from "@/lib/review-status";
 import { FormSkeleton } from "@/components/skeleton";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
+import { Card, CardHeader, CardBody, Button, Badge, Input, Select } from "@/components/ui";
 
 interface MetricOption extends Metric {
   process_name: string;
@@ -204,9 +205,7 @@ export default function LogDataPage() {
           >
             Bulk Review
             {dueMetrics.length > 0 && (
-              <span className="ml-1.5 text-xs bg-nia-orange/10 text-nia-orange px-1.5 py-0.5 rounded-full font-medium">
-                {dueMetrics.length}
-              </span>
+              <Badge color="orange" size="xs" className="ml-1.5">{dueMetrics.length}</Badge>
             )}
           </button>
         </div>
@@ -234,18 +233,19 @@ export default function LogDataPage() {
             </div>
           ) : (
             <>
-              <div className="bg-white rounded-lg shadow p-4 border-l-4 border-nia-orange">
+              <Card accent="orange" padding="sm">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-bold text-nia-dark">
                     {dueMetrics.length} metric{dueMetrics.length !== 1 ? "s" : ""} due for review
                   </h2>
                   <div className="flex items-center gap-3">
-                    <label className="text-sm text-gray-500">Date for all:</label>
-                    <input
+                    <Input
+                      label="Date for all"
                       type="date"
+                      size="sm"
                       value={bulkDate}
                       onChange={(e) => setBulkDate(e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+                      className="w-auto"
                     />
                   </div>
                 </div>
@@ -301,15 +301,15 @@ export default function LogDataPage() {
                     {Array.from(bulkValues.values()).filter((v) => v.trim() !== "").length} of{" "}
                     {dueMetrics.length} filled in
                   </span>
-                  <button
+                  <Button
                     onClick={handleBulkSave}
                     disabled={bulkSaving || Array.from(bulkValues.values()).filter((v) => v.trim() !== "").length === 0}
-                    className="bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium text-sm"
+                    loading={bulkSaving}
                   >
-                    {bulkSaving ? "Saving..." : "Save All"}
-                  </button>
+                    Save All
+                  </Button>
                 </div>
-              </div>
+              </Card>
             </>
           )}
         </div>
@@ -320,24 +320,24 @@ export default function LogDataPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Metric picker */}
         <div className="space-y-4">
-          <div className="bg-white rounded-lg shadow p-4">
+          <Card padding="sm">
             <h2 className="font-bold text-nia-dark mb-3">1. Select a Metric</h2>
 
             {/* Search */}
-            <input
-              type="text"
+            <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, process, or data source..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+              className="mb-3"
             />
 
             {/* Filters */}
             <div className="flex gap-3 mb-3">
-              <select
+              <Select
+                size="sm"
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+                className="w-auto"
               >
                 <option value="all">All Categories</option>
                 {categoryOptions.map((cat) => (
@@ -345,18 +345,19 @@ export default function LogDataPage() {
                     {cat}
                   </option>
                 ))}
-              </select>
-              <select
+              </Select>
+              <Select
+                size="sm"
                 value={filterCadence}
                 onChange={(e) => setFilterCadence(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+                className="w-auto"
               >
                 <option value="all">All Cadences</option>
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
                 <option value="semi-annual">Semi-Annual</option>
                 <option value="annual">Annual</option>
-              </select>
+              </Select>
             </div>
 
             {/* Metric list */}
@@ -388,12 +389,12 @@ export default function LogDataPage() {
             <div className="text-xs text-gray-400 mt-2">
               {filtered.length} of {metrics.length} metrics shown
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Right: Entry form */}
         <div>
-          <div className="bg-white rounded-lg shadow p-4">
+          <Card padding="sm">
             <h2 className="font-bold text-nia-dark mb-3">2. Enter Data</h2>
 
             {!selectedMetric ? (
@@ -423,81 +424,58 @@ export default function LogDataPage() {
                 {/* Value and Date */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-nia-dark mb-1">
-                      Value *
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        step="any"
-                        required
-                        value={value}
-                        onChange={(e) => setValue(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                        placeholder="Enter value"
-                      />
-                      <span className="text-sm text-gray-400 whitespace-nowrap">
-                        {selectedMetric.unit}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-nia-dark mb-1">
-                      Date *
-                    </label>
-                    <input
-                      type="date"
+                    <Input
+                      label="Value"
+                      type="number"
+                      step="any"
                       required
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      placeholder="Enter value"
                     />
+                    <span className="text-xs text-gray-400 mt-0.5 block">
+                      {selectedMetric.unit}
+                    </span>
                   </div>
+                  <Input
+                    label="Date"
+                    type="date"
+                    required
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
                 </div>
 
                 {/* Analysis Note */}
-                <div>
-                  <label className="block text-sm font-medium text-nia-dark mb-1">
-                    Analysis Note{" "}
-                    <span className="text-gray-400 font-normal">(context or explanation)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={noteAnalysis}
-                    onChange={(e) => setNoteAnalysis(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                    placeholder="e.g., New survey methodology this cycle"
-                  />
-                </div>
+                <Input
+                  label="Analysis Note"
+                  hint="Context or explanation"
+                  value={noteAnalysis}
+                  onChange={(e) => setNoteAnalysis(e.target.value)}
+                  placeholder="e.g., New survey methodology this cycle"
+                />
 
                 {/* Course Correction */}
-                <div>
-                  <label className="block text-sm font-medium text-nia-dark mb-1">
-                    Course Correction{" "}
-                    <span className="text-gray-400 font-normal">
-                      (action taken if missing target)
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    value={noteCourseCorrection}
-                    onChange={(e) => setNoteCourseCorrection(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                    placeholder="e.g., Added re-training for repeat offenders"
-                  />
-                </div>
+                <Input
+                  label="Course Correction"
+                  hint="Action taken if missing target"
+                  value={noteCourseCorrection}
+                  onChange={(e) => setNoteCourseCorrection(e.target.value)}
+                  placeholder="e.g., Added re-training for repeat offenders"
+                />
 
                 {/* Submit */}
-                <button
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="w-full bg-nia-dark text-white rounded-lg py-2.5 px-4 hover:opacity-90 disabled:opacity-50 font-medium"
+                  loading={saving}
+                  className="w-full"
                 >
-                  {saving ? "Saving..." : "Save Entry"}
-                </button>
+                  Save Entry
+                </Button>
               </form>
             )}
-          </div>
+          </Card>
 
           {/* Recent entries for selected metric */}
           {selectedMetric && <RecentEntries metricId={selectedMetric.id} unit={selectedMetric.unit} />}
@@ -529,7 +507,7 @@ function RecentEntries({ metricId, unit }: { metricId: number; unit: string }) {
   if (entries.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mt-4">
+    <Card padding="sm" className="mt-4">
       <h3 className="text-sm font-bold text-nia-dark mb-2">Recent Entries</h3>
       <div className="space-y-1">
         {entries.map((entry) => (
@@ -541,6 +519,6 @@ function RecentEntries({ metricId, unit }: { metricId: number; unit: string }) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

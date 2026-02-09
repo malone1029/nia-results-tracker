@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { FormSkeleton } from "@/components/skeleton";
 import Link from "next/link";
+import { Card, Button, Input, Textarea, Select } from "@/components/ui";
 
 interface ProcessOption {
   id: number;
@@ -161,33 +162,10 @@ function NewMetricContent() {
 
       <h1 className="text-3xl font-bold text-nia-dark">Add New Metric</h1>
 
-      <form onSubmit={handleSave} className="bg-white rounded-lg shadow p-6 space-y-5">
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">Name *</label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            placeholder="e.g., Employee Engagement Score"
-          />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">
-            Description <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            placeholder="What does this metric measure and why does it matter?"
-          />
-        </div>
+      <form onSubmit={handleSave}>
+      <Card padding="lg" className="space-y-5">
+        <Input label="Name *" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Employee Engagement Score" />
+        <Textarea label="Description" hint="optional" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="What does this metric measure and why does it matter?" />
 
         {/* Processes (multi-select checkboxes) */}
         <div className="bg-nia-grey-blue/5 border border-nia-grey-blue/20 rounded-lg p-4 space-y-3">
@@ -238,120 +216,38 @@ function NewMetricContent() {
           )}
         </div>
 
-        {/* Cadence */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">Cadence *</label>
-          <select
-            required
-            value={cadence}
-            onChange={(e) => setCadence(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-          >
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="semi-annual">Semi-Annual</option>
-            <option value="annual">Annual</option>
-          </select>
-        </div>
+        <Select label="Cadence *" required value={cadence} onChange={(e) => setCadence(e.target.value)}>
+          <option value="monthly">Monthly</option>
+          <option value="quarterly">Quarterly</option>
+          <option value="semi-annual">Semi-Annual</option>
+          <option value="annual">Annual</option>
+        </Select>
 
-        {/* Unit and Direction */}
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">Unit</label>
-            <select
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            >
-              <option value="%">% (Percentage)</option>
-              <option value="score">Score</option>
-              <option value="count">Count</option>
-              <option value="currency">Currency ($)</option>
-              <option value="days">Days</option>
-              <option value="rate">Rate</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">
-              Trend Direction
-            </label>
-            <select
-              value={isHigherBetter ? "higher" : "lower"}
-              onChange={(e) => setIsHigherBetter(e.target.value === "higher")}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            >
-              <option value="higher">Higher is better (e.g., satisfaction score)</option>
-              <option value="lower">Lower is better (e.g., phishing click rate)</option>
-            </select>
-          </div>
+          <Select label="Unit" value={unit} onChange={(e) => setUnit(e.target.value)}>
+            <option value="%">% (Percentage)</option>
+            <option value="score">Score</option>
+            <option value="count">Count</option>
+            <option value="currency">Currency ($)</option>
+            <option value="days">Days</option>
+            <option value="rate">Rate</option>
+          </Select>
+          <Select label="Trend Direction" value={isHigherBetter ? "higher" : "lower"} onChange={(e) => setIsHigherBetter(e.target.value === "higher")}>
+            <option value="higher">Higher is better (e.g., satisfaction score)</option>
+            <option value="lower">Lower is better (e.g., phishing click rate)</option>
+          </Select>
         </div>
 
-        {/* Target */}
-        <div>
-          <label className="block text-sm font-medium text-nia-dark mb-1">
-            Target Value <span className="text-gray-400 font-normal">(for LeTCI Levels)</span>
-          </label>
-          <input
-            type="number"
-            step="any"
-            value={targetValue}
-            onChange={(e) => setTargetValue(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-            placeholder="Leave blank if TBD"
-          />
-        </div>
+        <Input label="Target Value" hint="for LeTCI Levels" type="number" step="any" value={targetValue} onChange={(e) => setTargetValue(e.target.value)} placeholder="Leave blank if TBD" />
 
-        {/* Comparison */}
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">
-              Comparison Value <span className="text-gray-400 font-normal">(for LeTCI Comparisons)</span>
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={comparisonValue}
-              onChange={(e) => setComparisonValue(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-              placeholder="Benchmark or peer value"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">
-              Comparison Source
-            </label>
-            <input
-              type="text"
-              value={comparisonSource}
-              onChange={(e) => setComparisonSource(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-              placeholder="e.g., National average, Studer benchmark"
-            />
-          </div>
+          <Input label="Comparison Value" hint="for LeTCI Comparisons" type="number" step="any" value={comparisonValue} onChange={(e) => setComparisonValue(e.target.value)} placeholder="Benchmark or peer value" />
+          <Input label="Comparison Source" value={comparisonSource} onChange={(e) => setComparisonSource(e.target.value)} placeholder="e.g., National average, Studer benchmark" />
         </div>
 
-        {/* Data Source and Collection Method */}
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">Data Source</label>
-            <input
-              type="text"
-              value={dataSource}
-              onChange={(e) => setDataSource(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-              placeholder="e.g., Studer EE Survey"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-nia-dark mb-1">Collection Method</label>
-            <input
-              type="text"
-              value={collectionMethod}
-              onChange={(e) => setCollectionMethod(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-              placeholder="e.g., Semi-annual survey"
-            />
-          </div>
+          <Input label="Data Source" value={dataSource} onChange={(e) => setDataSource(e.target.value)} placeholder="e.g., Studer EE Survey" />
+          <Input label="Collection Method" value={collectionMethod} onChange={(e) => setCollectionMethod(e.target.value)} placeholder="e.g., Semi-annual survey" />
         </div>
 
         {/* Key Requirements (LeTCI Integration) */}
@@ -406,20 +302,10 @@ function NewMetricContent() {
 
         {/* Actions */}
         <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-nia-dark text-white rounded-lg py-2 px-6 hover:opacity-90 disabled:opacity-50 font-medium"
-          >
-            {saving ? "Creating..." : "Create Metric"}
-          </button>
-          <Link
-            href={preselectedProcessId ? `/processes/${preselectedProcessId}` : "/"}
-            className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300 inline-flex items-center"
-          >
-            Cancel
-          </Link>
+          <Button type="submit" loading={saving}>{saving ? "Creating..." : "Create Metric"}</Button>
+          <Button variant="ghost" href={preselectedProcessId ? `/processes/${preselectedProcessId}` : "/"}>Cancel</Button>
         </div>
+      </Card>
       </form>
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { Card, Button } from "@/components/ui";
 
 interface AsanaConnection {
   asana_user_name: string;
@@ -53,12 +54,9 @@ function SettingsContent() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <Link
-          href="/"
-          className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
-        >
+        <Button variant="ghost" size="xs" href="/">
           &larr; Back to Dashboard
-        </Link>
+        </Button>
         <h1 className="text-3xl font-bold text-nia-dark mt-2">Settings</h1>
       </div>
 
@@ -85,7 +83,7 @@ function SettingsContent() {
       )}
 
       {/* Connected Accounts */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <Card padding="md">
         <h2 className="text-xl font-semibold text-nia-dark mb-4">
           Connected Accounts
         </h2>
@@ -121,24 +119,26 @@ function SettingsContent() {
 
           <div>
             {loading ? null : connection ? (
-              <button
+              <Button
+                variant="danger"
+                size="sm"
                 onClick={disconnect}
                 disabled={disconnecting}
-                className="text-sm text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                loading={disconnecting}
               >
-                {disconnecting ? "Disconnecting..." : "Disconnect"}
-              </button>
+                Disconnect
+              </Button>
             ) : (
               <a
                 href="/api/asana/authorize"
-                className="inline-block bg-nia-dark text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90 transition-opacity"
+                className="inline-flex items-center justify-center font-medium transition-colors bg-nia-dark text-white hover:bg-nia-grey-blue text-sm px-3 py-1.5 rounded-lg gap-1.5 focus-ring"
               >
                 Connect Asana
               </a>
             )}
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
