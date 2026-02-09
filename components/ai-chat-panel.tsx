@@ -669,10 +669,10 @@ function TypingIndicator() {
   );
 }
 
-const PRIORITY_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  "quick-win": { bg: "bg-nia-green/15", text: "text-nia-green", label: "Quick Win" },
-  "important": { bg: "bg-nia-orange/15", text: "text-nia-orange", label: "Important" },
-  "long-term": { bg: "bg-nia-grey-blue/15", text: "text-nia-grey-blue", label: "Long-term" },
+const PRIORITY_STYLES: Record<string, { bg: string; text: string; label: string; border: string; cardBg: string }> = {
+  "quick-win": { bg: "bg-nia-green/15", text: "text-nia-green", label: "Quick Win", border: "#b1bd37", cardBg: "rgba(177,189,55,0.04)" },
+  "important": { bg: "bg-nia-orange/15", text: "text-nia-orange", label: "Important", border: "#f79935", cardBg: "rgba(247,153,53,0.04)" },
+  "long-term": { bg: "bg-nia-grey-blue/15", text: "text-nia-grey-blue", label: "Long-term", border: "#55787c", cardBg: "rgba(85,120,124,0.04)" },
 };
 
 const EFFORT_LABELS: Record<string, string> = {
@@ -697,7 +697,10 @@ function CoachSuggestionCard({
   const effortLabel = EFFORT_LABELS[suggestion.effort] || suggestion.effort;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <div
+      className="rounded-lg shadow-sm overflow-hidden border-l-4"
+      style={{ borderLeftColor: priority.border, backgroundColor: priority.cardBg, borderTop: "1px solid #e5e7eb", borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb" }}
+    >
       {/* Header with badges */}
       <div className="px-3 py-2.5 border-b border-gray-100">
         <div className="flex items-center gap-2 mb-1.5">
