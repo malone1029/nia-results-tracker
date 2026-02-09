@@ -135,6 +135,8 @@ function ProcessDetailContent() {
   const [linkingMetric, setLinkingMetric] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"content" | "tasks">("content");
   const [taskCount, setTaskCount] = useState(0);
+  const [asanaResyncing, setAsanaResyncing] = useState(false);
+  const [asanaResyncResult, setAsanaResyncResult] = useState<{ tasks: number; subtasks: number } | null>(null);
 
   async function fetchProcess() {
       // Fetch process with category name
@@ -344,6 +346,29 @@ function ProcessDetailContent() {
     // Metrics themselves survive — they just lose this process link
     await supabase.from("processes").delete().eq("id", process.id);
     router.push("/processes");
+  }
+
+  async function handleAsanaResync() {
+    if (!process) return;
+    setAsanaResyncing(true);
+    setAsanaResyncResult(null);
+    setAsanaError("");
+    try {
+      const res = await fetch("/api/asana/resync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ processId: process.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAsanaError(data.message || data.error || "Refresh failed");
+      } else {
+        setAsanaResyncResult({ tasks: data.tasks, subtasks: data.subtasks });
+      }
+    } catch (e) {
+      setAsanaError("Refresh failed: " + (e as Error).message);
+    }
+    setAsanaResyncing(false);
   }
 
   async function handleAsanaExport(forceNew = false) {
@@ -628,6 +653,16 @@ function ProcessDetailContent() {
         </div>
       )}
 
+      {/* Asana resync result */}
+      {asanaResyncResult && (
+        <div className="banner-enter bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+          <p className="text-sm text-blue-800">
+            Asana data refreshed: {asanaResyncResult.tasks} tasks, {asanaResyncResult.subtasks} subtasks loaded. AI coach now has full context.
+          </p>
+          <button onClick={() => setAsanaResyncResult(null)} className="text-blue-500 hover:text-blue-700 text-sm ml-3">Dismiss</button>
+        </div>
+      )}
+
       {/* Asana link */}
       {process.asana_project_url && !asanaConfirm && !asanaResult && (
         <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -640,6 +675,14 @@ function ProcessDetailContent() {
           >
             View project &rarr;
           </a>
+          <span className="text-gray-300">|</span>
+          <button
+            onClick={handleAsanaResync}
+            disabled={asanaResyncing}
+            className="text-nia-grey-blue hover:text-nia-dark font-medium disabled:opacity-50"
+          >
+            {asanaResyncing ? "Refreshing..." : "Refresh Asana Data"}
+          </button>
         </div>
       )}
 

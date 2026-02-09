@@ -99,30 +99,57 @@ export async function POST(request: Request) {
     );
     const sections = sectionsRes.data;
 
-    // Fetch tasks for each section with expanded fields
-    const sectionData: { name: string; gid: string; tasks: { name: string; notes: string; completed: boolean; assignee: string | null; due_on: string | null; num_subtasks: number; permalink_url: string | null }[] }[] = [];
+    // Fetch tasks for each section with expanded fields (including subtasks)
+    type SubtaskData = { name: string; notes: string; completed: boolean; assignee: string | null; due_on: string | null };
+    type TaskData = { name: string; notes: string; completed: boolean; assignee: string | null; due_on: string | null; num_subtasks: number; permalink_url: string | null; subtasks: SubtaskData[] };
+    const sectionData: { name: string; gid: string; tasks: TaskData[] }[] = [];
 
     for (const section of sections) {
       const tasksRes = await asanaFetch(
         token,
         `/sections/${section.gid}/tasks?opt_fields=name,notes,completed,assignee.name,due_on,due_at,num_subtasks,permalink_url,custom_fields&limit=100`
       );
+
+      /* eslint-disable @typescript-eslint/no-explicit-any */
+      const tasks: TaskData[] = [];
+      for (const t of tasksRes.data as any[]) {
+        // Fetch subtasks if this task has any
+        let subtasks: SubtaskData[] = [];
+        if (t.num_subtasks > 0) {
+          try {
+            const subRes = await asanaFetch(
+              token,
+              `/tasks/${t.gid}/subtasks?opt_fields=name,notes,completed,assignee.name,due_on`
+            );
+            subtasks = (subRes.data || []).map((s: any) => ({
+              name: s.name,
+              notes: s.notes || "",
+              completed: s.completed,
+              assignee: s.assignee?.name || null,
+              due_on: s.due_on || null,
+            }));
+          } catch {
+            // Non-blocking: if subtask fetch fails, continue without them
+          }
+        }
+
+        tasks.push({
+          name: t.name,
+          notes: t.notes || "",
+          completed: t.completed,
+          assignee: t.assignee?.name || null,
+          due_on: t.due_on || t.due_at || null,
+          num_subtasks: t.num_subtasks || 0,
+          permalink_url: t.permalink_url || null,
+          subtasks,
+        });
+      }
+      /* eslint-enable @typescript-eslint/no-explicit-any */
+
       sectionData.push({
         name: section.name,
         gid: section.gid,
-        tasks: tasksRes.data.map(
-          /* eslint-disable @typescript-eslint/no-explicit-any */
-          (t: any) => ({
-            name: t.name,
-            notes: t.notes || "",
-            completed: t.completed,
-            assignee: t.assignee?.name || null,
-            due_on: t.due_on || t.due_at || null,
-            num_subtasks: t.num_subtasks || 0,
-            permalink_url: t.permalink_url || null,
-          })
-          /* eslint-enable @typescript-eslint/no-explicit-any */
-        ),
+        tasks,
       });
     }
 
@@ -184,7 +211,19 @@ export async function POST(request: Request) {
             if (t.completed) parts.push("done");
             const meta = parts.length > 0 ? ` (${parts.join(", ")})` : "";
             const line = `- ${t.completed ? "~~" : ""}${t.name}${t.completed ? "~~" : ""}${meta}`;
-            return t.notes ? `${line}\n  ${t.notes}` : line;
+            let result = t.notes ? `${line}\n  ${t.notes}` : line;
+            // Include subtasks indented under parent
+            if (t.subtasks && t.subtasks.length > 0) {
+              for (const sub of t.subtasks) {
+                const subParts: string[] = [];
+                if (sub.assignee) subParts.push(sub.assignee);
+                if (sub.due_on) subParts.push(`due ${sub.due_on}`);
+                if (sub.completed) subParts.push("done");
+                const subMeta = subParts.length > 0 ? ` (${subParts.join(", ")})` : "";
+                result += `\n  - ${sub.completed ? "~~" : ""}${sub.name}${sub.completed ? "~~" : ""}${subMeta}`;
+              }
+            }
+            return result;
           })
           .join("\n");
         adliFields[adliField] = {
