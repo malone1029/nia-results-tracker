@@ -23,6 +23,23 @@ interface ProcessDraft {
   adli_integration: { content: string };
 }
 
+// The sections that appear in the draft preview, in order
+const DRAFT_SECTIONS: { key: string; label: string; field: string }[] = [
+  { key: "charter", label: "Charter", field: "charter" },
+  { key: "approach", label: "Approach", field: "adli_approach" },
+  { key: "deployment", label: "Deployment", field: "adli_deployment" },
+  { key: "learning", label: "Learning", field: "adli_learning" },
+  { key: "integration", label: "Integration", field: "adli_integration" },
+];
+
+const SECTION_COLORS: Record<string, string> = {
+  charter: "#55787c",
+  approach: "#55787c",
+  deployment: "#f79935",
+  learning: "#b1bd37",
+  integration: "#324a4d",
+};
+
 // Parse process-draft block from AI response
 function parseProcessDraft(text: string): { draft: ProcessDraft | null; cleanedText: string } {
   const match = text.match(/```process-draft\s*\n([\s\S]*?)\n```/);
@@ -44,8 +61,9 @@ export default function AiCreateProcessPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<ProcessDraft | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [editingMeta, setEditingMeta] = useState<"name" | "description" | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const hasSentInitial = useRef(false);
@@ -64,7 +82,7 @@ export default function AiCreateProcessPage() {
     inputRef.current?.focus();
   }, []);
 
-  // Send the opening prompt automatically on first load (ref prevents Strict Mode double-fire)
+  // Send the opening prompt automatically on first load
   useEffect(() => {
     if (!hasSentInitial.current && messages.length === 0) {
       hasSentInitial.current = true;
@@ -145,6 +163,23 @@ export default function AiCreateProcessPage() {
     }
   }
 
+  // Update a draft section's content inline
+  function updateDraftSection(field: string, newContent: string) {
+    if (!draft) return;
+    setDraft({
+      ...draft,
+      [field]: { content: newContent },
+    });
+    setEditingSection(null);
+  }
+
+  // Update draft meta fields (name, description)
+  function updateDraftMeta(field: "name" | "description", value: string) {
+    if (!draft) return;
+    setDraft({ ...draft, [field]: value });
+    setEditingMeta(null);
+  }
+
   async function handleSave() {
     if (!draft || isSaving) return;
 
@@ -174,30 +209,38 @@ export default function AiCreateProcessPage() {
     }
   }
 
+  // Count how many ADLI sections have content
+  const filledSections = draft
+    ? DRAFT_SECTIONS.filter((s) => {
+        const val = draft[s.field as keyof ProcessDraft];
+        return val && typeof val === "object" && "content" in val && (val as { content: string }).content;
+      }).length
+    : 0;
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-nia-dark">Create Process with AI</h1>
-          <p className="text-gray-500 mt-1">
-            I&apos;ll ask you questions and build a complete process document.
+          <h1 className="text-2xl font-bold text-nia-dark">Create Process with AI</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Chat on the left, your draft builds on the right.
           </p>
         </div>
         <Link
           href="/processes/new"
-          className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
+          className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors border border-gray-200 rounded-lg px-3 py-1.5"
         >
-          Use manual form instead
+          Use manual form
         </Link>
       </div>
 
-      {/* Chat + Preview layout */}
-      <div className="grid grid-cols-1 gap-6">
-        {/* Chat area */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* Side-by-side layout: chat left, preview right */}
+      <div className={`grid gap-5 ${draft ? "lg:grid-cols-[1fr_400px]" : "max-w-3xl"}`}>
+        {/* ═══ LEFT: Chat ═══ */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col" style={{ minHeight: draft ? "calc(100vh - 160px)" : "600px" }}>
           {/* Messages */}
-          <div className="h-[500px] overflow-y-auto px-4 py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             {messages.map((msg, i) => {
               let displayContent = msg.content;
               if (msg.role === "assistant") {
@@ -235,35 +278,12 @@ export default function AiCreateProcessPage() {
               );
             })}
 
-            {/* Draft ready notification */}
-            {draft && !showPreview && (
-              <div className="bg-nia-green/10 border border-nia-green/30 rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b1bd37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                  <p className="text-sm font-semibold text-nia-dark">
-                    Process draft ready: &quot;{draft.name}&quot;
-                  </p>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Review the draft below and save it, or keep chatting to make changes.
+            {/* Draft notification — only shown on mobile (desktop sees the preview panel) */}
+            {draft && (
+              <div className="lg:hidden bg-nia-green/10 border border-nia-green/30 rounded-lg p-3">
+                <p className="text-sm font-medium text-nia-dark">
+                  Draft ready — scroll down to review and edit.
                 </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowPreview(true)}
-                    className="bg-nia-green text-white rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90 transition-colors"
-                  >
-                    Review & Save
-                  </button>
-                  <button
-                    onClick={() => setDraft(null)}
-                    className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
-                  >
-                    Keep editing
-                  </button>
-                </div>
               </div>
             )}
 
@@ -277,7 +297,7 @@ export default function AiCreateProcessPage() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-200 px-4 py-3">
+          <div className="border-t border-gray-200 px-4 py-3 flex-shrink-0">
             <div className="flex gap-2">
               <textarea
                 ref={inputRef}
@@ -306,74 +326,182 @@ export default function AiCreateProcessPage() {
           </div>
         </div>
 
-        {/* Preview panel */}
-        {showPreview && draft && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-nia-dark text-white px-4 py-3 flex items-center justify-between">
-              <h2 className="font-semibold text-sm">Process Draft Preview</h2>
+        {/* ═══ RIGHT: Live Draft Preview (appears when draft exists) ═══ */}
+        {draft && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col" style={{ minHeight: "calc(100vh - 160px)" }}>
+            {/* Preview header */}
+            <div className="bg-nia-dark text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                <span className="font-semibold text-sm">Draft Preview</span>
+                <span className="text-xs text-white/60">{filledSections}/5 sections</span>
+              </div>
               <button
-                onClick={() => setShowPreview(false)}
-                className="text-white/80 hover:text-white text-xs border border-white/30 rounded px-2 py-1"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="text-xs bg-nia-green text-white rounded px-3 py-1 font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
               >
-                Back to chat
+                {isSaving ? "Saving..." : "Save Process"}
               </button>
             </div>
 
-            <div className="px-6 py-5 space-y-6">
-              {/* Name & Meta */}
+            {/* Scrollable preview content */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+              {/* Process name — click to edit */}
               <div>
-                <h3 className="text-xl font-bold text-nia-dark">{draft.name}</h3>
-                <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
-                  <span>Category: <strong>{draft.category_suggestion}</strong></span>
-                  {draft.owner && <span>Owner: <strong>{draft.owner}</strong></span>}
+                {editingMeta === "name" ? (
+                  <input
+                    autoFocus
+                    defaultValue={draft.name}
+                    onBlur={(e) => updateDraftMeta("name", e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") updateDraftMeta("name", e.currentTarget.value);
+                      if (e.key === "Escape") setEditingMeta(null);
+                    }}
+                    className="w-full text-lg font-bold text-nia-dark border border-nia-grey-blue/30 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30"
+                  />
+                ) : (
+                  <h3
+                    className="text-lg font-bold text-nia-dark cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 transition-colors group"
+                    onClick={() => setEditingMeta("name")}
+                    title="Click to edit"
+                  >
+                    {draft.name}
+                    <PencilHint />
+                  </h3>
+                )}
+
+                <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-gray-500">
+                  <span className="bg-gray-100 rounded px-2 py-0.5">{draft.category_suggestion}</span>
+                  {draft.owner && <span className="bg-gray-100 rounded px-2 py-0.5">{draft.owner}</span>}
                   {draft.is_key && (
-                    <span className="bg-nia-orange/10 text-nia-orange px-2 py-0.5 rounded text-xs font-medium">
+                    <span className="bg-nia-orange/10 text-nia-orange px-2 py-0.5 rounded font-medium">
                       Key Process
                     </span>
                   )}
                 </div>
               </div>
 
-              {draft.description && (
-                <div>
-                  <h4 className="text-sm font-semibold text-nia-dark mb-1">Description</h4>
-                  <p className="text-sm text-gray-600">{draft.description}</p>
-                </div>
-              )}
+              {/* Description — click to edit */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Description</label>
+                {editingMeta === "description" ? (
+                  <textarea
+                    autoFocus
+                    defaultValue={draft.description}
+                    onBlur={(e) => updateDraftMeta("description", e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setEditingMeta(null);
+                    }}
+                    rows={2}
+                    className="w-full mt-1 text-sm text-nia-dark border border-nia-grey-blue/30 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30 resize-none"
+                  />
+                ) : (
+                  <p
+                    className="text-sm text-gray-600 mt-1 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 transition-colors group"
+                    onClick={() => setEditingMeta("description")}
+                    title="Click to edit"
+                  >
+                    {draft.description || "No description yet"}
+                    <PencilHint />
+                  </p>
+                )}
+              </div>
 
-              {/* Charter */}
-              {draft.charter?.content && (
-                <PreviewSection title="Charter" content={draft.charter.content} />
-              )}
+              {/* ADLI Sections — each editable */}
+              {DRAFT_SECTIONS.map((section) => {
+                const fieldVal = draft[section.field as keyof ProcessDraft];
+                const content = fieldVal && typeof fieldVal === "object" && "content" in fieldVal
+                  ? (fieldVal as { content: string }).content
+                  : "";
+                const borderColor = SECTION_COLORS[section.key] || "#55787c";
+                const isEditing = editingSection === section.key;
 
-              {/* ADLI Sections */}
-              {draft.adli_approach?.content && (
-                <PreviewSection title="ADLI: Approach" content={draft.adli_approach.content} />
-              )}
-              {draft.adli_deployment?.content && (
-                <PreviewSection title="ADLI: Deployment" content={draft.adli_deployment.content} />
-              )}
-              {draft.adli_learning?.content && (
-                <PreviewSection title="ADLI: Learning" content={draft.adli_learning.content} />
-              )}
-              {draft.adli_integration?.content && (
-                <PreviewSection title="ADLI: Integration" content={draft.adli_integration.content} />
-              )}
+                return (
+                  <div
+                    key={section.key}
+                    className="border-l-4 pl-3 rounded-r"
+                    style={{ borderColor }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider" style={{ color: borderColor }}>
+                        {section.label}
+                      </h4>
+                      {content && !isEditing && (
+                        <button
+                          onClick={() => setEditingSection(section.key)}
+                          className="text-xs text-gray-400 hover:text-nia-dark transition-colors"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
 
-              {/* Save button */}
-              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <textarea
+                          autoFocus
+                          defaultValue={content}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") setEditingSection(null);
+                          }}
+                          rows={8}
+                          className="w-full text-sm text-nia-dark border border-nia-grey-blue/30 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30 resize-y font-mono"
+                          id={`edit-${section.key}`}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              const el = document.getElementById(`edit-${section.key}`) as HTMLTextAreaElement;
+                              if (el) updateDraftSection(section.field, el.value);
+                            }}
+                            className="text-xs bg-nia-dark text-white rounded px-3 py-1 font-medium hover:bg-nia-grey-blue transition-colors"
+                          >
+                            Done
+                          </button>
+                          <button
+                            onClick={() => setEditingSection(null)}
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : content ? (
+                      <div
+                        className="text-sm text-gray-600 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 transition-colors group"
+                        onClick={() => setEditingSection(section.key)}
+                        title="Click to edit"
+                      >
+                        <MarkdownContent content={content} />
+                        <PencilHint />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 italic py-1">
+                        Not yet generated — keep chatting
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Save footer */}
+              <div className="pt-3 border-t border-gray-200 flex gap-2">
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="bg-nia-green text-white rounded-lg py-2.5 px-6 font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
+                  className="flex-1 bg-nia-green text-white rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 transition-colors text-sm"
                 >
                   {isSaving ? "Saving..." : "Save as New Process"}
                 </button>
                 <button
-                  onClick={() => setShowPreview(false)}
-                  className="bg-gray-200 text-nia-dark rounded-lg py-2.5 px-6 hover:bg-gray-300 transition-colors"
+                  onClick={() => setDraft(null)}
+                  className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
                 >
-                  Back to Chat
+                  Discard
                 </button>
               </div>
             </div>
@@ -384,14 +512,21 @@ export default function AiCreateProcessPage() {
   );
 }
 
-function PreviewSection({ title, content }: { title: string; content: string }) {
+/** Small pencil icon that appears on hover to hint editability */
+function PencilHint() {
   return (
-    <div className="border-l-4 border-nia-orange pl-4">
-      <h4 className="text-sm font-semibold text-nia-dark mb-2">{title}</h4>
-      <div className="text-sm text-gray-600">
-        <MarkdownContent content={content} />
-      </div>
-    </div>
+    <svg
+      className="inline-block ml-1.5 w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
   );
 }
 
