@@ -217,15 +217,16 @@ export default function AiCreateProcessPage() {
       }).length
     : 0;
 
+  // Determine current step for the progress indicator
+  const currentStep = isSaving ? 3 : editingSection || editingMeta ? 2 : draft ? 1 : 0;
+
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header + Progress Steps */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-nia-dark">Create Process with AI</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Chat on the left, your draft builds on the right.
-          </p>
+        <div className="flex items-center gap-6">
+          <h1 className="text-2xl font-bold text-nia-dark">Create with AI</h1>
+          <ProgressSteps currentStep={currentStep} />
         </div>
         <Link
           href="/processes/new"
@@ -527,6 +528,69 @@ function PencilHint() {
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
+  );
+}
+
+const STEPS = [
+  { label: "Chat", icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
+  { label: "Draft", icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" },
+  { label: "Edit", icon: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" },
+  { label: "Save", icon: "M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" },
+];
+
+function ProgressSteps({ currentStep }: { currentStep: number }) {
+  return (
+    <div className="hidden sm:flex items-center gap-1">
+      {STEPS.map((step, i) => {
+        const isActive = i === currentStep;
+        const isCompleted = i < currentStep;
+        const color = isActive ? "#324a4d" : isCompleted ? "#b1bd37" : "#d1d5db";
+
+        return (
+          <div key={step.label} className="flex items-center">
+            <div className="flex items-center gap-1.5" title={step.label}>
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300"
+                style={{
+                  backgroundColor: isActive ? color : isCompleted ? color : "transparent",
+                  border: `2px solid ${color}`,
+                }}
+              >
+                {isCompleted ? (
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke={isActive ? "white" : color}
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d={step.icon} />
+                  </svg>
+                )}
+              </div>
+              <span
+                className="text-xs font-medium transition-colors"
+                style={{ color: isActive ? "#324a4d" : isCompleted ? "#b1bd37" : "#9ca3af" }}
+              >
+                {step.label}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div
+                className="w-6 h-0.5 mx-1 rounded transition-colors"
+                style={{ backgroundColor: isCompleted ? "#b1bd37" : "#e5e7eb" }}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

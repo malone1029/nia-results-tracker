@@ -546,15 +546,6 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                     />
                   ))}
 
-                  {pendingSuggestions.length > 1 && (
-                    <button
-                      onClick={applyAllSuggestions}
-                      disabled={isApplying}
-                      className="w-full bg-nia-dark text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
-                    >
-                      {isApplying ? "Applying..." : "Apply All Suggestions"}
-                    </button>
-                  )}
                 </div>
               )}
 
@@ -567,6 +558,22 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
 
               <div ref={messagesEndRef} />
             </div>
+
+            {/* Sticky Apply All bar — sits between messages and input */}
+            {pendingSuggestions.length > 1 && !isLoading && (
+              <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 flex items-center justify-between flex-shrink-0">
+                <span className="text-xs text-gray-500">
+                  {pendingSuggestions.length} suggestions ready
+                </span>
+                <button
+                  onClick={applyAllSuggestions}
+                  disabled={isApplying}
+                  className="bg-nia-dark text-white rounded-lg px-4 py-1.5 text-sm font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
+                >
+                  {isApplying ? "Applying..." : "Apply All"}
+                </button>
+              </div>
+            )}
 
             {/* Input area */}
             <div className="border-t border-gray-200 px-4 py-3 flex-shrink-0">
