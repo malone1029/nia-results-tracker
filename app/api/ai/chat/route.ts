@@ -456,7 +456,7 @@ export async function POST(request: Request) {
       const sections = rawAsana.sections as { name: string; tasks: { name: string; completed: boolean; assignee: string | null; due_on: string | null; notes: string; subtasks?: { name: string; completed: boolean; assignee: string | null; due_on: string | null }[] }[] }[] | undefined;
       if (sections) {
         let charCount = 0;
-        const MAX_ASANA_CHARS = 5000; // Increased to accommodate subtask data
+        const MAX_ASANA_CHARS = 3000;
         for (const section of sections) {
           if (charCount > MAX_ASANA_CHARS) {
             asanaContext += "\n*[Asana data truncated for context limits]*\n";
@@ -464,28 +464,18 @@ export async function POST(request: Request) {
           }
           if (!section.name || section.name === "(no section)") continue;
           const completed = section.tasks.filter((t) => t.completed).length;
-          asanaContext += `\n**${section.name}** (${completed}/${section.tasks.length} done)\n`;
-          for (const task of section.tasks.slice(0, 15)) {
+          const totalSubs = section.tasks.reduce((n, t) => n + (t.subtasks?.length || 0), 0);
+          asanaContext += `\n**${section.name}** (${completed}/${section.tasks.length} done${totalSubs ? `, ${totalSubs} subtasks` : ""})\n`;
+          for (const task of section.tasks.slice(0, 8)) {
             const status = task.completed ? "done" : "open";
             const assignee = task.assignee ? ` [${task.assignee}]` : "";
-            const due = task.due_on ? ` due ${task.due_on}` : "";
-            const line = `- ${task.name} (${status}${assignee}${due})\n`;
+            const subCount = task.subtasks?.length ? ` (${task.subtasks.length} subtasks)` : "";
+            const line = `- ${task.name} (${status}${assignee}${subCount})\n`;
             asanaContext += line;
             charCount += line.length;
-            // Show subtasks indented under parent
-            if (task.subtasks && task.subtasks.length > 0) {
-              for (const sub of task.subtasks) {
-                const subStatus = sub.completed ? "done" : "open";
-                const subAssignee = sub.assignee ? ` [${sub.assignee}]` : "";
-                const subDue = sub.due_on ? ` due ${sub.due_on}` : "";
-                const subLine = `  - ${sub.name} (${subStatus}${subAssignee}${subDue})\n`;
-                asanaContext += subLine;
-                charCount += subLine.length;
-              }
-            }
           }
-          if (section.tasks.length > 15) {
-            asanaContext += `  ...and ${section.tasks.length - 15} more tasks\n`;
+          if (section.tasks.length > 8) {
+            asanaContext += `  ...and ${section.tasks.length - 8} more tasks\n`;
           }
         }
       }
