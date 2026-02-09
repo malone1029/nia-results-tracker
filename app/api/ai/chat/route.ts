@@ -21,6 +21,7 @@ function buildProcessContext(process: Record<string, unknown>): string {
   if (process.baldrige_item) lines.push(`- **Baldrige Item:** ${process.baldrige_item}`);
   if (process.owner) lines.push(`- **Owner:** ${process.owner}`);
   if (process.is_key) lines.push(`- **Key Process:** Yes`);
+  if (process.guided_step) lines.push(`- **Guided Step:** ${process.guided_step}`);
   lines.push("");
 
   if (process.description) {
@@ -249,6 +250,51 @@ Rules for proposed-tasks:
 - Include a brief description (1-2 sentences) for each task
 - You can also update process text (charter/ADLI) alongside generating tasks — include coach-suggestions blocks when the process documentation itself should change
 
+## Charter Cleanup Detection
+
+When you see the charter or any ADLI section containing task lists or operational items (e.g., "- Send calendar invite", "- Order supplies", "- Review document"), this is misplaced content. Process documentation should describe HOW the process works, not list tasks to do.
+
+When you detect this:
+1. Point out that the section contains operational tasks mixed with process documentation
+2. Offer to separate it — use field type "charter_cleanup" in your suggestion
+3. The content should be an object with cleaned versions of each field:
+
+\`\`\`coach-suggestions
+[
+  {
+    "id": "cleanup1",
+    "field": "charter_cleanup",
+    "priority": "quick-win",
+    "effort": "minimal",
+    "title": "Separate task lists from process documentation",
+    "whyMatters": "ADLI documentation should describe your systematic approach, not list operational tasks.",
+    "preview": "Move task items to where they belong and keep the documentation clean.",
+    "content": {
+      "charter": "The cleaned charter text with only process documentation...",
+      "adli_approach": "Process description extracted from the charter that belongs here...",
+      "adli_deployment": "Deployment documentation..."
+    },
+    "tasks": []
+  }
+]
+\`\`\`
+
+Only include fields in the content object that have content to set. This is a multi-field update.
+
+## Guided Flow Awareness
+
+The process has a "Guided Step" field that tracks where the user is in the improvement cycle. Guide them to the appropriate next action:
+
+- **start** → Welcome them, suggest reviewing or creating a charter first
+- **charter** → Help them write or refine the charter. When done, suggest running an ADLI assessment
+- **assessment** → Run an ADLI gap analysis with scores. Identify the weakest dimensions
+- **deep_dive** → Focus on the weakest dimension. Offer specific improvements with tasks
+- **tasks** → Help build a task list (interview mode). Suggest reviewing and exporting when done
+- **export** → Remind them to export to Asana. After that, work in Asana until next refresh
+- **complete** → Celebrate progress! Suggest refreshing from Asana when they're ready for the next cycle
+
+Don't force the flow — if the user asks about something else, help them. But gently nudge toward the next step when appropriate.
+
 ## Important Rules
 - Base your assessment on the ACTUAL process data provided below. Don't make up information.
 - When a section is empty, that IS a gap — note it.
@@ -445,6 +491,58 @@ export async function POST(request: Request) {
       }
     }
 
+    // Build snapshot comparison context (changes since last Asana refresh)
+    let snapshotContext = "";
+    const prevRaw = procData.asana_raw_data_previous as Record<string, unknown> | null;
+    if (rawAsana && prevRaw) {
+      snapshotContext = "\n### Changes Since Last Asana Refresh\n";
+      const prevSections = (prevRaw.sections || []) as { name: string; tasks: { name: string; completed: boolean }[] }[];
+      const currSections = (rawAsana.sections || []) as { name: string; tasks: { name: string; completed: boolean }[] }[];
+
+      // Build maps of section → { total, completed } for prev and curr
+      const prevCounts = new Map<string, { total: number; completed: number }>();
+      for (const s of prevSections) {
+        if (!s.name || s.name === "(no section)") continue;
+        prevCounts.set(s.name, {
+          total: s.tasks.length,
+          completed: s.tasks.filter((t) => t.completed).length,
+        });
+      }
+
+      let hasChanges = false;
+      for (const s of currSections) {
+        if (!s.name || s.name === "(no section)") continue;
+        const prev = prevCounts.get(s.name);
+        const currCompleted = s.tasks.filter((t) => t.completed).length;
+
+        if (!prev) {
+          snapshotContext += `- **${s.name}**: New section (${s.tasks.length} tasks)\n`;
+          hasChanges = true;
+        } else {
+          const newCompleted = currCompleted - prev.completed;
+          const newTasks = s.tasks.length - prev.total;
+          const changes: string[] = [];
+          if (newCompleted > 0) changes.push(`${newCompleted} tasks completed`);
+          if (newTasks > 0) changes.push(`${newTasks} new tasks added`);
+          if (newTasks < 0) changes.push(`${Math.abs(newTasks)} tasks removed`);
+          if (changes.length > 0) {
+            snapshotContext += `- **${s.name}**: ${changes.join(", ")} (${currCompleted}/${s.tasks.length} done)\n`;
+            hasChanges = true;
+          }
+        }
+      }
+
+      if (!hasChanges) {
+        snapshotContext += "No significant changes detected since last refresh.\n";
+      }
+
+      const prevFetched = prevRaw.fetched_at as string | undefined;
+      const currFetched = (rawAsana.fetched_at as string) || "";
+      if (prevFetched) {
+        snapshotContext += `\n*Previous refresh: ${new Date(prevFetched).toLocaleDateString()} → Current: ${currFetched ? new Date(currFetched).toLocaleDateString() : "now"}*\n`;
+      }
+    }
+
     // Build the full context for Claude
     const processContext = buildProcessContext(procData);
     const metricsContext = buildMetricsContext(metricsWithValues);
@@ -461,6 +559,7 @@ ${metricsContext}
 ${requirementsContext}
 ${improvementsContext}
 ${asanaContext}
+${snapshotContext}
 ${filesContext}`;
 
     // Stream the response from Claude word-by-word

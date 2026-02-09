@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
+import { ADLI_TASK_NAMES, ADLI_TO_PDCA_SECTION } from "@/lib/asana-helpers";
 
 // PDCA section names — the team's operational framework in Asana
 const PDCA_SECTIONS = ["Plan", "Execute", "Evaluate", "Improve"];
@@ -11,10 +12,10 @@ const IMPROVE_SECTION_NAMES = ["improve", "act", "improvement", "improvements", 
 /**
  * Build readable text from a JSONB field (charter, ADLI, etc.)
  */
-function fieldToText(label: string, data: Record<string, unknown> | null): string {
+function fieldToText(data: Record<string, unknown> | null): string {
   if (!data) return "";
   if (data.content && typeof data.content === "string") {
-    return `## ${label}\n\n${data.content}`;
+    return data.content;
   }
 
   const parts: string[] = [];
@@ -27,7 +28,7 @@ function fieldToText(label: string, data: Record<string, unknown> | null): strin
       parts.push(`**${fieldLabel}:** ${value}`);
     }
   }
-  return parts.length > 0 ? `## ${label}\n\n${parts.join("\n\n")}` : "";
+  return parts.join("\n\n");
 }
 
 /**
@@ -39,28 +40,6 @@ function findImproveSectionGid(existingSections: Map<string, string>): string | 
     if (gid) return gid;
   }
   return null;
-}
-
-/**
- * Build the combined process documentation text (charter + ADLI) for a single reference task.
- */
-function buildDocumentationNotes(proc: Record<string, unknown>): string {
-  const charter = proc.charter as Record<string, unknown> | null;
-  const charterText = charter?.content && typeof charter.content === "string"
-    ? `## Charter\n\n${charter.content}`
-    : charter?.purpose && typeof charter.purpose === "string"
-      ? `## Charter\n\n${charter.purpose}`
-      : "";
-
-  const adliParts = [
-    fieldToText("Approach", proc.adli_approach as Record<string, unknown> | null),
-    fieldToText("Deployment", proc.adli_deployment as Record<string, unknown> | null),
-    fieldToText("Learning", proc.adli_learning as Record<string, unknown> | null),
-    fieldToText("Integration", proc.adli_integration as Record<string, unknown> | null),
-  ].filter(Boolean);
-
-  const sections = [charterText, ...adliParts].filter(Boolean);
-  return sections.join("\n\n---\n\n") || "No documentation yet. Edit this process in the Excellence Hub to add content.";
 }
 
 /**
@@ -129,6 +108,88 @@ async function backfillImprovements(
   return created;
 }
 
+/**
+ * Create or update the 4 ADLI documentation tasks in the Asana project.
+ * Each task corresponds to one ADLI dimension and is placed in the matching PDCA section.
+ */
+async function syncAdliTasks(
+  token: string,
+  proc: Record<string, unknown>,
+  projectGid: string,
+  existingSections: Map<string, string>,
+  appUrl: string
+): Promise<{ gids: Record<string, string>; created: number; updated: number }> {
+  const currentGids = (proc.asana_adli_task_gids as Record<string, string>) || {};
+  const newGids: Record<string, string> = { ...currentGids };
+  let created = 0;
+  let updated = 0;
+
+  const dimensions = ["approach", "deployment", "learning", "integration"] as const;
+  const fieldMap: Record<string, string> = {
+    approach: "adli_approach",
+    deployment: "adli_deployment",
+    learning: "adli_learning",
+    integration: "adli_integration",
+  };
+
+  for (const dimension of dimensions) {
+    const fieldKey = fieldMap[dimension];
+    const content = fieldToText(proc[fieldKey] as Record<string, unknown> | null);
+    const taskName = ADLI_TASK_NAMES[dimension];
+    const pdcaSection = ADLI_TO_PDCA_SECTION[dimension]; // e.g., "plan"
+    const sectionGid = existingSections.get(pdcaSection);
+
+    // Build notes with Hub footer
+    const notes = content
+      ? `${content}\n\n---\nManaged by NIA Excellence Hub\n${appUrl}/processes/${proc.id}`
+      : `No documentation yet.\n\n---\nManaged by NIA Excellence Hub\n${appUrl}/processes/${proc.id}`;
+
+    const existingGid = currentGids[dimension];
+
+    if (existingGid) {
+      // Try to update existing task
+      try {
+        await asanaFetch(token, `/tasks/${existingGid}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            data: {
+              name: taskName,
+              notes,
+            },
+          }),
+        });
+        updated++;
+        continue;
+      } catch {
+        // Task was deleted — fall through to create
+      }
+    }
+
+    // Create new ADLI task
+    if (sectionGid) {
+      try {
+        const result = await asanaFetch(token, "/tasks", {
+          method: "POST",
+          body: JSON.stringify({
+            data: {
+              name: taskName,
+              notes,
+              projects: [projectGid],
+              memberships: [{ project: projectGid, section: sectionGid }],
+            },
+          }),
+        });
+        newGids[dimension] = result.data.gid;
+        created++;
+      } catch {
+        // Non-blocking — continue with other dimensions
+      }
+    }
+  }
+
+  return { gids: newGids, created, updated };
+}
+
 export async function POST(request: Request) {
   const { processId, targetWorkspaceId, forceNew } = await request.json();
 
@@ -187,11 +248,11 @@ export async function POST(request: Request) {
         if (errMsg.includes("Unknown object") || errMsg.includes("Not Found") || errMsg.includes("404")) {
           await supabase
             .from("processes")
-            .update({ asana_project_gid: null, asana_project_url: null })
+            .update({ asana_project_gid: null, asana_project_url: null, asana_adli_task_gids: {} })
             .eq("id", processId);
           existingGid = null;
         } else {
-          throw err; // Re-throw unexpected errors
+          throw err;
         }
       }
     }
@@ -199,7 +260,7 @@ export async function POST(request: Request) {
     if (existingGid) {
       // ═══ UPDATE EXISTING ASANA PROJECT ═══
 
-      // Update project description
+      // Update project notes with charter
       await asanaFetch(token, `/projects/${existingGid}`, {
         method: "PUT",
         body: JSON.stringify({
@@ -228,6 +289,20 @@ export async function POST(request: Request) {
         }
       }
 
+      // Sync ADLI documentation tasks (create or update)
+      const adliResult = await syncAdliTasks(
+        token, proc as Record<string, unknown>, existingGid, existingSections, appUrl
+      );
+
+      // Save updated ADLI task GIDs back to process
+      await supabase
+        .from("processes")
+        .update({
+          asana_adli_task_gids: adliResult.gids,
+          guided_step: "export",
+        })
+        .eq("id", processId);
+
       // Find the Improve section for backfilling
       const improveSectionGid = findImproveSectionGid(existingSections);
 
@@ -242,12 +317,14 @@ export async function POST(request: Request) {
       // Log in history
       await supabase.from("process_history").insert({
         process_id: processId,
-        change_description: `Synced to Asana project by ${user.email}${backfillCount > 0 ? ` (${backfillCount} improvement tasks created)` : ""}`,
+        change_description: `Synced to Asana by ${user.email} (${adliResult.created} ADLI tasks created, ${adliResult.updated} updated${backfillCount > 0 ? `, ${backfillCount} improvements` : ""})`,
       });
 
       return NextResponse.json({
         action: "updated",
         asanaUrl: `https://app.asana.com/0/${existingGid}`,
+        adliCreated: adliResult.created,
+        adliUpdated: adliResult.updated,
         backfillCount,
       });
     } else {
@@ -299,28 +376,19 @@ export async function POST(request: Request) {
       const asanaUrl = `https://app.asana.com/0/${newProjectGid}`;
 
       // Create PDCA sections
-      const sectionGids: Record<string, string> = {};
+      const sectionGids = new Map<string, string>();
       for (const sectionName of PDCA_SECTIONS) {
         const section = await asanaFetch(token, `/projects/${newProjectGid}/sections`, {
           method: "POST",
           body: JSON.stringify({ data: { name: sectionName } }),
         });
-        sectionGids[sectionName.toLowerCase()] = section.data.gid;
+        sectionGids.set(sectionName.toLowerCase(), section.data.gid);
       }
 
-      // Add a "Process Documentation" reference task in the Plan section
-      const docNotes = buildDocumentationNotes(proc as Record<string, unknown>);
-      await asanaFetch(token, "/tasks", {
-        method: "POST",
-        body: JSON.stringify({
-          data: {
-            name: "Process Documentation",
-            notes: docNotes,
-            projects: [newProjectGid],
-            memberships: [{ project: newProjectGid, section: sectionGids["plan"] }],
-          },
-        }),
-      });
+      // Create 4 ADLI documentation tasks (instead of single "Process Documentation" task)
+      const adliResult = await syncAdliTasks(
+        token, proc as Record<string, unknown>, newProjectGid, sectionGids, appUrl
+      );
 
       // Link the process to the new Asana project
       await supabase
@@ -328,24 +396,28 @@ export async function POST(request: Request) {
         .update({
           asana_project_gid: newProjectGid,
           asana_project_url: asanaUrl,
+          asana_adli_task_gids: adliResult.gids,
+          guided_step: "export",
         })
         .eq("id", processId);
 
       // Backfill existing improvements into the Improve section
-      const backfillCount = await backfillImprovements(
-        supabase, token, processId, newProjectGid, sectionGids["improve"], appUrl
-      );
+      const improveSectionGid = sectionGids.get("improve") || null;
+      const backfillCount = improveSectionGid
+        ? await backfillImprovements(supabase, token, processId, newProjectGid, improveSectionGid, appUrl)
+        : 0;
 
       // Log in history
       await supabase.from("process_history").insert({
         process_id: processId,
-        change_description: `Exported to new Asana project by ${user.email}${backfillCount > 0 ? ` (${backfillCount} improvement tasks created)` : ""}`,
+        change_description: `Exported to new Asana project by ${user.email} (${adliResult.created} ADLI tasks${backfillCount > 0 ? `, ${backfillCount} improvements` : ""})`,
       });
 
       return NextResponse.json({
         action: "created",
         asanaUrl,
         projectGid: newProjectGid,
+        adliCreated: adliResult.created,
         backfillCount,
       });
     }

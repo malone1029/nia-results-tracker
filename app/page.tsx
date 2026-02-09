@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus } from "@/lib/review-status";
-import { getMaturityLevel, STATUS_COLORS } from "@/lib/colors";
+import { getMaturityLevel } from "@/lib/colors";
 import { DashboardSkeleton } from "@/components/skeleton";
 import AdliRadar from "@/components/adli-radar";
 import { DimBar, MiniBar } from "@/components/adli-bars";
 import EmptyState from "@/components/empty-state";
+import { Card, CardHeader, Badge, Select } from "@/components/ui";
 import Link from "next/link";
 
 interface ProcessRow {
@@ -41,6 +42,18 @@ const STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
   ready_for_review: "Ready for Review",
   approved: "Approved",
+};
+
+const STATUS_BADGE_COLORS: Record<string, "gray" | "orange" | "green"> = {
+  draft: "gray",
+  ready_for_review: "orange",
+  approved: "green",
+};
+
+const ACTION_BADGE: Record<string, { color: "red" | "orange" | "gray"; label: string }> = {
+  overdue: { color: "red", label: "overdue" },
+  "due-soon": { color: "orange", label: "due soon" },
+  draft: { color: "gray", label: "draft" },
 };
 
 export default function ProcessOwnerDashboard() {
@@ -246,11 +259,12 @@ export default function ProcessOwnerDashboard() {
           <label htmlFor="owner-select" className="text-sm text-gray-500">
             Owner:
           </label>
-          <select
+          <Select
             id="owner-select"
             value={selectedOwner}
             onChange={(e) => setSelectedOwner(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-nia-dark bg-white focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30"
+            size="sm"
+            className="w-auto"
           >
             <option value="__all__">All Owners</option>
             {owners.map((o) => (
@@ -258,7 +272,7 @@ export default function ProcessOwnerDashboard() {
                 {o}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -280,7 +294,7 @@ export default function ProcessOwnerDashboard() {
       </div>
 
       {processCount === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <Card>
           <EmptyState
             illustration="document"
             title={isAll ? "No processes yet" : `No processes for ${selectedOwner}`}
@@ -291,13 +305,13 @@ export default function ProcessOwnerDashboard() {
             }
             action={{ label: "Go to Processes", href: "/processes" }}
           />
-        </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column: ADLI Overview + Status Breakdown */}
           <div className="space-y-6">
             {/* ADLI Overview */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <Card padding="md">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
                 ADLI Overview
               </h2>
@@ -314,7 +328,7 @@ export default function ProcessOwnerDashboard() {
                   </div>
                   <div className="text-center mb-4">
                     <span
-                      className="text-3xl font-bold"
+                      className="text-3xl font-bold font-display number-pop"
                       style={{ color: maturityLevel.color }}
                     >
                       {avgAdli}%
@@ -341,10 +355,10 @@ export default function ProcessOwnerDashboard() {
                   compact
                 />
               )}
-            </div>
+            </Card>
 
             {/* Status Breakdown */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <Card padding="md">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
                 Status Breakdown
               </h2>
@@ -354,13 +368,9 @@ export default function ProcessOwnerDashboard() {
                   if (count === 0) return null;
                   return (
                     <div key={status} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: STATUS_COLORS[status] || "#9ca3af" }}
-                        />
-                        <span className="text-sm text-nia-dark">{label}</span>
-                      </div>
+                      <Badge color={STATUS_BADGE_COLORS[status] || "gray"} dot size="sm">
+                        {label}
+                      </Badge>
                       <span className="text-sm font-bold text-nia-dark">
                         {count}
                       </span>
@@ -368,13 +378,13 @@ export default function ProcessOwnerDashboard() {
                   );
                 })}
               </div>
-            </div>
+            </Card>
           </div>
 
           {/* Right column: Action Items + My Processes */}
           <div className="space-y-6">
             {/* Action Items */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <Card padding="md">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
                 Action Items
               </h2>
@@ -386,36 +396,35 @@ export default function ProcessOwnerDashboard() {
                   compact
                 />
               ) : (
-                <div className="space-y-2">
-                  {actionItems.slice(0, 8).map((item, i) => (
-                    <Link
-                      key={`${item.type}-${i}`}
-                      href={item.href}
-                      className="flex items-center gap-2.5 py-1.5 px-2 rounded-md hover:bg-gray-50 transition-colors group"
-                    >
-                      <div
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{
-                          backgroundColor:
-                            item.type === "overdue"
-                              ? "#dc2626"
-                              : item.type === "due-soon"
-                              ? "#f79935"
-                              : "#9ca3af",
-                        }}
-                      />
-                      <span className="text-sm text-nia-dark group-hover:text-nia-orange transition-colors truncate">
-                        {item.label}
-                      </span>
-                      <span className="text-[10px] text-gray-400 flex-shrink-0 ml-auto">
-                        {item.type === "overdue"
-                          ? "overdue"
-                          : item.type === "due-soon"
-                          ? "due soon"
-                          : "draft"}
-                      </span>
-                    </Link>
-                  ))}
+                <div className="space-y-1">
+                  {actionItems.slice(0, 8).map((item, i) => {
+                    const badgeInfo = ACTION_BADGE[item.type];
+                    return (
+                      <Link
+                        key={`${item.type}-${i}`}
+                        href={item.href}
+                        className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 transition-colors group"
+                      >
+                        <div
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{
+                            backgroundColor:
+                              item.type === "overdue"
+                                ? "#dc2626"
+                                : item.type === "due-soon"
+                                ? "#f79935"
+                                : "#9ca3af",
+                          }}
+                        />
+                        <span className="text-sm text-nia-dark group-hover:text-nia-orange transition-colors truncate">
+                          {item.label}
+                        </span>
+                        <Badge color={badgeInfo.color} size="xs" className="ml-auto flex-shrink-0">
+                          {badgeInfo.label}
+                        </Badge>
+                      </Link>
+                    );
+                  })}
                   {actionItems.length > 8 && (
                     <p className="text-xs text-gray-400 px-2 pt-1">
                       +{actionItems.length - 8} more
@@ -423,15 +432,15 @@ export default function ProcessOwnerDashboard() {
                   )}
                 </div>
               )}
-            </div>
+            </Card>
 
             {/* My Processes */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100">
+            <Card>
+              <CardHeader>
                 <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
                   {isAll ? "All Processes" : "My Processes"}
                 </h2>
-              </div>
+              </CardHeader>
               <div className="divide-y divide-gray-50">
                 {filteredProcesses.map((proc) => {
                   const score = scoreMap.get(proc.id);
@@ -440,7 +449,7 @@ export default function ProcessOwnerDashboard() {
                     <Link
                       key={proc.id}
                       href={`/processes/${proc.id}`}
-                      className="block px-5 py-3 hover:bg-gray-50 transition-colors"
+                      className="block px-5 py-3 hover:bg-gray-50/80 transition-colors"
                     >
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2 min-w-0">
@@ -448,15 +457,16 @@ export default function ProcessOwnerDashboard() {
                             {proc.name}
                           </span>
                           {proc.is_key && (
-                            <span className="text-[10px] bg-nia-orange/10 text-nia-orange px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                            <Badge color="orange" size="xs" pill={false}>
                               KEY
-                            </span>
+                            </Badge>
                           )}
                           {proc.asana_project_gid && (
                             <svg
                               className="w-3.5 h-3.5 text-gray-400 flex-shrink-0"
                               viewBox="0 0 24 24"
                               fill="currentColor"
+                              aria-label="Linked to Asana"
                             >
                               <circle cx="12" cy="6" r="4.5" />
                               <circle cx="5" cy="18" r="4.5" />
@@ -465,15 +475,12 @@ export default function ProcessOwnerDashboard() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span
-                            className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                            style={{
-                              backgroundColor: (STATUS_COLORS[proc.status] || "#9ca3af") + "20",
-                              color: STATUS_COLORS[proc.status] || "#9ca3af",
-                            }}
+                          <Badge
+                            color={STATUS_BADGE_COLORS[proc.status] || "gray"}
+                            size="xs"
                           >
                             {STATUS_LABELS[proc.status] || proc.status}
-                          </span>
+                          </Badge>
                           {pLevel && (
                             <span
                               className="text-xs font-bold px-2 py-0.5 rounded-full text-white flex-shrink-0"
@@ -500,7 +507,7 @@ export default function ProcessOwnerDashboard() {
                   );
                 })}
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       )}
@@ -520,8 +527,8 @@ function StatCard({
   subtitle?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-      <div className="text-2xl font-bold" style={{ color }}>
+    <Card variant="elevated" padding="sm" className="p-4">
+      <div className="text-2xl font-bold font-display number-pop" style={{ color }}>
         {value}
       </div>
       <div className="text-sm text-gray-500 mt-0.5">{label}</div>
@@ -530,6 +537,6 @@ function StatCard({
           {subtitle}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

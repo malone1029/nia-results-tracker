@@ -7,6 +7,7 @@ import { DashboardSkeleton } from "@/components/skeleton";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
 import EmptyState from "@/components/empty-state";
+import { Card, CardHeader, CardBody, Badge, Button, Input } from "@/components/ui";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface MetricRow extends Metric {
@@ -225,7 +226,7 @@ export default function DataHealthPage() {
 
       {/* Hero metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-5">
+        <Card variant="elevated" padding="md" className="flex items-center gap-5">
           <HealthRing
             percentage={
               metrics.length > 0
@@ -244,7 +245,7 @@ export default function DataHealthPage() {
               tracked
             </div>
           </div>
-        </div>
+        </Card>
 
         <HeroCard
           label="Overdue"
@@ -276,8 +277,9 @@ export default function DataHealthPage() {
       {processSummary && processSummary.key > 0 && (
         <Link
           href="/processes"
-          className="block bg-white rounded-lg shadow p-4 border-l-4 border-nia-grey-blue hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+          className="block"
         >
+        <Card variant="interactive" accent="dark" padding="sm">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
@@ -309,104 +311,77 @@ export default function DataHealthPage() {
               )}
             </div>
           </div>
+        </Card>
         </Link>
       )}
 
       {/* Inline log form */}
       {logForm && (
-        <div ref={logFormRef} className="bg-white rounded-lg shadow p-6 border-l-4 border-nia-orange">
+        <Card accent="orange" padding="md">
+          <div ref={logFormRef}>
           <h3 className="font-bold text-nia-dark mb-4">
             Log Value:{" "}
             {metrics.find((m) => m.id === logForm.metricId)?.name}
           </h3>
           <form onSubmit={handleLogSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-nia-dark mb-1">
-                  Value *
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  required
-                  value={logForm.value}
-                  onChange={(e) =>
-                    setLogForm({ ...logForm, value: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                  placeholder="Enter value"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-nia-dark mb-1">
-                  Date *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={logForm.date}
-                  onChange={(e) =>
-                    setLogForm({ ...logForm, date: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-nia-dark mb-1">
-                Analysis Note{" "}
-                <span className="text-gray-400 font-normal">
-                  (context or explanation)
-                </span>
-              </label>
-              <input
-                type="text"
-                value={logForm.noteAnalysis}
+              <Input
+                label="Value"
+                type="number"
+                step="any"
+                required
+                value={logForm.value}
                 onChange={(e) =>
-                  setLogForm({ ...logForm, noteAnalysis: e.target.value })
+                  setLogForm({ ...logForm, value: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                placeholder="e.g., New survey methodology used this cycle"
+                placeholder="Enter value"
+              />
+              <Input
+                label="Date"
+                type="date"
+                required
+                value={logForm.date}
+                onChange={(e) =>
+                  setLogForm({ ...logForm, date: e.target.value })
+                }
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-nia-dark mb-1">
-                Course Correction{" "}
-                <span className="text-gray-400 font-normal">
-                  (action taken if missing target)
-                </span>
-              </label>
-              <input
-                type="text"
-                value={logForm.noteCourseCorrection}
-                onChange={(e) =>
-                  setLogForm({
-                    ...logForm,
-                    noteCourseCorrection: e.target.value,
-                  })
-                }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                placeholder="e.g., Added mandatory re-training for repeat offenders"
-              />
-            </div>
+            <Input
+              label="Analysis Note"
+              hint="Context or explanation"
+              value={logForm.noteAnalysis}
+              onChange={(e) =>
+                setLogForm({ ...logForm, noteAnalysis: e.target.value })
+              }
+              placeholder="e.g., New survey methodology used this cycle"
+            />
+            <Input
+              label="Course Correction"
+              hint="Action taken if missing target"
+              value={logForm.noteCourseCorrection}
+              onChange={(e) =>
+                setLogForm({
+                  ...logForm,
+                  noteCourseCorrection: e.target.value,
+                })
+              }
+              placeholder="e.g., Added mandatory re-training for repeat offenders"
+            />
             <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save Entry"}
-              </button>
-              <button
+              <Button type="submit" disabled={saving} loading={saving}>
+                Save Entry
+              </Button>
+              <Button
+                variant="secondary"
                 type="button"
                 onClick={() => setLogForm(null)}
-                className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
-        </div>
+          </div>
+        </Card>
       )}
 
       {/* Overdue section */}
@@ -525,17 +500,21 @@ function HeroCard({
   color: string;
   subtitle: string;
 }) {
+  const accentMap: Record<string, "orange" | "red" | "green" | "dark"> = {
+    "#dc2626": "red",
+    "#f79935": "orange",
+    "#b1bd37": "green",
+    "#324a4d": "dark",
+  };
+
   return (
-    <div
-      className="rounded-xl shadow-sm p-5 flex flex-col justify-center border-l-4 hover:shadow-md transition-all duration-200"
-      style={{ backgroundColor: `${color}08`, borderLeftColor: color }}
-    >
-      <div className="text-4xl font-bold tracking-tight" style={{ color }}>
+    <Card variant="elevated" accent={accentMap[color] || "none"} padding="md" className="flex flex-col justify-center">
+      <div className="text-4xl font-bold font-display number-pop tracking-tight" style={{ color }}>
         {value}
       </div>
       <div className="text-base font-semibold text-nia-dark mt-1">{label}</div>
       <div className="text-sm text-gray-400 mt-0.5">{subtitle}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -549,12 +528,12 @@ function MiniStat({
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-3 bg-white rounded-lg shadow-sm px-4 py-3">
-      <div className="text-xl font-bold" style={{ color }}>
+    <Card padding="sm" className="flex items-center gap-3">
+      <div className="text-xl font-bold font-display number-pop" style={{ color }}>
         {value}
       </div>
       <div className="text-sm text-gray-500">{label}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -577,11 +556,15 @@ function MetricSection({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
+  const accentMap: Record<string, "orange" | "red" | "green" | "dark"> = {
+    "#dc2626": "red" as const,
+    "#f79935": "orange" as const,
+    "#b1bd37": "green" as const,
+    "#55787c": "dark" as const,
+  };
+
   return (
-    <div
-      className="bg-white rounded-lg shadow overflow-hidden"
-      style={accentColor ? { borderLeft: `4px solid ${accentColor}` } : {}}
-    >
+    <Card accent={accentColor ? accentMap[accentColor] || "none" : "none"} className="overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors text-left"
@@ -641,32 +624,32 @@ function MetricSection({
                     </div>
                   </div>
                 )}
-                <span
-                  className="text-xs px-2 py-1 rounded-full font-medium"
-                  style={{
-                    backgroundColor:
-                      getStatusColor(metric.review_status) + "20",
-                    color: getStatusColor(metric.review_status),
-                  }}
+                <Badge
+                  color={
+                    metric.review_status === "overdue" ? "red" :
+                    metric.review_status === "due-soon" ? "orange" :
+                    metric.review_status === "current" ? "green" : "gray"
+                  }
+                  size="xs"
                 >
                   {getStatusLabel(metric.review_status)}
-                </span>
-                <button
+                </Badge>
+                <Button
+                  size="xs"
                   onClick={(e) => {
                     e.stopPropagation();
                     onLogClick(metric.id);
                   }}
-                  className="bg-nia-dark text-white text-sm rounded-lg py-1.5 px-3 hover:opacity-90"
                 >
                   Log Now
-                </button>
+                </Button>
               </div>
             </div>
           ))}
         </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 

@@ -23,7 +23,9 @@ const ADLI_LABELS: Record<string, string> = {
 
 /**
  * POST /api/tasks/export
- * Exports all pending process_tasks to Asana in the correct PDCA sections.
+ * Exports all pending process_tasks to Asana.
+ * Tasks with an adli_dimension become subtasks under the matching ADLI documentation task.
+ * Tasks without adli_dimension (or when parent is missing) → standalone in PDCA section.
  * Body: { processId: number }
  */
 export async function POST(request: Request) {
@@ -51,10 +53,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Fetch the process to get Asana project link
+  // Fetch the process (need asana_adli_task_gids for subtask placement)
   const { data: proc, error: procError } = await supabase
     .from("processes")
-    .select("id, name, asana_project_gid")
+    .select("id, name, asana_project_gid, asana_adli_task_gids")
     .eq("id", processId)
     .single();
 
@@ -86,6 +88,7 @@ export async function POST(request: Request) {
   }
 
   const projectGid = proc.asana_project_gid;
+  const adliTaskGids = (proc.asana_adli_task_gids as Record<string, string>) || {};
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nia-results-tracker.vercel.app";
 
   try {
@@ -103,7 +106,7 @@ export async function POST(request: Request) {
       throw err;
     }
 
-    // Get existing sections
+    // Get existing sections (needed for standalone fallback)
     const sectionsRes = await asanaFetch(
       token,
       `/projects/${projectGid}/sections?opt_fields=name`
@@ -124,65 +127,104 @@ export async function POST(request: Request) {
       }
     }
 
-    // Export each task to the correct PDCA section
-    const results: { taskId: number; success: boolean; section: string }[] = [];
+    // Export each task
+    const results: { taskId: number; success: boolean; section: string; asSubtask: boolean }[] = [];
 
     for (const task of pendingTasks) {
       const sectionKey = task.pdca_section as string;
       const sectionGid = existingSections.get(sectionKey);
-      if (!sectionGid) {
-        results.push({ taskId: task.id, success: false, section: sectionKey });
-        continue;
+      const adliDim = task.adli_dimension as string | null;
+      const parentGid = adliDim ? adliTaskGids[adliDim] : null;
+
+      // Build task name with ADLI prefix if dimension is set
+      const adliPrefix = adliDim
+        ? `[ADLI: ${ADLI_LABELS[adliDim] || adliDim}] `
+        : "";
+      const taskName = `${adliPrefix}${task.title}`;
+
+      // Build task notes
+      const notesParts = [];
+      if (task.description) notesParts.push(task.description);
+      notesParts.push("");
+      notesParts.push(`View process: ${appUrl}/processes/${processId}`);
+      const taskNotes = notesParts.join("\n");
+
+      let asSubtask = false;
+
+      // Try to create as subtask under ADLI parent
+      if (parentGid) {
+        try {
+          const result = await asanaFetch(token, `/tasks/${parentGid}/subtasks`, {
+            method: "POST",
+            body: JSON.stringify({
+              data: {
+                name: taskName,
+                notes: taskNotes,
+              },
+            }),
+          });
+
+          const asanaTaskGid = result.data?.gid || null;
+          const asanaTaskUrl = result.data?.permalink_url || null;
+
+          await supabase
+            .from("process_tasks")
+            .update({
+              status: "exported",
+              asana_task_gid: asanaTaskGid,
+              asana_task_url: asanaTaskUrl,
+            })
+            .eq("id", task.id);
+
+          results.push({ taskId: task.id, success: true, section: sectionKey, asSubtask: true });
+          asSubtask = true;
+        } catch {
+          // Parent task was deleted — fall through to standalone
+        }
       }
 
-      try {
-        // Build task name with ADLI prefix if dimension is set
-        const adliPrefix = task.adli_dimension
-          ? `[ADLI: ${ADLI_LABELS[task.adli_dimension] || task.adli_dimension}] `
-          : "";
-        const taskName = `${adliPrefix}${task.title}`;
+      // Fallback: create as standalone task in PDCA section
+      if (!asSubtask) {
+        if (!sectionGid) {
+          results.push({ taskId: task.id, success: false, section: sectionKey, asSubtask: false });
+          continue;
+        }
 
-        // Build task notes
-        const notesParts = [];
-        if (task.description) notesParts.push(task.description);
-        notesParts.push("");
-        notesParts.push(`View process: ${appUrl}/processes/${processId}`);
-        const taskNotes = notesParts.join("\n");
+        try {
+          const result = await asanaFetch(token, "/tasks", {
+            method: "POST",
+            body: JSON.stringify({
+              data: {
+                name: taskName,
+                notes: taskNotes,
+                projects: [projectGid],
+                memberships: [{ project: projectGid, section: sectionGid }],
+              },
+            }),
+          });
 
-        const result = await asanaFetch(token, "/tasks", {
-          method: "POST",
-          body: JSON.stringify({
-            data: {
-              name: taskName,
-              notes: taskNotes,
-              projects: [projectGid],
-              memberships: [{ project: projectGid, section: sectionGid }],
-            },
-          }),
-        });
+          const asanaTaskGid = result.data?.gid || null;
+          const asanaTaskUrl = result.data?.permalink_url || null;
 
-        const asanaTaskGid = result.data?.gid || null;
-        const asanaTaskUrl = result.data?.permalink_url || null;
+          await supabase
+            .from("process_tasks")
+            .update({
+              status: "exported",
+              asana_task_gid: asanaTaskGid,
+              asana_task_url: asanaTaskUrl,
+            })
+            .eq("id", task.id);
 
-        // Mark task as exported in our database
-        await supabase
-          .from("process_tasks")
-          .update({
-            status: "exported",
-            asana_task_gid: asanaTaskGid,
-            asana_task_url: asanaTaskUrl,
-          })
-          .eq("id", task.id);
-
-        results.push({ taskId: task.id, success: true, section: sectionKey });
-      } catch {
-        // Non-blocking: skip this task and continue with others
-        results.push({ taskId: task.id, success: false, section: sectionKey });
+          results.push({ taskId: task.id, success: true, section: sectionKey, asSubtask: false });
+        } catch {
+          results.push({ taskId: task.id, success: false, section: sectionKey, asSubtask: false });
+        }
       }
     }
 
     // Build summary counts
     const exported = results.filter((r) => r.success);
+    const subtaskCount = exported.filter((r) => r.asSubtask).length;
     const sectionCounts: Record<string, number> = {};
     for (const r of exported) {
       const label = SECTION_LABEL[r.section] || r.section;
@@ -192,13 +234,14 @@ export async function POST(request: Request) {
     // Log in history
     await supabase.from("process_history").insert({
       process_id: processId,
-      change_description: `Exported ${exported.length} tasks to Asana by ${user.email}`,
+      change_description: `Exported ${exported.length} tasks to Asana by ${user.email} (${subtaskCount} as subtasks)`,
     });
 
     return NextResponse.json({
       success: true,
       exported: exported.length,
       failed: results.filter((r) => !r.success).length,
+      subtasks: subtaskCount,
       sectionCounts,
       asanaUrl: `https://app.asana.com/0/${projectGid}`,
     });

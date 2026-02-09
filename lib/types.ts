@@ -100,6 +100,9 @@ export interface Process {
   baldrige_connections: BaldigeConnections | null;
   is_key: boolean;
   asana_raw_data: Record<string, unknown> | null;
+  asana_raw_data_previous: Record<string, unknown> | null;
+  asana_adli_task_gids: Record<string, string> | null;
+  guided_step: string | null;
   updated_at: string;
 }
 

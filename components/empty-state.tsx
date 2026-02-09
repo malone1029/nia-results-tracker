@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Button } from "@/components/ui";
 
 type Illustration = "check" | "document" | "chart" | "radar" | "search";
 
@@ -38,12 +38,9 @@ export default function EmptyState({
       </h3>
       <p className="text-sm text-gray-400 max-w-sm">{description}</p>
       {action && (
-        <Link
-          href={action.href}
-          className="mt-4 inline-block bg-nia-dark text-white rounded-lg px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity"
-        >
+        <Button variant="primary" size="sm" href={action.href} className="mt-4">
           {action.label}
-        </Link>
+        </Button>
       )}
     </div>
   );

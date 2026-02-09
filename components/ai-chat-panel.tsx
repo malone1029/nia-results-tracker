@@ -42,7 +42,7 @@ interface CoachSuggestion {
   title: string;
   whyMatters: string;
   preview: string;
-  content: string;
+  content: string | Record<string, string>; // string for normal, object for charter_cleanup
   tasks?: SuggestionTask[];
 }
 
@@ -544,10 +544,15 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       // Remove this suggestion from pending list
       setPendingSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
 
-      // Build success message with task count
-      let successMsg = `**Applied!** "${suggestion.title}" has been applied to the ${fieldLabel} section.`;
-      if (data.tasksQueued > 0) {
-        successMsg += ` ${data.tasksQueued} task${data.tasksQueued !== 1 ? "s" : ""} queued for review — check the Tasks tab to review and export to Asana.`;
+      // Build success message
+      let successMsg: string;
+      if (suggestion.field === "charter_cleanup" && data.fieldsUpdated) {
+        successMsg = `**Applied!** "${suggestion.title}" — ${data.fieldsUpdated} sections updated. Process documentation has been separated from operational content.`;
+      } else {
+        successMsg = `**Applied!** "${suggestion.title}" has been applied to the ${fieldLabel} section.`;
+        if (data.tasksQueued > 0) {
+          successMsg += ` ${data.tasksQueued} task${data.tasksQueued !== 1 ? "s" : ""} queued for review — check the Tasks tab to review and export to Asana.`;
+        }
       }
 
       // Add a success message to the chat and save
@@ -1143,6 +1148,16 @@ function CoachSuggestionCard({
       <div className="px-3 py-2 space-y-1.5">
         <p className="text-xs text-gray-600 italic">{suggestion.whyMatters}</p>
         <p className="text-xs text-gray-500">{suggestion.preview}</p>
+        {/* Show affected fields for cleanup suggestions */}
+        {suggestion.field === "charter_cleanup" && typeof suggestion.content === "object" && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {Object.keys(suggestion.content).map((key) => (
+              <span key={key} className="text-[10px] px-1.5 py-0.5 rounded bg-nia-grey-blue/10 text-nia-grey-blue font-medium">
+                {FIELD_LABELS[key] || key}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Task preview — shows proposed PDCA tasks if present */}
@@ -1177,7 +1192,9 @@ function CoachSuggestionCard({
           disabled={isApplying}
           className="text-xs bg-nia-dark text-white rounded px-3 py-1.5 font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
         >
-          {isApplying ? "Applying..." : `Apply${suggestion.tasks?.length ? ` + Queue ${suggestion.tasks.length} Task${suggestion.tasks.length !== 1 ? "s" : ""}` : ""}`}
+          {isApplying ? "Applying..." : suggestion.field === "charter_cleanup"
+            ? `Clean Up${typeof suggestion.content === "object" ? ` ${Object.keys(suggestion.content).length} Sections` : ""}`
+            : `Apply${suggestion.tasks?.length ? ` + Queue ${suggestion.tasks.length} Task${suggestion.tasks.length !== 1 ? "s" : ""}` : ""}`}
         </button>
         <button
           onClick={onTellMore}

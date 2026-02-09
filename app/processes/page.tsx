@@ -6,6 +6,7 @@ import type { ProcessStatus } from "@/lib/types";
 import { CategoryGridSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 import EmptyState from "@/components/empty-state";
+import { Button, Badge, Card, Select } from "@/components/ui";
 
 interface ProcessRow {
   id: number;
@@ -49,10 +50,10 @@ interface CategorySummary {
   in_progress_count: number; // ready_for_review
 }
 
-const STATUS_CONFIG: Record<ProcessStatus, { label: string; color: string }> = {
-  draft: { label: "Draft", color: "#9ca3af" },
-  ready_for_review: { label: "Ready for Review", color: "#f79935" },
-  approved: { label: "Approved", color: "#b1bd37" },
+const STATUS_CONFIG: Record<ProcessStatus, { label: string; badgeColor: "gray" | "orange" | "green" }> = {
+  draft: { label: "Draft", badgeColor: "gray" },
+  ready_for_review: { label: "Ready for Review", badgeColor: "orange" },
+  approved: { label: "Approved", badgeColor: "green" },
 };
 
 const STATUS_OPTIONS: ProcessStatus[] = [
@@ -178,18 +179,12 @@ export default function ProcessesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link
-            href="/processes/import"
-            className="bg-gray-200 text-nia-dark rounded-lg py-2 px-4 hover:bg-gray-300 text-sm font-medium text-center"
-          >
+          <Button variant="secondary" size="md" href="/processes/import">
             Import Processes
-          </Link>
-          <Link
-            href="/processes/new"
-            className="bg-nia-dark text-white rounded-lg py-2 px-4 hover:opacity-90 text-sm font-medium text-center"
-          >
+          </Button>
+          <Button variant="primary" size="md" href="/processes/new">
             + Create New Process
-          </Link>
+          </Button>
         </div>
       </div>
 
@@ -218,14 +213,14 @@ export default function ProcessesPage() {
                 onClick={() =>
                   setFilterCategory(isSelected ? null : cat.id)
                 }
-                className={`rounded-lg shadow p-3 text-center transition-all duration-200 ${
+                className={`rounded-xl p-3 text-center transition-all duration-200 ${
                   isSelected
                     ? "ring-2 ring-nia-dark shadow-md"
-                    : "hover:shadow-md hover:-translate-y-0.5"
+                    : "shadow-sm hover:shadow-md hover:-translate-y-0.5"
                 } ${isEmpty ? "opacity-60" : ""}`}
                 style={{ backgroundColor: isEmpty ? "#dc262608" : "#324a4d08", borderTop: `3px solid ${isEmpty ? "#dc2626" : "#55787c"}` }}
               >
-                <div className={`text-2xl font-bold ${isEmpty ? "text-nia-red" : "text-nia-dark"}`}>
+                <div className={`text-2xl font-bold font-display ${isEmpty ? "text-nia-red" : "text-nia-dark"}`}>
                   {count}
                 </div>
                 <div className={`text-xs font-medium mt-1 leading-tight ${isEmpty ? "text-nia-red" : "text-nia-dark"}`}>
@@ -268,12 +263,13 @@ export default function ProcessesPage() {
         >
           {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
         </button>
-        <select
+        <Select
           value={filterCategory ?? ""}
           onChange={(e) =>
             setFilterCategory(e.target.value ? Number(e.target.value) : null)
           }
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+          size="sm"
+          className="w-auto"
         >
           <option value="">All Categories</option>
           {categories.map((cat) => (
@@ -281,15 +277,16 @@ export default function ProcessesPage() {
               {cat.display_name}
             </option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select
           value={filterStatus ?? ""}
           onChange={(e) =>
             setFilterStatus(
               e.target.value ? (e.target.value as ProcessStatus) : null
             )
           }
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+          size="sm"
+          className="w-auto"
         >
           <option value="">All Statuses</option>
           {STATUS_OPTIONS.map((s) => (
@@ -297,7 +294,7 @@ export default function ProcessesPage() {
               {STATUS_CONFIG[s].label}
             </option>
           ))}
-        </select>
+        </Select>
         {(filterCategory !== null || filterStatus !== null || showKeyOnly) && (
           <button
             onClick={() => {
@@ -314,7 +311,7 @@ export default function ProcessesPage() {
 
       {/* Process List */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm">
+        <Card>
           <EmptyState
             illustration={processes.length === 0 ? "document" : "search"}
             title={processes.length === 0 ? "No processes yet" : "No processes found"}
@@ -329,11 +326,11 @@ export default function ProcessesPage() {
                 : undefined
             }
           />
-        </div>
+        </Card>
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+          <Card className="hidden md:block">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -348,7 +345,7 @@ export default function ProcessesPage() {
                 {filtered.map((process) => (
                   <tr
                     key={process.id}
-                    className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50 transition-colors"
+                    className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50/80 transition-colors"
                   >
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1">
@@ -373,8 +370,8 @@ export default function ProcessesPage() {
                           {process.name}
                         </Link>
                         {process.asana_project_gid && (
-                          <span className="text-xs text-gray-400 ml-1" title="Linked to Asana">
-                            <svg className="inline w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="4"/><circle cx="5" cy="18" r="4"/><circle cx="19" cy="18" r="4"/></svg>
+                          <span className="text-gray-400 ml-1" title="Linked to Asana">
+                            <svg className="inline w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-label="Linked to Asana"><circle cx="12" cy="6" r="4"/><circle cx="5" cy="18" r="4"/><circle cx="19" cy="18" r="4"/></svg>
                           </span>
                         )}
                       </span>
@@ -388,16 +385,9 @@ export default function ProcessesPage() {
                       {process.category_display_name}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className="text-xs px-2 py-1 rounded-full font-medium"
-                        style={{
-                          backgroundColor:
-                            STATUS_CONFIG[process.status].color + "20",
-                          color: STATUS_CONFIG[process.status].color,
-                        }}
-                      >
+                      <Badge color={STATUS_CONFIG[process.status].badgeColor} size="sm">
                         {STATUS_CONFIG[process.status].label}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-4 py-3">
                       {(() => {
@@ -426,7 +416,7 @@ export default function ProcessesPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
 
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
@@ -434,74 +424,73 @@ export default function ProcessesPage() {
               <Link
                 key={process.id}
                 href={`/processes/${process.id}`}
-                className="block bg-white rounded-lg shadow p-4 border-l-4 border-nia-grey-blue hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                className="block"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="font-medium text-nia-dark flex items-center gap-1">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleKeyProcess(process.id, process.is_key);
-                        }}
-                        className={`text-base leading-none transition-colors ${
-                          process.is_key
-                            ? "text-nia-orange hover:text-nia-orange-dark"
-                            : "text-gray-300 hover:text-nia-orange"
-                        }`}
-                        title={process.is_key ? "Remove key process flag" : "Mark as key process"}
-                      >
-                        {process.is_key ? "\u2605" : "\u2606"}
-                      </button>
-                      {process.name}
-                      {process.asana_project_gid && (
-                        <span className="text-gray-400 ml-1" title="Linked to Asana">
-                          <svg className="inline w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="4"/><circle cx="5" cy="18" r="4"/><circle cx="19" cy="18" r="4"/></svg>
-                        </span>
-                      )}
+                <Card variant="interactive" accent="dark" padding="sm" className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-medium text-nia-dark flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleKeyProcess(process.id, process.is_key);
+                          }}
+                          className={`text-base leading-none transition-colors ${
+                            process.is_key
+                              ? "text-nia-orange hover:text-nia-orange-dark"
+                              : "text-gray-300 hover:text-nia-orange"
+                          }`}
+                          title={process.is_key ? "Remove key process flag" : "Mark as key process"}
+                        >
+                          {process.is_key ? "\u2605" : "\u2606"}
+                        </button>
+                        {process.name}
+                        {process.asana_project_gid && (
+                          <span className="text-gray-400 ml-1" title="Linked to Asana">
+                            <svg className="inline w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-label="Linked to Asana"><circle cx="12" cy="6" r="4"/><circle cx="5" cy="18" r="4"/><circle cx="19" cy="18" r="4"/></svg>
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        {process.category_display_name}
+                        {process.baldrige_item && (
+                          <span className="text-gray-400">
+                            {" "}
+                            ({process.baldrige_item})
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {process.category_display_name}
-                      {process.baldrige_item && (
-                        <span className="text-gray-400">
-                          {" "}
-                          ({process.baldrige_item})
-                        </span>
-                      )}
-                    </div>
+                    <Badge
+                      color={STATUS_CONFIG[process.status].badgeColor}
+                      size="xs"
+                      className="flex-shrink-0"
+                    >
+                      {STATUS_CONFIG[process.status].label}
+                    </Badge>
                   </div>
-                  <span
-                    className="text-xs px-2 py-1 rounded-full font-medium flex-shrink-0"
-                    style={{
-                      backgroundColor:
-                        STATUS_CONFIG[process.status].color + "20",
-                      color: STATUS_CONFIG[process.status].color,
-                    }}
-                  >
-                    {STATUS_CONFIG[process.status].label}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                  {(() => {
-                    const sections = getCompleteness(process);
-                    const filled = sections.filter((s) => s.filled).length;
-                    return (
-                      <span className="flex items-center gap-0.5">
-                        {sections.map((s, i) => (
-                          <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${s.filled ? "bg-nia-green" : "bg-gray-200"}`} />
-                        ))}
-                        <span className="ml-1">{filled}/{sections.length}</span>
-                      </span>
-                    );
-                  })()}
-                  {process.owner && (
-                    <>
-                      <span>&middot;</span>
-                      <span>{process.owner}</span>
-                    </>
-                  )}
-                </div>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                    {(() => {
+                      const sections = getCompleteness(process);
+                      const filled = sections.filter((s) => s.filled).length;
+                      return (
+                        <span className="flex items-center gap-0.5">
+                          {sections.map((s, i) => (
+                            <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${s.filled ? "bg-nia-green" : "bg-gray-200"}`} />
+                          ))}
+                          <span className="ml-1">{filled}/{sections.length}</span>
+                        </span>
+                      );
+                    })()}
+                    {process.owner && (
+                      <>
+                        <span>&middot;</span>
+                        <span>{process.owner}</span>
+                      </>
+                    )}
+                  </div>
+                </Card>
               </Link>
             ))}
           </div>

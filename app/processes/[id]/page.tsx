@@ -20,6 +20,7 @@ import EmptyState from "@/components/empty-state";
 import MarkdownContent from "@/components/markdown-content";
 import AiChatPanel from "@/components/ai-chat-panel";
 import TaskReviewPanel from "@/components/task-review-panel";
+import ImprovementStepper from "@/components/improvement-stepper";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface ProcessDetail {
@@ -43,6 +44,7 @@ interface ProcessDetail {
   updated_at: string;
   asana_project_gid: string | null;
   asana_project_url: string | null;
+  guided_step: string | null;
 }
 
 interface LinkedMetric {
@@ -364,6 +366,7 @@ function ProcessDetailContent() {
         setAsanaError(data.message || data.error || "Refresh failed");
       } else {
         setAsanaResyncResult({ tasks: data.tasks, subtasks: data.subtasks });
+        fetchProcess(); // Refresh to pick up updated charter, ADLI, and guided_step
       }
     } catch (e) {
       setAsanaError("Refresh failed: " + (e as Error).message);
@@ -708,6 +711,23 @@ function ProcessDetailContent() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Improvement Stepper — only shown when linked to Asana */}
+      {process.asana_project_gid && process.guided_step && (
+        <ImprovementStepper
+          currentStep={process.guided_step}
+          onStepClick={async (step) => {
+            const res = await fetch("/api/processes/step", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ processId: process.id, step }),
+            });
+            if (res.ok) {
+              setProcess({ ...process, guided_step: step });
+            }
+          }}
+        />
       )}
 
       {/* Tab switcher */}

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import GlobalSearch from "@/components/global-search";
+import { Button } from "@/components/ui";
 import type { User } from "@supabase/supabase-js";
 
 export default function TopBar({
@@ -73,18 +74,12 @@ export default function TopBar({
 
       {/* Action buttons (desktop) */}
       <div className="hidden lg:flex items-center gap-2">
-        <a
-          href="/log"
-          className="text-sm text-nia-dark border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
-        >
+        <Button variant="secondary" size="sm" href="/log">
           Log Data
-        </a>
-        <a
-          href="/metric/new"
-          className="text-sm text-white bg-nia-orange hover:bg-nia-orange-dark px-3 py-1.5 rounded-lg font-medium transition-colors"
-        >
+        </Button>
+        <Button variant="accent" size="sm" href="/metric/new">
           + Metric
-        </a>
+        </Button>
       </div>
 
       {/* User profile */}

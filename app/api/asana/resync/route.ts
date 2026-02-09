@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
+import { fetchProjectSections, findAdliTasks } from "@/lib/asana-helpers";
 
 /**
  * POST /api/asana/resync
- * Re-fetches Asana project data (with subtasks) and updates asana_raw_data
- * for an already-linked process. Does NOT overwrite charter or ADLI content.
+ * Full content sync from Asana:
+ * 1. Saves current asana_raw_data → asana_raw_data_previous (for AI snapshot comparison)
+ * 2. Fetches fresh data from Asana (sections, tasks, subtasks)
+ * 3. Updates charter from Asana project notes
+ * 4. Updates ADLI fields from [ADLI: ...] task descriptions
+ * 5. Sets guided_step = 'assessment' to restart the improvement cycle
+ *
  * Body: { processId: number }
  */
 export async function POST(request: Request) {
@@ -33,10 +39,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Fetch the process to get the Asana project link
+  // Fetch the full process (need current raw data for snapshot + charter for comparison)
   const { data: proc, error: procError } = await supabase
     .from("processes")
-    .select("id, name, asana_project_gid")
+    .select("*")
     .eq("id", processId)
     .single();
 
@@ -54,71 +60,14 @@ export async function POST(request: Request) {
   const projectGid = proc.asana_project_gid;
 
   try {
-    // Verify project still exists
+    // Fetch project details (notes = charter content)
     const project = await asanaFetch(
       token,
       `/projects/${projectGid}?opt_fields=name,notes,html_notes,owner.name,due_on,start_on,members.name`
     );
 
-    // Fetch sections
-    const sectionsRes = await asanaFetch(
-      token,
-      `/projects/${projectGid}/sections?opt_fields=name`
-    );
-    const sections = sectionsRes.data;
-
-    // Fetch tasks for each section (including subtasks)
-    type SubtaskData = { name: string; notes: string; completed: boolean; assignee: string | null; due_on: string | null };
-    type TaskData = { name: string; notes: string; completed: boolean; assignee: string | null; due_on: string | null; num_subtasks: number; permalink_url: string | null; subtasks: SubtaskData[] };
-    const sectionData: { name: string; gid: string; tasks: TaskData[] }[] = [];
-
-    for (const section of sections) {
-      const tasksRes = await asanaFetch(
-        token,
-        `/sections/${section.gid}/tasks?opt_fields=name,notes,completed,assignee.name,due_on,due_at,num_subtasks,permalink_url&limit=100`
-      );
-
-      /* eslint-disable @typescript-eslint/no-explicit-any */
-      const tasks: TaskData[] = [];
-      for (const t of tasksRes.data as any[]) {
-        let subtasks: SubtaskData[] = [];
-        if (t.num_subtasks > 0) {
-          try {
-            const subRes = await asanaFetch(
-              token,
-              `/tasks/${t.gid}/subtasks?opt_fields=name,notes,completed,assignee.name,due_on`
-            );
-            subtasks = (subRes.data || []).map((s: any) => ({
-              name: s.name,
-              notes: s.notes || "",
-              completed: s.completed,
-              assignee: s.assignee?.name || null,
-              due_on: s.due_on || null,
-            }));
-          } catch {
-            // Non-blocking: continue without subtasks if fetch fails
-          }
-        }
-
-        tasks.push({
-          name: t.name,
-          notes: t.notes || "",
-          completed: t.completed,
-          assignee: t.assignee?.name || null,
-          due_on: t.due_on || t.due_at || null,
-          num_subtasks: t.num_subtasks || 0,
-          permalink_url: t.permalink_url || null,
-          subtasks,
-        });
-      }
-      /* eslint-enable @typescript-eslint/no-explicit-any */
-
-      sectionData.push({
-        name: section.name,
-        gid: section.gid,
-        tasks,
-      });
-    }
+    // Fetch all sections and tasks using shared helper
+    const sectionData = await fetchProjectSections(token, projectGid);
 
     // Build updated raw data
     const asanaRawData = {
@@ -127,7 +76,7 @@ export async function POST(request: Request) {
       fetched_at: new Date().toISOString(),
     };
 
-    // Count subtasks for the summary
+    // Count for summary
     let totalTasks = 0;
     let totalSubtasks = 0;
     for (const section of sectionData) {
@@ -137,10 +86,50 @@ export async function POST(request: Request) {
       }
     }
 
-    // Update only asana_raw_data — don't touch charter/ADLI content
+    // Find ADLI documentation tasks
+    const adliTasks = findAdliTasks(sectionData);
+
+    // Build update payload
+    const updatePayload: Record<string, unknown> = {
+      // Snapshot: save current raw data as previous
+      asana_raw_data_previous: proc.asana_raw_data || null,
+      // Fresh data
+      asana_raw_data: asanaRawData,
+      // Restart guided flow at assessment
+      guided_step: "assessment",
+      updated_at: new Date().toISOString(),
+    };
+
+    // Update charter from Asana project notes
+    const projectNotes = project.data.notes || "";
+    if (projectNotes) {
+      const existingCharter = (proc.charter as Record<string, unknown>) || {};
+      updatePayload.charter = {
+        ...existingCharter,
+        content: projectNotes,
+        purpose: projectNotes,
+      };
+    }
+
+    // Update ADLI fields from [ADLI: ...] task descriptions
+    const adliTaskGids: Record<string, string> = {};
+    for (const [dimension, taskInfo] of Object.entries(adliTasks)) {
+      adliTaskGids[dimension] = taskInfo.gid;
+      if (taskInfo.notes.trim()) {
+        const fieldKey = `adli_${dimension}`;
+        const existingData = (proc[fieldKey] as Record<string, unknown>) || {};
+        updatePayload[fieldKey] = {
+          ...existingData,
+          content: taskInfo.notes,
+        };
+      }
+    }
+    updatePayload.asana_adli_task_gids = adliTaskGids;
+
+    // Perform the update
     const { error: updateError } = await supabase
       .from("processes")
-      .update({ asana_raw_data: asanaRawData })
+      .update(updatePayload)
       .eq("id", processId);
 
     if (updateError) {
@@ -148,9 +137,10 @@ export async function POST(request: Request) {
     }
 
     // Log in history
+    const adliCount = Object.keys(adliTasks).length;
     await supabase.from("process_history").insert({
       process_id: processId,
-      change_description: `Refreshed Asana data (${totalTasks} tasks, ${totalSubtasks} subtasks) by ${user.email}`,
+      change_description: `Synced from Asana (${totalTasks} tasks, ${totalSubtasks} subtasks, ${adliCount} ADLI docs) by ${user.email}`,
     });
 
     return NextResponse.json({
@@ -158,6 +148,7 @@ export async function POST(request: Request) {
       sections: sectionData.length,
       tasks: totalTasks,
       subtasks: totalSubtasks,
+      adliFound: adliCount,
     });
   } catch (err) {
     const errMsg = (err as Error).message || "";

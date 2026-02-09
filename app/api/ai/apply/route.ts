@@ -7,6 +7,7 @@ const ALLOWED_FIELDS = [
   "adli_deployment",
   "adli_learning",
   "adli_integration",
+  "charter_cleanup",
 ];
 
 // Map field names to improvement section names
@@ -16,6 +17,15 @@ const FIELD_TO_SECTION: Record<string, string> = {
   adli_deployment: "deployment",
   adli_learning: "learning",
   adli_integration: "integration",
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  charter: "Charter",
+  adli_approach: "ADLI: Approach",
+  adli_deployment: "ADLI: Deployment",
+  adli_learning: "ADLI: Learning",
+  adli_integration: "ADLI: Integration",
+  charter_cleanup: "Charter Cleanup",
 };
 
 export async function POST(request: Request) {
@@ -51,16 +61,75 @@ export async function POST(request: Request) {
       );
     }
 
-    // Save the current version to process_history before changing it
-    const previousValue = (currentProcess as Record<string, unknown>)[field];
-    const fieldLabels: Record<string, string> = {
-      charter: "Charter",
-      adli_approach: "ADLI: Approach",
-      adli_deployment: "ADLI: Deployment",
-      adli_learning: "ADLI: Learning",
-      adli_integration: "ADLI: Integration",
-    };
-    const fieldLabel = fieldLabels[field] || field;
+    const proc = currentProcess as Record<string, unknown>;
+
+    // ═══ CHARTER CLEANUP: Multi-field update ═══
+    if (field === "charter_cleanup" && typeof content === "object" && content !== null) {
+      const cleanupContent = content as Record<string, string>;
+      const updatePayload: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+        guided_step: "assessment",
+      };
+
+      // Build before snapshot for history
+      const beforeSnapshot: Record<string, unknown> = {};
+      const afterSnapshot: Record<string, unknown> = {};
+
+      const allowedCleanupFields = ["charter", "adli_approach", "adli_deployment", "adli_learning", "adli_integration"];
+
+      for (const [key, value] of Object.entries(cleanupContent)) {
+        if (!allowedCleanupFields.includes(key) || typeof value !== "string") continue;
+
+        const existingData = (proc[key] as Record<string, unknown>) || {};
+        beforeSnapshot[key] = existingData;
+
+        const updatedData = { ...existingData, content: value };
+        afterSnapshot[key] = updatedData;
+        updatePayload[key] = updatedData;
+      }
+
+      await supabase.from("process_history").insert({
+        process_id: processId,
+        change_description: `AI cleaned up charter — separated process documentation from operational content`,
+      });
+
+      const { error: updateError } = await supabase
+        .from("processes")
+        .update(updatePayload)
+        .eq("id", processId);
+
+      if (updateError) {
+        console.error("Failed to apply charter cleanup:", updateError);
+        return Response.json({ error: "Failed to apply charter cleanup" }, { status: 500 });
+      }
+
+      // Record improvement history
+      try {
+        await supabase.from("process_improvements").insert({
+          process_id: processId,
+          section_affected: "charter",
+          change_type: "modification",
+          title: suggestionTitle || "Charter cleanup — separated tasks from documentation",
+          description: `Cleaned ${Object.keys(cleanupContent).length} fields`,
+          trigger: "ai_suggestion",
+          before_snapshot: beforeSnapshot,
+          after_snapshot: afterSnapshot,
+          source: "ai_suggestion",
+          status: "committed",
+        });
+      } catch { /* non-critical */ }
+
+      return Response.json({
+        success: true,
+        field: "Charter Cleanup",
+        fieldsUpdated: Object.keys(cleanupContent).length,
+        tasksQueued: 0,
+      });
+    }
+
+    // ═══ STANDARD: Single-field update ═══
+    const previousValue = proc[field];
+    const fieldLabel = FIELD_LABELS[field] || field;
 
     await supabase.from("process_history").insert({
       process_id: processId,
@@ -68,20 +137,32 @@ export async function POST(request: Request) {
     });
 
     // Build the updated field value
-    // The AI sends markdown content — store it in the `content` field of the JSONB
-    // Preserve any existing structured fields and add/update the content field
     const existingData = (previousValue as Record<string, unknown>) || {};
     const updatedData = {
       ...existingData,
       content: content,
     };
 
+    // Auto-advance guided_step based on which field was updated
+    const stepAdvance: Record<string, string> = {
+      charter: "assessment",
+      adli_approach: "deep_dive",
+      adli_deployment: "deep_dive",
+      adli_learning: "deep_dive",
+      adli_integration: "tasks",
+    };
+    const currentStep = proc.guided_step as string | null;
+    const nextStep = stepAdvance[field];
+
     const updatePayload: Record<string, unknown> = {
       [field]: updatedData,
       updated_at: new Date().toISOString(),
     };
 
-    // Update the process field
+    if (nextStep && currentStep && currentStep !== "complete" && currentStep !== "export") {
+      updatePayload.guided_step = nextStep;
+    }
+
     const { error: updateError } = await supabase
       .from("processes")
       .update(updatePayload)
@@ -136,7 +217,6 @@ export async function POST(request: Request) {
         }
       } catch (taskErr) {
         console.error("Task queuing failed (non-blocking):", taskErr);
-        // Non-blocking: the process text update still succeeded
       }
     }
 

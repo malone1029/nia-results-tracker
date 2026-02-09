@@ -7,6 +7,7 @@ import AdliRadar from "@/components/adli-radar";
 import { ListPageSkeleton } from "@/components/skeleton";
 import { getMaturityLevel } from "@/lib/colors";
 import { DimBar, MiniBar } from "@/components/adli-bars";
+import { Card, CardHeader, Badge, Button } from "@/components/ui";
 
 interface ScoreRow {
   id: number;
@@ -114,18 +115,18 @@ export default function AiInsightsPage() {
       </div>
 
       {scores.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <Card>
           <EmptyState
             illustration="radar"
             title="No assessments yet"
             description="Open any process and use the AI chat panel to run an ADLI analysis. Scores will appear here automatically."
             action={{ label: "Go to Processes", href: "/processes" }}
           />
-        </div>
+        </Card>
       ) : (
         <>
           {/* Organization summary — radar + stats */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <Card variant="elevated" className="overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr]">
               {/* Radar chart — generous space */}
               <div className="flex items-center justify-center p-8 bg-gray-50/50 border-b md:border-b-0 md:border-r border-gray-100">
@@ -148,7 +149,7 @@ export default function AiInsightsPage() {
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span
-                      className="text-5xl font-bold"
+                      className="text-5xl font-bold font-display number-pop"
                       style={{ color: orgLevel.color }}
                     >
                       {orgAvg}%
@@ -176,36 +177,34 @@ export default function AiInsightsPage() {
                 )}
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Sort toggle */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-nia-dark">Process Scores</h2>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-500">Sort:</span>
-              <button
+              <Button
+                variant={sortBy === "category" ? "primary" : "ghost"}
+                size="xs"
                 onClick={() => setSortBy("category")}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  sortBy === "category" ? "bg-nia-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
               >
                 By Category
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={sortBy === "score" ? "primary" : "ghost"}
+                size="xs"
                 onClick={() => setSortBy("score")}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  sortBy === "score" ? "bg-nia-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
               >
                 By Score
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Process scores list */}
           {sortBy === "score" ? (
             /* Flat list sorted by score (highest first) */
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <Card className="overflow-hidden">
               <div className="divide-y divide-gray-100">
                 {[...scores]
                   .sort((a, b) => b.overall_score - a.overall_score)
@@ -226,9 +225,7 @@ export default function AiInsightsPage() {
                               {s.processes.name}
                             </span>
                             {s.processes.is_key && (
-                              <span className="text-[10px] bg-nia-orange/10 text-nia-orange px-1.5 py-0.5 rounded font-medium flex-shrink-0">
-                                KEY
-                              </span>
+                              <Badge color="orange" size="xs" pill={false}>KEY</Badge>
                             )}
                             <span className="text-[10px] text-gray-400 flex-shrink-0">
                               {s.processes.categories.display_name}
@@ -257,16 +254,16 @@ export default function AiInsightsPage() {
                     );
                   })}
               </div>
-            </div>
+            </Card>
           ) : (
             /* Category groups */
             <div className="space-y-6">
               {categoryGroups.map((group) => {
                 const groupLevel = getMaturityLevel(group.avgOverall);
                 return (
-                  <div key={group.name} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                  <Card key={group.name} className="overflow-hidden">
                     {/* Category header */}
-                    <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <CardHeader className="bg-gray-50 flex items-center justify-between">
                       <h3 className="font-semibold text-nia-dark text-sm">{group.name}</h3>
                       <span
                         className="text-xs font-bold px-2.5 py-0.5 rounded-full text-white"
@@ -274,7 +271,7 @@ export default function AiInsightsPage() {
                       >
                         Avg: {group.avgOverall}%
                       </span>
-                    </div>
+                    </CardHeader>
 
                     {/* Process rows */}
                     <div className="divide-y divide-gray-100">
@@ -320,7 +317,7 @@ export default function AiInsightsPage() {
                         );
                       })}
                     </div>
-                  </div>
+                  </Card>
                 );
               })}
             </div>
