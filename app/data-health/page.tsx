@@ -42,6 +42,8 @@ export default function DataHealthPage() {
   const [logForm, setLogForm] = useState<LogFormData | null>(null);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showKeyOnly, setShowKeyOnly] = useState(false);
+  const [keyMetricIds, setKeyMetricIds] = useState<Set<number>>(new Set());
   const logFormRef = useRef<HTMLDivElement>(null);
 
   async function fetchMetrics() {
@@ -49,7 +51,7 @@ export default function DataHealthPage() {
     const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
       supabase.from("metrics").select("*"),
       supabase.from("metric_processes").select("metric_id, process_id"),
-      supabase.from("processes").select("id, name, categories!inner ( display_name )"),
+      supabase.from("processes").select("id, name, is_key, categories!inner ( display_name )"),
       supabase.from("entries").select("metric_id, value, date").order("date", { ascending: false }),
     ]);
 
@@ -64,17 +66,20 @@ export default function DataHealthPage() {
     }
 
     // Build process lookup
-    const processMap = new Map<number, { name: string; category_display_name: string }>();
+    const processMap = new Map<number, { name: string; is_key: boolean; category_display_name: string }>();
     for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
       const cat = p.categories as Record<string, unknown>;
       processMap.set(p.id as number, {
         name: p.name as string,
+        is_key: p.is_key as boolean,
         category_display_name: cat.display_name as string,
       });
     }
 
     // Build metric -> process names lookup via junction table
+    // Also track which metrics are linked to key processes
     const metricProcesses = new Map<number, { names: string[]; categories: string[] }>();
+    const keyMetrics = new Set<number>();
     for (const link of linksRes.data || []) {
       const proc = processMap.get(link.process_id);
       if (!proc) continue;
@@ -86,7 +91,9 @@ export default function DataHealthPage() {
       if (!entry.categories.includes(proc.category_display_name)) {
         entry.categories.push(proc.category_display_name);
       }
+      if (proc.is_key) keyMetrics.add(link.metric_id);
     }
+    setKeyMetricIds(keyMetrics);
 
     const latestEntries = new Map<number, { value: number; date: string }>();
     const sparklines = new Map<number, number[]>();
@@ -199,22 +206,35 @@ export default function DataHealthPage() {
     }, 50);
   }
 
-  const overdue = metrics.filter((m) => m.review_status === "overdue");
-  const dueSoon = metrics.filter((m) => m.review_status === "due-soon");
-  const noData = metrics.filter((m) => m.review_status === "no-data");
-  const current = metrics.filter((m) => m.review_status === "current");
-  const needsTargets = metrics.filter((m) => m.target_value === null);
+  const displayMetrics = showKeyOnly
+    ? metrics.filter((m) => keyMetricIds.has(m.id))
+    : metrics;
+
+  const overdue = displayMetrics.filter((m) => m.review_status === "overdue");
+  const dueSoon = displayMetrics.filter((m) => m.review_status === "due-soon");
+  const noData = displayMetrics.filter((m) => m.review_status === "no-data");
+  const current = displayMetrics.filter((m) => m.review_status === "current");
+  const needsTargets = displayMetrics.filter((m) => m.target_value === null);
 
   if (loading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div>
-        <h1 className="text-3xl font-bold text-nia-dark">Data Health</h1>
-        <p className="text-gray-500 mt-1">
-          Metric review status, data coverage, and quick logging.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-nia-dark">Data Health</h1>
+          <p className="text-gray-500 mt-1">
+            Metric review status, data coverage, and quick logging.
+          </p>
+        </div>
+        <Button
+          variant={showKeyOnly ? "accent" : "ghost"}
+          size="sm"
+          onClick={() => setShowKeyOnly(!showKeyOnly)}
+        >
+          {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
+        </Button>
       </div>
 
       {/* Success message */}
@@ -229,9 +249,9 @@ export default function DataHealthPage() {
         <Card variant="elevated" padding="md" className="flex items-center gap-5">
           <HealthRing
             percentage={
-              metrics.length > 0
+              displayMetrics.length > 0
                 ? Math.round(
-                    ((metrics.length - noData.length) / metrics.length) * 100
+                    ((displayMetrics.length - noData.length) / displayMetrics.length) * 100
                   )
                 : 0
             }
@@ -241,8 +261,8 @@ export default function DataHealthPage() {
               Data Health
             </div>
             <div className="text-sm text-gray-400 mt-0.5">
-              {metrics.length - noData.length} of {metrics.length} metrics
-              tracked
+              {displayMetrics.length - noData.length} of {displayMetrics.length} metrics
+              tracked{showKeyOnly && " (key only)"}
             </div>
           </div>
         </Card>
@@ -264,7 +284,7 @@ export default function DataHealthPage() {
 
       {/* Secondary stats ribbon */}
       <div className="grid grid-cols-3 gap-3">
-        <MiniStat label="Total Metrics" value={metrics.length} color="#324a4d" />
+        <MiniStat label="Total Metrics" value={displayMetrics.length} color="#324a4d" />
         <MiniStat label="Current" value={current.length} color="#b1bd37" />
         <MiniStat
           label="Need Targets"
@@ -275,15 +295,17 @@ export default function DataHealthPage() {
 
       {/* Key Process Summary */}
       {processSummary && processSummary.key > 0 && (
-        <Link
-          href="/processes"
-          className="block"
+        <Card
+          variant="interactive"
+          accent={showKeyOnly ? "orange" : "dark"}
+          padding="sm"
+          onClick={() => setShowKeyOnly(!showKeyOnly)}
+          className="cursor-pointer"
         >
-        <Card variant="interactive" accent="dark" padding="sm">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                Key Processes
+                Key Processes {showKeyOnly && <Badge color="orange" size="xs">Filtered</Badge>}
               </h2>
               <p className="text-nia-dark mt-1">
                 <span className="text-2xl font-bold">{processSummary.key}</span>
@@ -312,7 +334,6 @@ export default function DataHealthPage() {
             </div>
           </div>
         </Card>
-        </Link>
       )}
 
       {/* Inline log form */}

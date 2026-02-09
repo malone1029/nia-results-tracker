@@ -8,7 +8,7 @@ import { DashboardSkeleton } from "@/components/skeleton";
 import AdliRadar from "@/components/adli-radar";
 import { DimBar, MiniBar } from "@/components/adli-bars";
 import EmptyState from "@/components/empty-state";
-import { Card, CardHeader, Badge, Select } from "@/components/ui";
+import { Card, CardHeader, Badge, Button, Select } from "@/components/ui";
 import Link from "next/link";
 
 interface ProcessRow {
@@ -65,6 +65,7 @@ export default function ProcessOwnerDashboard() {
   const [dueSoonMetrics, setDueSoonMetrics] = useState<{ id: number; name: string; processOwner: string | null }[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<string>("__all__");
   const [owners, setOwners] = useState<string[]>([]);
+  const [showKeyOnly, setShowKeyOnly] = useState(false);
 
   useEffect(() => {
     document.title = "Dashboard | NIA Excellence Hub";
@@ -178,11 +179,13 @@ export default function ProcessOwnerDashboard() {
 
   if (loading) return <DashboardSkeleton />;
 
-  // Filter by selected owner
+  // Filter by selected owner + key only
   const isAll = selectedOwner === "__all__";
-  const filteredProcesses = isAll
-    ? processes
-    : processes.filter((p) => p.owner === selectedOwner);
+  const filteredProcesses = processes.filter((p) => {
+    if (!isAll && p.owner !== selectedOwner) return false;
+    if (showKeyOnly && !p.is_key) return false;
+    return true;
+  });
   const filteredProcessIds = new Set(filteredProcesses.map((p) => p.id));
   const filteredScores = scores.filter((s) => filteredProcessIds.has(s.process_id));
   const filteredOverdue = isAll
@@ -256,6 +259,13 @@ export default function ProcessOwnerDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant={showKeyOnly ? "accent" : "ghost"}
+            size="sm"
+            onClick={() => setShowKeyOnly(!showKeyOnly)}
+          >
+            {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
+          </Button>
           <label htmlFor="owner-select" className="text-sm text-gray-500">
             Owner:
           </label>

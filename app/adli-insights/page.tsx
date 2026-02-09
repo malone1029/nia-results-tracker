@@ -43,6 +43,7 @@ export default function AiInsightsPage() {
   const [scores, setScores] = useState<ScoreRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"category" | "score">("category");
+  const [showKeyOnly, setShowKeyOnly] = useState(false);
 
   useEffect(() => {
     document.title = "ADLI Insights | NIA Excellence Hub";
@@ -58,11 +59,16 @@ export default function AiInsightsPage() {
     fetchScores();
   }, []);
 
+  // Filter by key only
+  const filteredScores = showKeyOnly
+    ? scores.filter((s) => s.processes.is_key)
+    : scores;
+
   // Group by category
   const categoryGroups: CategoryGroup[] = [];
   const groupMap = new Map<string, ScoreRow[]>();
 
-  for (const s of scores) {
+  for (const s of filteredScores) {
     const catName = s.processes.categories.display_name;
     if (!groupMap.has(catName)) groupMap.set(catName, []);
     groupMap.get(catName)!.push(s);
@@ -87,18 +93,18 @@ export default function AiInsightsPage() {
   }
 
   // Overall org average
-  const orgAvg = scores.length > 0
-    ? Math.round(scores.reduce((sum, s) => sum + s.overall_score, 0) / scores.length)
+  const orgAvg = filteredScores.length > 0
+    ? Math.round(filteredScores.reduce((sum, s) => sum + s.overall_score, 0) / filteredScores.length)
     : 0;
   const orgLevel = getMaturityLevel(orgAvg);
 
   // Dimension averages
-  const dimAvgs = scores.length > 0
+  const dimAvgs = filteredScores.length > 0
     ? {
-        approach: Math.round(scores.reduce((s, r) => s + r.approach_score, 0) / scores.length),
-        deployment: Math.round(scores.reduce((s, r) => s + r.deployment_score, 0) / scores.length),
-        learning: Math.round(scores.reduce((s, r) => s + r.learning_score, 0) / scores.length),
-        integration: Math.round(scores.reduce((s, r) => s + r.integration_score, 0) / scores.length),
+        approach: Math.round(filteredScores.reduce((s, r) => s + r.approach_score, 0) / filteredScores.length),
+        deployment: Math.round(filteredScores.reduce((s, r) => s + r.deployment_score, 0) / filteredScores.length),
+        learning: Math.round(filteredScores.reduce((s, r) => s + r.learning_score, 0) / filteredScores.length),
+        integration: Math.round(filteredScores.reduce((s, r) => s + r.integration_score, 0) / filteredScores.length),
       }
     : null;
 
@@ -114,7 +120,7 @@ export default function AiInsightsPage() {
         </p>
       </div>
 
-      {scores.length === 0 ? (
+      {filteredScores.length === 0 && scores.length === 0 ? (
         <Card>
           <EmptyState
             illustration="radar"
@@ -162,8 +168,9 @@ export default function AiInsightsPage() {
                     </span>
                   </div>
                   <div className="text-sm text-gray-400 mt-1">
-                    {scores.length} process
-                    {scores.length !== 1 ? "es" : ""} assessed
+                    {filteredScores.length} process
+                    {filteredScores.length !== 1 ? "es" : ""} assessed
+                    {showKeyOnly && ` (key only)`}
                   </div>
                 </div>
 
@@ -179,10 +186,18 @@ export default function AiInsightsPage() {
             </div>
           </Card>
 
-          {/* Sort toggle */}
+          {/* Sort toggle + Key Only filter */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-nia-dark">Process Scores</h2>
             <div className="flex items-center gap-2 text-sm">
+              <Button
+                variant={showKeyOnly ? "accent" : "ghost"}
+                size="xs"
+                onClick={() => setShowKeyOnly(!showKeyOnly)}
+              >
+                {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
+              </Button>
+              <span className="text-gray-300">|</span>
               <span className="text-gray-500">Sort:</span>
               <Button
                 variant={sortBy === "category" ? "primary" : "ghost"}
@@ -206,7 +221,7 @@ export default function AiInsightsPage() {
             /* Flat list sorted by score (highest first) */
             <Card className="overflow-hidden">
               <div className="divide-y divide-gray-100">
-                {[...scores]
+                {[...filteredScores]
                   .sort((a, b) => b.overall_score - a.overall_score)
                   .map((s, rank) => {
                     const level = getMaturityLevel(s.overall_score);
@@ -289,9 +304,7 @@ export default function AiInsightsPage() {
                                   {s.processes.name}
                                 </span>
                                 {s.processes.is_key && (
-                                  <span className="text-[10px] bg-nia-orange/10 text-nia-orange px-1.5 py-0.5 rounded font-medium flex-shrink-0">
-                                    KEY
-                                  </span>
+                                  <Badge color="orange" size="xs" pill={false}>KEY</Badge>
                                 )}
                               </div>
                               <span
