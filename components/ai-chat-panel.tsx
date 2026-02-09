@@ -759,6 +759,18 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
               </div>
             </div>
 
+            {/* Step context banner — connects stepper to sidebar */}
+            {guidedStep && STEP_ACTIONS[guidedStep] && (
+              <div className="bg-nia-dark/5 border-b border-nia-dark/10 px-4 py-2 flex items-center gap-2 flex-shrink-0">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-nia-dark text-white uppercase tracking-wider">
+                  {guidedStep.replace(/_/g, " ")}
+                </span>
+                <span className="text-xs text-gray-500">
+                  Use the Improvement Cycle steps above to change focus
+                </span>
+              </div>
+            )}
+
             {/* Messages area */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
               {/* Welcome message when empty */}
@@ -933,6 +945,13 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                 </div>
               )}
 
+              {/* Step-aware buttons — always visible when not loading (even mid-conversation) */}
+              {messages.length > 0 && !isLoading && (
+                <div className="pt-2 border-t border-gray-100">
+                  <StepActions guidedStep={guidedStep} onAction={handleQuickAction} compact />
+                </div>
+              )}
+
               {/* Error message */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600">
@@ -965,11 +984,17 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                 <textarea
                   ref={inputRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    // Auto-expand: reset height to recalculate, then set to scrollHeight
+                    e.target.style.height = "auto";
+                    e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
+                  }}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask about this process..."
                   className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-nia-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue focus:border-transparent"
-                  rows={2}
+                  rows={3}
+                  style={{ minHeight: "72px", maxHeight: "160px" }}
                   disabled={isLoading}
                 />
                 <button
@@ -1181,8 +1206,31 @@ const DEFAULT_ACTIONS: { primary: StepAction; secondary: StepAction[] } = {
   ],
 };
 
-function StepActions({ guidedStep, onAction }: { guidedStep?: string | null; onAction: (prompt: string) => void }) {
+function StepActions({ guidedStep, onAction, compact }: { guidedStep?: string | null; onAction: (prompt: string) => void; compact?: boolean }) {
   const actions = (guidedStep && STEP_ACTIONS[guidedStep]) || DEFAULT_ACTIONS;
+
+  if (compact) {
+    // Compact mode: horizontal row of small buttons (shown mid-conversation)
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          onClick={() => onAction(actions.primary.prompt)}
+          className={`px-3 py-1.5 rounded-full border text-xs font-medium ${actions.primary.borderClass} ${actions.primary.bgClass} ${actions.primary.textClass} transition-colors`}
+        >
+          {actions.primary.label}
+        </button>
+        {actions.secondary.map((action) => (
+          <button
+            key={action.label}
+            onClick={() => onAction(action.prompt)}
+            className={`px-3 py-1.5 rounded-full border text-xs font-medium ${action.borderClass} ${action.bgClass} ${action.textClass} transition-colors`}
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
