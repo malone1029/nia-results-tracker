@@ -122,11 +122,12 @@ async function syncAdliTasks(
   existingSections: Map<string, string>,
   appUrl: string,
   workspaceGid?: string
-): Promise<{ gids: Record<string, string>; created: number; updated: number }> {
+): Promise<{ gids: Record<string, string>; created: number; updated: number; errors: string[] }> {
   const currentGids = (proc.asana_adli_task_gids as Record<string, string>) || {};
   const newGids: Record<string, string> = { ...currentGids };
   let created = 0;
   let updated = 0;
+  const errors: string[] = [];
 
   const dimensions = ["approach", "deployment", "learning", "integration"] as const;
   const fieldMap: Record<string, string> = {
@@ -209,14 +210,19 @@ async function syncAdliTasks(
 
         created++;
       } catch (err) {
-        console.error(`[ADLI Export] Failed to create ${dimension} task:`, (err as Error).message);
+        const msg = `Failed to create ${dimension} task: ${(err as Error).message}`;
+        console.error(`[ADLI Export] ${msg}`);
+        errors.push(msg);
       }
     } else {
-      console.error(`[ADLI Export] No section GID found for ${pdcaSection} — skipping ${dimension}`);
+      const msg = `No section GID found for ${pdcaSection} — skipping ${dimension}`;
+      console.error(`[ADLI Export] ${msg}`);
+      errors.push(msg);
     }
   }
 
-  return { gids: newGids, created, updated };
+  console.log(`[ADLI Export] Result: created=${created}, updated=${updated}, errors=${errors.length}, workspaceGid=${workspaceGid || "MISSING"}`);
+  return { gids: newGids, created, updated, errors };
 }
 
 export async function POST(request: Request) {
@@ -361,13 +367,14 @@ export async function POST(request: Request) {
         change_description: `Synced to Asana by ${user.email} (${adliResult.created} ADLI tasks created, ${adliResult.updated} updated${backfillCount > 0 ? `, ${backfillCount} improvements` : ""})`,
       });
 
+      const allWarnings = [notesWarning, ...adliResult.errors].filter(Boolean);
       return NextResponse.json({
         action: "updated",
         asanaUrl: `https://app.asana.com/0/${existingGid}`,
         adliCreated: adliResult.created,
         adliUpdated: adliResult.updated,
         backfillCount,
-        ...(notesWarning ? { warning: notesWarning } : {}),
+        ...(allWarnings.length > 0 ? { warning: allWarnings.join(" | ") } : {}),
       });
     } else {
       // ═══ CREATE NEW ASANA PROJECT ═══
