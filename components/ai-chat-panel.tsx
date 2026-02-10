@@ -778,13 +778,8 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                 <div className="space-y-4">
                   <div className="bg-nia-dark/5 rounded-lg p-4 text-sm text-nia-dark">
                     <p className="font-medium mb-2">
-                      I can help you analyze and improve this process. Try:
+                      {STEP_WELCOME[guidedStep || ""] || "I can help you analyze and improve this process. Pick a starting point below, or type your own question."}
                     </p>
-                    <ul className="space-y-1 text-nia-grey-blue">
-                      <li>- Running an ADLI gap analysis</li>
-                      <li>- Getting specific improvement suggestions</li>
-                      <li>- Asking questions about Baldrige criteria</li>
-                    </ul>
                   </div>
 
                   {/* Step-aware action buttons */}
@@ -1186,6 +1181,16 @@ const STEP_ACTIONS: Record<string, { primary: StepAction; secondary: StepAction[
       { label: "Build More Tasks", description: "add tasks before export", prompt: "Help me build more tasks for this process before I export. What's missing from the task list?", color: "nia-dark", borderClass: "border-nia-dark/20", bgClass: "bg-nia-dark/5 hover:bg-nia-dark/10", textClass: "text-nia-dark" },
     ],
   },
+};
+
+// Step-specific welcome messages for the empty chat state
+const STEP_WELCOME: Record<string, string> = {
+  start: "Let's get started! I'll help you understand where this process stands and what to focus on first.",
+  charter: "Let's review your charter. I'll check for mixed content and help you clean it up.",
+  assessment: "Time to score your ADLI maturity. I'll assess each dimension and find your biggest gaps.",
+  deep_dive: "Let's dig into your weakest areas and build specific improvements you can apply.",
+  tasks: "Ready to build your task list! I'll interview you about what needs to happen and generate PDCA tasks.",
+  export: "Almost there! Let's review everything before you export to Asana.",
 };
 
 // Fallback for processes without a guided step (not linked to Asana)

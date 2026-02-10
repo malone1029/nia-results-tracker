@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus, formatDate, formatValue } from "@/lib/review-status";
 import { FormSkeleton } from "@/components/skeleton";
@@ -16,12 +17,17 @@ interface MetricOption extends Metric {
 }
 
 export default function LogDataPage() {
+  const searchParams = useSearchParams();
+  const preselectedMetricId = searchParams.get("metricId");
+
   const [metrics, setMetrics] = useState<MetricOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"single" | "bulk">("single");
 
-  // Form state
-  const [selectedMetricId, setSelectedMetricId] = useState<number | null>(null);
+  // Form state — pre-select from URL param if present
+  const [selectedMetricId, setSelectedMetricId] = useState<number | null>(
+    preselectedMetricId ? parseInt(preselectedMetricId, 10) : null
+  );
   const [value, setValue] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [noteAnalysis, setNoteAnalysis] = useState("");

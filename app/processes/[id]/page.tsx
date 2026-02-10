@@ -140,6 +140,7 @@ function ProcessDetailContent() {
   const [taskCount, setTaskCount] = useState(0);
   const [asanaResyncing, setAsanaResyncing] = useState(false);
   const [asanaResyncResult, setAsanaResyncResult] = useState<{ tasks: number; subtasks: number } | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<{ id: number; file_name: string; file_type: string; file_size: number; uploaded_at: string }[]>([]);
 
   async function fetchProcess() {
       // Fetch process with category name
@@ -274,6 +275,13 @@ function ProcessDetailContent() {
         .order("committed_date", { ascending: false });
 
       if (impData) setImprovements(impData);
+
+      // Fetch attached files
+      const filesRes = await fetch(`/api/ai/files?processId=${id}`);
+      if (filesRes.ok) {
+        const filesData = await filesRes.json();
+        setAttachedFiles(filesData);
+      }
 
       setLoading(false);
   }
@@ -1095,6 +1103,57 @@ function ProcessDetailContent() {
           </p>
         )}
       </Section>
+
+      {/* Attached Files */}
+      {attachedFiles.length > 0 && (
+        <Section title={`Attached Files (${attachedFiles.length})`}>
+          <div className="space-y-1">
+            {attachedFiles.map((f) => (
+              <div
+                key={f.id}
+                className="flex items-center justify-between py-2 px-1 border-b border-gray-50 last:border-b-0"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <svg className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                  </svg>
+                  <span className="text-sm text-nia-dark truncate">{f.file_name}</span>
+                  <span className="text-xs text-gray-400 flex-shrink-0">
+                    {f.file_size < 1024
+                      ? `${f.file_size} B`
+                      : f.file_size < 1048576
+                      ? `${Math.round(f.file_size / 1024)} KB`
+                      : `${(f.file_size / 1048576).toFixed(1)} MB`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-xs text-gray-400">
+                    {new Date(f.uploaded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      const res = await fetch(`/api/ai/files?fileId=${f.id}`, { method: "DELETE" });
+                      if (res.ok) {
+                        setAttachedFiles((prev) => prev.filter((file) => file.id !== f.id));
+                      }
+                    }}
+                    className="text-gray-300 hover:text-red-500 transition-colors p-0.5"
+                    title="Delete file"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            These files are used as context for AI coaching. Upload more via the AI chat panel.
+          </p>
+        </Section>
+      )}
 
       {/* Improvement History */}
       {improvements.length > 0 && (
