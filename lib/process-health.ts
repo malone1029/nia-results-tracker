@@ -210,30 +210,30 @@ export function calculateHealthScore(
   const actions: HealthNextAction[] = [];
   const processId = process.id;
 
-  // Documentation gaps
+  // Documentation gaps — link to edit page with section hash
   if (charterPts === 0) {
-    actions.push({ label: "Write a charter for this process", href: `/processes/${processId}/edit`, points: 5 });
+    actions.push({ label: "Write a charter for this process", href: `/processes/${processId}/edit#charter`, points: 5 });
   }
   for (const f of adliFields) {
     const val = process[f.key] as Record<string, unknown> | null;
     if (!hasContent(val)) {
-      actions.push({ label: `Write the ${f.label} section`, href: `/processes/${processId}/edit`, points: 4 });
+      actions.push({ label: `Write the ${f.label} section`, href: `/processes/${processId}/edit#${f.key}`, points: 4 });
     }
   }
 
-  // Maturity
+  // Maturity — link to process with AI chat prompt
   if (overallScore === null) {
-    actions.push({ label: "Run an AI assessment to get ADLI maturity scores", href: `/processes/${processId}`, points: 13 });
+    actions.push({ label: "Run an AI assessment to get ADLI maturity scores", href: `/processes/${processId}?openAI=assessment`, points: 13 });
   } else if (overallScore < 50) {
-    actions.push({ label: "Improve ADLI maturity through an AI deep dive", href: `/processes/${processId}`, points: 5 });
+    actions.push({ label: "Improve ADLI maturity through an AI deep dive", href: `/processes/${processId}?openAI=deep_dive`, points: 5 });
   }
 
   // Measurement
   if (!hasMetrics) {
-    actions.push({ label: "Link at least one metric to this process", href: `/processes/${processId}`, points: 5 });
+    actions.push({ label: "Link at least one metric to this process", href: `/processes/${processId}?openAI=metrics`, points: 5 });
   }
   if (hasMetrics && !hasComparison) {
-    actions.push({ label: "Add a comparison value to a linked metric", points: 4 });
+    actions.push({ label: "Add a comparison value to a linked metric", href: `/data-health`, points: 4 });
   }
   if (hasMetrics && !hasRecentData) {
     actions.push({ label: "Log recent data for linked metrics", href: "/log", points: 4 });
@@ -241,15 +241,15 @@ export function calculateHealthScore(
 
   // Operations
   if (!asanaLinked) {
-    actions.push({ label: "Link this process to an Asana project", href: `/processes/${processId}`, points: 5 });
+    actions.push({ label: "Link this process to an Asana project", href: `/processes/${processId}?openExport=true`, points: 5 });
   }
   if (asanaLinked && !adliExported) {
-    actions.push({ label: "Export ADLI documentation to Asana", href: `/processes/${processId}`, points: 4 });
+    actions.push({ label: "Export ADLI documentation to Asana", href: `/processes/${processId}?openExport=true`, points: 4 });
   }
 
-  // Freshness
+  // Freshness — link to AI improvement cycle
   if (days > 60) {
-    actions.push({ label: `Run an improvement cycle (last updated ${days} days ago)`, href: `/processes/${processId}`, points: days > 90 ? 15 : 10 });
+    actions.push({ label: `Run an improvement cycle (last updated ${days} days ago)`, href: `/processes/${processId}?openAI=charter`, points: days > 90 ? 15 : 10 });
   }
 
   // Sort by points (highest first) and take top 3

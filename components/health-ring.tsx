@@ -1,4 +1,9 @@
-// Circular progress ring showing a 0-100 health score with color coding
+// Circular progress ring showing a 0-100 health score with color coding.
+// The arc draws in via CSS transition; the number counts up via requestAnimationFrame.
+
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 
 interface HealthRingProps {
   score: number; // 0-100
@@ -6,6 +11,7 @@ interface HealthRingProps {
   size?: number; // diameter in px
   strokeWidth?: number;
   showLabel?: boolean; // show score number in center
+  animate?: boolean; // count-up animation (default true)
   className?: string;
 }
 
@@ -15,11 +21,39 @@ export default function HealthRing({
   size = 44,
   strokeWidth = 4,
   showLabel = true,
+  animate = true,
   className = "",
 }: HealthRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
+
+  // Count-up animation for the label number
+  const [displayScore, setDisplayScore] = useState(animate ? 0 : score);
+  const animatedRef = useRef(false);
+
+  useEffect(() => {
+    if (!animate || score === 0 || animatedRef.current) {
+      setDisplayScore(score);
+      return;
+    }
+    animatedRef.current = true;
+
+    const duration = 600; // ms
+    const start = performance.now();
+
+    function tick(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayScore(Math.round(eased * score));
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      }
+    }
+    requestAnimationFrame(tick);
+  }, [score, animate]);
 
   return (
     <div className={`relative inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
@@ -44,7 +78,7 @@ export default function HealthRing({
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          className="transition-all duration-500 ease-out"
+          className="transition-all duration-700 ease-out"
         />
       </svg>
       {showLabel && (
@@ -52,7 +86,7 @@ export default function HealthRing({
           className="absolute text-xs font-bold"
           style={{ color }}
         >
-          {score}
+          {displayScore}
         </span>
       )}
     </div>

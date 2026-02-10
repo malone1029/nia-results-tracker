@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { HealthResult } from "@/lib/process-health";
+import HealthRing from "@/components/health-ring";
 
 interface MilestoneToastProps {
   processId: number;
@@ -15,6 +16,7 @@ interface MilestoneToastProps {
 interface ToastMessage {
   key: string;
   text: string;
+  showRing?: boolean; // show health ring in toast
 }
 
 // Check sessionStorage for already-shown milestones this session
@@ -53,11 +55,12 @@ export default function MilestoneToast({
     const newToasts: ToastMessage[] = [];
     const name = processName.length > 30 ? processName.slice(0, 30) + "..." : processName;
 
-    // 1. Baldrige Ready (80+ health)
+    // 1. Baldrige Ready (80+ health) — show the score
     if (health.total >= 80 && !wasShown(processId, "baldrige_ready")) {
       newToasts.push({
         key: "baldrige_ready",
-        text: `${name} just hit Baldrige Ready status \u2014 great work!`,
+        text: `${name} hit Baldrige Ready!`,
+        showRing: true,
       });
     }
 
@@ -65,7 +68,7 @@ export default function MilestoneToast({
     if (health.dimensions.documentation.score === 25 && !wasShown(processId, "docs_complete")) {
       newToasts.push({
         key: "docs_complete",
-        text: `All documentation complete for ${name} \u2014 well documented!`,
+        text: `All documentation complete for ${name} \u2014 25/25 points!`,
       });
     }
 
@@ -101,8 +104,8 @@ export default function MilestoneToast({
       // Show only the most impactful one (first match)
       setToasts([newToasts[0]]);
 
-      // Auto-dismiss after 5 seconds
-      const timer = setTimeout(() => setToasts([]), 5000);
+      // Auto-dismiss after 6 seconds
+      const timer = setTimeout(() => setToasts([]), 6000);
       return () => clearTimeout(timer);
     }
   }, [health, processId, processName, hasImprovements, hasAsanaLink, allMetricsCurrent]);
@@ -116,8 +119,19 @@ export default function MilestoneToast({
           key={toast.key}
           className="flex items-center gap-3 bg-white border border-nia-green/30 rounded-xl shadow-lg px-5 py-3.5 max-w-sm"
         >
-          <span className="text-xl flex-shrink-0">{"\u2728"}</span>
-          <span className="text-sm text-nia-dark font-medium">{toast.text}</span>
+          {toast.showRing && health ? (
+            <HealthRing score={health.total} color={health.level.color} size={36} strokeWidth={3} className="text-[9px] flex-shrink-0" />
+          ) : (
+            <span className="text-xl flex-shrink-0">{"\u2728"}</span>
+          )}
+          <div className="flex-1 min-w-0">
+            <span className="text-sm text-nia-dark font-medium">{toast.text}</span>
+            {toast.showRing && health && (
+              <div className="text-xs mt-0.5" style={{ color: health.level.color }}>
+                Process Health: {health.total}/100
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setToasts((prev) => prev.filter((t) => t.key !== toast.key))}
             className="text-gray-400 hover:text-gray-600 text-lg leading-none flex-shrink-0 ml-1"

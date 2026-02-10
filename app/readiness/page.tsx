@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DashboardSkeleton } from "@/components/skeleton";
 import { Card, Badge, Button } from "@/components/ui";
 import HealthRing from "@/components/health-ring";
@@ -12,6 +12,7 @@ import {
   fetchHealthData,
   type ProcessWithCategory,
   type CategoryRow,
+  type HealthData,
 } from "@/lib/fetch-health-data";
 import Link from "next/link";
 import {
@@ -55,6 +56,77 @@ export default function ReadinessPage() {
   const [snapshotSaving, setSnapshotSaving] = useState(false);
   const [snapshotMsg, setSnapshotMsg] = useState<string | null>(null);
 
+  // Drill-down state for dimension gap analysis
+  const [expandedDim, setExpandedDim] = useState<string | null>(null);
+
+  // Auto-snapshot: silently save today's scores in the background
+  async function autoTakeSnapshot(data: HealthData, existingSnaps: Snapshot[]) {
+    // Compute org score from fresh data
+    let wSum = 0, wTot = 0;
+    for (const proc of data.processes) {
+      const h = data.healthScores.get(proc.id);
+      if (!h) continue;
+      const w = proc.is_key ? 2 : 1;
+      wSum += h.total * w;
+      wTot += w;
+    }
+    const oScore = wTot > 0 ? Math.round(wSum / wTot) : 0;
+    const rCount = data.processes.filter((p) => {
+      const h = data.healthScores.get(p.id);
+      return h && h.total >= 80;
+    }).length;
+
+    // Category scores
+    const catScores: Record<string, number> = {};
+    for (const cat of data.categories) {
+      const catProcs = data.processes.filter((p) => p.category_id === cat.id);
+      const scores = catProcs.map((p) => data.healthScores.get(p.id)?.total ?? 0);
+      catScores[String(cat.id)] = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+    }
+
+    // Dimension scores
+    const dimScores: Record<string, number> = {};
+    for (const dim of DIMENSION_CONFIG) {
+      let total = 0, count = 0;
+      for (const proc of data.processes) {
+        const h = data.healthScores.get(proc.id);
+        if (!h) continue;
+        total += h.dimensions[dim.key].score;
+        count++;
+      }
+      const avg = count > 0 ? total / count : 0;
+      dimScores[dim.key] = dim.max > 0 ? Math.round((avg / dim.max) * 100) : 0;
+    }
+
+    const res = await fetch("/api/readiness", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        org_score: oScore,
+        category_scores: catScores,
+        dimension_scores: dimScores,
+        process_count: data.processes.length,
+        ready_count: rCount,
+      }),
+    });
+
+    if (res.ok) {
+      const saved = await res.json();
+      setSnapshots((prev) => {
+        const exists = prev.findIndex((s) => s.snapshot_date === saved.snapshot_date);
+        if (exists >= 0) {
+          const updated = [...prev];
+          updated[exists] = saved;
+          return updated;
+        }
+        return [...prev, saved].sort((a, b) => a.snapshot_date.localeCompare(b.snapshot_date));
+      });
+    }
+  }
+
+  // Ref to prevent double auto-snapshot in React Strict Mode
+  const autoSnapshotRef = useRef(false);
+
   useEffect(() => {
     document.title = "Readiness | NIA Excellence Hub";
 
@@ -68,8 +140,20 @@ export default function ReadinessPage() {
       setHealthScores(data.healthScores);
       setSnapshots(snapRes);
       setLoading(false);
+
+      // Auto-snapshot: save one if none exists for today
+      if (!autoSnapshotRef.current && data.processes.length > 0) {
+        autoSnapshotRef.current = true;
+        const today = new Date().toISOString().split("T")[0];
+        const snaps = snapRes as Snapshot[];
+        const hasToday = snaps.some((s) => s.snapshot_date === today);
+        if (!hasToday) {
+          autoTakeSnapshot(data, snaps);
+        }
+      }
     }
     load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return <DashboardSkeleton />;
@@ -239,7 +323,7 @@ export default function ReadinessPage() {
             onClick={takeSnapshot}
             disabled={snapshotSaving}
           >
-            {snapshotSaving ? "Saving..." : "Take Readiness Snapshot"}
+            {snapshotSaving ? "Saving..." : "Refresh Snapshot"}
           </Button>
           {snapshotMsg && (
             <span className={`text-sm font-medium ${snapshotMsg.includes("Failed") ? "text-red-600" : "text-nia-green"}`}>
@@ -439,31 +523,83 @@ export default function ReadinessPage() {
         </h2>
         <Card className="p-5">
           <div className="space-y-4">
-            {dimensionAvgs.map((dim) => (
-              <div key={dim.key}>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-nia-dark">{dim.label}</span>
-                    {dim.isGap && (
-                      <Badge color="orange" size="xs">Gap</Badge>
-                    )}
+            {dimensionAvgs.map((dim) => {
+              const isExpanded = expandedDim === dim.key;
+              // Per-process scores for this dimension
+              const procScores = isExpanded
+                ? processes
+                    .map((p) => {
+                      const h = healthScores.get(p.id);
+                      if (!h) return null;
+                      const d = h.dimensions[dim.key];
+                      const pct = dim.max > 0 ? Math.round((d.score / dim.max) * 100) : 0;
+                      return { name: p.name, id: p.id, score: d.score, max: dim.max, pct, color: pct >= 80 ? "#b1bd37" : pct >= 50 ? "#55787c" : "#f79935" };
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => a!.pct - b!.pct) // weakest first
+                : [];
+
+              return (
+                <div key={dim.key}>
+                  <button
+                    onClick={() => setExpandedDim(isExpanded ? null : dim.key)}
+                    className="w-full text-left group"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`section-chevron text-gray-400 text-xs ${isExpanded ? "open" : ""}`}>{"\u25B6"}</span>
+                        <span className="text-sm font-medium text-nia-dark group-hover:text-nia-orange transition-colors">{dim.label}</span>
+                        {dim.isGap && (
+                          <Badge color="orange" size="xs">Gap</Badge>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {dim.avg}/{dim.max}{" "}
+                        <span className="text-xs text-gray-400">({dim.pct}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${dim.pct}%`,
+                          backgroundColor: dim.pct >= 80 ? "#b1bd37" : dim.pct >= 50 ? "#55787c" : "#f79935",
+                        }}
+                      />
+                    </div>
+                  </button>
+                  {/* Drill-down: per-process scores for this dimension */}
+                  <div className={`section-body ${isExpanded ? "open" : ""}`}>
+                    <div>
+                      <div className="mt-3 ml-5 space-y-1.5">
+                        {procScores.map((p) => p && (
+                          <Link
+                            key={p.id}
+                            href={`/processes/${p.id}`}
+                            className="flex items-center gap-2 group/proc"
+                          >
+                            <span className="text-xs text-nia-dark group-hover/proc:text-nia-orange transition-colors truncate flex-1 min-w-0">
+                              {p.name}
+                            </span>
+                            <div className="w-16 flex-shrink-0">
+                              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{ width: `${p.pct}%`, backgroundColor: p.color }}
+                                />
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-medium w-10 text-right flex-shrink-0" style={{ color: p.color }}>
+                              {p.score}/{p.max}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-sm text-gray-500">
-                    {dim.avg}/{dim.max}{" "}
-                    <span className="text-xs text-gray-400">({dim.pct}%)</span>
-                  </span>
                 </div>
-                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${dim.pct}%`,
-                      backgroundColor: dim.pct >= 80 ? "#b1bd37" : dim.pct >= 50 ? "#55787c" : "#f79935",
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       </div>

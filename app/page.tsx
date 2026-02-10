@@ -61,19 +61,22 @@ export default function ProcessOwnerDashboard() {
   const [selectedOwner, setSelectedOwner] = useState<string>("__all__");
   const [owners, setOwners] = useState<string[]>([]);
   const [showKeyOnly, setShowKeyOnly] = useState(false);
+  const [recentImprovements, setRecentImprovements] = useState<{ processId: number; processName: string; label: string; date: string; status: string }[]>([]);
+  const [monthlyImprovedCount, setMonthlyImprovedCount] = useState(0);
 
   useEffect(() => {
     document.title = "Dashboard | NIA Excellence Hub";
 
     async function fetchAll() {
-      // Fetch health data + user + ADLI scores + metric data in parallel
-      const [healthData, userRes, scoresRes, metricsRes, metricProcessLinksRes, entriesRes] = await Promise.all([
+      // Fetch health data + user + ADLI scores + metric data + improvements in parallel
+      const [healthData, userRes, scoresRes, metricsRes, metricProcessLinksRes, entriesRes, improvementsRes] = await Promise.all([
         fetchHealthData(),
         supabase.auth.getUser(),
         fetch("/api/ai/scores").then((r) => r.ok ? r.json() : []),
         supabase.from("metrics").select("id, name, cadence"),
         supabase.from("metric_processes").select("metric_id, process_id"),
         supabase.from("entries").select("metric_id, date").order("date", { ascending: false }),
+        supabase.from("process_improvements").select("process_id, trigger_label, committed_date, status").order("committed_date", { ascending: false }).limit(20),
       ]);
 
       const procs = healthData.processes;
@@ -167,6 +170,31 @@ export default function ProcessOwnerDashboard() {
       }
       setOverdueMetrics(overdue);
       setDueSoonMetrics(dueSoon);
+
+      // Process improvements for team activity + streak
+      const improvements = (improvementsRes.data || []) as { process_id: number; trigger_label: string; committed_date: string; status: string }[];
+      const processNameMap = new Map<number, string>();
+      for (const p of procs) processNameMap.set(p.id, p.name);
+
+      const recent = improvements
+        .filter((imp) => processNameMap.has(imp.process_id))
+        .slice(0, 10)
+        .map((imp) => ({
+          processId: imp.process_id,
+          processName: processNameMap.get(imp.process_id) || "Unknown",
+          label: imp.trigger_label || "Improvement applied",
+          date: imp.committed_date,
+          status: imp.status,
+        }));
+      setRecentImprovements(recent);
+
+      // Monthly improved: unique processes with improvements in last 30 days
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const monthlyProcs = new Set<number>();
+      for (const imp of improvements) {
+        if (imp.committed_date >= thirtyDaysAgo) monthlyProcs.add(imp.process_id);
+      }
+      setMonthlyImprovedCount(monthlyProcs.size);
 
       setLoading(false);
     }
@@ -266,7 +294,7 @@ export default function ProcessOwnerDashboard() {
     }
   }
   // Deduplicate by normalized label, sum points
-  const normalize = (s: string) => s.replace(/\bfor this process\b/gi, "").replace(/\bthis process\b/gi, "").trim().toLowerCase();
+  const normalize = (s: string) => s.replace(/\bfor this process\b/gi, "").replace(/\bthis process\b/gi, "").replace(/\s+\(last updated \d+ days ago\)/i, "").trim().toLowerCase();
   const actionGroups = new Map<string, { label: string; points: number; count: number; href?: string }>();
   for (const a of allActions) {
     const key = normalize(a.label);
@@ -274,6 +302,8 @@ export default function ProcessOwnerDashboard() {
     if (existing) {
       existing.points += a.points;
       existing.count++;
+      // When multiple processes need same action, link to process list instead
+      if (existing.count > 1) existing.href = "/processes";
     } else {
       actionGroups.set(key, { label: a.label, points: a.points, count: 1, href: a.href });
     }
@@ -281,6 +311,22 @@ export default function ProcessOwnerDashboard() {
   const topNextActions = [...actionGroups.values()]
     .sort((a, b) => b.points - a.points)
     .slice(0, 3);
+
+  // ── Recent Wins (milestones across filtered processes) ──
+  const recentWins: { emoji: string; text: string; health?: number; color?: string }[] = [];
+  for (const proc of filteredProcesses) {
+    const h = healthScores.get(proc.id);
+    if (!h) continue;
+    const name = proc.name.length > 25 ? proc.name.slice(0, 25) + "..." : proc.name;
+    if (h.total >= 80) {
+      recentWins.push({ emoji: "\uD83C\uDFC6", text: `${name} is Baldrige Ready`, health: h.total, color: h.level.color });
+    }
+    if (h.dimensions.documentation.score === 25) {
+      recentWins.push({ emoji: "\uD83D\uDCDD", text: `${name} — docs complete (25/25)` });
+    }
+  }
+  // Cap at 3, prioritize Baldrige Ready
+  const topWins = recentWins.sort((a, b) => (b.health ?? 0) - (a.health ?? 0)).slice(0, 3);
 
   // Action items (overdue + due-soon + drafts)
   const actionItems: ActionItem[] = [
@@ -561,6 +607,80 @@ export default function ProcessOwnerDashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Progress Momentum + Recent Wins */}
+            {(monthlyImprovedCount > 0 || topWins.length > 0) && (
+              <Card padding="md">
+                {/* Progress Streak */}
+                {monthlyImprovedCount > 0 && (
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-nia-green/10 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm">{"\uD83D\uDD25"}</span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-nia-dark">
+                        {monthlyImprovedCount} process{monthlyImprovedCount !== 1 ? "es" : ""} improved this month
+                      </div>
+                      <div className="text-xs text-gray-400">Keep the momentum going!</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Wins */}
+                {topWins.length > 0 && (
+                  <>
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                      Recent Wins
+                    </h3>
+                    <div className="space-y-1.5">
+                      {topWins.map((win, i) => (
+                        <div key={i} className="flex items-center gap-2 py-1">
+                          <span className="text-sm flex-shrink-0">{win.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs text-nia-dark truncate block">{win.text}</span>
+                          </div>
+                          {win.health !== undefined && (
+                            <HealthRing score={win.health} color={win.color || "#b1bd37"} size={22} strokeWidth={2} className="text-[7px] flex-shrink-0" animate={false} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </Card>
+            )}
+
+            {/* Team Activity */}
+            {isAll && recentImprovements.length > 0 && (
+              <Card padding="md">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                  Recent Activity
+                </h2>
+                <div className="space-y-1">
+                  {recentImprovements.slice(0, 5).map((imp, i) => {
+                    const daysAgo = Math.floor((Date.now() - new Date(imp.date).getTime()) / (1000 * 60 * 60 * 24));
+                    const timeLabel = daysAgo === 0 ? "today" : daysAgo === 1 ? "yesterday" : `${daysAgo}d ago`;
+                    return (
+                      <Link
+                        key={i}
+                        href={`/processes/${imp.processId}`}
+                        className="flex items-start gap-2 py-1.5 px-1 rounded hover:bg-gray-50 transition-colors group"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-nia-green mt-1.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs text-nia-dark group-hover:text-nia-orange transition-colors">
+                            <span className="font-medium">{imp.processName}</span>
+                            {" \u2014 "}
+                            {imp.label}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-gray-400 flex-shrink-0 mt-px">{timeLabel}</span>
+                      </Link>
+                    );
+                  })}
                 </div>
               </Card>
             )}
