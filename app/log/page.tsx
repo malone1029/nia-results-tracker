@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus, formatDate, formatValue } from "@/lib/review-status";
@@ -17,6 +17,14 @@ interface MetricOption extends Metric {
 }
 
 export default function LogDataPage() {
+  return (
+    <Suspense>
+      <LogDataContent />
+    </Suspense>
+  );
+}
+
+function LogDataContent() {
   const searchParams = useSearchParams();
   const preselectedMetricId = searchParams.get("metricId");
 
