@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import GlobalSearch from "@/components/global-search";
-import { Button } from "@/components/ui";
 import type { User } from "@supabase/supabase-js";
 
 export default function TopBar({
@@ -64,23 +63,15 @@ export default function TopBar({
         NIA Excellence Hub
       </span>
 
-      {/* Desktop search */}
-      <div className="hidden lg:block flex-1 max-w-md">
+      {/* Desktop: spacer + centered search + spacer */}
+      <div className="hidden lg:flex flex-1" />
+      <div className="hidden lg:block w-full max-w-lg">
         <GlobalSearch variant="light" />
       </div>
+      <div className="hidden lg:flex flex-1" />
 
-      {/* Spacer for desktop */}
+      {/* Mobile spacer */}
       <div className="flex-1 lg:hidden" />
-
-      {/* Action buttons (desktop) */}
-      <div className="hidden lg:flex items-center gap-2">
-        <Button variant="secondary" size="sm" href="/log">
-          Log Data
-        </Button>
-        <Button variant="accent" size="sm" href="/metric/new">
-          + Metric
-        </Button>
-      </div>
 
       {/* User profile */}
       {user && (

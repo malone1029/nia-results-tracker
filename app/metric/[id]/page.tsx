@@ -56,6 +56,11 @@ export default function MetricDetailPage() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Inline edit state
+  const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ value: "", date: "", noteAnalysis: "", noteCorrection: "" });
+  const [editSaving, setEditSaving] = useState(false);
+
   async function fetchData() {
     const { data: metricData } = await supabase
       .from("metrics")
@@ -160,6 +165,40 @@ export default function MetricDetailPage() {
     } else {
       await fetchData();
     }
+  }
+
+  function startEditEntry(entry: Entry) {
+    setEditingEntryId(entry.id);
+    setEditForm({
+      value: String(entry.value),
+      date: entry.date,
+      noteAnalysis: entry.note_analysis || "",
+      noteCorrection: entry.note_course_correction || "",
+    });
+  }
+
+  async function handleEditSave() {
+    if (editingEntryId === null) return;
+    setEditSaving(true);
+    const { error } = await supabase
+      .from("entries")
+      .update({
+        value: parseFloat(editForm.value),
+        date: editForm.date,
+        note_analysis: editForm.noteAnalysis || null,
+        note_course_correction: editForm.noteCorrection || null,
+      })
+      .eq("id", editingEntryId);
+
+    if (error) {
+      alert("Failed to update: " + error.message);
+    } else {
+      setEditingEntryId(null);
+      setSuccessMessage("Entry updated");
+      await fetchData();
+      setTimeout(() => setSuccessMessage(""), 3000);
+    }
+    setEditSaving(false);
   }
 
   if (loading) return <DetailSkeleton sections={3} />;
@@ -479,34 +518,97 @@ export default function MetricDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {[...entries].reverse().map((entry) => (
-                <tr key={entry.id} className="border-t border-gray-100 group">
-                  <td className="px-4 py-2 text-gray-600">{formatDate(entry.date)}</td>
-                  <td className="px-4 py-2 text-gray-400">{toFiscalYear(entry.date)}</td>
-                  <td className="px-4 py-2 text-right font-medium text-nia-dark">
-                    {formatValue(entry.value, metric.unit)}
-                  </td>
-                  <td className="px-4 py-2 text-gray-500">{entry.note_analysis || "—"}</td>
-                  <td className="px-4 py-2">
-                    {entry.note_course_correction ? (
-                      <span className="inline-block border-l-2 border-nia-orange pl-2 text-gray-600">
-                        {entry.note_course_correction}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={() => handleDeleteEntry(entry.id)}
-                      className="text-gray-300 hover:text-red-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Delete this entry"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {[...entries].reverse().map((entry) =>
+                editingEntryId === entry.id ? (
+                  <tr key={entry.id} className="border-t border-nia-orange/30 bg-nia-orange/5">
+                    <td className="px-4 py-2">
+                      <input
+                        type="date"
+                        value={editForm.date}
+                        onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-gray-400">{toFiscalYear(editForm.date)}</td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="number"
+                        step="any"
+                        value={editForm.value}
+                        onChange={(e) => setEditForm({ ...editForm, value: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="text"
+                        value={editForm.noteAnalysis}
+                        onChange={(e) => setEditForm({ ...editForm, noteAnalysis: e.target.value })}
+                        placeholder="Analysis note"
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="text"
+                        value={editForm.noteCorrection}
+                        onChange={(e) => setEditForm({ ...editForm, noteCorrection: e.target.value })}
+                        placeholder="Course correction"
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-right whitespace-nowrap">
+                      <button
+                        onClick={handleEditSave}
+                        disabled={editSaving}
+                        className="text-nia-green hover:text-nia-green/80 text-xs font-medium mr-2"
+                      >
+                        {editSaving ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        onClick={() => setEditingEntryId(null)}
+                        className="text-gray-400 hover:text-gray-600 text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={entry.id} className="border-t border-gray-100 group">
+                    <td className="px-4 py-2 text-gray-600">{formatDate(entry.date)}</td>
+                    <td className="px-4 py-2 text-gray-400">{toFiscalYear(entry.date)}</td>
+                    <td className="px-4 py-2 text-right font-medium text-nia-dark">
+                      {formatValue(entry.value, metric.unit)}
+                    </td>
+                    <td className="px-4 py-2 text-gray-500">{entry.note_analysis || "—"}</td>
+                    <td className="px-4 py-2">
+                      {entry.note_course_correction ? (
+                        <span className="inline-block border-l-2 border-nia-orange pl-2 text-gray-600">
+                          {entry.note_course_correction}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => startEditEntry(entry)}
+                        className="text-gray-300 hover:text-nia-grey-blue text-xs opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+                        title="Edit this entry"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEntry(entry.id)}
+                        className="text-gray-300 hover:text-red-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Delete this entry"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         )}

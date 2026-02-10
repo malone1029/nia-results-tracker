@@ -36,6 +36,7 @@ interface ActionItem {
   type: "overdue" | "due-soon" | "draft";
   label: string;
   href: string;
+  metricId?: number;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -233,11 +234,13 @@ export default function ProcessOwnerDashboard() {
       type: "overdue" as const,
       label: m.name,
       href: `/metric/${m.id}`,
+      metricId: m.id,
     })),
     ...filteredDueSoon.map((m) => ({
       type: "due-soon" as const,
       label: m.name,
       href: `/metric/${m.id}`,
+      metricId: m.id,
     })),
     ...filteredDraftProcesses.map((p) => ({
       type: "draft" as const,
@@ -288,20 +291,22 @@ export default function ProcessOwnerDashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Processes" value={processCount} color="#324a4d" />
+        <StatCard label="Processes" value={processCount} color="#324a4d" href="/processes" />
         <StatCard
           label="Avg ADLI"
           value={filteredScores.length > 0 ? `${avgAdli}%` : "--"}
           color={maturityLevel.color}
           subtitle={filteredScores.length > 0 ? maturityLevel.label : undefined}
+          href="/adli-insights"
         />
         <StatCard
           label="Overdue Metrics"
           value={filteredOverdue.length}
           color={filteredOverdue.length > 0 ? "#dc2626" : "#b1bd37"}
           glow={filteredOverdue.length > 0 ? "red" : undefined}
+          href="/data-health"
         />
-        <StatCard label="Asana Linked" value={asanaLinked} color="#55787c" />
+        <StatCard label="Asana Linked" value={asanaLinked} color="#55787c" href="/processes" />
       </div>
 
       {processCount === 0 ? (
@@ -433,6 +438,15 @@ export default function ProcessOwnerDashboard() {
                         <Badge color={badgeInfo.color} size="xs" className="ml-auto flex-shrink-0">
                           {badgeInfo.label}
                         </Badge>
+                        {item.metricId && (
+                          <Link
+                            href={`/log?metricId=${item.metricId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="ml-1.5 text-xs font-medium text-nia-grey-blue hover:text-nia-dark bg-gray-100 hover:bg-gray-200 rounded px-2 py-0.5 transition-colors flex-shrink-0"
+                          >
+                            Log
+                          </Link>
+                        )}
                       </Link>
                     );
                   })}
@@ -532,15 +546,17 @@ function StatCard({
   color,
   subtitle,
   glow,
+  href,
 }: {
   label: string;
   value: number | string;
   color: string;
   subtitle?: string;
   glow?: "red" | "orange" | "green" | "dark";
+  href?: string;
 }) {
-  return (
-    <Card variant="elevated" padding="sm" className={`p-4 ${glow ? `glow-${glow}` : ""}`}>
+  const card = (
+    <Card variant="elevated" padding="sm" className={`p-4 ${glow ? `glow-${glow}` : ""} ${href ? "hover:shadow-md transition-shadow cursor-pointer" : ""}`}>
       <div className="text-2xl font-bold font-display number-pop" style={{ color }}>
         {value}
       </div>
@@ -552,4 +568,9 @@ function StatCard({
       )}
     </Card>
   );
+
+  if (href) {
+    return <Link href={href}>{card}</Link>;
+  }
+  return card;
 }

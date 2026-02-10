@@ -47,7 +47,12 @@ export async function getAsanaToken(userId: string): Promise<string | null> {
 
       return data.access_token;
     } else {
-      // Refresh failed — token may be revoked
+      // Refresh failed — token is likely revoked. Delete stale row so
+      // next Asana action prompts re-authentication instead of silently failing.
+      await supabase
+        .from("user_asana_tokens")
+        .delete()
+        .eq("user_id", userId);
       return null;
     }
   }
