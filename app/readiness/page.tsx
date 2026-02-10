@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { DashboardSkeleton } from "@/components/skeleton";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, Button } from "@/components/ui";
 import HealthRing from "@/components/health-ring";
 import {
   getHealthLevel,
   type HealthResult,
-  type HealthNextAction,
 } from "@/lib/process-health";
 import {
   fetchHealthData,
@@ -15,6 +14,16 @@ import {
   type CategoryRow,
 } from "@/lib/fetch-health-data";
 import Link from "next/link";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+  ResponsiveContainer,
+} from "recharts";
 
 // ── Dimension metadata ───────────────────────────────────────
 const DIMENSION_CONFIG: { key: keyof HealthResult["dimensions"]; label: string; max: number }[] = [
@@ -25,20 +34,39 @@ const DIMENSION_CONFIG: { key: keyof HealthResult["dimensions"]; label: string; 
   { key: "freshness", label: "Freshness", max: 15 },
 ];
 
+interface Snapshot {
+  id: number;
+  snapshot_date: string;
+  org_score: number;
+  category_scores: Record<string, number>;
+  dimension_scores: Record<string, number>;
+  process_count: number;
+  ready_count: number;
+}
+
 export default function ReadinessPage() {
   const [processes, setProcesses] = useState<ProcessWithCategory[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [healthScores, setHealthScores] = useState<Map<number, HealthResult>>(new Map());
   const [loading, setLoading] = useState(true);
 
+  // Snapshot state
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [snapshotSaving, setSnapshotSaving] = useState(false);
+  const [snapshotMsg, setSnapshotMsg] = useState<string | null>(null);
+
   useEffect(() => {
     document.title = "Readiness | NIA Excellence Hub";
 
     async function load() {
-      const data = await fetchHealthData();
+      const [data, snapRes] = await Promise.all([
+        fetchHealthData(),
+        fetch("/api/readiness").then((r) => r.ok ? r.json() : []),
+      ]);
       setProcesses(data.processes);
       setCategories(data.categories);
       setHealthScores(data.healthScores);
+      setSnapshots(snapRes);
       setLoading(false);
     }
     load();
@@ -107,13 +135,11 @@ export default function ReadinessPage() {
   }).sort((a, b) => a.pct - b.pct); // weakest first
 
   // ── Top 5 actions ──────────────────────────────────────────
-  // Collect all nextActions, normalize labels, sum points, dedupe
   const actionMap = new Map<string, { label: string; totalPoints: number; count: number; href?: string }>();
   for (const proc of processes) {
     const h = healthScores.get(proc.id);
     if (!h) continue;
     for (const action of h.nextActions) {
-      // Normalize: strip "for this process", "to this process", trim
       const normalized = action.label
         .replace(/\s+for this process/i, "")
         .replace(/\s+to this process/i, "")
@@ -137,16 +163,90 @@ export default function ReadinessPage() {
     .sort((a, b) => b.totalPoints - a.totalPoints)
     .slice(0, 5);
 
+  // ── Snapshot helpers ───────────────────────────────────────
+  async function takeSnapshot() {
+    setSnapshotSaving(true);
+    setSnapshotMsg(null);
+
+    // Build category scores
+    const catScores: Record<string, number> = {};
+    for (const cd of categoryData) {
+      catScores[String(cd.category.id)] = cd.avgScore;
+    }
+
+    // Build dimension scores (as percentages)
+    const dimScores: Record<string, number> = {};
+    for (const dim of dimensionAvgs) {
+      dimScores[dim.key] = dim.pct;
+    }
+
+    const res = await fetch("/api/readiness", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        org_score: orgScore,
+        category_scores: catScores,
+        dimension_scores: dimScores,
+        process_count: processes.length,
+        ready_count: readyCount,
+      }),
+    });
+
+    if (res.ok) {
+      const saved = await res.json();
+      // Update or add snapshot in the list
+      setSnapshots((prev) => {
+        const exists = prev.findIndex((s) => s.snapshot_date === saved.snapshot_date);
+        if (exists >= 0) {
+          const updated = [...prev];
+          updated[exists] = saved;
+          return updated;
+        }
+        return [...prev, saved].sort((a, b) => a.snapshot_date.localeCompare(b.snapshot_date));
+      });
+      setSnapshotMsg("Snapshot saved!");
+      setTimeout(() => setSnapshotMsg(null), 3000);
+    } else {
+      setSnapshotMsg("Failed to save snapshot");
+    }
+    setSnapshotSaving(false);
+  }
+
+  // ── Chart data ─────────────────────────────────────────────
+  const chartData = snapshots.map((s) => ({
+    date: new Date(s.snapshot_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    score: s.org_score,
+    ready: s.ready_count,
+    total: s.process_count,
+  }));
+
   return (
     <div className="space-y-8 content-appear">
       {/* Page header */}
-      <div>
-        <h1 className="text-3xl font-bold text-nia-dark font-display">
-          Baldrige Readiness
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Organization-wide readiness for a Baldrige Excellence application
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-nia-dark font-display">
+            Baldrige Readiness
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Organization-wide readiness for a Baldrige Excellence application
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={takeSnapshot}
+            disabled={snapshotSaving}
+          >
+            {snapshotSaving ? "Saving..." : "Take Readiness Snapshot"}
+          </Button>
+          {snapshotMsg && (
+            <span className={`text-sm font-medium ${snapshotMsg.includes("Failed") ? "text-red-600" : "text-nia-green"}`}>
+              {snapshotMsg}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* ── Section A: Org Readiness Score ──────────────────── */}
@@ -181,6 +281,76 @@ export default function ReadinessPage() {
           </div>
         </div>
       </Card>
+
+      {/* ── Readiness Trend ────────────────────────────────── */}
+      {chartData.length > 0 && (
+        <div>
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+            Readiness Trend
+          </h2>
+          <Card className="p-5">
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: "#9ca3af" }}
+                  tickLine={false}
+                  axisLine={{ stroke: "#e5e7eb" }}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  tick={{ fontSize: 12, fill: "#9ca3af" }}
+                  tickLine={false}
+                  axisLine={false}
+                  ticks={[0, 20, 40, 60, 80, 100]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "8px",
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    fontSize: "13px",
+                  }}
+                  formatter={(value) => [`${value ?? 0}%`, "Readiness"]}
+                  labelFormatter={(label) => label}
+                />
+                {/* Baldrige target line at 80% */}
+                <ReferenceLine
+                  y={80}
+                  stroke="#b1bd37"
+                  strokeDasharray="6 4"
+                  label={{
+                    value: "Target: 80%",
+                    position: "right",
+                    fill: "#b1bd37",
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  stroke="#324a4d"
+                  strokeWidth={2.5}
+                  dot={{ fill: "#324a4d", r: 4, strokeWidth: 2, stroke: "#fff" }}
+                  activeDot={{ r: 6, strokeWidth: 2, stroke: "#324a4d", fill: "#fff" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            <div className="flex items-center justify-center gap-4 mt-2 text-xs text-gray-400">
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-0.5 bg-nia-dark inline-block rounded" />
+                Org Readiness
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-0.5 inline-block rounded" style={{ backgroundColor: "#b1bd37", borderTop: "1px dashed #b1bd37" }} />
+                Baldrige Target
+              </span>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* ── Section B: Category Readiness ───────────────────── */}
       <div>

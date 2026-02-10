@@ -210,6 +210,15 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   animation: overdue-pulse 2s ease-in-out infinite;
 }
 
+/* Milestone toast slide-up animation */
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
 /* Stale pulse — subtle throb for 90+ day inactive processes */
 @keyframes stale-pulse {
   0%, 100% { opacity: 1; }

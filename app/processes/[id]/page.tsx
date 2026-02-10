@@ -23,6 +23,7 @@ import AiChatPanel from "@/components/ai-chat-panel";
 import TaskReviewPanel from "@/components/task-review-panel";
 import ImprovementStepper from "@/components/improvement-stepper";
 import ProcessHealthCard from "@/components/process-health-card";
+import MilestoneToast from "@/components/milestone-toast";
 import { calculateHealthScore, type HealthResult, type HealthMetricInput } from "@/lib/process-health";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
@@ -729,6 +730,16 @@ function ProcessDetailContent() {
 
       {/* Health Score Card */}
       {healthResult && <ProcessHealthCard health={healthResult} />}
+
+      {/* Milestone Celebrations */}
+      <MilestoneToast
+        processId={process.id}
+        processName={process.name}
+        health={healthResult}
+        hasImprovements={improvements.length > 0}
+        hasAsanaLink={!!process.asana_project_gid}
+        allMetricsCurrent={metrics.length > 0 && metrics.every((m) => m.review_status === "current")}
+      />
 
       {/* Improvement Stepper — only shown when linked to Asana */}
       {process.asana_project_gid && process.guided_step && (
