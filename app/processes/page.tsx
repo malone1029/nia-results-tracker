@@ -300,9 +300,7 @@ export default function ProcessesPage() {
     setUpdating(false);
   }
 
-  if (loading) return <CategoryGridSkeleton />;
-
-  // Apply filters and sorting
+  // Apply filters and sorting (must be above early return to satisfy Rules of Hooks)
   const filtered = useMemo(() => {
     const result = processes.filter((p) => {
       if (filterCategory !== null && p.category_id !== filterCategory) return false;
@@ -319,6 +317,8 @@ export default function ProcessesPage() {
     }
     return result;
   }, [processes, filterCategory, filterStatus, showKeyOnly, sortBy, healthScores]);
+
+  if (loading) return <CategoryGridSkeleton />;
 
   return (
     <div className="space-y-6 content-appear">
