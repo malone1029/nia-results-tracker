@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { FormSkeleton } from "@/components/skeleton";
@@ -41,6 +41,9 @@ export default function EditProcessPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  // Deep-link: hash fragment like #charter or #adli_approach
+  const [targetSection, setTargetSection] = useState<string | null>(null);
+  const scrolledRef = useRef(false);
   const [allRequirements, setAllRequirements] = useState<ReqOption[]>([]);
   const [linkedReqIds, setLinkedReqIds] = useState<Set<number>>(new Set());
   // Form fields
@@ -100,6 +103,26 @@ export default function EditProcessPage() {
     }
     fetchData();
   }, [id]);
+
+  // Read hash fragment on mount (e.g., #charter, #adli_approach)
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash) setTargetSection(hash);
+  }, []);
+
+  // After loading, scroll to target section
+  useEffect(() => {
+    if (!loading && targetSection && !scrolledRef.current) {
+      scrolledRef.current = true;
+      // Short delay for DOM to render expanded sections
+      setTimeout(() => {
+        const el = document.getElementById(`section-${targetSection}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 150);
+    }
+  }, [loading, targetSection]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -223,6 +246,8 @@ export default function EditProcessPage() {
         {/* Charter */}
             <CollapsibleSection
               title="Charter"
+              sectionId="charter"
+              forceOpen={targetSection === "charter"}
               subtitle={charter.content ? "imported" : countFilled([charter.purpose, charter.scope_includes, charter.scope_excludes, charter.mission_alignment, charter.stakeholders?.length ? "yes" : undefined])}
             >
               <div className="space-y-4">
@@ -251,6 +276,8 @@ export default function EditProcessPage() {
             {/* ADLI: Approach */}
             <CollapsibleSection
               title="ADLI: Approach"
+              sectionId="adli_approach"
+              forceOpen={targetSection === "adli_approach"}
               subtitle={approach.content ? "imported" : countFilled([approach.evidence_base, approach.key_requirements, approach.key_steps?.length ? "yes" : undefined, approach.tools_used?.length ? "yes" : undefined])}
             >
               <div className="space-y-4">
@@ -286,6 +313,8 @@ export default function EditProcessPage() {
             {/* ADLI: Deployment */}
             <CollapsibleSection
               title="ADLI: Deployment"
+              sectionId="adli_deployment"
+              forceOpen={targetSection === "adli_deployment"}
               subtitle={deployment.content ? "imported" : countFilled([deployment.communication_plan, deployment.training_approach, deployment.consistency_mechanisms, deployment.teams?.length ? "yes" : undefined])}
             >
               <div className="space-y-4">
@@ -313,6 +342,8 @@ export default function EditProcessPage() {
             {/* ADLI: Learning */}
             <CollapsibleSection
               title="ADLI: Learning"
+              sectionId="adli_learning"
+              forceOpen={targetSection === "adli_learning"}
               subtitle={learning.content ? "imported" : countFilled([learning.evaluation_methods, learning.review_frequency, learning.improvement_process, learning.metrics?.length ? "yes" : undefined])}
             >
               <div className="space-y-4">
@@ -340,6 +371,8 @@ export default function EditProcessPage() {
             {/* ADLI: Integration */}
             <CollapsibleSection
               title="ADLI: Integration"
+              sectionId="adli_integration"
+              forceOpen={targetSection === "adli_integration"}
               subtitle={integration.content ? "imported" : countFilled([integration.mission_connection, integration.standards_alignment, integration.strategic_goals?.length ? "yes" : undefined, integration.related_processes?.length ? "yes" : undefined])}
             >
               <div className="space-y-4">
@@ -374,6 +407,8 @@ export default function EditProcessPage() {
             {/* Workflow */}
             <CollapsibleSection
               title="Workflow"
+              sectionId="workflow"
+              forceOpen={targetSection === "workflow"}
               subtitle={workflow.content ? "imported" : countFilled([workflow.inputs?.length ? "yes" : undefined, workflow.steps?.length ? "yes" : undefined, workflow.outputs?.length ? "yes" : undefined, workflow.quality_controls?.length ? "yes" : undefined])}
             >
               <div className="space-y-4">
@@ -421,6 +456,8 @@ export default function EditProcessPage() {
             {/* Baldrige Connections */}
             <CollapsibleSection
               title="Baldrige Connections"
+              sectionId="baldrige_connections"
+              forceOpen={targetSection === "baldrige_connections"}
               subtitle={baldrigeConn.content ? "imported" : countFilled([baldrigeConn.questions_addressed?.length ? "yes" : undefined, baldrigeConn.evidence_by_dimension ? "yes" : undefined])}
             >
               <div className="space-y-4">
@@ -517,29 +554,41 @@ function CollapsibleSection({
   title,
   subtitle,
   defaultOpen = false,
+  forceOpen = false,
+  sectionId,
   children,
 }: {
   title: string;
   subtitle?: string;
   defaultOpen?: boolean;
+  forceOpen?: boolean;
+  sectionId?: string;
   children: React.ReactNode;
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [isOpen, setIsOpen] = useState(defaultOpen || forceOpen);
+
+  // If forceOpen becomes true after mount, expand
+  useEffect(() => {
+    if (forceOpen) setIsOpen(true);
+  }, [forceOpen]);
+
   return (
-    <Card accent="orange" className="overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-gray-400 text-sm">{isOpen ? "\u25BC" : "\u25B6"}</span>
-          <span className="font-semibold text-nia-dark">{title}</span>
-        </div>
-        {subtitle && <span className="text-xs text-gray-400">{subtitle}</span>}
-      </button>
-      {isOpen && <div className="border-t border-gray-100 px-4 py-3">{children}</div>}
-    </Card>
+    <div id={sectionId ? `section-${sectionId}` : undefined}>
+      <Card accent={forceOpen ? "green" : "orange"} className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm">{isOpen ? "\u25BC" : "\u25B6"}</span>
+            <span className="font-semibold text-nia-dark">{title}</span>
+          </div>
+          {subtitle && <span className="text-xs text-gray-400">{subtitle}</span>}
+        </button>
+        {isOpen && <div className="border-t border-gray-100 px-4 py-3">{children}</div>}
+      </Card>
+    </div>
   );
 }
 

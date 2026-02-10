@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { DetailSkeleton } from "@/components/skeleton";
@@ -22,7 +22,7 @@ import MarkdownContent from "@/components/markdown-content";
 import AiChatPanel from "@/components/ai-chat-panel";
 import TaskReviewPanel from "@/components/task-review-panel";
 import ImprovementStepper from "@/components/improvement-stepper";
-import { STEPS } from "@/lib/step-actions";
+import { STEPS, getPrimaryAction } from "@/lib/step-actions";
 import ProcessHealthCard from "@/components/process-health-card";
 import MilestoneToast from "@/components/milestone-toast";
 import AdliRadar from "@/components/adli-radar";
@@ -116,6 +116,8 @@ function ProcessDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoAnalyze = searchParams.get("analyze") === "true";
+  const openAI = searchParams.get("openAI");       // e.g., "assessment", "deep_dive", "charter", "metrics"
+  const openExport = searchParams.get("openExport") === "true";
   const id = params.id as string;
 
   const [process, setProcess] = useState<ProcessDetail | null>(null);
@@ -147,6 +149,7 @@ function ProcessDetailContent() {
   const [adliScoreData, setAdliScoreData] = useState<AdliScoreData | null>(null);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [hasAsanaToken, setHasAsanaToken] = useState<boolean | null>(null);
+  const deepLinkFiredRef = useRef(false);
 
   async function fetchProcess() {
       // Fetch process with category name
@@ -358,6 +361,35 @@ function ProcessDetailContent() {
       setHasAsanaToken(d?.connected ?? false);
     }).catch(() => setHasAsanaToken(false));
   }, []);
+
+  // Deep-link handler: ?openAI=<step> opens AI panel with that step's prompt
+  //                    ?openExport=true opens the Asana export dialog
+  useEffect(() => {
+    if (loading || !process || deepLinkFiredRef.current) return;
+    deepLinkFiredRef.current = true;
+
+    if (openExport) {
+      setAsanaConfirm(true);
+    }
+
+    if (openAI) {
+      // First try: step-level lookup (e.g., "assessment", "charter", "deep_dive")
+      const action = getPrimaryAction(openAI);
+      if (action) {
+        setPendingPrompt(action.prompt);
+      } else {
+        // Fallback: search for a matching action key across all steps (e.g., "metrics")
+        for (const step of STEPS) {
+          const match = step.actions.find((a) => a.key === openAI);
+          if (match) {
+            setPendingPrompt(match.prompt);
+            break;
+          }
+        }
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   async function fetchAvailableMetrics() {
     // Get metric IDs already linked to this process
