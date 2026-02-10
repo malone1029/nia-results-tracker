@@ -34,6 +34,19 @@ interface LogFormData {
   noteCourseCorrection: string;
 }
 
+// Bulk-editable metric fields and their input types
+const BULK_FIELDS: { value: string; label: string; type: "select" | "text" | "number" | "toggle" }[] = [
+  { value: "cadence", label: "Cadence", type: "select" },
+  { value: "unit", label: "Unit", type: "select" },
+  { value: "is_higher_better", label: "Trend Direction", type: "toggle" },
+  { value: "target_value", label: "Target Value", type: "number" },
+  { value: "data_source", label: "Data Source", type: "text" },
+  { value: "collection_method", label: "Collection Method", type: "text" },
+];
+
+const CADENCE_OPTIONS = ["daily", "weekly", "monthly", "quarterly", "semi-annual", "annual"];
+const UNIT_OPTIONS = ["%", "score", "count", "currency", "days", "rate"];
+
 export default function DataHealthPage() {
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
   const [sparklineData, setSparklineData] = useState<Map<number, number[]>>(new Map());
@@ -45,6 +58,14 @@ export default function DataHealthPage() {
   const [showKeyOnly, setShowKeyOnly] = useState(false);
   const [keyMetricIds, setKeyMetricIds] = useState<Set<number>>(new Set());
   const logFormRef = useRef<HTMLDivElement>(null);
+
+  // Bulk edit state
+  const [editMode, setEditMode] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [bulkField, setBulkField] = useState("cadence");
+  const [bulkValue, setBulkValue] = useState("");
+  const [updating, setUpdating] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function fetchMetrics() {
     // Fetch metrics, junction links, and processes separately
@@ -206,9 +227,113 @@ export default function DataHealthPage() {
     }, 50);
   }
 
-  const displayMetrics = showKeyOnly
+  // Bulk edit helpers
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelected(new Set(displayMetricsAll.map((m) => m.id)));
+  }
+
+  function deselectAll() {
+    setSelected(new Set());
+  }
+
+  function selectByStatus(status: MetricRow["review_status"]) {
+    const ids = displayMetricsAll.filter((m) => m.review_status === status).map((m) => m.id);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const allSelected = ids.every((id) => next.has(id));
+      if (allSelected) {
+        ids.forEach((id) => next.delete(id));
+      } else {
+        ids.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }
+
+  function exitEditMode() {
+    setEditMode(false);
+    setSelected(new Set());
+    setBulkField("cadence");
+    setBulkValue("");
+    setConfirmDelete(false);
+  }
+
+  async function bulkUpdate() {
+    if (selected.size === 0 || !bulkValue.trim()) return;
+    setUpdating(true);
+
+    const ids = [...selected];
+    // Build the update payload based on field type
+    let updateValue: unknown = bulkValue.trim();
+    if (bulkField === "target_value") {
+      updateValue = parseFloat(bulkValue) || null;
+    } else if (bulkField === "is_higher_better") {
+      updateValue = bulkValue === "true";
+    }
+
+    const { error } = await supabase
+      .from("metrics")
+      .update({ [bulkField]: updateValue })
+      .in("id", ids);
+
+    if (error) {
+      console.error("Bulk update error:", error);
+      setUpdating(false);
+      return;
+    }
+
+    // Optimistic UI update
+    const fieldLabel = BULK_FIELDS.find((f) => f.value === bulkField)?.label || bulkField;
+    setMetrics((prev) =>
+      prev.map((m) =>
+        ids.includes(m.id) ? { ...m, [bulkField]: updateValue } : m
+      )
+    );
+    setSuccessMessage(`Updated ${fieldLabel} for ${ids.length} metric${ids.length !== 1 ? "s" : ""}`);
+    setTimeout(() => setSuccessMessage(""), 4000);
+    exitEditMode();
+    setUpdating(false);
+  }
+
+  async function bulkDelete() {
+    if (selected.size === 0) return;
+    setUpdating(true);
+
+    const ids = [...selected];
+
+    // Delete junction rows first, then metrics, then entries
+    await supabase.from("metric_processes").delete().in("metric_id", ids);
+    await supabase.from("metric_requirements").delete().in("metric_id", ids);
+    await supabase.from("entries").delete().in("metric_id", ids);
+    const { error } = await supabase.from("metrics").delete().in("id", ids);
+
+    if (error) {
+      console.error("Bulk delete error:", error);
+      setUpdating(false);
+      return;
+    }
+
+    setMetrics((prev) => prev.filter((m) => !ids.includes(m.id)));
+    setSuccessMessage(`Deleted ${ids.length} metric${ids.length !== 1 ? "s" : ""}`);
+    setTimeout(() => setSuccessMessage(""), 4000);
+    exitEditMode();
+    setUpdating(false);
+  }
+
+  const displayMetricsAll = showKeyOnly
     ? metrics.filter((m) => keyMetricIds.has(m.id))
     : metrics;
+
+  const displayMetrics = displayMetricsAll;
 
   const overdue = displayMetrics.filter((m) => m.review_status === "overdue");
   const dueSoon = displayMetrics.filter((m) => m.review_status === "due-soon");
@@ -228,14 +353,135 @@ export default function DataHealthPage() {
             Metric review status, data coverage, and quick logging.
           </p>
         </div>
-        <Button
-          variant={showKeyOnly ? "accent" : "ghost"}
-          size="sm"
-          onClick={() => setShowKeyOnly(!showKeyOnly)}
-        >
-          {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={showKeyOnly ? "accent" : "ghost"}
+            size="sm"
+            onClick={() => setShowKeyOnly(!showKeyOnly)}
+          >
+            {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
+          </Button>
+          <Button
+            variant={editMode ? "accent" : "secondary"}
+            size="sm"
+            onClick={() => editMode ? exitEditMode() : setEditMode(true)}
+          >
+            {editMode ? "Cancel Edit" : "Edit Metrics"}
+          </Button>
+        </div>
       </div>
+
+      {/* Bulk edit toolbar */}
+      {editMode && (
+        <Card accent="orange" padding="sm">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-nia-dark">Select by status:</span>
+              {(["overdue", "due-soon", "no-data", "current"] as const).map((status) => {
+                const count = displayMetrics.filter((m) => m.review_status === status).length;
+                if (count === 0) return null;
+                const statusIds = displayMetrics.filter((m) => m.review_status === status).map((m) => m.id);
+                const allSelected = statusIds.every((id) => selected.has(id));
+                return (
+                  <button
+                    key={status}
+                    onClick={() => selectByStatus(status)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                      allSelected
+                        ? "bg-nia-dark text-white border-nia-dark"
+                        : "bg-white text-nia-dark border-gray-300 hover:border-nia-dark"
+                    }`}
+                  >
+                    {getStatusLabel(status)} ({count})
+                  </button>
+                );
+              })}
+              <span className="text-gray-300">|</span>
+              <button onClick={selectAll} className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium">
+                Select All
+              </button>
+              <button onClick={deselectAll} className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium">
+                Deselect All
+              </button>
+            </div>
+            <p className="text-xs text-gray-400">
+              Click checkboxes on individual metrics, or use status buttons above to select groups.
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Floating action bar for bulk edit */}
+      {editMode && selected.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-nia-dark shadow-2xl z-40 px-4 py-3">
+          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <span className="text-sm font-bold text-nia-dark whitespace-nowrap">
+              {selected.size} selected
+            </span>
+
+            {/* Field + value inputs */}
+            <div className="flex flex-wrap items-center gap-2 flex-1">
+              <select
+                value={bulkField}
+                onChange={(e) => { setBulkField(e.target.value); setBulkValue(""); }}
+                className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+              >
+                {BULK_FIELDS.map((f) => (
+                  <option key={f.value} value={f.value}>{f.label}</option>
+                ))}
+              </select>
+
+              <BulkValueInput field={bulkField} value={bulkValue} onChange={setBulkValue} />
+
+              <Button
+                size="sm"
+                onClick={bulkUpdate}
+                disabled={updating || !bulkValue.trim()}
+                loading={updating}
+              >
+                Update
+              </Button>
+            </div>
+
+            {/* Delete section */}
+            <div className="flex items-center gap-2 sm:ml-auto">
+              {!confirmDelete ? (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="text-xs text-red-500 hover:text-red-700 font-medium px-3 py-2 rounded border border-red-200 hover:border-red-400 transition-colors"
+                >
+                  Delete Selected
+                </button>
+              ) : (
+                <>
+                  <span className="text-xs text-red-600 font-medium">
+                    Delete {selected.size} metric{selected.size !== 1 ? "s" : ""}?
+                  </span>
+                  <button
+                    onClick={bulkDelete}
+                    disabled={updating}
+                    className="text-xs bg-red-600 text-white font-medium px-3 py-2 rounded hover:bg-red-700 disabled:opacity-50 transition-colors"
+                  >
+                    Confirm Delete
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="text-xs text-gray-500 hover:text-gray-700 font-medium px-2 py-2"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+              <button
+                onClick={exitEditMode}
+                className="text-xs text-gray-400 hover:text-gray-600 font-medium px-2 py-2"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success message */}
       {successMessage && (
@@ -414,6 +660,9 @@ export default function DataHealthPage() {
           sparklineData={sparklineData}
           onLogClick={openLogForm}
           accentColor="#dc2626"
+          editMode={editMode}
+          selected={selected}
+          onToggleSelect={toggleSelect}
         />
       )}
 
@@ -426,6 +675,9 @@ export default function DataHealthPage() {
           sparklineData={sparklineData}
           onLogClick={openLogForm}
           accentColor="#f79935"
+          editMode={editMode}
+          selected={selected}
+          onToggleSelect={toggleSelect}
         />
       )}
 
@@ -451,6 +703,9 @@ export default function DataHealthPage() {
           defaultOpen={false}
           onLogClick={openLogForm}
           accentColor="#55787c"
+          editMode={editMode}
+          selected={selected}
+          onToggleSelect={toggleSelect}
         />
       )}
 
@@ -464,8 +719,14 @@ export default function DataHealthPage() {
           defaultOpen={false}
           onLogClick={openLogForm}
           accentColor="#b1bd37"
+          editMode={editMode}
+          selected={selected}
+          onToggleSelect={toggleSelect}
         />
       )}
+
+      {/* Bottom padding when floating bar is visible */}
+      {editMode && selected.size > 0 && <div className="h-20" />}
     </div>
   );
 }
@@ -571,6 +832,9 @@ function MetricSection({
   onLogClick,
   defaultOpen = true,
   accentColor,
+  editMode = false,
+  selected,
+  onToggleSelect,
 }: {
   title: string;
   subtitle: string;
@@ -579,6 +843,9 @@ function MetricSection({
   onLogClick: (metricId: number) => void;
   defaultOpen?: boolean;
   accentColor?: string;
+  editMode?: boolean;
+  selected?: Set<number>;
+  onToggleSelect?: (id: number) => void;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -616,9 +883,20 @@ function MetricSection({
           {metrics.map((metric) => (
             <div
               key={metric.id}
-              className="px-4 py-3 flex items-center justify-between border-b border-gray-50 last:border-b-0 hover:bg-gray-50 transition-colors"
+              className={`px-4 py-3 flex items-center justify-between border-b border-gray-50 last:border-b-0 hover:bg-gray-50 transition-colors ${editMode && selected?.has(metric.id) ? "bg-nia-orange/5" : ""}`}
+              onClick={editMode ? () => onToggleSelect?.(metric.id) : undefined}
+              style={editMode ? { cursor: "pointer" } : undefined}
             >
               <div className="flex items-center gap-3">
+                {editMode && (
+                  <input
+                    type="checkbox"
+                    checked={selected?.has(metric.id) || false}
+                    onChange={() => onToggleSelect?.(metric.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 rounded border-gray-300 text-nia-dark focus:ring-nia-grey-blue flex-shrink-0"
+                  />
+                )}
                 <div
                   className={`w-3 h-3 rounded-full flex-shrink-0 ${metric.review_status === "overdue" ? "overdue-pulse" : ""}`}
                   style={{
@@ -676,6 +954,78 @@ function MetricSection({
         </div>
       </div>
     </Card>
+  );
+}
+
+function BulkValueInput({ field, value, onChange }: { field: string; value: string; onChange: (v: string) => void }) {
+  const fieldDef = BULK_FIELDS.find((f) => f.value === field);
+  if (!fieldDef) return null;
+
+  if (field === "cadence") {
+    return (
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+      >
+        <option value="">Select cadence...</option>
+        {CADENCE_OPTIONS.map((c) => (
+          <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+        ))}
+      </select>
+    );
+  }
+
+  if (field === "unit") {
+    return (
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+      >
+        <option value="">Select unit...</option>
+        {UNIT_OPTIONS.map((u) => (
+          <option key={u} value={u}>{u}</option>
+        ))}
+      </select>
+    );
+  }
+
+  if (field === "is_higher_better") {
+    return (
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+      >
+        <option value="">Select direction...</option>
+        <option value="true">Higher is Better</option>
+        <option value="false">Lower is Better</option>
+      </select>
+    );
+  }
+
+  if (fieldDef.type === "number") {
+    return (
+      <input
+        type="number"
+        step="any"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={`Enter ${fieldDef.label.toLowerCase()}...`}
+        className="text-sm border border-gray-300 rounded-lg px-3 py-2 w-36 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+      />
+    );
+  }
+
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={`Enter ${fieldDef.label.toLowerCase()}...`}
+      className="text-sm border border-gray-300 rounded-lg px-3 py-2 w-48 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+    />
   );
 }
 
