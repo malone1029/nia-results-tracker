@@ -210,6 +210,15 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   animation: overdue-pulse 2s ease-in-out infinite;
 }
 
+/* Stale pulse — subtle throb for 90+ day inactive processes */
+@keyframes stale-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.stale-pulse {
+  animation: stale-pulse 3s ease-in-out infinite;
+}
+
 /* Hero glow — colored box-shadow for stat cards */
 .glow-red    { box-shadow: 0 0 20px -4px rgba(220, 38, 38, 0.25); }
 .glow-orange { box-shadow: 0 0 20px -4px rgba(247, 153, 53, 0.25); }

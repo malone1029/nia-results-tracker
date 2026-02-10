@@ -9,18 +9,10 @@ import AdliRadar from "@/components/adli-radar";
 import { DimBar, MiniBar } from "@/components/adli-bars";
 import EmptyState from "@/components/empty-state";
 import { Card, CardHeader, Badge, Button, Select } from "@/components/ui";
+import HealthRing from "@/components/health-ring";
+import { fetchHealthData, type ProcessWithCategory } from "@/lib/fetch-health-data";
+import { type HealthResult, type HealthNextAction } from "@/lib/process-health";
 import Link from "next/link";
-
-interface ProcessRow {
-  id: number;
-  name: string;
-  status: string;
-  owner: string | null;
-  is_key: boolean;
-  asana_project_gid: string | null;
-  asana_project_url: string | null;
-  categories: { display_name: string };
-}
 
 interface ScoreRow {
   process_id: number;
@@ -60,7 +52,9 @@ const ACTION_BADGE: Record<string, { color: "red" | "orange" | "gray"; label: st
 export default function ProcessOwnerDashboard() {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
-  const [processes, setProcesses] = useState<ProcessRow[]>([]);
+  const [processes, setProcesses] = useState<ProcessWithCategory[]>([]);
+  const [healthScores, setHealthScores] = useState<Map<number, HealthResult>>(new Map());
+  const [lastActivityMap, setLastActivityMap] = useState<Map<number, string>>(new Map());
   const [scores, setScores] = useState<ScoreRow[]>([]);
   const [overdueMetrics, setOverdueMetrics] = useState<{ id: number; name: string; processOwner: string | null }[]>([]);
   const [dueSoonMetrics, setDueSoonMetrics] = useState<{ id: number; name: string; processOwner: string | null }[]>([]);
@@ -72,22 +66,24 @@ export default function ProcessOwnerDashboard() {
     document.title = "Dashboard | NIA Excellence Hub";
 
     async function fetchAll() {
-      const [userRes, procRes, scoresRes, metricsRes, metricProcessLinksRes, entriesRes] = await Promise.all([
+      // Fetch health data + user + ADLI scores + metric data in parallel
+      const [healthData, userRes, scoresRes, metricsRes, metricProcessLinksRes, entriesRes] = await Promise.all([
+        fetchHealthData(),
         supabase.auth.getUser(),
-        supabase.from("processes").select("id, name, status, owner, is_key, asana_project_gid, asana_project_url, categories(display_name)"),
         fetch("/api/ai/scores").then((r) => r.ok ? r.json() : []),
         supabase.from("metrics").select("id, name, cadence"),
         supabase.from("metric_processes").select("metric_id, process_id"),
         supabase.from("entries").select("metric_id, date").order("date", { ascending: false }),
       ]);
 
+      const procs = healthData.processes;
+      setProcesses(procs);
+      setHealthScores(healthData.healthScores);
+      setLastActivityMap(healthData.lastActivityMap);
+
       // User
       const fullName = userRes.data?.user?.user_metadata?.full_name || "";
       setUserName(fullName);
-
-      // Processes
-      const procs = (procRes.data || []) as unknown as ProcessRow[];
-      setProcesses(procs);
 
       // Owners (deduplicated, sorted)
       const ownerSet = new Set<string>();
@@ -105,7 +101,7 @@ export default function ProcessOwnerDashboard() {
         if (match) setSelectedOwner(match);
       }
 
-      // Scores
+      // ADLI scores for radar
       const scoreRows = (scoresRes || []).map((s: Record<string, unknown>) => ({
         process_id: s.process_id as number,
         approach_score: s.approach_score as number,
@@ -128,7 +124,7 @@ export default function ProcessOwnerDashboard() {
         processOwnerMap.set(p.id, p.owner);
       }
 
-      // Build metric -> owners lookup (a metric linked to 2 processes = 2 owners)
+      // Build metric -> owners lookup
       const metricOwners = new Map<number, Set<string>>();
       for (const link of metricProcessLinks) {
         const owner = processOwnerMap.get(link.process_id);
@@ -146,7 +142,6 @@ export default function ProcessOwnerDashboard() {
         }
       }
 
-      // A metric linked to 2 processes with different owners shows for both
       const overdue: typeof overdueMetrics = [];
       const dueSoon: typeof dueSoonMetrics = [];
       for (const m of metricsData) {
@@ -197,14 +192,47 @@ export default function ProcessOwnerDashboard() {
     : dueSoonMetrics.filter((m) => m.processOwner === selectedOwner);
   const filteredDraftProcesses = filteredProcesses.filter((p) => p.status === "draft");
 
-  // Stat cards
+  // ── Health-based stat card data ──
   const processCount = filteredProcesses.length;
+
+  // My Readiness: avg health score across filtered processes
+  let avgHealth = 0;
+  let healthCount = 0;
+  for (const proc of filteredProcesses) {
+    const h = healthScores.get(proc.id);
+    if (h) {
+      avgHealth += h.total;
+      healthCount++;
+    }
+  }
+  avgHealth = healthCount > 0 ? Math.round(avgHealth / healthCount) : 0;
+  const healthLevel = healthCount > 0
+    ? (avgHealth >= 80 ? { label: "Baldrige Ready", color: "#b1bd37" }
+      : avgHealth >= 60 ? { label: "On Track", color: "#55787c" }
+      : avgHealth >= 40 ? { label: "Developing", color: "#f79935" }
+      : { label: "Getting Started", color: "#dc2626" })
+    : { label: "--", color: "#9ca3af" };
+
+  // Baldrige Ready: count at 80+
+  const baldrigeReadyCount = filteredProcesses.filter((p) => {
+    const h = healthScores.get(p.id);
+    return h && h.total >= 80;
+  }).length;
+
+  // Needs Attention: health < 40 OR last activity > 60 days
+  const now = Date.now();
+  const needsAttentionCount = filteredProcesses.filter((p) => {
+    const h = healthScores.get(p.id);
+    const lastDate = lastActivityMap.get(p.id);
+    const stale = lastDate ? (now - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24) > 60 : false;
+    const lowHealth = h ? h.total < 40 : true; // no score = needs attention
+    return lowHealth || stale;
+  }).length;
+
+  // ADLI dimension averages (for radar)
   const avgAdli = filteredScores.length > 0
     ? Math.round(filteredScores.reduce((s, r) => s + r.overall_score, 0) / filteredScores.length)
     : 0;
-  const asanaLinked = filteredProcesses.filter((p) => p.asana_project_gid).length;
-
-  // ADLI dimension averages
   const dimAvgs = filteredScores.length > 0
     ? {
         approach: Math.round(filteredScores.reduce((s, r) => s + r.approach_score, 0) / filteredScores.length),
@@ -213,7 +241,6 @@ export default function ProcessOwnerDashboard() {
         integration: Math.round(filteredScores.reduce((s, r) => s + r.integration_score, 0) / filteredScores.length),
       }
     : null;
-
   const maturityLevel = getMaturityLevel(avgAdli);
 
   // Status breakdown
@@ -222,13 +249,40 @@ export default function ProcessOwnerDashboard() {
     statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
   }
 
-  // Score map for process list
+  // Score map for ADLI bars
   const scoreMap = new Map<number, ScoreRow>();
   for (const s of filteredScores) {
     scoreMap.set(s.process_id, s);
   }
 
-  // Action items
+  // ── My Next Actions (aggregated from health scores) ──
+  const allActions: (HealthNextAction & { processName: string })[] = [];
+  for (const proc of filteredProcesses) {
+    const h = healthScores.get(proc.id);
+    if (h) {
+      for (const action of h.nextActions) {
+        allActions.push({ ...action, processName: proc.name });
+      }
+    }
+  }
+  // Deduplicate by normalized label, sum points
+  const normalize = (s: string) => s.replace(/\bfor this process\b/gi, "").replace(/\bthis process\b/gi, "").trim().toLowerCase();
+  const actionGroups = new Map<string, { label: string; points: number; count: number; href?: string }>();
+  for (const a of allActions) {
+    const key = normalize(a.label);
+    const existing = actionGroups.get(key);
+    if (existing) {
+      existing.points += a.points;
+      existing.count++;
+    } else {
+      actionGroups.set(key, { label: a.label, points: a.points, count: 1, href: a.href });
+    }
+  }
+  const topNextActions = [...actionGroups.values()]
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 3);
+
+  // Action items (overdue + due-soon + drafts)
   const actionItems: ActionItem[] = [
     ...filteredOverdue.map((m) => ({
       type: "overdue" as const,
@@ -291,13 +345,38 @@ export default function ProcessOwnerDashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Processes" value={processCount} color="#324a4d" href="/processes" />
+        <Link href="/readiness">
+          <Card variant="elevated" padding="sm" className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+            <div className="flex items-center gap-3">
+              {healthCount > 0 ? (
+                <HealthRing score={avgHealth} color={healthLevel.color} size={48} strokeWidth={4} />
+              ) : (
+                <div className="text-2xl font-bold font-display number-pop text-gray-400">--</div>
+              )}
+              <div>
+                <div className="text-sm text-gray-500">My Readiness</div>
+                {healthCount > 0 && (
+                  <div className="text-xs font-medium" style={{ color: healthLevel.color }}>
+                    {healthLevel.label}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        </Link>
         <StatCard
-          label="Avg ADLI"
-          value={filteredScores.length > 0 ? `${avgAdli}%` : "--"}
-          color={maturityLevel.color}
-          subtitle={filteredScores.length > 0 ? maturityLevel.label : undefined}
-          href="/adli-insights"
+          label="Baldrige Ready"
+          value={baldrigeReadyCount}
+          color={baldrigeReadyCount > 0 ? "#b1bd37" : "#9ca3af"}
+          subtitle={processCount > 0 ? `of ${processCount} processes` : undefined}
+          href="/readiness"
+        />
+        <StatCard
+          label="Needs Attention"
+          value={needsAttentionCount}
+          color={needsAttentionCount > 0 ? "#f79935" : "#b1bd37"}
+          glow={needsAttentionCount > 0 ? "orange" : undefined}
+          href="/processes"
         />
         <StatCard
           label="Overdue Metrics"
@@ -306,7 +385,6 @@ export default function ProcessOwnerDashboard() {
           glow={filteredOverdue.length > 0 ? "red" : undefined}
           href="/data-health"
         />
-        <StatCard label="Asana Linked" value={asanaLinked} color="#55787c" href="/processes" />
       </div>
 
       {processCount === 0 ? (
@@ -397,7 +475,7 @@ export default function ProcessOwnerDashboard() {
             </Card>
           </div>
 
-          {/* Right column: Action Items + My Processes */}
+          {/* Right column: Action Items + My Next Actions + My Processes */}
           <div className="space-y-6">
             {/* Action Items */}
             <Card padding="md">
@@ -459,6 +537,34 @@ export default function ProcessOwnerDashboard() {
               )}
             </Card>
 
+            {/* My Next Actions (from health scores) */}
+            {topNextActions.length > 0 && (
+              <Card padding="md">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                  {isAll ? "Top Actions for Readiness" : "My Next Actions"}
+                </h2>
+                <div className="space-y-2">
+                  {topNextActions.map((action, i) => (
+                    <div key={i} className="flex items-start gap-2.5 py-1.5 px-2">
+                      <span className="text-nia-orange font-bold text-sm mt-px">{i + 1}.</span>
+                      <div className="flex-1 min-w-0">
+                        {action.href ? (
+                          <Link href={action.href} className="text-sm text-nia-dark hover:text-nia-orange transition-colors">
+                            {action.label}
+                          </Link>
+                        ) : (
+                          <span className="text-sm text-nia-dark">{action.label}</span>
+                        )}
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          +{action.points} pts{action.count > 1 ? ` across ${action.count} processes` : ""}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
             {/* My Processes */}
             <Card>
               <CardHeader>
@@ -469,7 +575,7 @@ export default function ProcessOwnerDashboard() {
               <div className="divide-y divide-gray-50">
                 {filteredProcesses.map((proc) => {
                   const score = scoreMap.get(proc.id);
-                  const pLevel = score ? getMaturityLevel(score.overall_score) : null;
+                  const health = healthScores.get(proc.id);
                   return (
                     <Link
                       key={proc.id}
@@ -478,6 +584,9 @@ export default function ProcessOwnerDashboard() {
                     >
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2 min-w-0">
+                          {health && (
+                            <HealthRing score={health.total} color={health.level.color} size={28} strokeWidth={2.5} className="text-[8px] flex-shrink-0" />
+                          )}
                           <span className="text-sm font-medium text-nia-dark truncate">
                             {proc.name}
                           </span>
@@ -499,22 +608,12 @@ export default function ProcessOwnerDashboard() {
                             </svg>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            color={STATUS_BADGE_COLORS[proc.status] || "gray"}
-                            size="xs"
-                          >
-                            {STATUS_LABELS[proc.status] || proc.status}
-                          </Badge>
-                          {pLevel && (
-                            <span
-                              className="text-xs font-bold px-2 py-0.5 rounded-full text-white flex-shrink-0"
-                              style={{ backgroundColor: pLevel.bgColor }}
-                            >
-                              {score!.overall_score}%
-                            </span>
-                          )}
-                        </div>
+                        <Badge
+                          color={STATUS_BADGE_COLORS[proc.status] || "gray"}
+                          size="xs"
+                        >
+                          {STATUS_LABELS[proc.status] || proc.status}
+                        </Badge>
                       </div>
                       {score && (
                         <div className="grid grid-cols-4 gap-2">
@@ -525,8 +624,8 @@ export default function ProcessOwnerDashboard() {
                         </div>
                       )}
                       <div className="text-[10px] text-gray-400 mt-1">
-                        {proc.categories?.display_name}
-                        {proc.owner && ` · ${proc.owner}`}
+                        {proc.category_display_name}
+                        {proc.owner && ` \u00b7 ${proc.owner}`}
                       </div>
                     </Link>
                   );

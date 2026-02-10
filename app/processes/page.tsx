@@ -32,10 +32,37 @@ const STATUS_OPTIONS: ProcessStatus[] = [
   "approved",
 ];
 
+// Format an ISO date string as relative time ("3 days ago", "2 months ago")
+function formatRelativeTime(dateStr: string): string {
+  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  if (days < 14) return "1 week ago";
+  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+  if (days < 60) return "1 month ago";
+  if (days < 365) return `${Math.floor(days / 30)} months ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}
+
+// Color for freshness: green (≤30d), gray (31-60d), orange (61-90d), red (90+d)
+function getFreshnessColor(dateStr: string): string {
+  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+  if (days <= 30) return "#b1bd37"; // NIA green
+  if (days <= 60) return "#9ca3af"; // gray
+  if (days <= 90) return "#f79935"; // NIA orange
+  return "#dc2626"; // red
+}
+
+function getFreshnessDays(dateStr: string): number {
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+}
+
 export default function ProcessesPage() {
   const [processes, setProcesses] = useState<ProcessWithCategory[]>([]);
   const [categories, setCategories] = useState<CategorySummary[]>([]);
   const [healthScores, setHealthScores] = useState<Map<number, HealthResult>>(new Map());
+  const [lastActivityMap, setLastActivityMap] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState<ProcessStatus | null>(null);
@@ -53,7 +80,8 @@ export default function ProcessesPage() {
     document.title = "Processes | NIA Excellence Hub";
 
     async function fetchData() {
-      const { processes: procs, categories: cats, healthScores: scores } = await fetchHealthData();
+      const healthData = await fetchHealthData();
+      const { processes: procs, categories: cats, healthScores: scores } = healthData;
 
       // Build category summaries (page-specific)
       const catSummaries: CategorySummary[] = cats.map((c) => {
@@ -73,6 +101,7 @@ export default function ProcessesPage() {
       setProcesses(procs);
       setCategories(catSummaries);
       setHealthScores(scores);
+      setLastActivityMap(healthData.lastActivityMap);
       setLoading(false);
     }
 
@@ -395,6 +424,7 @@ export default function ProcessesPage() {
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Health</th>
+                  <th className="px-4 py-3">Last Activity</th>
                   <th className="px-4 py-3">Owner</th>
                 </tr>
               </thead>
@@ -472,6 +502,23 @@ export default function ProcessesPage() {
                             <HealthRing score={health.total} color={health.level.color} size={36} strokeWidth={3} />
                             <span className="text-xs text-gray-400">{health.level.label}</span>
                           </div>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const lastDate = lastActivityMap.get(process.id);
+                        if (!lastDate) return null;
+                        const days = getFreshnessDays(lastDate);
+                        const color = getFreshnessColor(lastDate);
+                        return (
+                          <span
+                            className={`text-xs font-medium ${days > 90 ? "stale-pulse" : ""}`}
+                            style={{ color }}
+                            title={new Date(lastDate).toLocaleDateString()}
+                          >
+                            {formatRelativeTime(lastDate)}
+                          </span>
                         );
                       })()}
                     </td>
@@ -561,6 +608,18 @@ export default function ProcessesPage() {
                         <span>{process.owner}</span>
                       </>
                     )}
+                    {(() => {
+                      const lastDate = lastActivityMap.get(process.id);
+                      if (!lastDate) return null;
+                      const color = getFreshnessColor(lastDate);
+                      const days = getFreshnessDays(lastDate);
+                      return (
+                        <>
+                          <span>&middot;</span>
+                          <span className={days > 90 ? "stale-pulse" : ""} style={{ color }}>{formatRelativeTime(lastDate)}</span>
+                        </>
+                      );
+                    })()}
                   </div>
                 </Card>
               </Link>

@@ -47,6 +47,7 @@ export interface HealthData {
   processes: ProcessWithCategory[];
   categories: CategoryRow[];
   healthScores: Map<number, HealthResult>;
+  lastActivityMap: Map<number, string>; // process id → most recent ISO date
 }
 
 export async function fetchHealthData(): Promise<HealthData> {
@@ -185,6 +186,22 @@ export async function fetchHealthData(): Promise<HealthData> {
     healthScores.set(proc.id, calculateHealthScore(processInput, scoreInput, metricInputs, taskInput, improvementInput));
   }
 
+  // Compute last activity date per process
+  // = most recent of: updated_at, latest improvement, latest entry on linked metrics
+  const lastActivityMap = new Map<number, string>();
+  for (const proc of processes) {
+    let latest = proc.updated_at;
+    const impDate = improvementsByProcess.get(proc.id);
+    if (impDate && impDate > latest) latest = impDate;
+    // Check entries for linked metrics
+    const linkedMetricIds = metricsByProcess.get(proc.id) || [];
+    for (const mid of linkedMetricIds) {
+      const entryDate = latestEntryByMetric.get(mid);
+      if (entryDate && entryDate > latest) latest = entryDate;
+    }
+    lastActivityMap.set(proc.id, latest);
+  }
+
   const categories: CategoryRow[] = (catData || []).map(
     (c: Record<string, unknown>) => ({
       id: c.id as number,
@@ -194,5 +211,5 @@ export async function fetchHealthData(): Promise<HealthData> {
     })
   );
 
-  return { processes, categories, healthScores };
+  return { processes, categories, healthScores, lastActivityMap };
 }
