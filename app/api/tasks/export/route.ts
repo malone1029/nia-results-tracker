@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
 
+export const maxDuration = 60;
+
 // PDCA section names (same order as in the main Asana export)
 const PDCA_SECTIONS = ["Plan", "Execute", "Evaluate", "Improve"];
 
@@ -197,11 +199,18 @@ export async function POST(request: Request) {
               data: {
                 name: taskName,
                 notes: taskNotes,
-                projects: [projectGid],
                 memberships: [{ project: projectGid, section: sectionGid }],
               },
             }),
           });
+
+          // Explicitly move to correct section (memberships alone can be unreliable)
+          if (result.data?.gid) {
+            await asanaFetch(token, `/sections/${sectionGid}/addTask`, {
+              method: "POST",
+              body: JSON.stringify({ data: { task: result.data.gid } }),
+            }).catch(() => {}); // Non-blocking
+          }
 
           const asanaTaskGid = result.data?.gid || null;
           const asanaTaskUrl = result.data?.permalink_url || null;

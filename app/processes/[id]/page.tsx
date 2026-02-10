@@ -130,7 +130,7 @@ function ProcessDetailContent() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [asanaExporting, setAsanaExporting] = useState(false);
   const [asanaConfirm, setAsanaConfirm] = useState(false);
-  const [asanaResult, setAsanaResult] = useState<{ action: string; asanaUrl: string } | null>(null);
+  const [asanaResult, setAsanaResult] = useState<{ action: string; asanaUrl: string; warning?: string; adliCreated?: number; adliUpdated?: number; backfillCount?: number } | null>(null);
   const [asanaError, setAsanaError] = useState("");
   const [asanaPickerOpen, setAsanaPickerOpen] = useState(false);
   const [asanaProjects, setAsanaProjects] = useState<{ gid: string; name: string; description: string; team: string | null; modified_at: string }[]>([]);
@@ -604,18 +604,33 @@ function ProcessDetailContent() {
 
       {/* Asana export result */}
       {asanaResult && (
-        <div className="success-celebrate bg-nia-green/20 border border-nia-green rounded-lg p-4 flex items-center justify-between">
-          <p className="text-sm text-nia-dark">
-            {asanaResult.action === "created" ? "Exported to new Asana project!" : "Synced to Asana!"}
-          </p>
-          <a
-            href={asanaResult.asanaUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium text-nia-grey-blue hover:text-nia-dark"
-          >
-            View in Asana &rarr;
-          </a>
+        <div className="success-celebrate bg-nia-green/20 border border-nia-green rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-nia-dark">
+              {asanaResult.action === "created" ? "Exported to new Asana project!" : "Synced to Asana!"}
+              {(asanaResult.adliCreated || asanaResult.adliUpdated) ? (
+                <span className="text-xs text-nia-grey-blue ml-2">
+                  ({asanaResult.adliCreated ? `${asanaResult.adliCreated} ADLI docs created` : ""}
+                  {asanaResult.adliCreated && asanaResult.adliUpdated ? ", " : ""}
+                  {asanaResult.adliUpdated ? `${asanaResult.adliUpdated} updated` : ""})
+                </span>
+              ) : null}
+            </p>
+            <a
+              href={asanaResult.asanaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-nia-grey-blue hover:text-nia-dark"
+            >
+              View in Asana &rarr;
+            </a>
+          </div>
+          {asanaResult.adliCreated === 0 && asanaResult.adliUpdated === 0 && (
+            <p className="text-xs text-amber-700 mt-2">Warning: No ADLI documentation tasks were synced. Check Vercel logs for details.</p>
+          )}
+          {asanaResult.warning && (
+            <p className="text-xs text-amber-700 mt-2">{asanaResult.warning}</p>
+          )}
         </div>
       )}
 

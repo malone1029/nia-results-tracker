@@ -3,6 +3,8 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
 import { ADLI_TASK_NAMES, ADLI_TO_PDCA_SECTION } from "@/lib/asana-helpers";
 
+export const maxDuration = 60;
+
 // PDCA section names — the team's operational framework in Asana
 const PDCA_SECTIONS = ["Plan", "Execute", "Evaluate", "Improve"];
 
@@ -87,7 +89,6 @@ async function backfillImprovements(
           data: {
             name: taskName,
             notes: taskNotes,
-            projects: [projectGid],
             memberships: [{ project: projectGid, section: improveSectionGid }],
           },
         }),
@@ -167,12 +168,13 @@ async function syncAdliTasks(
         }
         updated++;
         continue;
-      } catch {
-        // Task was deleted — fall through to create
+      } catch (err) {
+        // Task was deleted in Asana — fall through to create a new one
+        console.warn(`[ADLI Export] Existing ${dimension} task (${existingGid}) not found, creating new:`, (err as Error).message);
       }
     }
 
-    // Create new ADLI task — use memberships only (not projects) so it goes to the right section
+    // Create new ADLI task, then explicitly move to correct PDCA section
     if (sectionGid) {
       try {
         const result = await asanaFetch(token, "/tasks", {
@@ -185,11 +187,21 @@ async function syncAdliTasks(
             },
           }),
         });
-        newGids[dimension] = result.data.gid;
+        const newTaskGid = result.data.gid;
+        newGids[dimension] = newTaskGid;
+
+        // Belt-and-suspenders: explicitly move to section (memberships alone can be unreliable)
+        await asanaFetch(token, `/sections/${sectionGid}/addTask`, {
+          method: "POST",
+          body: JSON.stringify({ data: { task: newTaskGid } }),
+        });
+
         created++;
-      } catch {
-        // Non-blocking — continue with other dimensions
+      } catch (err) {
+        console.error(`[ADLI Export] Failed to create ${dimension} task:`, (err as Error).message);
       }
+    } else {
+      console.error(`[ADLI Export] No section GID found for ${pdcaSection} — skipping ${dimension}`);
     }
   }
 
@@ -266,13 +278,19 @@ export async function POST(request: Request) {
     if (existingGid) {
       // ═══ UPDATE EXISTING ASANA PROJECT ═══
 
-      // Update project notes with charter
-      await asanaFetch(token, `/projects/${existingGid}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          data: { notes: projectDescription },
-        }),
-      });
+      // Update project notes with charter (non-blocking — some users may not
+      // have project-level edit permission even if they can create tasks)
+      let notesWarning = "";
+      try {
+        await asanaFetch(token, `/projects/${existingGid}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            data: { notes: projectDescription },
+          }),
+        });
+      } catch {
+        notesWarning = "Could not update project notes (you may not have project edit access in Asana). Tasks were synced successfully.";
+      }
 
       // Get existing sections
       const sectionsRes = await asanaFetch(
@@ -284,14 +302,18 @@ export async function POST(request: Request) {
         existingSections.set(s.name.toLowerCase(), s.gid);
       }
 
-      // Create PDCA sections that don't exist yet
+      // Create PDCA sections that don't exist yet (non-blocking per section)
       for (const sectionName of PDCA_SECTIONS) {
         if (!existingSections.has(sectionName.toLowerCase())) {
-          const newSection = await asanaFetch(token, `/projects/${existingGid}/sections`, {
-            method: "POST",
-            body: JSON.stringify({ data: { name: sectionName } }),
-          });
-          existingSections.set(sectionName.toLowerCase(), newSection.data.gid);
+          try {
+            const newSection = await asanaFetch(token, `/projects/${existingGid}/sections`, {
+              method: "POST",
+              body: JSON.stringify({ data: { name: sectionName } }),
+            });
+            existingSections.set(sectionName.toLowerCase(), newSection.data.gid);
+          } catch {
+            // User may not have permission to create sections — continue with existing ones
+          }
         }
       }
 
@@ -332,6 +354,7 @@ export async function POST(request: Request) {
         adliCreated: adliResult.created,
         adliUpdated: adliResult.updated,
         backfillCount,
+        ...(notesWarning ? { warning: notesWarning } : {}),
       });
     } else {
       // ═══ CREATE NEW ASANA PROJECT ═══
