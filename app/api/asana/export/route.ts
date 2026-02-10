@@ -54,7 +54,8 @@ async function backfillImprovements(
   processId: number,
   projectGid: string,
   improveSectionGid: string,
-  appUrl: string
+  appUrl: string,
+  workspaceGid?: string
 ) {
   const { data: improvements } = await supabase
     .from("process_improvements")
@@ -89,6 +90,7 @@ async function backfillImprovements(
           data: {
             name: taskName,
             notes: taskNotes,
+            ...(workspaceGid ? { workspace: workspaceGid } : {}),
             memberships: [{ project: projectGid, section: improveSectionGid }],
           },
         }),
@@ -118,7 +120,8 @@ async function syncAdliTasks(
   proc: Record<string, unknown>,
   projectGid: string,
   existingSections: Map<string, string>,
-  appUrl: string
+  appUrl: string,
+  workspaceGid?: string
 ): Promise<{ gids: Record<string, string>; created: number; updated: number }> {
   const currentGids = (proc.asana_adli_task_gids as Record<string, string>) || {};
   const newGids: Record<string, string> = { ...currentGids };
@@ -133,12 +136,19 @@ async function syncAdliTasks(
     integration: "adli_integration",
   };
 
+  console.log(`[ADLI Export] Starting syncAdliTasks for process ${proc.id}, project ${projectGid}`);
+  console.log(`[ADLI Export] Sections map:`, Object.fromEntries(existingSections));
+  console.log(`[ADLI Export] Existing ADLI GIDs:`, currentGids);
+
   for (const dimension of dimensions) {
     const fieldKey = fieldMap[dimension];
-    const content = fieldToText(proc[fieldKey] as Record<string, unknown> | null);
+    const rawField = proc[fieldKey];
+    const content = fieldToText(rawField as Record<string, unknown> | null);
     const taskName = ADLI_TASK_NAMES[dimension];
     const pdcaSection = ADLI_TO_PDCA_SECTION[dimension]; // e.g., "plan"
     const sectionGid = existingSections.get(pdcaSection);
+
+    console.log(`[ADLI Export] ${dimension}: field=${fieldKey}, hasData=${!!rawField}, contentLen=${content.length}, pdcaSection=${pdcaSection}, sectionGid=${sectionGid || "MISSING"}`);
 
     // Build notes with Hub footer
     const notes = content
@@ -183,6 +193,7 @@ async function syncAdliTasks(
             data: {
               name: taskName,
               notes,
+              ...(workspaceGid ? { workspace: workspaceGid } : {}),
               memberships: [{ project: projectGid, section: sectionGid }],
             },
           }),
@@ -255,11 +266,13 @@ export async function POST(request: Request) {
     const projectDescription = charterContent || charterPurpose || proc.description || "";
 
     let existingGid = forceNew ? null : proc.asana_project_gid;
+    let workspaceGid: string | undefined;
 
     // If the process is linked to an Asana project, verify it still exists
     if (existingGid) {
       try {
-        await asanaFetch(token, `/projects/${existingGid}?opt_fields=name`);
+        const projCheck = await asanaFetch(token, `/projects/${existingGid}?opt_fields=name,workspace`);
+        workspaceGid = projCheck.data?.workspace?.gid;
       } catch (err) {
         // Project was deleted in Asana — clear the stale link and create a new one
         const errMsg = (err as Error).message || "";
@@ -319,7 +332,7 @@ export async function POST(request: Request) {
 
       // Sync ADLI documentation tasks (create or update)
       const adliResult = await syncAdliTasks(
-        token, proc as Record<string, unknown>, existingGid, existingSections, appUrl
+        token, proc as Record<string, unknown>, existingGid, existingSections, appUrl, workspaceGid
       );
 
       // Save updated ADLI task GIDs back to process
@@ -338,7 +351,7 @@ export async function POST(request: Request) {
       let backfillCount = 0;
       if (improveSectionGid) {
         backfillCount = await backfillImprovements(
-          supabase, token, processId, existingGid, improveSectionGid, appUrl
+          supabase, token, processId, existingGid, improveSectionGid, appUrl, workspaceGid
         );
       }
 
@@ -403,6 +416,7 @@ export async function POST(request: Request) {
 
       const newProjectGid = newProject.data.gid;
       const asanaUrl = `https://app.asana.com/0/${newProjectGid}`;
+      console.log(`[Asana Export] Created project ${newProjectGid} for process ${processId}`);
 
       // Create PDCA sections
       const sectionGids = new Map<string, string>();
@@ -412,12 +426,15 @@ export async function POST(request: Request) {
           body: JSON.stringify({ data: { name: sectionName } }),
         });
         sectionGids.set(sectionName.toLowerCase(), section.data.gid);
+        console.log(`[Asana Export] Created section "${sectionName}" → ${section.data.gid}`);
       }
 
       // Create 4 ADLI documentation tasks (instead of single "Process Documentation" task)
+      console.log(`[Asana Export] About to call syncAdliTasks...`);
       const adliResult = await syncAdliTasks(
-        token, proc as Record<string, unknown>, newProjectGid, sectionGids, appUrl
+        token, proc as Record<string, unknown>, newProjectGid, sectionGids, appUrl, workspaceId
       );
+      console.log(`[Asana Export] syncAdliTasks result: created=${adliResult.created}, updated=${adliResult.updated}, gids=`, adliResult.gids);
 
       // Link the process to the new Asana project
       await supabase
@@ -433,7 +450,7 @@ export async function POST(request: Request) {
       // Backfill existing improvements into the Improve section
       const improveSectionGid = sectionGids.get("improve") || null;
       const backfillCount = improveSectionGid
-        ? await backfillImprovements(supabase, token, processId, newProjectGid, improveSectionGid, appUrl)
+        ? await backfillImprovements(supabase, token, processId, newProjectGid, improveSectionGid, appUrl, workspaceId)
         : 0;
 
       // Log in history

@@ -20,7 +20,7 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [exportResult, setExportResult] = useState<{ exported: number; failed: number; sectionCounts: Record<string, number>; asanaUrl: string } | null>(null);
+  const [exportResult, setExportResult] = useState<{ exported: number; failed: number; sectionCounts: Record<string, number>; asanaUrl: string; errors?: string[] } | null>(null);
   const [error, setError] = useState("");
 
   const fetchTasks = useCallback(async () => {
@@ -176,24 +176,36 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
     <div className="space-y-4">
       {/* Export success banner */}
       {exportResult && (
-        <div className="bg-nia-green/20 border border-nia-green rounded-lg p-3 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-nia-dark">
-              Exported {exportResult.exported} task{exportResult.exported !== 1 ? "s" : ""} to Asana
-              {exportResult.failed > 0 && ` (${exportResult.failed} failed)`}
-            </p>
-            <p className="text-xs text-gray-600 mt-0.5">
-              {Object.entries(exportResult.sectionCounts).map(([section, count]) => `${count} ${section}`).join(", ")}
-            </p>
+        <div className="bg-nia-green/20 border border-nia-green rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-nia-dark">
+                Exported {exportResult.exported} task{exportResult.exported !== 1 ? "s" : ""} to Asana
+                {exportResult.failed > 0 && ` (${exportResult.failed} failed)`}
+              </p>
+              <p className="text-xs text-gray-600 mt-0.5">
+                {Object.entries(exportResult.sectionCounts).map(([section, count]) => `${count} ${section}`).join(", ")}
+              </p>
+            </div>
+            <a
+              href={exportResult.asanaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-nia-grey-blue hover:text-nia-dark flex-shrink-0"
+            >
+              View in Asana &rarr;
+            </a>
           </div>
-          <a
-            href={exportResult.asanaUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium text-nia-grey-blue hover:text-nia-dark flex-shrink-0"
-          >
-            View in Asana &rarr;
-          </a>
+          {exportResult.failed > 0 && (
+            <div className="mt-2 text-xs text-amber-700 bg-amber-50 rounded p-2">
+              <p className="font-medium">Export errors ({exportResult.failed} tasks failed):</p>
+              {exportResult.errors && exportResult.errors.length > 0 ? (
+                <p className="mt-1">{[...new Set(exportResult.errors)].join("; ")}</p>
+              ) : (
+                <p className="mt-1">No error details available.</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

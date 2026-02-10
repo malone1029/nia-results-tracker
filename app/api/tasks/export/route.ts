@@ -94,9 +94,11 @@ export async function POST(request: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nia-results-tracker.vercel.app";
 
   try {
-    // Verify project still exists
+    // Verify project still exists and get its workspace
+    let workspaceGid: string;
     try {
-      await asanaFetch(token, `/projects/${projectGid}?opt_fields=name`);
+      const projRes = await asanaFetch(token, `/projects/${projectGid}?opt_fields=name,workspace`);
+      workspaceGid = projRes.data.workspace?.gid;
     } catch (err) {
       const errMsg = (err as Error).message || "";
       if (errMsg.includes("Unknown object") || errMsg.includes("Not Found") || errMsg.includes("404")) {
@@ -130,7 +132,7 @@ export async function POST(request: Request) {
     }
 
     // Export each task
-    const results: { taskId: number; success: boolean; section: string; asSubtask: boolean }[] = [];
+    const results: { taskId: number; success: boolean; section: string; asSubtask: boolean; error?: string }[] = [];
 
     for (const task of pendingTasks) {
       const sectionKey = task.pdca_section as string;
@@ -180,15 +182,18 @@ export async function POST(request: Request) {
 
           results.push({ taskId: task.id, success: true, section: sectionKey, asSubtask: true });
           asSubtask = true;
-        } catch {
-          // Parent task was deleted — fall through to standalone
+        } catch (err) {
+          console.warn(`[Task Export] Subtask creation failed for parent ${parentGid}:`, (err as Error).message);
+          // Parent task was deleted or inaccessible — fall through to standalone
         }
       }
 
       // Fallback: create as standalone task in PDCA section
       if (!asSubtask) {
         if (!sectionGid) {
-          results.push({ taskId: task.id, success: false, section: sectionKey, asSubtask: false });
+          const errMsg = `No Asana section found for pdca_section="${sectionKey}"`;
+          console.error(`[Task Export] ${errMsg}`);
+          results.push({ taskId: task.id, success: false, section: sectionKey, asSubtask: false, error: errMsg });
           continue;
         }
 
@@ -199,6 +204,7 @@ export async function POST(request: Request) {
               data: {
                 name: taskName,
                 notes: taskNotes,
+                workspace: workspaceGid,
                 memberships: [{ project: projectGid, section: sectionGid }],
               },
             }),
@@ -225,8 +231,10 @@ export async function POST(request: Request) {
             .eq("id", task.id);
 
           results.push({ taskId: task.id, success: true, section: sectionKey, asSubtask: false });
-        } catch {
-          results.push({ taskId: task.id, success: false, section: sectionKey, asSubtask: false });
+        } catch (err) {
+          const errMsg = (err as Error).message || "Unknown error";
+          console.error(`[Task Export] Standalone task creation failed:`, errMsg);
+          results.push({ taskId: task.id, success: false, section: sectionKey, asSubtask: false, error: errMsg });
         }
       }
     }
@@ -246,13 +254,16 @@ export async function POST(request: Request) {
       change_description: `Exported ${exported.length} tasks to Asana by ${user.email} (${subtaskCount} as subtasks)`,
     });
 
+    const failed = results.filter((r) => !r.success);
+
     return NextResponse.json({
       success: true,
       exported: exported.length,
-      failed: results.filter((r) => !r.success).length,
+      failed: failed.length,
       subtasks: subtaskCount,
       sectionCounts,
       asanaUrl: `https://app.asana.com/0/${projectGid}`,
+      ...(failed.length > 0 ? { errors: failed.map((r) => r.error).filter(Boolean) } : {}),
     });
   } catch (err) {
     return NextResponse.json(
