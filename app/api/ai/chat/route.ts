@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { ADLI_TO_PDCA_PROMPT } from "@/lib/pdca";
+import { getReviewStatus } from "@/lib/review-status";
 
 // Allow up to 120 seconds for AI streaming responses (requires Vercel Pro)
 export const maxDuration = 120;
@@ -102,15 +103,70 @@ function buildProcessContext(process: Record<string, unknown>): string {
   return lines.join("\n");
 }
 
+function computeTrend(values: number[], isHigherBetter: boolean): string {
+  if (values.length < 2) return "insufficient data";
+  const improving = isHigherBetter
+    ? values.every((v, i) => i === 0 || v >= values[i - 1])
+    : values.every((v, i) => i === 0 || v <= values[i - 1]);
+  const declining = isHigherBetter
+    ? values.every((v, i) => i === 0 || v <= values[i - 1])
+    : values.every((v, i) => i === 0 || v >= values[i - 1]);
+  if (improving) return "improving";
+  if (declining) return "declining";
+  return "mixed";
+}
+
 function buildMetricsContext(metrics: Record<string, unknown>[]): string {
-  if (metrics.length === 0) return "\n### Linked Metrics\nNo metrics linked to this process yet.\n";
+  if (metrics.length === 0) return "\n### Linked Metrics\nNo metrics linked to this process yet. Consider linking relevant metrics to strengthen the Learning dimension.\n";
 
   const lines = ["\n### Linked Metrics"];
   for (const m of metrics) {
-    lines.push(`- **${m.name}** (${m.cadence}): ${m.last_value !== null ? `${m.last_value} ${m.unit}` : "No data yet"}`);
-    if (m.target_value !== null) {
-      lines.push(`  Target: ${m.target_value} ${m.unit}`);
+    const lastValue = m.last_value as number | null;
+    const target = m.target_value as number | null;
+    const unit = m.unit as string;
+    const isHigherBetter = m.is_higher_better as boolean;
+    const recentValues = (m.recent_values || []) as number[];
+    const reviewStatus = m.review_status as string;
+
+    let valuePart = lastValue !== null ? `${lastValue} ${unit}` : "No data yet";
+    if (target !== null && lastValue !== null) {
+      const onTarget = isHigherBetter ? lastValue >= target : lastValue <= target;
+      valuePart += ` (target: ${target} ${unit}, ${onTarget ? "on target" : "OFF TARGET"})`;
+    } else if (target !== null) {
+      valuePart += ` (target: ${target} ${unit})`;
     }
+
+    lines.push(`- **${m.name}** (${m.cadence}): ${valuePart}`);
+
+    if (recentValues.length >= 2) {
+      const trend = computeTrend(recentValues, isHigherBetter);
+      lines.push(`  Trend (last ${recentValues.length}): ${recentValues.join(" → ")} ${unit} — ${trend}`);
+    }
+
+    if (reviewStatus && reviewStatus !== "current") {
+      lines.push(`  Review status: **${reviewStatus.replace("-", " ")}**`);
+    }
+  }
+  return lines.join("\n") + "\n";
+}
+
+function buildAvailableMetricsContext(metrics: { id: number; name: string; unit: string; cadence: string; category: string }[]): string {
+  if (metrics.length === 0) return "";
+
+  const lines = ["\n### Available Metrics (Not Linked to This Process)"];
+  lines.push("These metrics exist in the system and could be linked to this process if relevant:\n");
+
+  let charCount = 0;
+  const MAX_CHARS = 1500;
+
+  for (const m of metrics.slice(0, 20)) {
+    const line = `- **${m.name}** [id:${m.id}] — ${m.cadence}, ${m.unit} (${m.category})`;
+    charCount += line.length;
+    if (charCount > MAX_CHARS) {
+      lines.push(`\n*...and ${metrics.length - lines.length + 2} more metrics available*`);
+      break;
+    }
+    lines.push(line);
   }
   return lines.join("\n") + "\n";
 }
@@ -212,6 +268,46 @@ Rules for suggestions:
 Only include this block when you are proposing specific improvements. Do NOT include it for general questions or task-building interviews.
 
 ${ADLI_TO_PDCA_PROMPT}
+
+## Metric Recommendations (IMPORTANT)
+
+When doing ADLI assessments or deep dives, check the process metrics:
+1. **No metrics linked?** Flag this as a gap — the Learning dimension can't score well without measurement.
+2. **ADLI Learning section mentions measurement but no matching metric?** Recommend linking one from the Available Metrics list.
+3. **Linked metrics off-target or declining?** Call this out — it may indicate the process needs improvement.
+4. **Available metric clearly matches this process?** Recommend linking it.
+
+When recommending metrics, use the \`metric-suggestions\` block:
+
+\`\`\`metric-suggestions
+[
+  {
+    "action": "link",
+    "metricId": 42,
+    "name": "Patient Satisfaction Score",
+    "unit": "%",
+    "cadence": "quarterly",
+    "reason": "Your Learning section mentions tracking satisfaction but no metric is linked."
+  },
+  {
+    "action": "create",
+    "name": "Response Time to Referrals",
+    "unit": "days",
+    "cadence": "monthly",
+    "targetValue": 3,
+    "isHigherBetter": false,
+    "reason": "Your charter mentions reducing referral delays but there's no metric tracking this."
+  }
+]
+\`\`\`
+
+Rules for metric suggestions:
+- **Maximum 2 metric suggestions per response**
+- **NEVER combine \`metric-suggestions\` with \`coach-suggestions\` in the same response** — pick one type or the other. This prevents response timeouts.
+- For "link" actions: include the \`metricId\` from the Available Metrics list (the [id:N] shown in the list)
+- For "create" actions: propose sensible defaults for name, unit, cadence, and target — the user can edit before confirming
+- Only suggest metrics during assessments, deep dives, or when the user specifically asks about measurement
+- Don't suggest metrics that are already linked to the process
 
 ## Build Task List Mode (Interview)
 
@@ -360,23 +456,33 @@ export async function POST(request: Request) {
     if (metricsData && metricsData.length > 0) {
       const { data: entries } = await supabase
         .from("entries")
-        .select("metric_id, value")
+        .select("metric_id, value, date")
         .in("metric_id", metricsData.map((m) => m.id))
         .order("date", { ascending: false });
 
-      const latestByMetric = new Map<number, number>();
+      // Build last 3 values (chronological) and latest date per metric
+      const recentByMetric = new Map<number, { values: number[]; latestDate: string | null }>();
       if (entries) {
         for (const e of entries) {
-          if (!latestByMetric.has(e.metric_id)) {
-            latestByMetric.set(e.metric_id, e.value);
+          const existing = recentByMetric.get(e.metric_id) || { values: [], latestDate: null };
+          if (existing.values.length < 3) {
+            existing.values.push(e.value);
           }
+          if (!existing.latestDate) existing.latestDate = e.date;
+          recentByMetric.set(e.metric_id, existing);
         }
       }
 
-      metricsWithValues = metricsData.map((m) => ({
-        ...m,
-        last_value: latestByMetric.get(m.id) ?? null,
-      }));
+      metricsWithValues = metricsData.map((m) => {
+        const recent = recentByMetric.get(m.id);
+        const recentValues = recent ? [...recent.values].reverse() : []; // chronological order
+        return {
+          ...m,
+          last_value: recentValues.length > 0 ? recentValues[recentValues.length - 1] : null,
+          recent_values: recentValues,
+          review_status: getReviewStatus(m.cadence, recent?.latestDate || null),
+        };
+      });
     }
 
     // Load linked requirements
@@ -389,6 +495,47 @@ export async function POST(request: Request) {
       const req = link.key_requirements as unknown as Record<string, unknown>;
       return { requirement: req.requirement, stakeholder_group: req.stakeholder_group };
     });
+
+    // Load available (unlinked) metrics for AI recommendation context
+    const { data: allMetricsData } = await supabase
+      .from("metrics")
+      .select("id, name, unit, cadence")
+      .order("name");
+
+    // Get category for each metric via junction + process lookup
+    const { data: allLinks } = await supabase
+      .from("metric_processes")
+      .select("metric_id, process_id");
+
+    const { data: allProcesses } = await supabase
+      .from("processes")
+      .select("id, categories!inner ( display_name )");
+
+    // Build process → category map
+    const processCategoryMap = new Map<number, string>();
+    for (const p of (allProcesses || []) as Record<string, unknown>[]) {
+      const cat2 = p.categories as Record<string, unknown>;
+      processCategoryMap.set(p.id as number, cat2.display_name as string);
+    }
+
+    // Build metric → category map (from first linked process)
+    const metricCategoryMap = new Map<number, string>();
+    for (const link of allLinks || []) {
+      if (metricCategoryMap.has(link.metric_id)) continue;
+      const cat2 = processCategoryMap.get(link.process_id);
+      if (cat2) metricCategoryMap.set(link.metric_id, cat2);
+    }
+
+    const linkedMetricIdSet = new Set(metricIds);
+    const availableMetrics = (allMetricsData || [])
+      .filter((m) => !linkedMetricIdSet.has(m.id))
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        unit: m.unit,
+        cadence: m.cadence,
+        category: metricCategoryMap.get(m.id) || "Unlinked",
+      }));
 
     // Load uploaded files for this process
     const { data: filesData } = await supabase
@@ -546,6 +693,7 @@ export async function POST(request: Request) {
     // Build the full context for Claude
     const processContext = buildProcessContext(procData);
     const metricsContext = buildMetricsContext(metricsWithValues);
+    const availableMetricsContext = buildAvailableMetricsContext(availableMetrics);
     const requirementsContext = buildRequirementsContext(requirements);
 
     const fullSystemPrompt = `${SYSTEM_PROMPT}
@@ -556,6 +704,7 @@ export async function POST(request: Request) {
 
 ${processContext}
 ${metricsContext}
+${availableMetricsContext}
 ${requirementsContext}
 ${improvementsContext}
 ${asanaContext}

@@ -46,6 +46,17 @@ interface CoachSuggestion {
   tasks?: SuggestionTask[];
 }
 
+interface MetricSuggestion {
+  action: "link" | "create";
+  metricId?: number;
+  name: string;
+  unit: string;
+  cadence: string;
+  targetValue?: number | null;
+  isHigherBetter?: boolean;
+  reason: string;
+}
+
 interface ConversationSummary {
   id: number;
   title: string;
@@ -126,6 +137,20 @@ function parseProposedTasks(text: string): { tasks: SuggestionTask[]; cleanedTex
   }
 }
 
+// Parse metric-suggestions code block from AI response
+function parseMetricSuggestions(text: string): { metrics: MetricSuggestion[]; cleanedText: string } {
+  const match = text.match(/```metric-suggestions\s*\n([\s\S]*?)\n```/);
+  if (!match) return { metrics: [], cleanedText: text };
+
+  try {
+    const metrics = JSON.parse(match[1]) as MetricSuggestion[];
+    const cleanedText = text.replace(/```metric-suggestions\s*\n[\s\S]*?\n```\s*\n?/, "").trim();
+    return { metrics, cleanedText };
+  } catch {
+    return { metrics: [], cleanedText: text };
+  }
+}
+
 // Strip partial (still-streaming) structured blocks so raw JSON isn't visible
 function stripPartialBlocks(text: string): string {
   // Remove complete structured blocks (scores + suggestions + proposed-tasks)
@@ -135,23 +160,28 @@ function stripPartialBlocks(text: string): string {
   cleaned = cleaned.replace(/```adli-suggestion\s*\n[\s\S]*?\n```\s*\n?/g, "");
   cleaned = cleaned.replace(/```proposed-tasks\s*\n[\s\S]*?\n```\s*\n?/g, "");
 
+  cleaned = cleaned.replace(/```metric-suggestions\s*\n[\s\S]*?\n```\s*\n?/g, "");
+
   // Remove PARTIAL blocks that started but haven't closed yet (still streaming)
   cleaned = cleaned.replace(/```adli-scores[\s\S]*$/g, "");
   cleaned = cleaned.replace(/```coach-suggestions[\s\S]*$/g, "");
   cleaned = cleaned.replace(/```adli-suggestion[\s\S]*$/g, "");
   cleaned = cleaned.replace(/```proposed-tasks[\s\S]*$/g, "");
+  cleaned = cleaned.replace(/```metric-suggestions[\s\S]*$/g, "");
 
   return cleaned.trim();
 }
 
 // Check if a response has an in-progress structured block (started but not closed)
-function hasPartialBlock(text: string): "scores" | "suggestions" | "tasks" | null {
+function hasPartialBlock(text: string): "scores" | "suggestions" | "tasks" | "metrics" | null {
   // Check for partial adli-scores (opened but not closed)
   if (/```adli-scores(?![\s\S]*?```)[\s\S]*$/.test(text)) return "scores";
   // Check for partial coach-suggestions (opened but not closed)
   if (/```coach-suggestions(?![\s\S]*?```)[\s\S]*$/.test(text)) return "suggestions";
   // Check for partial proposed-tasks (opened but not closed)
   if (/```proposed-tasks(?![\s\S]*?```)[\s\S]*$/.test(text)) return "tasks";
+  // Check for partial metric-suggestions (opened but not closed)
+  if (/```metric-suggestions(?![\s\S]*?```)[\s\S]*$/.test(text)) return "metrics";
   return null;
 }
 
@@ -179,6 +209,8 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
   const [isUploading, setIsUploading] = useState(false);
   const [proposedTasks, setProposedTasks] = useState<SuggestionTask[]>([]);
   const [isQueuing, setIsQueuing] = useState(false);
+  const [pendingMetricSuggestions, setPendingMetricSuggestions] = useState<MetricSuggestion[]>([]);
+  const [isLinkingMetric, setIsLinkingMetric] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -323,6 +355,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
     setAdliScores(null);
     setPendingSuggestions([]);
     setProposedTasks([]);
+    setPendingMetricSuggestions([]);
     setShowHistory(false);
     setError(null);
   }
@@ -461,6 +494,10 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       const { tasks: newProposedTasks } = parseProposedTasks(assistantContent);
       if (newProposedTasks.length > 0) {
         setProposedTasks(newProposedTasks);
+      }
+      const { metrics: newMetricSuggestions } = parseMetricSuggestions(assistantContent);
+      if (newMetricSuggestions.length > 0) {
+        setPendingMetricSuggestions(newMetricSuggestions);
       }
 
       // Save conversation after each complete AI response
@@ -631,6 +668,56 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       setError("Failed to queue tasks");
     } finally {
       setIsQueuing(false);
+    }
+  }
+
+  async function handleMetricAction(suggestion: MetricSuggestion, editedValues?: Partial<MetricSuggestion>) {
+    setIsLinkingMetric(true);
+    try {
+      const merged = { ...suggestion, ...editedValues };
+      const body = merged.action === "link"
+        ? { processId, action: "link", metricId: merged.metricId }
+        : {
+            processId,
+            action: "create",
+            metric: {
+              name: merged.name,
+              unit: merged.unit,
+              cadence: merged.cadence,
+              targetValue: merged.targetValue ?? null,
+              isHigherBetter: merged.isHigherBetter ?? true,
+            },
+          };
+
+      const res = await fetch("/api/ai/metrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to process metric action");
+      }
+
+      const data = await res.json();
+      setPendingMetricSuggestions((prev) => prev.filter((m) => m.name !== suggestion.name));
+
+      const verb = data.action === "created" ? "Created and linked" : "Linked";
+      setMessages((prev) => {
+        const updated = [
+          ...prev,
+          { role: "assistant" as const, content: `**${verb}!** "${data.metricName}" is now linked to this process. You'll see it in the Metrics & Results section.` },
+        ];
+        saveConversation(updated, adliScores);
+        return updated;
+      });
+
+      onProcessUpdated?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to link metric");
+    } finally {
+      setIsLinkingMetric(false);
     }
   }
 
@@ -846,6 +933,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                       const blockType = hasPartialBlock(messages[messages.length - 1].content);
                       if (blockType === "scores") return "Calculating ADLI scores...";
                       if (blockType === "tasks") return "Building task list...";
+                      if (blockType === "metrics") return "Finding relevant metrics...";
                       return "Preparing improvement suggestions...";
                     })()}
                   </span>
@@ -937,6 +1025,32 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Metric suggestion cards */}
+              {pendingMetricSuggestions.length > 0 && !isLoading && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-nia-dark">
+                      Recommended Metrics
+                    </p>
+                    <button
+                      onClick={() => setPendingMetricSuggestions([])}
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+
+                  {pendingMetricSuggestions.map((ms, idx) => (
+                    <MetricSuggestionCard
+                      key={`${ms.name}-${idx}`}
+                      suggestion={ms}
+                      onAction={(edited) => handleMetricAction(ms, edited)}
+                      isLoading={isLinkingMetric}
+                    />
+                  ))}
                 </div>
               )}
 
@@ -1421,6 +1535,150 @@ function CoachSuggestionCard({
         >
           Tell Me More
         </button>
+      </div>
+    </div>
+  );
+}
+
+function MetricSuggestionCard({
+  suggestion,
+  onAction,
+  isLoading,
+}: {
+  suggestion: MetricSuggestion;
+  onAction: (edited?: Partial<MetricSuggestion>) => void;
+  isLoading: boolean;
+}) {
+  const isCreate = suggestion.action === "create";
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(suggestion.name);
+  const [unit, setUnit] = useState(suggestion.unit);
+  const [cadence, setCadence] = useState(suggestion.cadence);
+  const [targetValue, setTargetValue] = useState(
+    suggestion.targetValue != null ? String(suggestion.targetValue) : ""
+  );
+
+  function handleConfirm() {
+    if (isCreate) {
+      onAction({
+        name,
+        unit,
+        cadence,
+        targetValue: targetValue ? parseFloat(targetValue) : null,
+      });
+    } else {
+      onAction();
+    }
+  }
+
+  return (
+    <div
+      className="rounded-lg shadow-sm overflow-hidden border-l-4"
+      style={{
+        borderLeftColor: "#b1bd37",
+        backgroundColor: "rgba(177,189,55,0.04)",
+        borderTop: "1px solid #e5e7eb",
+        borderRight: "1px solid #e5e7eb",
+        borderBottom: "1px solid #e5e7eb",
+      }}
+    >
+      {/* Header */}
+      <div className="px-3 py-2.5 border-b border-gray-100">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-nia-green/15 text-nia-green">
+            {isCreate ? "New Metric" : "Link Existing"}
+          </span>
+        </div>
+        {!editing ? (
+          <p className="text-sm font-semibold text-nia-dark">{suggestion.name}</p>
+        ) : (
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="text-sm font-semibold text-nia-dark w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-nia-green"
+          />
+        )}
+      </div>
+
+      {/* Details */}
+      <div className="px-3 py-2 space-y-1.5">
+        <p className="text-xs text-gray-600 italic">{suggestion.reason}</p>
+
+        {!editing ? (
+          <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+            <span>Unit: <strong className="text-nia-dark">{suggestion.unit}</strong></span>
+            <span>Cadence: <strong className="text-nia-dark">{suggestion.cadence}</strong></span>
+            {suggestion.targetValue != null && (
+              <span>Target: <strong className="text-nia-dark">{suggestion.targetValue}</strong></span>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</label>
+              <input
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-nia-green"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cadence</label>
+              <select
+                value={cadence}
+                onChange={(e) => setCadence(e.target.value)}
+                className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-nia-green bg-white"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="annually">Annually</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Target Value (optional)</label>
+              <input
+                type="number"
+                value={targetValue}
+                onChange={(e) => setTargetValue(e.target.value)}
+                placeholder="e.g. 95"
+                className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-nia-green"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="px-3 py-2 border-t border-gray-100 flex items-center gap-2">
+        <button
+          onClick={handleConfirm}
+          disabled={isLoading}
+          className="text-xs bg-nia-green text-white rounded px-3 py-1.5 font-medium hover:bg-nia-green/80 disabled:opacity-50 transition-colors"
+        >
+          {isLoading
+            ? "Processing..."
+            : isCreate
+            ? "Create & Link"
+            : "Link to Process"}
+        </button>
+        {isCreate && !editing && (
+          <button
+            onClick={() => setEditing(true)}
+            className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium px-2 py-1.5 transition-colors"
+          >
+            Edit First
+          </button>
+        )}
+        {isCreate && editing && (
+          <button
+            onClick={() => setEditing(false)}
+            className="text-xs text-gray-400 hover:text-gray-600 font-medium px-2 py-1.5 transition-colors"
+          >
+            Cancel Edit
+          </button>
+        )}
       </div>
     </div>
   );
