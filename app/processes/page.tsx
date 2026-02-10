@@ -1,12 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import type { ProcessStatus } from "@/lib/types";
 import { CategoryGridSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 import EmptyState from "@/components/empty-state";
 import { Button, Badge, Card, Select } from "@/components/ui";
+import HealthRing from "@/components/health-ring";
+import {
+  calculateHealthScore,
+  type HealthResult,
+  type HealthProcessInput,
+  type HealthScoreInput,
+  type HealthMetricInput,
+  type HealthTaskInput,
+  type HealthImprovementInput,
+} from "@/lib/process-health";
+import { getReviewStatus } from "@/lib/review-status";
 
 interface ProcessRow {
   id: number;
@@ -17,28 +28,17 @@ interface ProcessRow {
   status: ProcessStatus;
   owner: string | null;
   baldrige_item: string | null;
-  // JSONB fields for completeness check
+  // JSONB fields for health scoring
   charter: Record<string, unknown> | null;
   adli_approach: Record<string, unknown> | null;
   adli_deployment: Record<string, unknown> | null;
   adli_learning: Record<string, unknown> | null;
   adli_integration: Record<string, unknown> | null;
+  workflow: Record<string, unknown> | null;
+  baldrige_connections: Record<string, unknown> | null;
   asana_project_gid: string | null;
-}
-
-interface CompletenessSection {
-  label: string;
-  filled: boolean;
-}
-
-function getCompleteness(p: ProcessRow): CompletenessSection[] {
-  return [
-    { label: "Charter", filled: p.charter !== null },
-    { label: "Approach", filled: p.adli_approach !== null },
-    { label: "Deployment", filled: p.adli_deployment !== null },
-    { label: "Learning", filled: p.adli_learning !== null },
-    { label: "Integration", filled: p.adli_integration !== null },
-  ];
+  asana_adli_task_gids: Record<string, string> | null;
+  updated_at: string;
 }
 
 interface CategorySummary {
@@ -65,10 +65,12 @@ const STATUS_OPTIONS: ProcessStatus[] = [
 export default function ProcessesPage() {
   const [processes, setProcesses] = useState<ProcessRow[]>([]);
   const [categories, setCategories] = useState<CategorySummary[]>([]);
+  const [healthScores, setHealthScores] = useState<Map<number, HealthResult>>(new Map());
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState<ProcessStatus | null>(null);
   const [showKeyOnly, setShowKeyOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<"name" | "health">("name");
 
   // Bulk edit state
   const [editMode, setEditMode] = useState(false);
@@ -81,22 +83,23 @@ export default function ProcessesPage() {
     document.title = "Processes | NIA Excellence Hub";
 
     async function fetchData() {
-      // Fetch all categories
-      const { data: catData } = await supabase
-        .from("categories")
-        .select("*")
-        .order("sort_order");
-
-      // Fetch all processes with category info
-      const { data: procData } = await supabase
-        .from("processes")
-        .select(`
+      // Fetch core data in parallel
+      const [{ data: catData }, { data: procData }, { data: scoresData }, { data: metricLinks }, { data: allMetrics }, { data: allEntries }, { data: tasksData }, { data: improvementsData }] = await Promise.all([
+        supabase.from("categories").select("*").order("sort_order"),
+        supabase.from("processes").select(`
           id, name, category_id, is_key, status, owner, baldrige_item,
           charter, adli_approach, adli_deployment, adli_learning, adli_integration,
-          asana_project_gid,
+          workflow, baldrige_connections,
+          asana_project_gid, asana_adli_task_gids, updated_at,
           categories!inner ( display_name )
-        `)
-        .order("name");
+        `).order("name"),
+        supabase.from("process_adli_scores").select("process_id, overall_score"),
+        supabase.from("metric_processes").select("process_id, metric_id"),
+        supabase.from("metrics").select("id, cadence, comparison_value"),
+        supabase.from("entries").select("metric_id, date").order("date", { ascending: false }),
+        supabase.from("process_tasks").select("process_id, status"),
+        supabase.from("process_improvements").select("process_id, committed_date").order("committed_date", { ascending: false }),
+      ]);
 
       const processRows: ProcessRow[] = (procData || []).map(
         (p: Record<string, unknown>) => {
@@ -115,10 +118,96 @@ export default function ProcessesPage() {
             adli_deployment: p.adli_deployment as Record<string, unknown> | null,
             adli_learning: p.adli_learning as Record<string, unknown> | null,
             adli_integration: p.adli_integration as Record<string, unknown> | null,
+            workflow: p.workflow as Record<string, unknown> | null,
+            baldrige_connections: p.baldrige_connections as Record<string, unknown> | null,
             asana_project_gid: p.asana_project_gid as string | null,
+            asana_adli_task_gids: p.asana_adli_task_gids as Record<string, string> | null,
+            updated_at: p.updated_at as string,
           };
         }
       );
+
+      // Build lookup maps for health score inputs
+      const scoresByProcess = new Map<number, HealthScoreInput>();
+      for (const s of scoresData || []) {
+        scoresByProcess.set(s.process_id, { overall_score: s.overall_score });
+      }
+
+      // Build metric data per process
+      const metricsByProcess = new Map<number, number[]>();
+      for (const link of metricLinks || []) {
+        const existing = metricsByProcess.get(link.process_id) || [];
+        existing.push(link.metric_id);
+        metricsByProcess.set(link.process_id, existing);
+      }
+
+      const metricsById = new Map<number, { cadence: string; comparison_value: number | null }>();
+      for (const m of allMetrics || []) {
+        metricsById.set(m.id, { cadence: m.cadence, comparison_value: m.comparison_value });
+      }
+
+      // Latest entry date per metric
+      const latestEntryByMetric = new Map<number, string>();
+      const entryCountByMetric = new Map<number, number>();
+      for (const e of allEntries || []) {
+        if (!latestEntryByMetric.has(e.metric_id)) {
+          latestEntryByMetric.set(e.metric_id, e.date);
+        }
+        entryCountByMetric.set(e.metric_id, (entryCountByMetric.get(e.metric_id) || 0) + 1);
+      }
+
+      // Tasks per process
+      const tasksByProcess = new Map<number, HealthTaskInput>();
+      for (const t of tasksData || []) {
+        const existing = tasksByProcess.get(t.process_id) || { pending_count: 0, exported_count: 0 };
+        if (t.status === "pending") existing.pending_count++;
+        else existing.exported_count++;
+        tasksByProcess.set(t.process_id, existing);
+      }
+
+      // Latest improvement per process
+      const improvementsByProcess = new Map<number, string>();
+      for (const imp of improvementsData || []) {
+        if (!improvementsByProcess.has(imp.process_id)) {
+          improvementsByProcess.set(imp.process_id, imp.committed_date);
+        }
+      }
+
+      // Calculate health scores for all processes
+      const scores = new Map<number, HealthResult>();
+      for (const proc of processRows) {
+        const processInput: HealthProcessInput = proc;
+        const scoreInput = scoresByProcess.get(proc.id) || null;
+
+        // Build metric health inputs
+        const metricIds = metricsByProcess.get(proc.id) || [];
+        const metricInputs: HealthMetricInput[] = metricIds.map((mid) => {
+          const m = metricsById.get(mid);
+          const latestDate = latestEntryByMetric.get(mid) || null;
+          const entryCount = entryCountByMetric.get(mid) || 0;
+
+          // LeTCI: 1 for level (has data), 1 for trend (3+ entries), 1 for comparison, 1 for integration (linked to process = yes)
+          let letci = 0;
+          if (entryCount >= 1) letci++;
+          if (entryCount >= 3) letci++;
+          if (m?.comparison_value !== null && m?.comparison_value !== undefined) letci++;
+          letci++; // integration = linked to process (always true here since we're iterating linked metrics)
+
+          return {
+            has_recent_data: latestDate ? getReviewStatus(m?.cadence || "annual", latestDate) === "current" : false,
+            has_comparison: m?.comparison_value !== null && m?.comparison_value !== undefined,
+            letci_score: letci,
+            entry_count: entryCount,
+          };
+        });
+
+        const taskInput = tasksByProcess.get(proc.id) || { pending_count: 0, exported_count: 0 };
+        const improvementInput: HealthImprovementInput = {
+          latest_date: improvementsByProcess.get(proc.id) || null,
+        };
+
+        scores.set(proc.id, calculateHealthScore(processInput, scoreInput, metricInputs, taskInput, improvementInput));
+      }
 
       // Build category summaries
       const catSummaries: CategorySummary[] = (catData || []).map(
@@ -143,6 +232,7 @@ export default function ProcessesPage() {
 
       setProcesses(processRows);
       setCategories(catSummaries);
+      setHealthScores(scores);
       setLoading(false);
     }
 
@@ -212,14 +302,23 @@ export default function ProcessesPage() {
 
   if (loading) return <CategoryGridSkeleton />;
 
-  // Apply filters
-  const filtered = processes.filter((p) => {
-    if (filterCategory !== null && p.category_id !== filterCategory)
-      return false;
-    if (filterStatus !== null && p.status !== filterStatus) return false;
-    if (showKeyOnly && !p.is_key) return false;
-    return true;
-  });
+  // Apply filters and sorting
+  const filtered = useMemo(() => {
+    const result = processes.filter((p) => {
+      if (filterCategory !== null && p.category_id !== filterCategory) return false;
+      if (filterStatus !== null && p.status !== filterStatus) return false;
+      if (showKeyOnly && !p.is_key) return false;
+      return true;
+    });
+    if (sortBy === "health") {
+      result.sort((a, b) => {
+        const aScore = healthScores.get(a.id)?.total ?? 0;
+        const bScore = healthScores.get(b.id)?.total ?? 0;
+        return aScore - bScore; // lowest first (needs most attention)
+      });
+    }
+    return result;
+  }, [processes, filterCategory, filterStatus, showKeyOnly, sortBy, healthScores]);
 
   return (
     <div className="space-y-6 content-appear">
@@ -362,12 +461,22 @@ export default function ProcessesPage() {
             </option>
           ))}
         </Select>
-        {(filterCategory !== null || filterStatus !== null || showKeyOnly) && (
+        <Select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as "name" | "health")}
+          size="sm"
+          className="w-auto"
+        >
+          <option value="name">Sort: A-Z</option>
+          <option value="health">Sort: Needs Attention</option>
+        </Select>
+        {(filterCategory !== null || filterStatus !== null || showKeyOnly || sortBy !== "name") && (
           <button
             onClick={() => {
               setFilterCategory(null);
               setFilterStatus(null);
               setShowKeyOnly(false);
+              setSortBy("name");
             }}
             className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
           >
@@ -445,7 +554,7 @@ export default function ProcessesPage() {
                   <th className="px-4 py-3">Process</th>
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Completeness</th>
+                  <th className="px-4 py-3">Health</th>
                   <th className="px-4 py-3">Owner</th>
                 </tr>
               </thead>
@@ -509,20 +618,19 @@ export default function ProcessesPage() {
                     </td>
                     <td className="px-4 py-3">
                       {(() => {
-                        const sections = getCompleteness(process);
-                        const filled = sections.filter((s) => s.filled).length;
-                        const tooltip = sections.map((s) => `${s.filled ? "\u2713" : "\u2717"} ${s.label}`).join("\n");
+                        const health = healthScores.get(process.id);
+                        if (!health) return null;
+                        const dims = health.dimensions;
+                        const tooltip = `Health: ${health.total}/100 (${health.level.label})\n` +
+                          `Documentation: ${dims.documentation.score}/${dims.documentation.max}\n` +
+                          `Maturity: ${dims.maturity.score}/${dims.maturity.max}\n` +
+                          `Measurement: ${dims.measurement.score}/${dims.measurement.max}\n` +
+                          `Operations: ${dims.operations.score}/${dims.operations.max}\n` +
+                          `Freshness: ${dims.freshness.score}/${dims.freshness.max}`;
                         return (
-                          <div className="flex items-center gap-1" title={tooltip}>
-                            {sections.map((s, i) => (
-                              <div
-                                key={i}
-                                className={`w-2 h-2 rounded-full ${s.filled ? "bg-nia-green" : "bg-gray-200"}`}
-                              />
-                            ))}
-                            <span className="text-xs text-gray-400 ml-1">
-                              {filled}/{sections.length}
-                            </span>
+                          <div className="flex items-center gap-2" title={tooltip}>
+                            <HealthRing score={health.total} color={health.level.color} size={36} strokeWidth={3} />
+                            <span className="text-xs text-gray-400">{health.level.label}</span>
                           </div>
                         );
                       })()}
@@ -598,14 +706,12 @@ export default function ProcessesPage() {
                   </div>
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                     {(() => {
-                      const sections = getCompleteness(process);
-                      const filled = sections.filter((s) => s.filled).length;
+                      const health = healthScores.get(process.id);
+                      if (!health) return null;
                       return (
-                        <span className="flex items-center gap-0.5">
-                          {sections.map((s, i) => (
-                            <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${s.filled ? "bg-nia-green" : "bg-gray-200"}`} />
-                          ))}
-                          <span className="ml-1">{filled}/{sections.length}</span>
+                        <span className="flex items-center gap-1.5">
+                          <HealthRing score={health.total} color={health.level.color} size={24} strokeWidth={2.5} className="text-[9px]" />
+                          <span style={{ color: health.level.color }}>{health.level.label}</span>
                         </span>
                       );
                     })()}

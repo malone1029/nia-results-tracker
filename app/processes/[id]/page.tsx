@@ -22,6 +22,8 @@ import MarkdownContent from "@/components/markdown-content";
 import AiChatPanel from "@/components/ai-chat-panel";
 import TaskReviewPanel from "@/components/task-review-panel";
 import ImprovementStepper from "@/components/improvement-stepper";
+import ProcessHealthCard from "@/components/process-health-card";
+import { calculateHealthScore, type HealthResult, type HealthMetricInput } from "@/lib/process-health";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface ProcessDetail {
@@ -141,6 +143,7 @@ function ProcessDetailContent() {
   const [asanaResyncing, setAsanaResyncing] = useState(false);
   const [asanaResyncResult, setAsanaResyncResult] = useState<{ tasks: number; subtasks: number } | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<{ id: number; file_name: string; file_type: string; file_size: number; uploaded_at: string }[]>([]);
+  const [healthResult, setHealthResult] = useState<HealthResult | null>(null);
 
   async function fetchProcess() {
       // Fetch process with category name
@@ -178,6 +181,8 @@ function ProcessDetailContent() {
             .select("id, name, unit, cadence, target_value, is_higher_better")
             .in("id", metricIds)
         : { data: [] as { id: number; name: string; unit: string; cadence: string; target_value: number | null; is_higher_better: boolean }[] };
+
+      let healthMetrics: HealthMetricInput[] = [];
 
       if (metricsData) {
         // Get entries for each metric (desc for latest, collect up to 6 for sparklines)
@@ -230,6 +235,23 @@ function ProcessDetailContent() {
             };
           })
         );
+
+        // Build health metric inputs while we have access to the entry maps
+        healthMetrics = metricsData.map((m) => {
+          const latest = latestByMetric.get(m.id);
+          const entryCount = sparklinesByMetric.get(m.id)?.length || 0;
+          let letci = 0;
+          if (entryCount >= 1) letci++;
+          if (entryCount >= 3) letci++;
+          if (m.target_value !== null) letci++;
+          letci++; // integration = linked to process
+          return {
+            has_recent_data: latest ? getReviewStatus(m.cadence, latest.date) === "current" : false,
+            has_comparison: m.target_value !== null,
+            letci_score: letci,
+            entry_count: entryCount,
+          };
+        });
       }
 
       // Fetch linked requirements
@@ -276,12 +298,48 @@ function ProcessDetailContent() {
 
       if (impData) setImprovements(impData);
 
-      // Fetch attached files
-      const filesRes = await fetch(`/api/ai/files?processId=${id}`);
+      // Fetch attached files + health score data in parallel
+      const [filesRes, { data: adliScores }, { data: taskRows }] = await Promise.all([
+        fetch(`/api/ai/files?processId=${id}`),
+        supabase.from("process_adli_scores").select("overall_score").eq("process_id", id).maybeSingle(),
+        supabase.from("process_tasks").select("status").eq("process_id", id),
+      ]);
+
       if (filesRes.ok) {
         const filesData = await filesRes.json();
         setAttachedFiles(filesData);
       }
+
+      // Calculate health score
+      let pendingCount = 0;
+      let exportedCount = 0;
+      for (const t of taskRows || []) {
+        if (t.status === "pending") pendingCount++;
+        else exportedCount++;
+      }
+
+      const latestImpDate = impData && impData.length > 0 ? impData[0].committed_date : null;
+
+      setHealthResult(calculateHealthScore(
+        {
+          id: proc.id,
+          charter: proc.charter as Record<string, unknown> | null,
+          adli_approach: proc.adli_approach as Record<string, unknown> | null,
+          adli_deployment: proc.adli_deployment as Record<string, unknown> | null,
+          adli_learning: proc.adli_learning as Record<string, unknown> | null,
+          adli_integration: proc.adli_integration as Record<string, unknown> | null,
+          workflow: proc.workflow as Record<string, unknown> | null,
+          baldrige_connections: proc.baldrige_connections as Record<string, unknown> | null,
+          status: proc.status,
+          asana_project_gid: proc.asana_project_gid,
+          asana_adli_task_gids: procData.asana_adli_task_gids as Record<string, string> | null,
+          updated_at: proc.updated_at,
+        },
+        adliScores ? { overall_score: adliScores.overall_score } : null,
+        healthMetrics,
+        { pending_count: pendingCount, exported_count: exportedCount },
+        { latest_date: latestImpDate },
+      ));
 
       setLoading(false);
   }
@@ -668,6 +726,9 @@ function ProcessDetailContent() {
           </div>
         </Card>
       )}
+
+      {/* Health Score Card */}
+      {healthResult && <ProcessHealthCard health={healthResult} />}
 
       {/* Improvement Stepper — only shown when linked to Asana */}
       {process.asana_project_gid && process.guided_step && (
