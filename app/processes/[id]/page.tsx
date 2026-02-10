@@ -25,6 +25,7 @@ import ImprovementStepper from "@/components/improvement-stepper";
 import { STEPS } from "@/lib/step-actions";
 import ProcessHealthCard from "@/components/process-health-card";
 import MilestoneToast from "@/components/milestone-toast";
+import AdliRadar from "@/components/adli-radar";
 import { calculateHealthScore, type HealthResult, type HealthMetricInput } from "@/lib/process-health";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
@@ -93,17 +94,14 @@ interface ImprovementEntry {
   trigger_detail: string | null;
 }
 
-const STATUS_CONFIG: Record<ProcessStatus, { label: string; color: string }> = {
-  draft: { label: "Draft", color: "#9ca3af" },
-  ready_for_review: { label: "Ready for Review", color: "#f79935" },
-  approved: { label: "Approved", color: "#b1bd37" },
-};
-
-const STATUS_ORDER: ProcessStatus[] = [
-  "draft",
-  "ready_for_review",
-  "approved",
-];
+interface AdliScoreData {
+  approach_score: number;
+  deployment_score: number;
+  learning_score: number;
+  integration_score: number;
+  overall_score: number;
+  assessed_at: string;
+}
 
 export default function ProcessDetailPage() {
   return (
@@ -146,6 +144,7 @@ function ProcessDetailContent() {
   const [asanaResyncResult, setAsanaResyncResult] = useState<{ tasks: number; subtasks: number } | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<{ id: number; file_name: string; file_type: string; file_size: number; uploaded_at: string }[]>([]);
   const [healthResult, setHealthResult] = useState<HealthResult | null>(null);
+  const [adliScoreData, setAdliScoreData] = useState<AdliScoreData | null>(null);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [hasAsanaToken, setHasAsanaToken] = useState<boolean | null>(null);
 
@@ -305,9 +304,11 @@ function ProcessDetailContent() {
       // Fetch attached files + health score data in parallel
       const [filesRes, { data: adliScores }, { data: taskRows }] = await Promise.all([
         fetch(`/api/ai/files?processId=${id}`),
-        supabase.from("process_adli_scores").select("overall_score").eq("process_id", id).maybeSingle(),
+        supabase.from("process_adli_scores").select("approach_score, deployment_score, learning_score, integration_score, overall_score, assessed_at").eq("process_id", id).maybeSingle(),
         supabase.from("process_tasks").select("status").eq("process_id", id),
       ]);
+
+      if (adliScores) setAdliScoreData(adliScores as AdliScoreData);
 
       if (filesRes.ok) {
         const filesData = await filesRes.json();
@@ -392,30 +393,6 @@ function ProcessDetailContent() {
       fetchProcess();
     }
     setLinkingMetric(null);
-  }
-
-  async function handleStatusChange(newStatus: ProcessStatus) {
-    if (!process) return;
-
-    await supabase
-      .from("processes")
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq("id", process.id);
-
-    await supabase.from("process_history").insert({
-      process_id: process.id,
-      change_description: `Status changed from "${STATUS_CONFIG[process.status].label}" to "${STATUS_CONFIG[newStatus].label}"`,
-    });
-
-    setProcess({ ...process, status: newStatus });
-    setHistory([
-      {
-        id: Date.now(),
-        change_description: `Status changed from "${STATUS_CONFIG[process.status].label}" to "${STATUS_CONFIG[newStatus].label}"`,
-        changed_at: new Date().toISOString(),
-      },
-      ...history,
-    ]);
   }
 
   async function handleDelete() {
@@ -855,29 +832,52 @@ function ProcessDetailContent() {
       {/* Content tab */}
       {activeTab === "content" && <>
 
-      {/* Workflow Status */}
+      {/* ADLI Maturity Snapshot */}
       <Card padding="sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-            Workflow Status
-          </h2>
-          <select
-            value={process.status}
-            onChange={(e) => handleStatusChange(e.target.value as ProcessStatus)}
-            className="text-sm font-medium rounded-lg px-3 py-1.5 border cursor-pointer focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30"
-            style={{
-              borderColor: STATUS_CONFIG[process.status].color + "40",
-              color: STATUS_CONFIG[process.status].color,
-              backgroundColor: STATUS_CONFIG[process.status].color + "10",
-            }}
-          >
-            {STATUS_ORDER.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_CONFIG[s].label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {adliScoreData ? (
+          <div className="flex items-center gap-4 px-1">
+            <AdliRadar
+              approach={adliScoreData.approach_score}
+              deployment={adliScoreData.deployment_score}
+              learning={adliScoreData.learning_score}
+              integration={adliScoreData.integration_score}
+              size={120}
+              showLabels={true}
+              color="#55787c"
+            />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">ADLI Maturity</h2>
+              <div className="text-2xl font-bold text-nia-dark">{adliScoreData.overall_score}%</div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Assessed {new Date(adliScoreData.assessed_at).toLocaleDateString()}
+              </p>
+              <button
+                onClick={() => setPendingPrompt("Run a fresh ADLI assessment. Score each dimension and compare to where we started. What's improved and what still needs work?")}
+                className="text-xs text-nia-grey-blue hover:text-nia-dark mt-1.5 transition-colors"
+              >
+                Re-assess &rarr;
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 px-1">
+            <div className="w-10 h-10 rounded-full bg-nia-grey-blue/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-nia-grey-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-nia-dark">No ADLI scores yet</p>
+              <p className="text-xs text-gray-500">Run an assessment to see your maturity across all four dimensions.</p>
+            </div>
+            <button
+              onClick={() => setPendingPrompt("Run a full ADLI assessment. Score each dimension (Approach, Deployment, Learning, Integration) from 0-100. Identify the weakest dimensions and suggest the 2-3 most impactful improvements with effort estimates.")}
+              className="text-sm font-medium text-white bg-nia-grey-blue hover:bg-nia-dark px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+            >
+              Run Assessment
+            </button>
+          </div>
+        )}
       </Card>
 
       {/* Metrics & Results — prominent position before documentation */}
