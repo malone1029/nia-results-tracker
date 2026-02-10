@@ -801,28 +801,39 @@ function ProcessDetailContent() {
           }}
         />
       ) : !process.asana_project_gid ? (
-        <Card accent="orange" padding="sm">
-          <div className="flex items-center gap-3 px-1">
-            <div className="w-10 h-10 rounded-full bg-nia-orange/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-nia-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="relative bg-white rounded-xl shadow-sm border border-nia-orange/20 overflow-hidden">
+          {/* Warm gradient accent on left edge */}
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-nia-orange to-nia-green" />
+          <div className="px-5 py-4 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-nia-orange/10 to-nia-green/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5.5 h-5.5 text-nia-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-nia-dark">Link to Asana to unlock guided coaching</p>
-              <p className="text-xs text-gray-500">Connect this process to an Asana project to get step-by-step AI guidance through the improvement cycle.</p>
+              <p className="text-sm font-semibold text-nia-dark">Unlock guided coaching</p>
+              <p className="text-xs text-gray-500 mt-0.5">Link to Asana for step-by-step AI guidance through the improvement cycle.</p>
             </div>
             {hasAsanaToken === false ? (
-              <Link href="/settings" className="text-sm font-medium text-nia-orange hover:text-nia-dark transition-colors whitespace-nowrap">
-                Connect Asana &rarr;
+              <Link
+                href="/settings"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-nia-orange hover:text-nia-dark transition-colors whitespace-nowrap"
+              >
+                Connect Asana
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
               </Link>
             ) : (
-              <Button size="sm" variant="success" onClick={() => setAsanaConfirm(true)}>
+              <button
+                onClick={() => setAsanaConfirm(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-nia-orange hover:bg-nia-orange-dark px-3.5 py-2 rounded-lg transition-all duration-150 shadow-sm hover:shadow whitespace-nowrap"
+              >
                 Link to Asana
-              </Button>
+              </button>
             )}
           </div>
-        </Card>
+        </div>
       ) : null}
 
       {/* Tab switcher */}
@@ -865,52 +876,95 @@ function ProcessDetailContent() {
       {activeTab === "content" && <>
 
       {/* ADLI Maturity Snapshot */}
-      <Card padding="sm">
-        {adliScoreData ? (
-          <div className="flex items-center gap-4 px-1">
-            <AdliRadar
-              approach={adliScoreData.approach_score}
-              deployment={adliScoreData.deployment_score}
-              learning={adliScoreData.learning_score}
-              integration={adliScoreData.integration_score}
-              size={120}
-              showLabels={true}
-              color="#55787c"
-            />
-            <div className="flex-1 min-w-0">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">ADLI Maturity</h2>
-              <div className="text-2xl font-bold text-nia-dark">{adliScoreData.overall_score}%</div>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Assessed {new Date(adliScoreData.assessed_at).toLocaleDateString()}
-              </p>
-              <button
-                onClick={() => setPendingPrompt("Run a fresh ADLI assessment. Score each dimension and compare to where we started. What's improved and what still needs work?")}
-                className="text-xs text-nia-grey-blue hover:text-nia-dark mt-1.5 transition-colors"
-              >
-                Re-assess &rarr;
-              </button>
+      {adliScoreData ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="flex flex-col sm:flex-row">
+            {/* Radar — centered, properly sized */}
+            <div className="flex items-center justify-center px-4 pt-5 pb-2 sm:py-5 sm:pl-5 sm:pr-2">
+              <AdliRadar
+                approach={adliScoreData.approach_score}
+                deployment={adliScoreData.deployment_score}
+                learning={adliScoreData.learning_score}
+                integration={adliScoreData.integration_score}
+                size={160}
+                showLabels={true}
+                color="#55787c"
+              />
+            </div>
+            {/* Score details */}
+            <div className="flex-1 px-5 pb-5 sm:py-5 sm:pl-2 flex flex-col justify-center">
+              <div className="flex items-baseline gap-2 mb-3">
+                <span className="text-3xl font-bold text-gradient tabular-nums">{adliScoreData.overall_score}</span>
+                <span className="text-sm font-medium text-gray-400">/100</span>
+              </div>
+              {/* Dimension mini-bars */}
+              <div className="space-y-1.5">
+                {([
+                  { key: "Approach", score: adliScoreData.approach_score, color: "#f79935" },
+                  { key: "Deployment", score: adliScoreData.deployment_score, color: "#55787c" },
+                  { key: "Learning", score: adliScoreData.learning_score, color: "#b1bd37" },
+                  { key: "Integration", score: adliScoreData.integration_score, color: "#324a4d" },
+                ] as const).map((dim) => (
+                  <div key={dim.key} className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold w-3 text-center" style={{ color: dim.color }}>
+                      {dim.key[0]}
+                    </span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700 ease-out"
+                        style={{ width: `${dim.score}%`, backgroundColor: dim.color }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-medium text-gray-400 w-6 text-right tabular-nums">{dim.score}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Footer */}
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                <span className="text-[10px] text-gray-400">
+                  Assessed {new Date(adliScoreData.assessed_at).toLocaleDateString()}
+                </span>
+                <button
+                  onClick={() => setPendingPrompt("Run a fresh ADLI assessment. Score each dimension and compare to where we started. What's improved and what still needs work?")}
+                  className="text-[11px] font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
+                >
+                  Re-assess &rarr;
+                </button>
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="flex items-center gap-3 px-1">
-            <div className="w-10 h-10 rounded-full bg-nia-grey-blue/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-nia-grey-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="relative px-5 py-6 flex flex-col items-center text-center">
+            {/* Subtle background pattern */}
+            <div className="absolute inset-0 opacity-[0.03]" style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, var(--nia-grey-blue) 1px, transparent 0)`,
+              backgroundSize: "20px 20px",
+            }} />
+            {/* Empty radar placeholder */}
+            <div className="relative mb-3">
+              <AdliRadar approach={0} deployment={0} learning={0} integration={0} size={100} showLabels={false} color="#d1d5db" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-lg font-bold text-gray-300">?</span>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-nia-dark">No ADLI scores yet</p>
-              <p className="text-xs text-gray-500">Run an assessment to see your maturity across all four dimensions.</p>
-            </div>
+            <p className="text-sm font-semibold text-nia-dark mb-1">No ADLI scores yet</p>
+            <p className="text-xs text-gray-500 max-w-[280px] mb-4">
+              Run your first assessment to see maturity scores across all four dimensions.
+            </p>
             <button
               onClick={() => setPendingPrompt("Run a full ADLI assessment. Score each dimension (Approach, Deployment, Learning, Integration) from 0-100. Identify the weakest dimensions and suggest the 2-3 most impactful improvements with effort estimates.")}
-              className="text-sm font-medium text-white bg-nia-grey-blue hover:bg-nia-dark px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+              className="relative inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-nia-dark hover:bg-nia-grey-blue px-4 py-2 rounded-lg transition-all duration-150 shadow-sm hover:shadow"
             >
+              <svg className="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
               Run Assessment
             </button>
           </div>
-        )}
-      </Card>
+        </div>
+      )}
 
       {/* Metrics & Results — prominent position before documentation */}
       <Section title={`Metrics & Results (${metrics.length})`} id="section-metrics">
