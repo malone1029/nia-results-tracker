@@ -1179,75 +1179,45 @@ function ProcessDetailContent() {
           <AdliSection title="Learning" data={process.adli_learning} />
           <AdliSection title="Integration" data={process.adli_integration} />
 
-          <Section title="Workflow">
+          <Section title="Process Map" id="section-workflow">
             {process.workflow?.content ? (
-              <MarkdownContent content={process.workflow.content} />
-            ) : process.workflow ? (
-              <div className="space-y-4">
-                {process.workflow.inputs && process.workflow.inputs.length > 0 && (
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Inputs</span>
-                    <ul className="list-disc list-inside mt-1 text-nia-dark">
-                      {process.workflow.inputs.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {process.workflow.steps && process.workflow.steps.length > 0 && (
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Steps</span>
-                    <div className="space-y-2 mt-1">
-                      {process.workflow.steps.map((step, i) => (
-                        <div
-                          key={i}
-                          className="bg-gray-50 rounded-lg p-3 text-sm"
-                        >
-                          <div className="font-medium text-nia-dark">
-                            {i + 1}. {step.action}
-                          </div>
-                          <div className="text-gray-500 mt-1">
-                            {step.responsible && (
-                              <span>Responsible: {step.responsible}</span>
-                            )}
-                            {step.timing && (
-                              <span className="ml-3">Timing: {step.timing}</span>
-                            )}
-                            {step.output && (
-                              <span className="ml-3">Output: {step.output}</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {process.workflow.outputs && process.workflow.outputs.length > 0 && (
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Outputs</span>
-                    <ul className="list-disc list-inside mt-1 text-nia-dark">
-                      {process.workflow.outputs.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {process.workflow.quality_controls &&
-                  process.workflow.quality_controls.length > 0 && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">
-                        Quality Controls
-                      </span>
-                      <ul className="list-disc list-inside mt-1 text-nia-dark">
-                        {process.workflow.quality_controls.map((item, i) => (
-                          <li key={i}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+              <div>
+                <ProcessMapView content={process.workflow.content} processName={process.name} />
+                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+                  <button
+                    onClick={() => setPendingPrompt("The current process map needs adjustments. Here's what I'd like to change:")}
+                    className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
+                  >
+                    Refine with AI &rarr;
+                  </button>
+                  <span className="text-gray-300">|</span>
+                  <button
+                    onClick={() => setPendingPrompt("Regenerate the process map from scratch based on the current charter and ADLI content. Create a fresh Mermaid flowchart.")}
+                    className="text-xs font-medium text-gray-400 hover:text-nia-dark transition-colors"
+                  >
+                    Regenerate
+                  </button>
+                </div>
               </div>
             ) : (
-              <EmptyText />
+              <div className="text-center py-6">
+                <svg className="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                </svg>
+                <p className="text-sm text-gray-500 mb-1">No process map yet</p>
+                <p className="text-xs text-gray-400 mb-4 max-w-xs mx-auto">
+                  AI will generate a visual flowchart from your charter and ADLI content.
+                </p>
+                <button
+                  onClick={() => setPendingPrompt("Generate a process map for this process. Create a Mermaid flowchart that shows the key steps, decision points, responsible parties, and outputs based on the charter and ADLI content.")}
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-nia-dark hover:bg-nia-grey-blue px-4 py-2 rounded-lg transition-all duration-150 shadow-sm hover:shadow"
+                >
+                  <svg className="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Generate Process Map
+                </button>
+              </div>
             )}
           </Section>
 
@@ -1711,6 +1681,105 @@ function ImprovementCard({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Process Map View with Download ──────────────────────────────
+
+function ProcessMapView({ content, processName }: { content: string; processName: string }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  async function downloadSVG() {
+    if (!mapRef.current) return;
+    const svg = mapRef.current.querySelector("svg");
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${processName.replace(/[^a-zA-Z0-9]/g, "-")}-process-map.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function downloadPNG() {
+    if (!mapRef.current) return;
+    const svg = mapRef.current.querySelector("svg");
+    if (!svg) return;
+    setDownloading(true);
+
+    try {
+      // Get SVG dimensions
+      const bbox = svg.getBoundingClientRect();
+      const scale = 2; // 2x for retina quality
+      const canvas = document.createElement("canvas");
+      canvas.width = bbox.width * scale;
+      canvas.height = bbox.height * scale;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // White background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
+
+      // Draw SVG onto canvas
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const img = new Image();
+      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+          resolve();
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+
+      URL.revokeObjectURL(url);
+
+      // Download as PNG
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const pngUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = pngUrl;
+        a.download = `${processName.replace(/[^a-zA-Z0-9]/g, "-")}-process-map.png`;
+        a.click();
+        URL.revokeObjectURL(pngUrl);
+      }, "image/png");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <div>
+      <div ref={mapRef}>
+        <MarkdownContent content={content} />
+      </div>
+      <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
+        <span className="text-xs text-gray-400">Download:</span>
+        <button
+          onClick={downloadSVG}
+          className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
+        >
+          SVG
+        </button>
+        <button
+          onClick={downloadPNG}
+          disabled={downloading}
+          className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors disabled:opacity-50"
+        >
+          {downloading ? "Exporting..." : "PNG"}
+        </button>
+      </div>
     </div>
   );
 }

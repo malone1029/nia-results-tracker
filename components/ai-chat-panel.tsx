@@ -194,6 +194,7 @@ const FIELD_LABELS: Record<string, string> = {
   adli_deployment: "ADLI: Deployment",
   adli_learning: "ADLI: Learning",
   adli_integration: "ADLI: Integration",
+  workflow: "Process Map",
 };
 
 

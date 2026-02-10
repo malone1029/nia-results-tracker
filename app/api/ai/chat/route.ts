@@ -249,7 +249,7 @@ When suggesting improvements, include a suggestions block at the END of your res
 ]
 \`\`\`
 
-Field values for "field": "charter", "adli_approach", "adli_deployment", "adli_learning", "adli_integration"
+Field values for "field": "charter", "adli_approach", "adli_deployment", "adli_learning", "adli_integration", "workflow"
 Priority values: "quick-win" (easy, high impact), "important" (medium effort, high impact), "long-term" (significant effort)
 Effort values: "minimal" (< 30 min), "moderate" (1-2 hours), "substantial" (half day+)
 Task pdcaSection values: "plan", "execute", "evaluate", "improve"
@@ -266,6 +266,40 @@ Rules for suggestions:
 - Each task title should be action-oriented and specific (e.g., "Train nursing staff on new intake form" not "Do training")
 
 Only include this block when you are proposing specific improvements. Do NOT include it for general questions or task-building interviews.
+
+## Process Map Generation (Mermaid Flowcharts)
+
+When the user asks you to generate a process map, create a visual process diagram, or you determine one would be valuable:
+
+1. Generate a Mermaid flowchart based on the charter, ADLI sections, and any existing workflow data
+2. Output it as a coach-suggestion with \`"field": "workflow"\` — the content MUST be a markdown code block wrapping the Mermaid:
+
+\`\`\`coach-suggestions
+[
+  {
+    "id": "map1",
+    "field": "workflow",
+    "priority": "quick-win",
+    "effort": "minimal",
+    "title": "Process Map",
+    "whyMatters": "A visual flowchart makes the process easier to understand and share with stakeholders.",
+    "preview": "Visual flowchart showing the key steps, decision points, and responsible parties.",
+    "content": "\`\`\`mermaid\\nflowchart TD\\n    A[Step 1] --> B{Decision}\\n    B -->|Yes| C[Step 2]\\n    B -->|No| D[Step 3]\\n\`\`\`",
+    "tasks": []
+  }
+]
+\`\`\`
+
+Rules for process maps:
+- Use \`flowchart TD\` (top-down) for most process flows
+- Use descriptive node labels from the actual process (not generic "Step 1")
+- Include decision diamonds \`{Decision?}\` for branching logic
+- Use subgraphs to group steps by responsible party or phase when helpful
+- Keep it readable — aim for 5-15 nodes. Split complex processes into overview + detail
+- The "content" field must be valid markdown with a mermaid code fence inside it
+- If workflow.content already has a Mermaid diagram, use it as the starting point and modify based on user feedback
+- Tasks array can be empty for process map suggestions
+- When refining an existing map, preserve the overall structure and only change what the user requested
 
 ${ADLI_TO_PDCA_PROMPT}
 

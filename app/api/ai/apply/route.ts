@@ -8,6 +8,7 @@ const ALLOWED_FIELDS = [
   "adli_learning",
   "adli_integration",
   "charter_cleanup",
+  "workflow",
 ];
 
 // Map field names to improvement section names
@@ -17,6 +18,7 @@ const FIELD_TO_SECTION: Record<string, string> = {
   adli_deployment: "deployment",
   adli_learning: "learning",
   adli_integration: "integration",
+  workflow: "workflow",
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -26,6 +28,7 @@ const FIELD_LABELS: Record<string, string> = {
   adli_learning: "ADLI: Learning",
   adli_integration: "ADLI: Integration",
   charter_cleanup: "Charter Cleanup",
+  workflow: "Process Map",
 };
 
 export async function POST(request: Request) {
