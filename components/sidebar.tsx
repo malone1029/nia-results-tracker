@@ -38,6 +38,16 @@ const navGroups = [
   },
 ];
 
+const adminNavGroups = [
+  {
+    label: "Application",
+    links: [
+      { href: "/criteria", label: "Criteria Map", icon: "book-open" },
+      { href: "/criteria/gaps", label: "Gap Analysis", icon: "alert-triangle" },
+    ],
+  },
+];
+
 function NavIcon({ icon, className }: { icon: string; className?: string }) {
   const cn = className || "w-4 h-4";
   switch (icon) {
@@ -107,6 +117,18 @@ function NavIcon({ icon, className }: { icon: string; className?: string }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
         </svg>
       );
+    case "book-open":
+      return (
+        <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      );
+    case "alert-triangle":
+      return (
+        <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      );
     case "settings":
       return (
         <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,9 +144,11 @@ function NavIcon({ icon, className }: { icon: string; className?: string }) {
 export default function Sidebar({
   open,
   onClose,
+  isAdmin = false,
 }: {
   open: boolean;
   onClose: () => void;
+  isAdmin?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -169,6 +193,30 @@ export default function Sidebar({
                   className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
                     isActive(link.href)
                       ? "bg-white/15 text-white font-medium nav-link-active"
+                      : "text-white/60 hover:text-white hover:bg-white/8"
+                  }`}
+                >
+                  <NavIcon icon={link.icon} className="w-4 h-4 flex-shrink-0" />
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+        {isAdmin && adminNavGroups.map((group) => (
+          <div key={group.label}>
+            <div className="text-[10px] text-nia-orange/60 uppercase tracking-widest mb-1.5 font-medium px-2">
+              {group.label}
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {group.links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={onClose}
+                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
+                    isActive(link.href)
+                      ? "bg-nia-orange/20 text-nia-orange font-medium"
                       : "text-white/60 hover:text-white hover:bg-white/8"
                   }`}
                 >
