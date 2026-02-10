@@ -76,7 +76,7 @@ export interface HealthImprovementInput {
 }
 
 // Health levels
-function getHealthLevel(score: number): HealthLevel {
+export function getHealthLevel(score: number): HealthLevel {
   if (score >= 80) return { label: "Baldrige Ready", color: "#b1bd37" };
   if (score >= 60) return { label: "On Track", color: "#55787c" };
   if (score >= 40) return { label: "Developing", color: "#f79935" };
