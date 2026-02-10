@@ -90,15 +90,18 @@ function parseAdliScores(text: string): { scores: AdliScores | null; cleanedText
 }
 
 // Parse coach-suggestions code block from AI response
+// Uses greedy match ([\s\S]*) to find the LAST closing ``` — this prevents
+// inner triple backticks (e.g., mermaid code fences in workflow content)
+// from being mistaken for the end of the block.
 function parseCoachSuggestions(text: string): { suggestions: CoachSuggestion[]; cleanedText: string } {
-  const match = text.match(/```coach-suggestions\s*\n([\s\S]*?)\n```/);
+  const match = text.match(/```coach-suggestions\s*\n([\s\S]*)\n```/);
   if (!match) {
     // Backward compat: also try old adli-suggestion format
-    const oldMatch = text.match(/```adli-suggestion\s*\n([\s\S]*?)\n```/);
+    const oldMatch = text.match(/```adli-suggestion\s*\n([\s\S]*)\n```/);
     if (oldMatch) {
       try {
         const old = JSON.parse(oldMatch[1]) as { field: string; content: string };
-        const cleanedText = text.replace(/```adli-suggestion\s*\n[\s\S]*?\n```\s*\n?/g, "").trim();
+        const cleanedText = text.replace(/```adli-suggestion\s*\n[\s\S]*\n```\s*\n?/g, "").trim();
         return {
           suggestions: [{
             id: "legacy",
@@ -119,7 +122,7 @@ function parseCoachSuggestions(text: string): { suggestions: CoachSuggestion[]; 
 
   try {
     const suggestions = JSON.parse(match[1]) as CoachSuggestion[];
-    const cleanedText = text.replace(/```coach-suggestions\s*\n[\s\S]*?\n```\s*\n?/, "").trim();
+    const cleanedText = text.replace(/```coach-suggestions\s*\n[\s\S]*\n```\s*\n?/, "").trim();
     return { suggestions, cleanedText };
   } catch {
     return { suggestions: [], cleanedText: text };
@@ -155,12 +158,13 @@ function parseMetricSuggestions(text: string): { metrics: MetricSuggestion[]; cl
 }
 
 // Strip partial (still-streaming) structured blocks so raw JSON isn't visible
+// coach-suggestions uses greedy ([\s\S]*) to handle nested backticks (e.g., mermaid)
 function stripPartialBlocks(text: string): string {
   // Remove complete structured blocks (scores + suggestions + proposed-tasks)
   let cleaned = text;
   cleaned = cleaned.replace(/```adli-scores\s*\n[\s\S]*?\n```\s*\n?/g, "");
-  cleaned = cleaned.replace(/```coach-suggestions\s*\n[\s\S]*?\n```\s*\n?/g, "");
-  cleaned = cleaned.replace(/```adli-suggestion\s*\n[\s\S]*?\n```\s*\n?/g, "");
+  cleaned = cleaned.replace(/```coach-suggestions\s*\n[\s\S]*\n```\s*\n?/g, "");
+  cleaned = cleaned.replace(/```adli-suggestion\s*\n[\s\S]*\n```\s*\n?/g, "");
   cleaned = cleaned.replace(/```proposed-tasks\s*\n[\s\S]*?\n```\s*\n?/g, "");
 
   cleaned = cleaned.replace(/```metric-suggestions\s*\n[\s\S]*?\n```\s*\n?/g, "");

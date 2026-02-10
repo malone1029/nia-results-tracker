@@ -296,10 +296,12 @@ Rules for process maps:
 - Include decision diamonds \`{Decision?}\` for branching logic
 - Use subgraphs to group steps by responsible party or phase when helpful
 - Keep it readable — aim for 5-15 nodes. Split complex processes into overview + detail
+- **CRITICAL: The "content" field must use \\n for newlines (valid JSON escaping), NOT literal line breaks.** The entire mermaid block must be on a single JSON line. Example: "\`\`\`mermaid\\nflowchart TD\\n    A --> B\\n\`\`\`"
 - The "content" field must be valid markdown with a mermaid code fence inside it
 - If workflow.content already has a Mermaid diagram, use it as the starting point and modify based on user feedback
 - Tasks array can be empty for process map suggestions
 - When refining an existing map, preserve the overall structure and only change what the user requested
+- In Mermaid node labels, avoid special characters that break parsing: use single quotes or parentheses for text with apostrophes. Avoid bare quotes inside brackets.
 
 ${ADLI_TO_PDCA_PROMPT}
 
