@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { DashboardSkeleton } from "@/components/skeleton";
-import { Card, Badge, Button } from "@/components/ui";
+import { Card, Badge, Button, Select } from "@/components/ui";
 import HealthRing from "@/components/health-ring";
 import {
   getHealthLevel,
@@ -14,6 +14,7 @@ import {
   type CategoryRow,
   type HealthData,
 } from "@/lib/fetch-health-data";
+import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import {
   LineChart,
@@ -50,6 +51,10 @@ export default function ReadinessPage() {
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [healthScores, setHealthScores] = useState<Map<number, HealthResult>>(new Map());
   const [loading, setLoading] = useState(true);
+
+  // Owner filter state
+  const [selectedOwner, setSelectedOwner] = useState<string>("__all__");
+  const [owners, setOwners] = useState<string[]>([]);
 
   // Snapshot state
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
@@ -131,14 +136,31 @@ export default function ReadinessPage() {
     document.title = "Readiness | NIA Excellence Hub";
 
     async function load() {
-      const [data, snapRes] = await Promise.all([
+      const [data, snapRes, userRes] = await Promise.all([
         fetchHealthData(),
         fetch("/api/readiness").then((r) => r.ok ? r.json() : []),
+        supabase.auth.getUser(),
       ]);
       setProcesses(data.processes);
       setCategories(data.categories);
       setHealthScores(data.healthScores);
       setSnapshots(snapRes);
+
+      // Build owner list + auto-select logged-in user
+      const ownerSet = new Set<string>();
+      for (const p of data.processes) {
+        if (p.owner) ownerSet.add(p.owner);
+      }
+      const sortedOwners = [...ownerSet].sort();
+      setOwners(sortedOwners);
+      const fullName = userRes.data?.user?.user_metadata?.full_name || "";
+      if (fullName) {
+        const match = sortedOwners.find(
+          (o) => o.toLowerCase() === fullName.toLowerCase()
+        );
+        if (match) setSelectedOwner(match);
+      }
+
       setLoading(false);
 
       // Auto-snapshot: save one if none exists for today
@@ -156,27 +178,46 @@ export default function ReadinessPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Owner filtering (must be before early return) ─────────
+  const isFiltered = selectedOwner !== "__all__";
+  const filteredProcesses = useMemo(
+    () => isFiltered ? processes.filter((p) => p.owner === selectedOwner) : processes,
+    [processes, selectedOwner, isFiltered]
+  );
+
   if (loading) return <DashboardSkeleton />;
 
-  // ── Org-wide score (key processes count 2x) ────────────────
+  // ── Org-wide score (always computed from ALL processes) ────
+  let orgWeightedSum = 0;
+  let orgWeightTotal = 0;
+  for (const proc of processes) {
+    const health = healthScores.get(proc.id);
+    if (!health) continue;
+    const weight = proc.is_key ? 2 : 1;
+    orgWeightedSum += health.total * weight;
+    orgWeightTotal += weight;
+  }
+  const orgScore = orgWeightTotal > 0 ? Math.round(orgWeightedSum / orgWeightTotal) : 0;
+
+  // ── Filtered score (from selected owner's processes) ───────
   let weightedSum = 0;
   let weightTotal = 0;
-  for (const proc of processes) {
+  for (const proc of filteredProcesses) {
     const health = healthScores.get(proc.id);
     if (!health) continue;
     const weight = proc.is_key ? 2 : 1;
     weightedSum += health.total * weight;
     weightTotal += weight;
   }
-  const orgScore = weightTotal > 0 ? Math.round(weightedSum / weightTotal) : 0;
-  const orgLevel = getHealthLevel(orgScore);
+  const displayScore = weightTotal > 0 ? Math.round(weightedSum / weightTotal) : 0;
+  const displayLevel = getHealthLevel(displayScore);
 
-  const readyCount = processes.filter((p) => {
+  const readyCount = filteredProcesses.filter((p) => {
     const h = healthScores.get(p.id);
     return h && h.total >= 80;
   }).length;
 
-  const keyProcesses = processes.filter((p) => p.is_key);
+  const keyProcesses = filteredProcesses.filter((p) => p.is_key);
   const keyAvg = keyProcesses.length > 0
     ? Math.round(keyProcesses.reduce((sum, p) => sum + (healthScores.get(p.id)?.total ?? 0), 0) / keyProcesses.length)
     : null;
@@ -191,7 +232,7 @@ export default function ReadinessPage() {
 
   const categoryData: CategoryData[] = categories
     .map((cat) => {
-      const catProcs = processes
+      const catProcs = filteredProcesses
         .filter((p) => p.category_id === cat.id)
         .map((p) => ({ ...p, health: healthScores.get(p.id)! }))
         .filter((p) => p.health);
@@ -207,7 +248,7 @@ export default function ReadinessPage() {
   const dimensionAvgs = DIMENSION_CONFIG.map((dim) => {
     let total = 0;
     let count = 0;
-    for (const proc of processes) {
+    for (const proc of filteredProcesses) {
       const h = healthScores.get(proc.id);
       if (!h) continue;
       total += h.dimensions[dim.key].score;
@@ -220,7 +261,7 @@ export default function ReadinessPage() {
 
   // ── Top 5 actions ──────────────────────────────────────────
   const actionMap = new Map<string, { label: string; totalPoints: number; count: number; href?: string }>();
-  for (const proc of processes) {
+  for (const proc of filteredProcesses) {
     const h = healthScores.get(proc.id);
     if (!h) continue;
     for (const action of h.nextActions) {
@@ -297,8 +338,14 @@ export default function ReadinessPage() {
   }
 
   // ── Chart data ─────────────────────────────────────────────
+  const spansMultipleYears = snapshots.length > 1 &&
+    new Date(snapshots[0].snapshot_date).getFullYear() !== new Date(snapshots[snapshots.length - 1].snapshot_date).getFullYear();
   const chartData = snapshots.map((s) => ({
-    date: new Date(s.snapshot_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    date: new Date(s.snapshot_date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      ...(spansMultipleYears ? { year: "2-digit" as const } : {}),
+    }),
     score: s.org_score,
     ready: s.ready_count,
     total: s.process_count,
@@ -313,10 +360,24 @@ export default function ReadinessPage() {
             Baldrige Readiness
           </h1>
           <p className="text-gray-500 mt-1">
-            Organization-wide readiness for a Baldrige Excellence application
+            {isFiltered
+              ? `${selectedOwner}\u2019s process readiness vs. organization`
+              : "Organization-wide readiness for a Baldrige Excellence application"}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {owners.length > 0 && (
+            <Select
+              value={selectedOwner}
+              onChange={(e) => setSelectedOwner(e.target.value)}
+              className="w-44"
+            >
+              <option value="__all__">All Owners</option>
+              {owners.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </Select>
+          )}
           <Button
             variant="primary"
             size="sm"
@@ -333,26 +394,33 @@ export default function ReadinessPage() {
         </div>
       </div>
 
-      {/* ── Section A: Org Readiness Score ──────────────────── */}
+      {/* ── Section A: Readiness Score ────────────────────────── */}
       <Card className="p-6">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <HealthRing
-            score={orgScore}
-            color={orgLevel.color}
+            score={displayScore}
+            color={displayLevel.color}
             size={120}
             strokeWidth={8}
             className="text-2xl"
           />
           <div className="text-center sm:text-left">
-            <div className="text-lg font-bold font-display" style={{ color: orgLevel.color }}>
-              {orgLevel.label}
+            <div className="text-lg font-bold font-display" style={{ color: displayLevel.color }}>
+              {displayLevel.label}
             </div>
             <div className="text-3xl font-bold text-nia-dark mt-1">
-              {orgScore}<span className="text-lg text-gray-400 font-normal">/100</span>
+              {displayScore}<span className="text-lg text-gray-400 font-normal">/100</span>
+              {isFiltered && (
+                <span className="ml-3 text-sm font-normal text-gray-400">
+                  Org: <span className="font-medium text-nia-dark">{orgScore}</span>
+                  {displayScore > orgScore && <span className="text-nia-green ml-1">+{displayScore - orgScore}</span>}
+                  {displayScore < orgScore && <span className="text-nia-orange ml-1">{displayScore - orgScore}</span>}
+                </span>
+              )}
             </div>
             <div className="text-sm text-gray-500 mt-2 space-y-1">
               <div>
-                {readyCount} of {processes.length} processes are{" "}
+                {readyCount} of {filteredProcesses.length} processes are{" "}
                 <span className="font-medium" style={{ color: "#b1bd37" }}>Baldrige Ready</span>
               </div>
               {keyAvg !== null && keyProcesses.length > 0 && (
@@ -527,7 +595,7 @@ export default function ReadinessPage() {
               const isExpanded = expandedDim === dim.key;
               // Per-process scores for this dimension
               const procScores = isExpanded
-                ? processes
+                ? filteredProcesses
                     .map((p) => {
                       const h = healthScores.get(p.id);
                       if (!h) return null;

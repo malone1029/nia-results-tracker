@@ -375,8 +375,8 @@ export default function DataHealthPage() {
       {editMode && (
         <Card accent="orange" padding="sm">
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-nia-dark">Select by status:</span>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <span className="text-sm font-medium text-nia-dark whitespace-nowrap">Select by status:</span>
               {(["overdue", "due-soon", "no-data", "current"] as const).map((status) => {
                 const count = displayMetrics.filter((m) => m.review_status === status).length;
                 if (count === 0) return null;

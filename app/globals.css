@@ -299,6 +299,22 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   animation: content-appear 300ms ease-out;
 }
 
+/* Welcome onboarding step transitions */
+@keyframes onboard-slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes onboard-slide-in-back {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.onboard-slide-in {
+  animation: onboard-slide-in 350ms cubic-bezier(0.2, 0, 0, 1);
+}
+.onboard-slide-in-back {
+  animation: onboard-slide-in-back 350ms cubic-bezier(0.2, 0, 0, 1);
+}
+
 /* ─── Accessibility ─────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

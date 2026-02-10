@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { getMaturityLevel } from "@/lib/colors";
 
-export function DimBar({ label, score }: { label: string; score: number }) {
+export const DimBar = memo(function DimBar({ label, score }: { label: string; score: number }) {
   const level = getMaturityLevel(score);
   return (
     <div>
@@ -18,9 +19,9 @@ export function DimBar({ label, score }: { label: string; score: number }) {
       </div>
     </div>
   );
-}
+});
 
-export function MiniBar({ label, score }: { label: string; score: number }) {
+export const MiniBar = memo(function MiniBar({ label, score }: { label: string; score: number }) {
   const level = getMaturityLevel(score);
   return (
     <div className="flex items-center gap-1.5">
@@ -34,4 +35,4 @@ export function MiniBar({ label, score }: { label: string; score: number }) {
       <span className="text-[10px] text-gray-500 w-6 text-right">{score}%</span>
     </div>
   );
-}
+});

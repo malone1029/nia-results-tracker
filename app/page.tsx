@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus } from "@/lib/review-status";
 import { getMaturityLevel } from "@/lib/colors";
@@ -12,6 +13,7 @@ import { Card, CardHeader, Badge, Button, Select } from "@/components/ui";
 import HealthRing from "@/components/health-ring";
 import { fetchHealthData, type ProcessWithCategory } from "@/lib/fetch-health-data";
 import { type HealthResult, type HealthNextAction } from "@/lib/process-health";
+import WelcomeOnboarding, { hasCompletedOnboarding } from "@/components/welcome-onboarding";
 import Link from "next/link";
 
 interface ScoreRow {
@@ -25,31 +27,28 @@ interface ScoreRow {
 }
 
 interface ActionItem {
-  type: "overdue" | "due-soon" | "draft";
+  type: "overdue" | "due-soon";
   label: string;
   href: string;
   metricId?: number;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
-  ready_for_review: "Ready for Review",
-  approved: "Approved",
-};
-
-const STATUS_BADGE_COLORS: Record<string, "gray" | "orange" | "green"> = {
-  draft: "gray",
-  ready_for_review: "orange",
-  approved: "green",
-};
-
-const ACTION_BADGE: Record<string, { color: "red" | "orange" | "gray"; label: string }> = {
+const ACTION_BADGE: Record<string, { color: "red" | "orange"; label: string }> = {
   overdue: { color: "red", label: "overdue" },
   "due-soon": { color: "orange", label: "due soon" },
-  draft: { color: "gray", label: "draft" },
 };
 
-export default function ProcessOwnerDashboard() {
+export default function ProcessOwnerDashboardPage() {
+  return (
+    <Suspense>
+      <ProcessOwnerDashboard />
+    </Suspense>
+  );
+}
+
+function ProcessOwnerDashboard() {
+  const searchParams = useSearchParams();
+  const forceWelcome = searchParams.get("welcome") === "true";
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [processes, setProcesses] = useState<ProcessWithCategory[]>([]);
@@ -63,6 +62,9 @@ export default function ProcessOwnerDashboard() {
   const [showKeyOnly, setShowKeyOnly] = useState(false);
   const [recentImprovements, setRecentImprovements] = useState<{ processId: number; processName: string; label: string; date: string; status: string }[]>([]);
   const [monthlyImprovedCount, setMonthlyImprovedCount] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [asanaConnected, setAsanaConnected] = useState(false);
+  const [userId, setUserId] = useState("");
 
   useEffect(() => {
     document.title = "Dashboard | NIA Excellence Hub";
@@ -85,8 +87,11 @@ export default function ProcessOwnerDashboard() {
       setLastActivityMap(healthData.lastActivityMap);
 
       // User
-      const fullName = userRes.data?.user?.user_metadata?.full_name || "";
+      const user = userRes.data?.user;
+      const fullName = user?.user_metadata?.full_name || "";
       setUserName(fullName);
+      const uid = user?.id || "";
+      setUserId(uid);
 
       // Owners (deduplicated, sorted)
       const ownerSet = new Set<string>();
@@ -196,12 +201,34 @@ export default function ProcessOwnerDashboard() {
       }
       setMonthlyImprovedCount(monthlyProcs.size);
 
+      // Check if new user needs onboarding (zero processes + never completed onboarding)
+      // Also allow ?welcome=true to force-preview the onboarding
+      if (uid && (forceWelcome || (procs.length === 0 && !hasCompletedOnboarding(uid)))) {
+        // Check Asana connection status
+        const asanaRes = await fetch("/api/asana/status");
+        const asanaData = asanaRes.ok ? await asanaRes.json() : { connected: false };
+        setAsanaConnected(asanaData.connected);
+        setShowOnboarding(true);
+      }
+
       setLoading(false);
     }
     fetchAll();
   }, []);
 
   if (loading) return <DashboardSkeleton />;
+
+  // Welcome onboarding overlay for new users
+  if (showOnboarding && userId) {
+    return (
+      <WelcomeOnboarding
+        userName={userName}
+        userId={userId}
+        asanaConnected={asanaConnected}
+        onComplete={() => setShowOnboarding(false)}
+      />
+    );
+  }
 
   // Filter by selected owner + key only
   const isAll = selectedOwner === "__all__";
@@ -218,8 +245,6 @@ export default function ProcessOwnerDashboard() {
   const filteredDueSoon = isAll
     ? dueSoonMetrics
     : dueSoonMetrics.filter((m) => m.processOwner === selectedOwner);
-  const filteredDraftProcesses = filteredProcesses.filter((p) => p.status === "draft");
-
   // ── Health-based stat card data ──
   const processCount = filteredProcesses.length;
 
@@ -270,12 +295,6 @@ export default function ProcessOwnerDashboard() {
       }
     : null;
   const maturityLevel = getMaturityLevel(avgAdli);
-
-  // Status breakdown
-  const statusCounts: Record<string, number> = {};
-  for (const p of filteredProcesses) {
-    statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
-  }
 
   // Score map for ADLI bars
   const scoreMap = new Map<number, ScoreRow>();
@@ -341,11 +360,6 @@ export default function ProcessOwnerDashboard() {
       label: m.name,
       href: `/metric/${m.id}`,
       metricId: m.id,
-    })),
-    ...filteredDraftProcesses.map((p) => ({
-      type: "draft" as const,
-      label: p.name,
-      href: `/processes/${p.id}`,
     })),
   ];
 
@@ -497,28 +511,6 @@ export default function ProcessOwnerDashboard() {
               )}
             </Card>
 
-            {/* Status Breakdown */}
-            <Card padding="md">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                Status Breakdown
-              </h2>
-              <div className="space-y-2">
-                {Object.entries(STATUS_LABELS).map(([status, label]) => {
-                  const count = statusCounts[status] || 0;
-                  if (count === 0) return null;
-                  return (
-                    <div key={status} className="flex items-center justify-between">
-                      <Badge color={STATUS_BADGE_COLORS[status] || "gray"} dot size="sm">
-                        {label}
-                      </Badge>
-                      <span className="text-sm font-bold text-nia-dark">
-                        {count}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
           </div>
 
           {/* Right column: Action Items + My Next Actions + My Processes */}
@@ -728,12 +720,6 @@ export default function ProcessOwnerDashboard() {
                             </svg>
                           )}
                         </div>
-                        <Badge
-                          color={STATUS_BADGE_COLORS[proc.status] || "gray"}
-                          size="xs"
-                        >
-                          {STATUS_LABELS[proc.status] || proc.status}
-                        </Badge>
                       </div>
                       {score && (
                         <div className="grid grid-cols-4 gap-2">

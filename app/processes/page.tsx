@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import type { ProcessStatus } from "@/lib/types";
 import { CategoryGridSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 import EmptyState from "@/components/empty-state";
@@ -10,52 +9,13 @@ import { Button, Badge, Card, Select } from "@/components/ui";
 import HealthRing from "@/components/health-ring";
 import { type HealthResult } from "@/lib/process-health";
 import { fetchHealthData, type ProcessWithCategory } from "@/lib/fetch-health-data";
+import { formatRelativeTime, getFreshnessColor, getFreshnessDays } from "@/lib/formatting";
 
 interface CategorySummary {
   id: number;
   name: string;
   display_name: string;
   process_count: number;
-  approved_count: number;
-  in_progress_count: number; // ready_for_review
-}
-
-const STATUS_CONFIG: Record<ProcessStatus, { label: string; badgeColor: "gray" | "orange" | "green" }> = {
-  draft: { label: "Draft", badgeColor: "gray" },
-  ready_for_review: { label: "Ready for Review", badgeColor: "orange" },
-  approved: { label: "Approved", badgeColor: "green" },
-};
-
-const STATUS_OPTIONS: ProcessStatus[] = [
-  "draft",
-  "ready_for_review",
-  "approved",
-];
-
-// Format an ISO date string as relative time ("3 days ago", "2 months ago")
-function formatRelativeTime(dateStr: string): string {
-  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  if (days < 14) return "1 week ago";
-  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-  if (days < 60) return "1 month ago";
-  if (days < 365) return `${Math.floor(days / 30)} months ago`;
-  return `${Math.floor(days / 365)}y ago`;
-}
-
-// Color for freshness: green (≤30d), gray (31-60d), orange (61-90d), red (90+d)
-function getFreshnessColor(dateStr: string): string {
-  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
-  if (days <= 30) return "#b1bd37"; // NIA green
-  if (days <= 60) return "#9ca3af"; // gray
-  if (days <= 90) return "#f79935"; // NIA orange
-  return "#dc2626"; // red
-}
-
-function getFreshnessDays(dateStr: string): number {
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
 }
 
 export default function ProcessesPage() {
@@ -65,7 +25,6 @@ export default function ProcessesPage() {
   const [lastActivityMap, setLastActivityMap] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<number | null>(null);
-  const [filterStatus, setFilterStatus] = useState<ProcessStatus | null>(null);
   const [showKeyOnly, setShowKeyOnly] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "health">("name");
 
@@ -86,15 +45,11 @@ export default function ProcessesPage() {
       // Build category summaries (page-specific)
       const catSummaries: CategorySummary[] = cats.map((c) => {
         const catProcesses = procs.filter((p) => p.category_id === c.id);
-        const approved = catProcesses.filter((p) => p.status === "approved").length;
-        const inProgress = catProcesses.filter((p) => p.status === "ready_for_review").length;
         return {
           id: c.id,
           name: c.name,
           display_name: c.display_name,
           process_count: catProcesses.length,
-          approved_count: approved,
-          in_progress_count: inProgress,
         };
       });
 
@@ -173,7 +128,6 @@ export default function ProcessesPage() {
   const filtered = useMemo(() => {
     const result = processes.filter((p) => {
       if (filterCategory !== null && p.category_id !== filterCategory) return false;
-      if (filterStatus !== null && p.status !== filterStatus) return false;
       if (showKeyOnly && !p.is_key) return false;
       return true;
     });
@@ -185,7 +139,7 @@ export default function ProcessesPage() {
       });
     }
     return result;
-  }, [processes, filterCategory, filterStatus, showKeyOnly, sortBy, healthScores]);
+  }, [processes, filterCategory, showKeyOnly, sortBy, healthScores]);
 
   if (loading) return <CategoryGridSkeleton />;
 
@@ -215,7 +169,7 @@ export default function ProcessesPage() {
             </Button>
           )}
           <Button variant="secondary" size="md" href="/processes/import">
-            Import Processes
+            Import from Asana
           </Button>
           <Button variant="primary" size="md" href="/processes/new">
             + Create New Process
@@ -235,10 +189,6 @@ export default function ProcessesPage() {
               ? processes.filter((p) => p.category_id === cat.id && p.is_key)
               : processes.filter((p) => p.category_id === cat.id);
             const count = catProcesses.length;
-            const approved = catProcesses.filter((p) => p.status === "approved").length;
-            const inProgress = catProcesses.filter((p) =>
-              p.status === "ready_for_review"
-            ).length;
             const isEmpty = count === 0;
             const isSelected = filterCategory === cat.id;
 
@@ -261,23 +211,9 @@ export default function ProcessesPage() {
                 <div className={`text-xs font-medium mt-1 leading-tight ${isEmpty ? "text-nia-red" : "text-nia-dark"}`}>
                   {cat.display_name}
                 </div>
-                {isEmpty ? (
+                {isEmpty && (
                   <div className="text-xs mt-1 text-nia-red">
                     No processes
-                  </div>
-                ) : (
-                  <div className="text-xs mt-1 text-gray-500 space-x-1">
-                    {approved > 0 && (
-                      <span className="text-nia-green">{approved} approved</span>
-                    )}
-                    {inProgress > 0 && (
-                      <span className="text-nia-orange">{inProgress} in review</span>
-                    )}
-                    {count - approved - inProgress > 0 && (
-                      <span>
-                        {count - approved - inProgress} draft
-                      </span>
-                    )}
                   </div>
                 )}
               </button>
@@ -314,23 +250,6 @@ export default function ProcessesPage() {
           ))}
         </Select>
         <Select
-          value={filterStatus ?? ""}
-          onChange={(e) =>
-            setFilterStatus(
-              e.target.value ? (e.target.value as ProcessStatus) : null
-            )
-          }
-          size="sm"
-          className="w-auto"
-        >
-          <option value="">All Statuses</option>
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_CONFIG[s].label}
-            </option>
-          ))}
-        </Select>
-        <Select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as "name" | "health")}
           size="sm"
@@ -339,11 +258,10 @@ export default function ProcessesPage() {
           <option value="name">Sort: A-Z</option>
           <option value="health">Sort: Needs Attention</option>
         </Select>
-        {(filterCategory !== null || filterStatus !== null || showKeyOnly || sortBy !== "name") && (
+        {(filterCategory !== null || showKeyOnly || sortBy !== "name") && (
           <button
             onClick={() => {
               setFilterCategory(null);
-              setFilterStatus(null);
               setShowKeyOnly(false);
               setSortBy("name");
             }}
@@ -422,7 +340,6 @@ export default function ProcessesPage() {
                   {editMode && <th className="px-4 py-3 w-10"></th>}
                   <th className="px-4 py-3">Process</th>
                   <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Health</th>
                   <th className="px-4 py-3">Last Activity</th>
                   <th className="px-4 py-3">Owner</th>
@@ -480,11 +397,6 @@ export default function ProcessesPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {process.category_display_name}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge color={STATUS_CONFIG[process.status].badgeColor} size="sm">
-                        {STATUS_CONFIG[process.status].label}
-                      </Badge>
                     </td>
                     <td className="px-4 py-3">
                       {(() => {
@@ -583,20 +495,13 @@ export default function ProcessesPage() {
                         )}
                       </div>
                     </div>
-                    <Badge
-                      color={STATUS_CONFIG[process.status].badgeColor}
-                      size="xs"
-                      className="flex-shrink-0"
-                    >
-                      {STATUS_CONFIG[process.status].label}
-                    </Badge>
                   </div>
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                     {(() => {
                       const health = healthScores.get(process.id);
                       if (!health) return null;
                       return (
-                        <span className="flex items-center gap-1.5">
+                        <span className="flex items-center gap-1.5" title={`Health: ${health.total} — ${health.level.label}`}>
                           <HealthRing score={health.total} color={health.level.color} size={24} strokeWidth={2.5} className="text-[9px]" />
                           <span style={{ color: health.level.color }}>{health.level.label}</span>
                         </span>
@@ -667,6 +572,9 @@ export default function ProcessesPage() {
           </div>
         </div>
       )}
+
+      {/* Bottom padding when floating bar is visible */}
+      {editMode && <div className="h-20" />}
     </div>
   );
 }

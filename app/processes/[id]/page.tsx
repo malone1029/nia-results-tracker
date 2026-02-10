@@ -25,6 +25,7 @@ import ImprovementStepper from "@/components/improvement-stepper";
 import { STEPS, getPrimaryAction } from "@/lib/step-actions";
 import ProcessHealthCard from "@/components/process-health-card";
 import MilestoneToast from "@/components/milestone-toast";
+import ConfirmDeleteModal from "@/components/confirm-delete-modal";
 import AdliRadar from "@/components/adli-radar";
 import { calculateHealthScore, type HealthResult, type HealthMetricInput } from "@/lib/process-health";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
@@ -625,46 +626,51 @@ function ProcessDetailContent() {
         </div>
       )}
 
-      {/* Asana export confirmation */}
+      {/* Asana export dialog — radio-based option picker */}
       {asanaConfirm && (
         <div className="bg-nia-grey-blue/10 border border-nia-grey-blue rounded-lg p-4">
-          <p className="text-sm text-nia-dark mb-1 font-medium">Export to Asana</p>
-          {!asanaPickerOpen ? (
-            <>
-              <p className="text-sm text-gray-600 mb-3">
-                {process.asana_project_gid
-                  ? "Sync the linked project, link to a different project, or create a new one."
-                  : `Create a new Asana project or link to an existing one.`}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {process.asana_project_gid && (
-                  <Button variant="success" size="sm" onClick={() => handleAsanaExport(false)} disabled={asanaExporting} loading={asanaExporting}>
-                    {asanaExporting ? "Syncing..." : "Sync Linked Project"}
-                  </Button>
-                )}
-                <Button variant="secondary" size="sm" onClick={() => { setAsanaPickerOpen(true); loadAsanaProjects(); }} disabled={asanaExporting}>
-                  Link to Existing Project
-                </Button>
-                <Button size="sm" onClick={() => handleAsanaExport(true)} disabled={asanaExporting} loading={asanaExporting}>
-                  {asanaExporting ? "Creating..." : "Create New Project"}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setAsanaConfirm(false)}>
-                  Cancel
-                </Button>
+          <p className="text-sm text-nia-dark mb-3 font-medium">Export to Asana</p>
+          <div className="space-y-2 mb-4">
+            {process.asana_project_gid && (
+              <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${!asanaPickerOpen && !asanaExporting ? "border-nia-grey-blue bg-white" : "border-gray-200 hover:border-nia-grey-blue/50"}`}>
+                <input
+                  type="radio"
+                  name="asana-export"
+                  checked={!asanaPickerOpen}
+                  onChange={() => setAsanaPickerOpen(false)}
+                  className="mt-0.5 accent-[#55787c]"
+                />
+                <div>
+                  <p className="text-sm font-medium text-nia-dark">Sync linked project</p>
+                  <p className="text-xs text-gray-500">Update the currently linked Asana project with latest content</p>
+                </div>
+              </label>
+            )}
+            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${asanaPickerOpen ? "border-nia-grey-blue bg-white" : "border-gray-200 hover:border-nia-grey-blue/50"}`}>
+              <input
+                type="radio"
+                name="asana-export"
+                checked={asanaPickerOpen}
+                onChange={() => { setAsanaPickerOpen(true); loadAsanaProjects(); }}
+                className="mt-0.5 accent-[#55787c]"
+              />
+              <div>
+                <p className="text-sm font-medium text-nia-dark">Link to existing project</p>
+                <p className="text-xs text-gray-500">Choose an Asana project to connect</p>
               </div>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-gray-600 mb-3">
-                Select an Asana project to link and sync with this process.
-              </p>
+            </label>
+          </div>
+
+          {/* Project picker — shown when "Link to existing" is selected */}
+          {asanaPickerOpen && (
+            <div className="mb-4">
               {asanaProjectsLoading && (
                 <p className="text-sm text-nia-grey-blue py-2">Loading projects...</p>
               )}
               {!asanaProjectsLoading && asanaProjects.length > 0 && (
                 <>
                   <Input value={asanaSearch} onChange={(e) => setAsanaSearch(e.target.value)} placeholder="Search projects..." className="mb-3" />
-                  <div className="space-y-1.5 max-h-64 overflow-y-auto mb-3">
+                  <div className="space-y-1.5 max-h-[50vh] overflow-y-auto">
                     {asanaProjects
                       .filter((p) => p.name.toLowerCase().includes(asanaSearch.toLowerCase()))
                       .map((project) => (
@@ -682,7 +688,7 @@ function ProcessDetailContent() {
                             </div>
                           </div>
                           <Button size="xs" onClick={() => handleLinkToProject(project.gid)} disabled={asanaExporting} loading={asanaExporting} className="flex-shrink-0">
-                            {asanaExporting ? "Linking..." : "Link"}
+                            {asanaExporting ? "Linking..." : "Link & Sync"}
                           </Button>
                         </div>
                       ))}
@@ -692,11 +698,25 @@ function ProcessDetailContent() {
               {!asanaProjectsLoading && asanaProjects.length === 0 && !asanaError && (
                 <p className="text-sm text-gray-400 py-2">No projects found in your Asana workspace.</p>
               )}
-              <Button variant="ghost" size="sm" onClick={() => { setAsanaPickerOpen(false); setAsanaSearch(""); }}>
-                &larr; Back
-              </Button>
-            </>
+            </div>
           )}
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            {!asanaPickerOpen && (
+              <Button size="sm" onClick={() => handleAsanaExport(false)} disabled={asanaExporting} loading={asanaExporting}>
+                {asanaExporting ? "Syncing..." : process.asana_project_gid ? "Sync Now" : "Create New Project"}
+              </Button>
+            )}
+            {!process.asana_project_gid && !asanaPickerOpen && (
+              <Button size="sm" onClick={() => handleAsanaExport(true)} disabled={asanaExporting} loading={asanaExporting}>
+                {asanaExporting ? "Creating..." : "Create New Project"}
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => { setAsanaConfirm(false); setAsanaPickerOpen(false); setAsanaSearch(""); }}>
+              Cancel
+            </Button>
+          </div>
         </div>
       )}
 
@@ -735,16 +755,12 @@ function ProcessDetailContent() {
 
       {/* Delete confirmation */}
       {deleteConfirm && (
-        <Card accent="red" padding="sm">
-          <p className="text-red-700 text-sm mb-3">
-            Are you sure you want to delete &quot;{process.name}&quot;? This
-            cannot be undone. Linked metrics will be preserved but unlinked.
-          </p>
-          <div className="flex gap-2">
-            <Button variant="danger" size="sm" onClick={handleDelete}>Delete</Button>
-            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(false)}>Cancel</Button>
-          </div>
-        </Card>
+        <ConfirmDeleteModal
+          title={`Delete "${process.name}"?`}
+          description="This cannot be undone. Linked metrics will be preserved but unlinked from this process."
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteConfirm(false)}
+        />
       )}
 
       {/* Health Score Card */}

@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 interface HealthRingProps {
   score: number; // 0-100
@@ -15,7 +15,7 @@ interface HealthRingProps {
   className?: string;
 }
 
-export default function HealthRing({
+const HealthRing = memo(function HealthRing({
   score,
   color,
   size = 44,
@@ -91,4 +91,6 @@ export default function HealthRing({
       )}
     </div>
   );
-}
+});
+
+export default HealthRing;
