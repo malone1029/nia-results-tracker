@@ -22,6 +22,7 @@ import MarkdownContent from "@/components/markdown-content";
 import AiChatPanel from "@/components/ai-chat-panel";
 import TaskReviewPanel from "@/components/task-review-panel";
 import ImprovementStepper from "@/components/improvement-stepper";
+import { STEPS } from "@/lib/step-actions";
 import ProcessHealthCard from "@/components/process-health-card";
 import MilestoneToast from "@/components/milestone-toast";
 import { calculateHealthScore, type HealthResult, type HealthMetricInput } from "@/lib/process-health";
@@ -145,6 +146,8 @@ function ProcessDetailContent() {
   const [asanaResyncResult, setAsanaResyncResult] = useState<{ tasks: number; subtasks: number } | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<{ id: number; file_name: string; file_type: string; file_size: number; uploaded_at: string }[]>([]);
   const [healthResult, setHealthResult] = useState<HealthResult | null>(null);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const [hasAsanaToken, setHasAsanaToken] = useState<boolean | null>(null);
 
   async function fetchProcess() {
       // Fetch process with category name
@@ -348,6 +351,13 @@ function ProcessDetailContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchProcess(); }, [id]);
 
+  // Check if user has an Asana token (for nudge card)
+  useEffect(() => {
+    fetch("/api/asana/status").then((r) => r.ok ? r.json() : null).then((d) => {
+      setHasAsanaToken(d?.connected ?? false);
+    }).catch(() => setHasAsanaToken(false));
+  }, []);
+
   async function fetchAvailableMetrics() {
     // Get metric IDs already linked to this process
     const { data: existingLinks } = await supabase
@@ -543,7 +553,7 @@ function ProcessDetailContent() {
       </Link>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div id="section-top" className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold text-nia-dark">{process.name}</h1>
@@ -741,8 +751,8 @@ function ProcessDetailContent() {
         allMetricsCurrent={metrics.length > 0 && metrics.every((m) => m.review_status === "current")}
       />
 
-      {/* Improvement Stepper — only shown when linked to Asana */}
-      {process.asana_project_gid && process.guided_step && (
+      {/* Improvement Stepper — or Asana nudge for unlinked processes */}
+      {process.asana_project_gid && process.guided_step ? (
         <ImprovementStepper
           currentStep={process.guided_step}
           onStepClick={async (step) => {
@@ -755,8 +765,56 @@ function ProcessDetailContent() {
               setProcess({ ...process, guided_step: step });
             }
           }}
+          onAction={async (step, _actionKey, prompt) => {
+            // 1. Update guided_step
+            const res = await fetch("/api/processes/step", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ processId: process.id, step }),
+            });
+            if (res.ok) {
+              setProcess((prev) => prev ? { ...prev, guided_step: step } : prev);
+            }
+            // 2. Find the action definition for scroll/tab info
+            const stepDef = STEPS.find((s) => s.key === step);
+            const actionDef = stepDef?.actions.find((a) => a.key === _actionKey);
+            // 3. Switch to tasks tab if needed
+            if (actionDef?.switchTab === "tasks") {
+              setActiveTab("tasks");
+            }
+            // 4. Send prompt to AI panel
+            setPendingPrompt(prompt);
+            // 5. Scroll to relevant section after a short delay
+            setTimeout(() => {
+              const target = actionDef?.scrollTarget || "section-top";
+              document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 200);
+          }}
         />
-      )}
+      ) : !process.asana_project_gid ? (
+        <Card accent="orange" padding="sm">
+          <div className="flex items-center gap-3 px-1">
+            <div className="w-10 h-10 rounded-full bg-nia-orange/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-nia-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-nia-dark">Link to Asana to unlock guided coaching</p>
+              <p className="text-xs text-gray-500">Connect this process to an Asana project to get step-by-step AI guidance through the improvement cycle.</p>
+            </div>
+            {hasAsanaToken === false ? (
+              <Link href="/settings" className="text-sm font-medium text-nia-orange hover:text-nia-dark transition-colors whitespace-nowrap">
+                Connect Asana &rarr;
+              </Link>
+            ) : (
+              <Button size="sm" variant="success" onClick={() => setAsanaConfirm(true)}>
+                Link to Asana
+              </Button>
+            )}
+          </div>
+        </Card>
+      ) : null}
 
       {/* Tab switcher */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
@@ -789,7 +847,9 @@ function ProcessDetailContent() {
 
       {/* Tasks tab */}
       {activeTab === "tasks" && (
-        <TaskReviewPanel processId={process.id} onTaskCountChange={setTaskCount} />
+        <div id="section-tasks">
+          <TaskReviewPanel processId={process.id} onTaskCountChange={setTaskCount} />
+        </div>
       )}
 
       {/* Content tab */}
@@ -821,7 +881,7 @@ function ProcessDetailContent() {
       </Card>
 
       {/* Metrics & Results — prominent position before documentation */}
-      <Section title={`Metrics & Results (${metrics.length})`}>
+      <Section title={`Metrics & Results (${metrics.length})`} id="section-metrics">
         {metrics.length > 0 ? (
           <div className="space-y-2">
             {metrics.map((m) => {
@@ -984,7 +1044,7 @@ function ProcessDetailContent() {
       )}
 
       {/* Charter & ADLI Sections */}
-      <Section title="Charter">
+      <Section title="Charter" id="section-charter">
             {process.charter ? (
               process.charter.content ? (
                 <MarkdownContent content={process.charter.content} />
@@ -1028,7 +1088,7 @@ function ProcessDetailContent() {
             )}
           </Section>
 
-          <AdliSection title="Approach" data={process.adli_approach} />
+          <AdliSection title="Approach" data={process.adli_approach} id="section-adli" />
           <AdliSection title="Deployment" data={process.adli_deployment} />
           <AdliSection title="Learning" data={process.adli_learning} />
           <AdliSection title="Integration" data={process.adli_integration} />
@@ -1287,7 +1347,7 @@ function ProcessDetailContent() {
       </>}
 
       {/* AI Chat Panel */}
-      <AiChatPanel processId={process.id} processName={process.name} onProcessUpdated={fetchProcess} autoAnalyze={autoAnalyze} guidedStep={process.guided_step} />
+      <AiChatPanel processId={process.id} processName={process.name} onProcessUpdated={fetchProcess} autoAnalyze={autoAnalyze} guidedStep={process.guided_step} pendingPrompt={pendingPrompt} onPromptConsumed={() => setPendingPrompt(null)} />
     </div>
   );
 }
@@ -1297,13 +1357,15 @@ function ProcessDetailContent() {
 function Section({
   title,
   children,
+  id,
 }: {
   title: string;
   children: React.ReactNode;
+  id?: string;
 }) {
   const [isOpen, setIsOpen] = useState(true);
   return (
-    <Card accent="orange" className="overflow-hidden">
+    <Card accent="orange" className="overflow-hidden" id={id}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
@@ -1362,13 +1424,15 @@ function Field({
 function AdliSection({
   title,
   data,
+  id,
 }: {
   title: string;
   data: AdliApproach | AdliDeployment | AdliLearning | AdliIntegration | null;
+  id?: string;
 }) {
   if (!data) {
     return (
-      <Section title={`ADLI: ${title}`}>
+      <Section title={`ADLI: ${title}`} id={id}>
         <EmptyText />
       </Section>
     );
@@ -1377,14 +1441,14 @@ function AdliSection({
   // If full content was imported, show that instead of individual fields
   if ("content" in data && data.content) {
     return (
-      <Section title={`ADLI: ${title}`}>
+      <Section title={`ADLI: ${title}`} id={id}>
         <MarkdownContent content={data.content} />
       </Section>
     );
   }
 
   return (
-    <Section title={`ADLI: ${title}`}>
+    <Section title={`ADLI: ${title}`} id={id}>
       <div className="space-y-3">
         {Object.entries(data).map(([key, value]) => {
           if (key === "content") return null;

@@ -1,31 +1,21 @@
 "use client";
 
+import { STEPS, getStepIndex } from "@/lib/step-actions";
+
 interface ImprovementStepperProps {
   currentStep: string;
   onStepClick?: (step: string) => void;
+  onAction?: (step: string, actionKey: string, prompt: string) => void;
 }
 
-const STEPS = [
-  { key: "start", label: "Start", shortLabel: "Start" },
-  { key: "charter", label: "Charter", shortLabel: "Charter" },
-  { key: "assessment", label: "Assessment", shortLabel: "Assess" },
-  { key: "deep_dive", label: "Deep Dive", shortLabel: "Dive" },
-  { key: "tasks", label: "Tasks", shortLabel: "Tasks" },
-  { key: "export", label: "Export", shortLabel: "Export" },
-];
-
-function getStepIndex(step: string): number {
-  const idx = STEPS.findIndex((s) => s.key === step);
-  return idx >= 0 ? idx : 0;
-}
-
-export default function ImprovementStepper({ currentStep, onStepClick }: ImprovementStepperProps) {
+export default function ImprovementStepper({ currentStep, onStepClick, onAction }: ImprovementStepperProps) {
   const currentIndex = getStepIndex(currentStep === "complete" ? "export" : currentStep);
   const isComplete = currentStep === "complete";
 
   return (
-    <div className="bg-white rounded-lg shadow px-4 py-3">
-      <div className="flex items-center justify-between text-xs mb-2">
+    <div className="bg-white rounded-lg shadow px-4 py-3 space-y-2">
+      {/* Step progress bar */}
+      <div className="flex items-center justify-between text-xs mb-1">
         <span className="font-medium text-gray-500 uppercase tracking-wider">Improvement Cycle</span>
         {isComplete && (
           <span className="text-nia-green font-semibold">Cycle Complete</span>
@@ -39,7 +29,6 @@ export default function ImprovementStepper({ currentStep, onStepClick }: Improve
 
           return (
             <div key={step.key} className="flex items-center flex-1">
-              {/* Step indicator */}
               <button
                 onClick={() => onStepClick?.(step.key)}
                 className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors w-full justify-center ${
@@ -71,7 +60,6 @@ export default function ImprovementStepper({ currentStep, onStepClick }: Improve
                 </span>
               </button>
 
-              {/* Connector line between steps */}
               {idx < STEPS.length - 1 && (
                 <div
                   className={`h-0.5 w-1.5 flex-shrink-0 ${
@@ -83,6 +71,73 @@ export default function ImprovementStepper({ currentStep, onStepClick }: Improve
           );
         })}
       </div>
+
+      {/* Action buttons for current step */}
+      {onAction && !isComplete && (
+        <StepActionButtons
+          step={STEPS[currentIndex]}
+          isActive={true}
+          onAction={onAction}
+        />
+      )}
+    </div>
+  );
+}
+
+function StepActionButtons({
+  step,
+  isActive,
+  onAction,
+}: {
+  step: (typeof STEPS)[number];
+  isActive: boolean;
+  onAction: (step: string, actionKey: string, prompt: string) => void;
+}) {
+  const isMuted = step.prominence === "muted";
+  // For assessment step: first two actions (assessment + metrics) are both primary
+  const isAssessment = step.key === "assessment";
+  const primaryActions = isAssessment ? step.actions.slice(0, 2) : step.actions.slice(0, 1);
+  const secondaryActions = isAssessment ? step.actions.slice(2) : step.actions.slice(1);
+
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-1">
+      {/* Primary action button(s) */}
+      {primaryActions.map((action) => (
+        <button
+          key={action.key}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAction(step.key, action.key, action.prompt);
+          }}
+          className={`text-xs font-medium rounded-full px-3 py-1.5 transition-colors ${
+            isActive && !isMuted
+              ? "bg-nia-dark text-white hover:bg-nia-grey-blue"
+              : isActive && isMuted
+              ? "bg-nia-dark/10 text-nia-dark hover:bg-nia-dark/20"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+          title={action.description}
+        >
+          <span className="hidden sm:inline">{action.label}</span>
+          <span className="sm:hidden">{action.shortLabel}</span>
+        </button>
+      ))}
+
+      {/* Secondary action buttons */}
+      {secondaryActions.map((action) => (
+        <button
+          key={action.key}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAction(step.key, action.key, action.prompt);
+          }}
+          className="text-xs font-medium rounded-full px-3 py-1.5 border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-nia-dark transition-colors"
+          title={action.description}
+        >
+          <span className="hidden sm:inline">{action.label}</span>
+          <span className="sm:hidden">{action.shortLabel}</span>
+        </button>
+      ))}
     </div>
   );
 }

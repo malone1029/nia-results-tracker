@@ -345,8 +345,8 @@ export default function ProcessOwnerDashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Link href="/readiness">
-          <Card variant="elevated" padding="sm" className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+        <Link href="/readiness" className="h-full">
+          <Card variant="elevated" padding="sm" className="p-4 h-full hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center gap-3">
               {healthCount > 0 ? (
                 <HealthRing score={avgHealth} color={healthLevel.color} size={48} strokeWidth={4} />
@@ -655,7 +655,7 @@ function StatCard({
   href?: string;
 }) {
   const card = (
-    <Card variant="elevated" padding="sm" className={`p-4 ${glow ? `glow-${glow}` : ""} ${href ? "hover:shadow-md transition-shadow cursor-pointer" : ""}`}>
+    <Card variant="elevated" padding="sm" className={`p-4 h-full ${glow ? `glow-${glow}` : ""} ${href ? "hover:shadow-md transition-shadow cursor-pointer" : ""}`}>
       <div className="text-2xl font-bold font-display number-pop" style={{ color }}>
         {value}
       </div>
@@ -669,7 +669,7 @@ function StatCard({
   );
 
   if (href) {
-    return <Link href={href}>{card}</Link>;
+    return <Link href={href} className="h-full">{card}</Link>;
   }
   return card;
 }
