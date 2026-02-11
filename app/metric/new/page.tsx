@@ -148,7 +148,7 @@ function NewMetricContent() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Breadcrumb */}
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-text-tertiary">
         <Link href="/" className="hover:text-nia-grey-blue">Dashboard</Link>
         {preselectedProcessId && (
           <>
@@ -171,7 +171,7 @@ function NewMetricContent() {
         <div className="bg-nia-grey-blue/5 border border-nia-grey-blue/20 rounded-lg p-4 space-y-3">
           <div>
             <span className="font-medium text-nia-dark">Linked Processes *</span>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-text-tertiary mt-1">
               Select the processes this metric provides evidence for. A metric can be linked to multiple processes.
             </p>
           </div>
@@ -183,7 +183,7 @@ function NewMetricContent() {
             }
             return Array.from(groups.entries()).map(([cat, procs]) => (
               <div key={cat}>
-                <div className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">
+                <div className="text-xs font-medium uppercase tracking-wider text-text-muted mb-1">
                   {cat}
                 </div>
                 <div className="space-y-1 ml-1">
@@ -254,7 +254,7 @@ function NewMetricContent() {
         <div className="bg-nia-grey-blue/5 border border-nia-grey-blue/20 rounded-lg p-4 space-y-3">
           <div>
             <span className="font-medium text-nia-dark">Key Requirements (LeTCI Integration)</span>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-text-tertiary mt-1">
               Select the stakeholder requirements this metric provides evidence for.
               Linking to at least one requirement marks this metric as Integrated (LeTCI).
             </p>
@@ -267,7 +267,7 @@ function NewMetricContent() {
             }
             return Array.from(groups.entries()).map(([group, reqs]) => (
               <div key={group}>
-                <div className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">
+                <div className="text-xs font-medium uppercase tracking-wider text-text-muted mb-1">
                   {reqs[0].stakeholder_segment} — {group}
                 </div>
                 <div className="space-y-1 ml-1">

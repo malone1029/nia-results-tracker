@@ -237,7 +237,7 @@ export default function CategoriesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-nia-dark">Categories &amp; Processes</h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-text-tertiary mt-1">
             Metrics organized by Baldrige Category and process
           </p>
         </div>
@@ -269,7 +269,7 @@ export default function CategoriesPage() {
             className={`rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${cat.totalMetrics === 0 ? "" : ""}`}
             style={{ backgroundColor: cat.totalMetrics === 0 ? "#dc262608" : "#324a4d08", borderTop: `3px solid ${cat.totalMetrics === 0 ? "#dc2626" : "#55787c"}` }}
           >
-            <div className="text-xs text-gray-400 uppercase mb-1">
+            <div className="text-xs text-text-muted uppercase mb-1">
               Category {cat.sort_order}
             </div>
             <div className={`font-bold text-sm ${cat.totalMetrics === 0 ? "text-nia-red" : "text-nia-dark"}`}>{cat.display_name}</div>
@@ -284,13 +284,13 @@ export default function CategoriesPage() {
                   <span className="text-lg font-bold text-nia-dark">
                     {cat.totalWithData}
                   </span>
-                  <span className="text-gray-400 text-sm"> / {cat.totalMetrics}</span>
+                  <span className="text-text-muted text-sm"> / {cat.totalMetrics}</span>
                 </div>
-                <div className="text-xs text-gray-400">metrics with data</div>
+                <div className="text-xs text-text-muted">metrics with data</div>
               </>
             )}
             {/* Progress bar */}
-            <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="mt-2 h-2 bg-surface-subtle rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full"
                 style={{
@@ -312,17 +312,17 @@ export default function CategoriesPage() {
             {/* Category header — clickable to expand */}
             <button
               onClick={() => toggleCategory(cat.id)}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-hover transition-colors text-left"
             >
               <div className="flex items-center gap-3">
-                <span className="text-gray-400 text-sm">
+                <span className="text-text-muted text-sm">
                   {isCatExpanded ? "▼" : "▶"}
                 </span>
                 <div>
                   <span className="text-lg font-bold text-nia-dark">
                     Category {cat.sort_order}: {cat.display_name}
                   </span>
-                  <span className="text-sm text-gray-400 ml-3">
+                  <span className="text-sm text-text-muted ml-3">
                     {cat.processes.length} process{cat.processes.length !== 1 ? "es" : ""} &middot;{" "}
                     {cat.totalWithData} of {cat.totalMetrics} metrics with data
                   </span>
@@ -332,9 +332,9 @@ export default function CategoriesPage() {
 
             {/* Expanded process list */}
             {isCatExpanded && (
-              <div className="border-t border-gray-100 p-4 space-y-3">
+              <div className="border-t border-border-light p-4 space-y-3">
                 {cat.processes.length === 0 && (
-                  <p className="text-sm text-gray-400 italic py-2">
+                  <p className="text-sm text-text-muted italic py-2">
                     No processes or metrics in this category yet. This is a gap to address.
                   </p>
                 )}
@@ -345,21 +345,21 @@ export default function CategoriesPage() {
                   ).length;
 
                   return (
-                    <div key={proc.id} className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200 border-l-4 border-l-nia-orange">
+                    <div key={proc.id} className="bg-surface-hover rounded-lg overflow-hidden border border-border border-l-4 border-l-nia-orange">
                       {/* Process header — clickable to expand */}
                       <button
                         onClick={() => toggleProcess(proc.id)}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 transition-colors text-left"
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-subtle transition-colors text-left"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-gray-400 text-sm">
+                          <span className="text-text-muted text-sm">
                             {isExpanded ? "▼" : "▶"}
                           </span>
                           <span className="font-medium text-nia-dark">
                             {proc.is_key && <span className="text-nia-orange mr-1">&#9733;</span>}
                             {proc.name}
                           </span>
-                          <span className="text-sm text-gray-400">
+                          <span className="text-sm text-text-muted">
                             {proc.withData} of {proc.total} metrics with data
                           </span>
                         </div>
@@ -372,11 +372,11 @@ export default function CategoriesPage() {
 
                       {/* Expanded metric list */}
                       {isExpanded && (
-                        <div className="border-t border-gray-200">
+                        <div className="border-t border-border">
                           {/* Desktop table */}
                           <table className="hidden md:table w-full text-sm">
                             <thead>
-                              <tr className="bg-gray-100 text-gray-500 text-left text-xs uppercase">
+                              <tr className="bg-surface-subtle text-text-tertiary text-left text-xs uppercase">
                                 <th className="px-4 py-2">Status</th>
                                 <th className="px-4 py-2">Metric</th>
                                 <th className="px-4 py-2">Cadence</th>
@@ -390,7 +390,7 @@ export default function CategoriesPage() {
                               {proc.metrics.map((metric) => (
                                 <tr
                                   key={metric.id}
-                                  className="border-t border-gray-200 hover:bg-gray-100"
+                                  className="border-t border-border hover:bg-surface-subtle"
                                 >
                                   <td className="px-4 py-2">
                                     <Badge
@@ -408,21 +408,21 @@ export default function CategoriesPage() {
                                       {metric.name}
                                     </Link>
                                   </td>
-                                  <td className="px-4 py-2 text-gray-500 capitalize">
+                                  <td className="px-4 py-2 text-text-tertiary capitalize">
                                     {metric.cadence}
                                   </td>
-                                  <td className="px-4 py-2 text-gray-400">
+                                  <td className="px-4 py-2 text-text-muted">
                                     {metric.data_source || "—"}
                                   </td>
                                   <td className="px-4 py-2 text-right font-medium">
                                     {formatValue(metric.last_entry_value, metric.unit)}
                                   </td>
-                                  <td className="px-4 py-2 text-right text-gray-400">
+                                  <td className="px-4 py-2 text-right text-text-muted">
                                     {metric.target_value !== null
                                       ? formatValue(metric.target_value, metric.unit)
                                       : "TBD"}
                                   </td>
-                                  <td className="px-4 py-2 text-right text-gray-400">
+                                  <td className="px-4 py-2 text-right text-text-muted">
                                     {formatDate(metric.last_entry_date)}
                                   </td>
                                 </tr>
@@ -430,7 +430,7 @@ export default function CategoriesPage() {
                             </tbody>
                           </table>
                           {/* Mobile stacked cards */}
-                          <div className="md:hidden divide-y divide-gray-200">
+                          <div className="md:hidden divide-y divide-border">
                             {proc.metrics.map((metric) => (
                               <div key={metric.id} className="px-4 py-3 space-y-1">
                                 <div className="flex items-center justify-between">
@@ -447,7 +447,7 @@ export default function CategoriesPage() {
                                     {getStatusLabel(metric.review_status)}
                                   </Badge>
                                 </div>
-                                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-400">
+                                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-text-muted">
                                   <span className="capitalize">{metric.cadence}</span>
                                   {metric.data_source && <span>{metric.data_source}</span>}
                                   <span className="font-medium text-nia-dark">
@@ -455,7 +455,7 @@ export default function CategoriesPage() {
                                       ? formatValue(metric.last_entry_value, metric.unit)
                                       : "No data"}
                                     {metric.target_value !== null && (
-                                      <span className="text-gray-400 font-normal"> / {formatValue(metric.target_value, metric.unit)}</span>
+                                      <span className="text-text-muted font-normal"> / {formatValue(metric.target_value, metric.unit)}</span>
                                     )}
                                   </span>
                                   <span>{formatDate(metric.last_entry_date)}</span>

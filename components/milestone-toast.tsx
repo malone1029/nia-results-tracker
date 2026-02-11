@@ -117,7 +117,7 @@ export default function MilestoneToast({
       {toasts.map((toast) => (
         <div
           key={toast.key}
-          className="flex items-center gap-3 bg-white border border-nia-green/30 rounded-xl shadow-lg px-5 py-3.5 max-w-sm"
+          className="flex items-center gap-3 bg-card border border-nia-green/30 rounded-xl shadow-lg px-5 py-3.5 max-w-sm"
         >
           {toast.showRing && health ? (
             <HealthRing score={health.total} color={health.level.color} size={36} strokeWidth={3} className="text-[9px] flex-shrink-0" />
@@ -134,7 +134,7 @@ export default function MilestoneToast({
           </div>
           <button
             onClick={() => setToasts((prev) => prev.filter((t) => t.key !== toast.key))}
-            className="text-gray-400 hover:text-gray-600 text-lg leading-none flex-shrink-0 ml-1"
+            className="text-text-muted hover:text-text-secondary text-lg leading-none flex-shrink-0 ml-1"
             aria-label="Dismiss"
           >
             &times;

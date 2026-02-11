@@ -115,7 +115,7 @@ export default function AiInsightsPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-nia-dark">ADLI Insights</h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-text-tertiary mt-1">
           ADLI maturity scores across all assessed processes.
         </p>
       </div>
@@ -135,7 +135,7 @@ export default function AiInsightsPage() {
           <Card variant="elevated" className="overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr]">
               {/* Radar chart — generous space */}
-              <div className="flex items-center justify-center p-8 bg-gray-50/50 border-b md:border-b-0 md:border-r border-gray-100">
+              <div className="flex items-center justify-center p-8 bg-surface-hover border-b md:border-b-0 md:border-r border-border-light">
                 {dimAvgs && (
                   <AdliRadar
                     approach={dimAvgs.approach}
@@ -150,7 +150,7 @@ export default function AiInsightsPage() {
               {/* Stats panel */}
               <div className="p-6 flex flex-col justify-center space-y-5">
                 <div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                  <div className="text-xs text-text-tertiary uppercase tracking-wider mb-1">
                     Overall Maturity
                   </div>
                   <div className="flex items-baseline gap-2">
@@ -167,7 +167,7 @@ export default function AiInsightsPage() {
                       {orgLevel.label}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-400 mt-1">
+                  <div className="text-sm text-text-muted mt-1">
                     {filteredScores.length} process
                     {filteredScores.length !== 1 ? "es" : ""} assessed
                     {showKeyOnly && ` (key only)`}
@@ -175,7 +175,7 @@ export default function AiInsightsPage() {
                 </div>
 
                 {dimAvgs && (
-                  <div className="space-y-3 pt-3 border-t border-gray-100">
+                  <div className="space-y-3 pt-3 border-t border-border-light">
                     <DimBar label="Approach" score={dimAvgs.approach} />
                     <DimBar label="Deployment" score={dimAvgs.deployment} />
                     <DimBar label="Learning" score={dimAvgs.learning} />
@@ -197,8 +197,8 @@ export default function AiInsightsPage() {
               >
                 {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
               </Button>
-              <span className="text-gray-300">|</span>
-              <span className="text-gray-500">Sort:</span>
+              <span className="text-text-muted">|</span>
+              <span className="text-text-tertiary">Sort:</span>
               <Button
                 variant={sortBy === "category" ? "primary" : "ghost"}
                 size="xs"
@@ -220,7 +220,7 @@ export default function AiInsightsPage() {
           {sortBy === "score" ? (
             /* Flat list sorted by score (highest first) */
             <Card className="overflow-hidden">
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-border-light">
                 {[...filteredScores]
                   .sort((a, b) => b.overall_score - a.overall_score)
                   .map((s, rank) => {
@@ -229,11 +229,11 @@ export default function AiInsightsPage() {
                       <Link
                         key={s.process_id}
                         href={`/processes/${s.process_id}`}
-                        className="block px-5 py-3 hover:bg-gray-50 transition-colors"
+                        className="block px-5 py-3 hover:bg-surface-hover transition-colors"
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-xs text-gray-400 font-mono w-5">
+                            <span className="text-xs text-text-muted font-mono w-5">
                               {rank + 1}.
                             </span>
                             <span className="text-sm font-medium text-nia-dark truncate">
@@ -242,7 +242,7 @@ export default function AiInsightsPage() {
                             {s.processes.is_key && (
                               <Badge color="orange" size="xs" pill={false}>KEY</Badge>
                             )}
-                            <span className="text-[10px] text-gray-400 flex-shrink-0">
+                            <span className="text-[10px] text-text-muted flex-shrink-0">
                               {s.processes.categories.display_name}
                             </span>
                           </div>
@@ -261,7 +261,7 @@ export default function AiInsightsPage() {
                           <MiniBar label="I" score={s.integration_score} />
                         </div>
 
-                        <div className="text-[10px] text-gray-400 mt-1.5 pl-7">
+                        <div className="text-[10px] text-text-muted mt-1.5 pl-7">
                           Assessed {new Date(s.assessed_at).toLocaleDateString()}
                           {s.processes.owner && ` · Owner: ${s.processes.owner}`}
                         </div>
@@ -278,7 +278,7 @@ export default function AiInsightsPage() {
                 return (
                   <Card key={group.name} className="overflow-hidden">
                     {/* Category header */}
-                    <CardHeader className="bg-gray-50 flex items-center justify-between">
+                    <CardHeader className="bg-surface-hover flex items-center justify-between">
                       <h3 className="font-semibold text-nia-dark text-sm">{group.name}</h3>
                       <span
                         className="text-xs font-bold px-2.5 py-0.5 rounded-full text-white"
@@ -289,14 +289,14 @@ export default function AiInsightsPage() {
                     </CardHeader>
 
                     {/* Process rows */}
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y divide-border-light">
                       {group.processes.map((s) => {
                         const level = getMaturityLevel(s.overall_score);
                         return (
                           <Link
                             key={s.process_id}
                             href={`/processes/${s.process_id}`}
-                            className="block px-5 py-3 hover:bg-gray-50 transition-colors"
+                            className="block px-5 py-3 hover:bg-surface-hover transition-colors"
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2 min-w-0">
@@ -322,7 +322,7 @@ export default function AiInsightsPage() {
                               <MiniBar label="I" score={s.integration_score} />
                             </div>
 
-                            <div className="text-[10px] text-gray-400 mt-1.5">
+                            <div className="text-[10px] text-text-muted mt-1.5">
                               Assessed {new Date(s.assessed_at).toLocaleDateString()}
                               {s.processes.owner && ` · Owner: ${s.processes.owner}`}
                             </div>

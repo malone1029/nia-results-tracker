@@ -192,7 +192,7 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
 
     return (
       <div key={label}>
-        <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+        <div className="px-3 py-1.5 text-xs font-semibold text-text-muted uppercase tracking-wide">
           {label}
         </div>
         {items.map((item, i) => {
@@ -203,15 +203,15 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
               className={`w-full text-left px-3 py-2 flex flex-col transition-colors ${
                 idx === highlightIndex
                   ? "bg-nia-grey-blue/20"
-                  : "hover:bg-gray-50"
+                  : "hover:bg-surface-hover"
               }`}
               onMouseEnter={() => setHighlightIndex(idx)}
               onClick={() => navigate(item.href)}
             >
-              <span className="text-sm font-medium text-gray-800 truncate">
+              <span className="text-sm font-medium text-foreground truncate">
                 {item.title}
               </span>
-              <span className="text-xs text-gray-400 truncate">
+              <span className="text-xs text-text-muted truncate">
                 {item.subtitle}
               </span>
             </button>
@@ -240,7 +240,7 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
         {/* Magnifying glass icon */}
         <svg
           className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${
-            variant === "light" ? "text-gray-400" : "text-white/50"
+            variant === "light" ? "text-text-muted" : "text-white/50"
           }`}
           fill="none"
           stroke="currentColor"
@@ -265,7 +265,7 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
           placeholder="Search… ⌘K"
           className={`w-full text-sm rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 transition-colors ${
             variant === "light"
-              ? "bg-gray-100 text-gray-800 placeholder-gray-400 focus:ring-nia-grey-blue/30 focus:bg-gray-50"
+              ? "bg-surface-subtle text-foreground placeholder-text-muted focus:ring-nia-grey-blue/30 focus:bg-surface-hover"
               : "bg-white/15 text-white placeholder-white/50 focus:ring-nia-orange/50 focus:bg-white/25"
           }`}
         />
@@ -273,15 +273,15 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
 
       {/* Results dropdown */}
       {open && (
-        <div className="absolute top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 max-h-80 overflow-y-auto z-[60]">
+        <div className="absolute top-full mt-1 left-0 right-0 bg-card rounded-lg shadow-lg border border-border max-h-80 overflow-y-auto z-[60]">
           {loading && (
-            <div className="px-3 py-4 text-sm text-gray-400 text-center">
+            <div className="px-3 py-4 text-sm text-text-muted text-center">
               Searching…
             </div>
           )}
           {!loading && hasResults && renderDropdown()}
           {noResults && (
-            <div className="px-3 py-4 text-sm text-gray-400 text-center">
+            <div className="px-3 py-4 text-sm text-text-muted text-center">
               No results found
             </div>
           )}

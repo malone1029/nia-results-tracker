@@ -8,6 +8,7 @@ import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
 import EmptyState from "@/components/empty-state";
 import { Card, CardHeader, CardBody, Badge, Button, Input } from "@/components/ui";
+import { useRole } from "@/lib/use-role";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface MetricRow extends Metric {
@@ -48,6 +49,7 @@ const CADENCE_OPTIONS = ["daily", "weekly", "monthly", "quarterly", "semi-annual
 const UNIT_OPTIONS = ["%", "score", "count", "currency", "days", "rate"];
 
 export default function DataHealthPage() {
+  const { isAdmin } = useRole();
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
   const [sparklineData, setSparklineData] = useState<Map<number, number[]>>(new Map());
   const [processSummary, setProcessSummary] = useState<KeyProcessSummary | null>(null);
@@ -349,7 +351,7 @@ export default function DataHealthPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-nia-dark">Data Health</h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-text-tertiary mt-1">
             Metric review status, data coverage, and quick logging.
           </p>
         </div>
@@ -388,15 +390,15 @@ export default function DataHealthPage() {
                     onClick={() => selectByStatus(status)}
                     className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                       allSelected
-                        ? "bg-nia-dark text-white border-nia-dark"
-                        : "bg-white text-nia-dark border-gray-300 hover:border-nia-dark"
+                        ? "bg-nia-dark-solid text-white border-nia-dark-solid"
+                        : "bg-card text-nia-dark border-border hover:border-nia-dark"
                     }`}
                   >
                     {getStatusLabel(status)} ({count})
                   </button>
                 );
               })}
-              <span className="text-gray-300">|</span>
+              <span className="text-text-muted">|</span>
               <button onClick={selectAll} className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium">
                 Select All
               </button>
@@ -404,7 +406,7 @@ export default function DataHealthPage() {
                 Deselect All
               </button>
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-text-muted">
               Click checkboxes on individual metrics, or use status buttons above to select groups.
             </p>
           </div>
@@ -413,7 +415,7 @@ export default function DataHealthPage() {
 
       {/* Floating action bar for bulk edit */}
       {editMode && selected.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-nia-dark shadow-2xl z-40 px-4 py-3">
+        <div className="fixed bottom-0 left-0 right-0 bg-card border-t-2 border-nia-dark shadow-2xl z-40 px-4 py-3">
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <span className="text-sm font-bold text-nia-dark whitespace-nowrap">
               {selected.size} selected
@@ -424,7 +426,7 @@ export default function DataHealthPage() {
               <select
                 value={bulkField}
                 onChange={(e) => { setBulkField(e.target.value); setBulkValue(""); }}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+                className="text-sm border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               >
                 {BULK_FIELDS.map((f) => (
                   <option key={f.value} value={f.value}>{f.label}</option>
@@ -443,38 +445,40 @@ export default function DataHealthPage() {
               </Button>
             </div>
 
-            {/* Delete section */}
+            {/* Delete section — admin only */}
             <div className="flex items-center gap-2 sm:ml-auto">
-              {!confirmDelete ? (
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="text-xs text-red-500 hover:text-red-700 font-medium px-3 py-2 rounded border border-red-200 hover:border-red-400 transition-colors"
-                >
-                  Delete Selected
-                </button>
-              ) : (
-                <>
-                  <span className="text-xs text-red-600 font-medium">
-                    Delete {selected.size} metric{selected.size !== 1 ? "s" : ""}?
-                  </span>
+              {isAdmin && (
+                !confirmDelete ? (
                   <button
-                    onClick={bulkDelete}
-                    disabled={updating}
-                    className="text-xs bg-red-600 text-white font-medium px-3 py-2 rounded hover:bg-red-700 disabled:opacity-50 transition-colors"
+                    onClick={() => setConfirmDelete(true)}
+                    className="text-xs text-nia-red hover:text-nia-red font-medium px-3 py-2 rounded border border-nia-red/30 hover:border-nia-red/50 transition-colors"
                   >
-                    Confirm Delete
+                    Delete Selected
                   </button>
-                  <button
-                    onClick={() => setConfirmDelete(false)}
-                    className="text-xs text-gray-500 hover:text-gray-700 font-medium px-2 py-2"
-                  >
-                    Cancel
-                  </button>
-                </>
+                ) : (
+                  <>
+                    <span className="text-xs text-nia-red font-medium">
+                      Delete {selected.size} metric{selected.size !== 1 ? "s" : ""}?
+                    </span>
+                    <button
+                      onClick={bulkDelete}
+                      disabled={updating}
+                      className="text-xs bg-nia-red text-white font-medium px-3 py-2 rounded hover:bg-nia-red/80 disabled:opacity-50 transition-colors"
+                    >
+                      Confirm Delete
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      className="text-xs text-text-tertiary hover:text-text-secondary font-medium px-2 py-2"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )
               )}
               <button
                 onClick={exitEditMode}
-                className="text-xs text-gray-400 hover:text-gray-600 font-medium px-2 py-2"
+                className="text-xs text-text-muted hover:text-text-secondary font-medium px-2 py-2"
               >
                 Done
               </button>
@@ -506,7 +510,7 @@ export default function DataHealthPage() {
             <div className="text-base font-semibold text-nia-dark">
               Data Health
             </div>
-            <div className="text-sm text-gray-400 mt-0.5">
+            <div className="text-sm text-text-muted mt-0.5">
               {displayMetrics.length - noData.length} of {displayMetrics.length} metrics
               tracked{showKeyOnly && " (key only)"}
             </div>
@@ -550,31 +554,31 @@ export default function DataHealthPage() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+              <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider">
                 Key Processes {showKeyOnly && <Badge color="orange" size="xs">Filtered</Badge>}
               </h2>
               <p className="text-nia-dark mt-1">
                 <span className="text-2xl font-bold">{processSummary.key}</span>
-                <span className="text-gray-400 text-sm"> of {processSummary.total} processes marked as key</span>
+                <span className="text-text-muted text-sm"> of {processSummary.total} processes marked as key</span>
               </p>
             </div>
             <div className="flex gap-4 text-center">
               {processSummary.keyApproved > 0 && (
                 <div>
                   <div className="text-lg font-bold text-nia-green">{processSummary.keyApproved}</div>
-                  <div className="text-xs text-gray-400">Approved</div>
+                  <div className="text-xs text-text-muted">Approved</div>
                 </div>
               )}
               {processSummary.keyInProgress > 0 && (
                 <div>
                   <div className="text-lg font-bold text-nia-orange">{processSummary.keyInProgress}</div>
-                  <div className="text-xs text-gray-400">In Review</div>
+                  <div className="text-xs text-text-muted">In Review</div>
                 </div>
               )}
               {processSummary.keyDraft > 0 && (
                 <div>
-                  <div className="text-lg font-bold text-gray-400">{processSummary.keyDraft}</div>
-                  <div className="text-xs text-gray-400">Draft</div>
+                  <div className="text-lg font-bold text-text-muted">{processSummary.keyDraft}</div>
+                  <div className="text-xs text-text-muted">Draft</div>
                 </div>
               )}
             </div>
@@ -683,7 +687,7 @@ export default function DataHealthPage() {
 
       {/* All caught up empty state */}
       {overdue.length === 0 && dueSoon.length === 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-nia-green/30">
+        <div className="bg-card rounded-xl shadow-sm border border-nia-green/30">
           <EmptyState
             illustration="check"
             title="All caught up!"
@@ -751,7 +755,7 @@ function HealthRing({ percentage }: { percentage: number }) {
       <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
         <circle
           cx="50" cy="50" r={radius}
-          fill="none" stroke="#e5e7eb" strokeWidth="7"
+          fill="none" stroke="var(--grid-line)" strokeWidth="7"
         />
         <circle
           cx="50" cy="50" r={radius}
@@ -800,7 +804,7 @@ function HeroCard({
         {value}
       </div>
       <div className="text-base font-semibold text-nia-dark mt-1">{label}</div>
-      <div className="text-sm text-gray-400 mt-0.5">{subtitle}</div>
+      <div className="text-sm text-text-muted mt-0.5">{subtitle}</div>
     </Card>
   );
 }
@@ -819,7 +823,7 @@ function MiniStat({
       <div className="text-xl font-bold font-display number-pop" style={{ color }}>
         {value}
       </div>
-      <div className="text-sm text-gray-500">{label}</div>
+      <div className="text-sm text-text-tertiary">{label}</div>
     </Card>
   );
 }
@@ -860,30 +864,30 @@ function MetricSection({
     <Card accent={accentColor ? accentMap[accentColor] || "none" : "none"} className="overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors text-left"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-hover transition-colors text-left"
         style={accentColor ? { backgroundColor: `${accentColor}08` } : {}}
       >
         <div className="flex items-center gap-3">
-          <span className={`section-chevron text-gray-400 text-sm ${isOpen ? "open" : ""}`}>
+          <span className={`section-chevron text-text-muted text-sm ${isOpen ? "open" : ""}`}>
             ▶
           </span>
           <div>
             <span className="text-lg font-bold text-nia-dark">{title}</span>
-            <span className="text-sm text-gray-400 ml-3">
+            <span className="text-sm text-text-muted ml-3">
               {metrics.length} metric{metrics.length !== 1 ? "s" : ""}
             </span>
           </div>
         </div>
-        <span className="text-xs text-gray-400">{subtitle}</span>
+        <span className="text-xs text-text-muted">{subtitle}</span>
       </button>
 
       <div className={`section-body ${isOpen ? "open" : ""}`}>
         <div>
-        <div className="border-t border-gray-100 space-y-0">
+        <div className="border-t border-border-light space-y-0">
           {metrics.map((metric) => (
             <div
               key={metric.id}
-              className={`px-4 py-3 flex items-center justify-between border-b border-gray-50 last:border-b-0 hover:bg-gray-50 transition-colors ${editMode && selected?.has(metric.id) ? "bg-nia-orange/5" : ""}`}
+              className={`px-4 py-3 flex items-center justify-between border-b border-border-light last:border-b-0 hover:bg-surface-hover transition-colors ${editMode && selected?.has(metric.id) ? "bg-nia-orange/5" : ""}`}
               onClick={editMode ? () => onToggleSelect?.(metric.id) : undefined}
               style={editMode ? { cursor: "pointer" } : undefined}
             >
@@ -894,7 +898,7 @@ function MetricSection({
                     checked={selected?.has(metric.id) || false}
                     onChange={() => onToggleSelect?.(metric.id)}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-4 h-4 rounded border-gray-300 text-nia-dark focus:ring-nia-grey-blue flex-shrink-0"
+                    className="w-4 h-4 rounded border-border text-nia-dark focus:ring-nia-grey-blue flex-shrink-0"
                   />
                 )}
                 <div
@@ -907,7 +911,7 @@ function MetricSection({
                   <Link href={`/metric/${metric.id}`} className="font-medium text-nia-dark hover:text-nia-orange transition-colors">
                     {metric.name}
                   </Link>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-text-tertiary">
                     {metric.category_display_names} &middot; {metric.process_names}{" "}
                     &middot; {metric.cadence}
                   </div>
@@ -923,7 +927,7 @@ function MetricSection({
                     <div className="font-medium text-nia-dark">
                       {formatValue(metric.last_entry_value, metric.unit)}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-text-muted">
                       {formatDate(metric.last_entry_date)}
                     </div>
                   </div>
@@ -966,7 +970,7 @@ function BulkValueInput({ field, value, onChange }: { field: string; value: stri
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+        className="text-sm border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
       >
         <option value="">Select cadence...</option>
         {CADENCE_OPTIONS.map((c) => (
@@ -981,7 +985,7 @@ function BulkValueInput({ field, value, onChange }: { field: string; value: stri
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+        className="text-sm border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
       >
         <option value="">Select unit...</option>
         {UNIT_OPTIONS.map((u) => (
@@ -996,7 +1000,7 @@ function BulkValueInput({ field, value, onChange }: { field: string; value: stri
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+        className="text-sm border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
       >
         <option value="">Select direction...</option>
         <option value="true">Higher is Better</option>
@@ -1013,7 +1017,7 @@ function BulkValueInput({ field, value, onChange }: { field: string; value: stri
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={`Enter ${fieldDef.label.toLowerCase()}...`}
-        className="text-sm border border-gray-300 rounded-lg px-3 py-2 w-36 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+        className="text-sm border border-border rounded-lg px-3 py-2 w-36 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
       />
     );
   }
@@ -1024,14 +1028,14 @@ function BulkValueInput({ field, value, onChange }: { field: string; value: stri
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={`Enter ${fieldDef.label.toLowerCase()}...`}
-      className="text-sm border border-gray-300 rounded-lg px-3 py-2 w-48 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+      className="text-sm border border-border rounded-lg px-3 py-2 w-48 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
     />
   );
 }
 
 function Sparkline({ values, isHigherBetter }: { values: number[]; isHigherBetter: boolean }) {
   if (values.length < 2) {
-    return <span className="text-gray-300 text-xs w-16 text-center inline-block">&mdash;</span>;
+    return <span className="text-text-muted text-xs w-16 text-center inline-block">&mdash;</span>;
   }
 
   const first = values[0];

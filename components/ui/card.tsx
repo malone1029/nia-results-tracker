@@ -2,15 +2,15 @@
 
 const variantStyles = {
   default:
-    "bg-white rounded-xl border border-gray-200 shadow-sm",
+    "bg-card rounded-xl border border-border shadow-sm",
   elevated:
-    "bg-white rounded-xl border border-gray-200 shadow-md",
+    "bg-card-elevated rounded-xl border border-border shadow-md",
   interactive:
-    "bg-white rounded-xl border border-gray-200 shadow-sm card-hover cursor-pointer",
+    "bg-card rounded-xl border border-border shadow-sm card-hover cursor-pointer",
   flat:
-    "bg-white rounded-xl border border-gray-100",
+    "bg-card rounded-xl border border-border-light",
   ghost:
-    "bg-gray-50/50 rounded-xl border border-gray-100",
+    "bg-surface-subtle/50 rounded-xl border border-border-light",
 } as const;
 
 /* ─── Types ─────────────────────────────────────────────────── */
@@ -90,7 +90,7 @@ export function CardHeader({
   return (
     <div
       className={`px-5 py-3 ${
-        borderless ? "" : "border-b border-gray-100"
+        borderless ? "" : "border-b border-border-light"
       } ${className}`}
     >
       {children}

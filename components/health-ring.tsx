@@ -64,7 +64,7 @@ const HealthRing = memo(function HealthRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#e5e7eb"
+          style={{ stroke: "var(--grid-line)" }}
           strokeWidth={strokeWidth}
         />
         {/* Progress arc */}

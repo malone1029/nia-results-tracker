@@ -155,7 +155,7 @@ export default function WelcomeOnboarding({
 
       {/* Card */}
       <div
-        className={`relative w-full max-w-lg mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden transition-all duration-500 ${
+        className={`relative w-full max-w-lg mx-4 bg-card rounded-2xl shadow-2xl overflow-hidden transition-all duration-500 ${
           visible ? "translate-y-0 scale-100" : "translate-y-4 scale-[0.98]"
         }`}
       >
@@ -194,7 +194,7 @@ export default function WelcomeOnboarding({
                     ? "w-6 h-2 bg-gradient-to-r from-[#b1bd37] to-[#55787c]"
                     : i < step
                     ? "w-2 h-2 bg-[#b1bd37]"
-                    : "w-2 h-2 bg-gray-200"
+                    : "w-2 h-2 bg-surface-muted"
                 }`}
               />
             ))}
@@ -221,7 +221,7 @@ export default function WelcomeOnboarding({
                   Skip for now
                 </Button>
                 <a
-                  href="/api/asana/authorize"
+                  href="/api/asana/authorize?returnTo=/?welcome=true"
                   className="inline-flex items-center justify-center font-medium transition-all text-sm px-4 py-2 rounded-lg gap-2 text-white shadow-md hover:shadow-lg hover:translate-y-[-1px]"
                   style={{ background: "linear-gradient(135deg, #324a4d, #55787c)" }}
                 >
@@ -253,7 +253,7 @@ function WelcomeStep({ firstName }: { firstName: string }) {
     <div>
       {/* Logo + greeting */}
       <div className="flex items-center gap-4 mb-6">
-        <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm flex-shrink-0 ring-1 ring-gray-100">
+        <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm flex-shrink-0 ring-1 ring-border-light">
           <Image src="/logo.png" alt="NIA" width={56} height={56} />
         </div>
         <div>
@@ -267,7 +267,7 @@ function WelcomeStep({ firstName }: { firstName: string }) {
       </div>
 
       {/* Value prop */}
-      <p className="text-[15px] text-gray-600 leading-relaxed mb-6">
+      <p className="text-[15px] text-text-secondary leading-relaxed mb-6">
         Your team&apos;s command center for{" "}
         <span className="font-medium text-[#324a4d]">Baldrige Excellence</span>.
         Document processes, track performance, and drive continuous improvement
@@ -279,7 +279,7 @@ function WelcomeStep({ firstName }: { firstName: string }) {
         {FEATURES.map((f, i) => (
           <div
             key={i}
-            className="flex items-start gap-2.5 p-3 rounded-lg bg-gray-50/80 border border-gray-100"
+            className="flex items-start gap-2.5 p-3 rounded-lg bg-surface-hover/80 border border-border-light"
             style={{ animationDelay: `${i * 80}ms` }}
           >
             <div className="text-[#55787c] mt-0.5 flex-shrink-0">
@@ -287,7 +287,7 @@ function WelcomeStep({ firstName }: { firstName: string }) {
             </div>
             <div className="min-w-0">
               <div className="text-xs font-semibold text-[#324a4d]">{f.label}</div>
-              <div className="text-[11px] text-gray-400 leading-snug mt-0.5">{f.detail}</div>
+              <div className="text-[11px] text-text-muted leading-snug mt-0.5">{f.detail}</div>
             </div>
           </div>
         ))}
@@ -319,7 +319,7 @@ function AsanaStep() {
               <path d="M6 2l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.4" />
             </svg>
           </div>
-          <div className="w-14 h-14 rounded-xl overflow-hidden shadow-md ring-1 ring-gray-100">
+          <div className="w-14 h-14 rounded-xl overflow-hidden shadow-md ring-1 ring-border-light">
             <Image src="/logo.png" alt="NIA" width={56} height={56} />
           </div>
         </div>
@@ -328,7 +328,7 @@ function AsanaStep() {
       <h2 className="text-xl font-bold font-display text-[#324a4d] text-center mb-2">
         Connect Your Asana Account
       </h2>
-      <p className="text-sm text-gray-500 text-center mb-6 leading-relaxed">
+      <p className="text-sm text-text-tertiary text-center mb-6 leading-relaxed">
         Link Asana to import your existing projects and keep everything in sync.
       </p>
 
@@ -339,11 +339,11 @@ function AsanaStep() {
           { icon: "↔", text: "Bidirectional sync — changes flow both ways automatically" },
           { icon: "✓", text: "AI-generated tasks export directly to your Asana boards" },
         ].map((b, i) => (
-          <div key={i} className="flex items-start gap-3 px-3 py-2 rounded-lg bg-gray-50/80">
+          <div key={i} className="flex items-start gap-3 px-3 py-2 rounded-lg bg-surface-hover/80">
             <span className="w-6 h-6 rounded-full bg-[#324a4d]/8 flex items-center justify-center text-[11px] font-bold text-[#55787c] flex-shrink-0 mt-px">
               {b.icon}
             </span>
-            <span className="text-sm text-gray-600 leading-snug">{b.text}</span>
+            <span className="text-sm text-text-secondary leading-snug">{b.text}</span>
           </div>
         ))}
       </div>
@@ -365,62 +365,50 @@ function GetStartedStep({
       <h2 className="text-xl font-bold font-display text-[#324a4d] text-center mb-2">
         Add Your First Process
       </h2>
-      <p className="text-sm text-gray-500 text-center mb-6 leading-relaxed">
+      <p className="text-sm text-text-tertiary text-center mb-6 leading-relaxed">
         Choose how you&apos;d like to get started. You can always add more later.
       </p>
 
       <div className="space-y-3">
-        {/* Import from Asana */}
-        <a
-          href="/processes/import"
-          onClick={onComplete}
-          className={`block p-4 rounded-xl border-2 transition-all group ${
-            asanaConnected
-              ? "border-[#324a4d]/20 hover:border-[#324a4d]/50 hover:shadow-md bg-white cursor-pointer"
-              : "border-gray-100 bg-gray-50/50 opacity-60 pointer-events-none"
-          }`}
-        >
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              asanaConnected
-                ? "bg-gradient-to-br from-[#324a4d] to-[#55787c] shadow-sm"
-                : "bg-gray-200"
-            }`}>
-              <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
-                <path d="M12 3v12M12 3l-4 4M12 3l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(180deg)", transformOrigin: "center" }} />
-                <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-[#324a4d]">
-                  Import from Asana
-                </span>
-                {asanaConnected && (
+        {/* Import from Asana — only shown when connected */}
+        {asanaConnected && (
+          <a
+            href="/processes/import"
+            onClick={onComplete}
+            className="block p-4 rounded-xl border-2 border-[#324a4d]/20 hover:border-[#324a4d]/50 hover:shadow-md bg-card cursor-pointer transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#324a4d] to-[#55787c] flex items-center justify-center flex-shrink-0 shadow-sm">
+                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                  <path d="M12 3v12M12 3l-4 4M12 3l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(180deg)", transformOrigin: "center" }} />
+                  <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-[#324a4d]">
+                    Import from Asana
+                  </span>
                   <span className="text-[10px] font-medium text-[#b1bd37] bg-[#b1bd37]/10 px-1.5 py-0.5 rounded">
                     RECOMMENDED
                   </span>
-                )}
+                </div>
+                <span className="text-xs text-text-muted">
+                  Select an existing Asana project to import
+                </span>
               </div>
-              <span className="text-xs text-gray-400">
-                {asanaConnected
-                  ? "Select an existing Asana project to import"
-                  : "Connect Asana first to use this option"}
-              </span>
-            </div>
-            {asanaConnected && (
-              <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-300 group-hover:text-[#324a4d] transition-colors">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-text-muted group-hover:text-[#324a4d] transition-colors">
                 <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
               </svg>
-            )}
-          </div>
-        </a>
+            </div>
+          </a>
+        )}
 
         {/* Create with AI */}
         <a
           href="/processes/new/ai"
           onClick={onComplete}
-          className="block p-4 rounded-xl border-2 border-gray-100 hover:border-[#f79935]/40 hover:shadow-md bg-white transition-all cursor-pointer group"
+          className="block p-4 rounded-xl border-2 border-border-light hover:border-[#f79935]/40 hover:shadow-md bg-card transition-all cursor-pointer group"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#f79935] to-[#e88a28] flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -434,11 +422,11 @@ function GetStartedStep({
                 Create with AI
               </span>
               <br />
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-text-muted">
                 Answer a few questions and AI builds your process
               </span>
             </div>
-            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-300 group-hover:text-[#f79935] transition-colors">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-text-muted group-hover:text-[#f79935] transition-colors">
               <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
             </svg>
           </div>
@@ -448,10 +436,10 @@ function GetStartedStep({
         <a
           href="/processes/new"
           onClick={onComplete}
-          className="block p-4 rounded-xl border-2 border-gray-100 hover:border-gray-300 bg-white transition-all cursor-pointer group"
+          className="block p-4 rounded-xl border-2 border-border-light hover:border-border bg-card transition-all cursor-pointer group"
         >
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-surface-subtle flex items-center justify-center flex-shrink-0">
               <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#55787c]">
                 <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
@@ -461,11 +449,11 @@ function GetStartedStep({
                 Create Manually
               </span>
               <br />
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-text-muted">
                 Start from a blank template
               </span>
             </div>
-            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-300 group-hover:text-gray-500 transition-colors">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-text-muted group-hover:text-text-tertiary transition-colors">
               <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
             </svg>
           </div>

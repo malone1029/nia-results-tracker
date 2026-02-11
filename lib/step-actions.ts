@@ -8,7 +8,7 @@ export interface StepActionDef {
   description: string;    // tooltip / subtitle text
   prompt: string;         // AI prompt sent when clicked
   scrollTarget: string;   // DOM id to scroll to (e.g., "section-charter")
-  switchTab?: "content" | "tasks"; // if set, switch the tab before scrolling
+  switchTab?: "overview" | "documentation" | "process-map" | "tasks" | "history"; // if set, switch the tab before scrolling
   // Styling for AI chat panel buttons
   color: string;
   borderClass: string;

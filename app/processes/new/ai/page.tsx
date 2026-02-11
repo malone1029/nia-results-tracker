@@ -235,7 +235,7 @@ export default function AiCreateProcessPage() {
       {/* Side-by-side layout: chat left, preview right */}
       <div className={`grid gap-5 ${draft ? "lg:grid-cols-[1fr_400px]" : "max-w-3xl"}`}>
         {/* ═══ LEFT: Chat ═══ */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col" style={{ minHeight: draft ? "calc(100vh - 160px)" : "600px" }}>
+        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden flex flex-col" style={{ minHeight: draft ? "calc(100vh - 160px)" : "600px" }}>
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             {messages.map((msg, i) => {
@@ -254,8 +254,8 @@ export default function AiCreateProcessPage() {
                     <div
                       className={`rounded-lg px-3 py-2 ${
                         msg.role === "user"
-                          ? "max-w-[85%] bg-nia-dark text-white"
-                          : "w-full bg-gray-50 text-nia-dark"
+                          ? "max-w-[85%] bg-nia-dark-solid text-white"
+                          : "w-full bg-surface-hover text-nia-dark"
                       }`}
                     >
                       {msg.role === "assistant" ? (
@@ -285,7 +285,7 @@ export default function AiCreateProcessPage() {
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600">
+              <div className="bg-nia-red/10 border border-nia-red/30 rounded-lg px-3 py-2 text-sm text-nia-red">
                 {error}
               </div>
             )}
@@ -294,7 +294,7 @@ export default function AiCreateProcessPage() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-200 px-4 py-3 flex-shrink-0">
+          <div className="border-t border-border px-4 py-3 flex-shrink-0">
             <div className="flex gap-2">
               <textarea
                 ref={inputRef}
@@ -302,14 +302,14 @@ export default function AiCreateProcessPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Tell me about your process..."
-                className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-nia-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue focus:border-transparent"
+                className="flex-1 resize-none rounded-lg border border-border px-3 py-2 text-sm text-nia-dark placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-nia-grey-blue focus:border-transparent"
                 rows={2}
                 disabled={isLoading}
               />
               <button
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim() || isLoading}
-                className="bg-nia-dark text-white rounded-lg px-3 py-2 hover:bg-nia-grey-blue disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
+                className="bg-nia-dark-solid text-white rounded-lg px-3 py-2 hover:bg-nia-grey-blue disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13" />
@@ -317,7 +317,7 @@ export default function AiCreateProcessPage() {
                 </svg>
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-text-muted mt-1">
               Enter to send, Shift+Enter for new line
             </p>
           </div>
@@ -325,9 +325,9 @@ export default function AiCreateProcessPage() {
 
         {/* ═══ RIGHT: Live Draft Preview (appears when draft exists) ═══ */}
         {draft && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col" style={{ minHeight: "calc(100vh - 160px)" }}>
+          <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden flex flex-col" style={{ minHeight: "calc(100vh - 160px)" }}>
             {/* Preview header */}
-            <div className="bg-nia-dark text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div className="bg-nia-dark-solid text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -358,7 +358,7 @@ export default function AiCreateProcessPage() {
                   />
                 ) : (
                   <h3
-                    className="text-lg font-bold text-nia-dark cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 transition-colors group"
+                    className="text-lg font-bold text-nia-dark cursor-pointer hover:bg-surface-hover rounded px-2 py-1 -mx-2 transition-colors group"
                     onClick={() => setEditingMeta("name")}
                     title="Click to edit"
                   >
@@ -367,9 +367,9 @@ export default function AiCreateProcessPage() {
                   </h3>
                 )}
 
-                <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-gray-500">
-                  <span className="bg-gray-100 rounded px-2 py-0.5">{draft.category_suggestion}</span>
-                  {draft.owner && <span className="bg-gray-100 rounded px-2 py-0.5">{draft.owner}</span>}
+                <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-text-tertiary">
+                  <span className="bg-surface-subtle rounded px-2 py-0.5">{draft.category_suggestion}</span>
+                  {draft.owner && <span className="bg-surface-subtle rounded px-2 py-0.5">{draft.owner}</span>}
                   {draft.is_key && (
                     <Badge color="orange" size="xs">Key Process</Badge>
                   )}
@@ -378,7 +378,7 @@ export default function AiCreateProcessPage() {
 
               {/* Description — click to edit */}
               <div>
-                <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Description</label>
+                <label className="text-xs font-medium text-text-muted uppercase tracking-wider">Description</label>
                 {editingMeta === "description" ? (
                   <textarea
                     autoFocus
@@ -392,7 +392,7 @@ export default function AiCreateProcessPage() {
                   />
                 ) : (
                   <p
-                    className="text-sm text-gray-600 mt-1 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 transition-colors group"
+                    className="text-sm text-text-secondary mt-1 cursor-pointer hover:bg-surface-hover rounded px-2 py-1 -mx-2 transition-colors group"
                     onClick={() => setEditingMeta("description")}
                     title="Click to edit"
                   >
@@ -424,7 +424,7 @@ export default function AiCreateProcessPage() {
                       {content && !isEditing && (
                         <button
                           onClick={() => setEditingSection(section.key)}
-                          className="text-xs text-gray-400 hover:text-nia-dark transition-colors"
+                          className="text-xs text-text-muted hover:text-nia-dark transition-colors"
                         >
                           Edit
                         </button>
@@ -452,7 +452,7 @@ export default function AiCreateProcessPage() {
                       </div>
                     ) : content ? (
                       <div
-                        className="text-sm text-gray-600 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 transition-colors group"
+                        className="text-sm text-text-secondary cursor-pointer hover:bg-surface-hover rounded px-2 py-1 -mx-2 transition-colors group"
                         onClick={() => setEditingSection(section.key)}
                         title="Click to edit"
                       >
@@ -460,7 +460,7 @@ export default function AiCreateProcessPage() {
                         <PencilHint />
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-400 italic py-1">
+                      <p className="text-xs text-text-muted italic py-1">
                         Not yet generated — keep chatting
                       </p>
                     )}
@@ -469,7 +469,7 @@ export default function AiCreateProcessPage() {
               })}
 
               {/* Save footer */}
-              <div className="pt-3 border-t border-gray-200 flex gap-2">
+              <div className="pt-3 border-t border-border flex gap-2">
                 <Button variant="success" onClick={handleSave} disabled={isSaving} loading={isSaving} className="flex-1">
                   {isSaving ? "Saving..." : "Save as New Process"}
                 </Button>
@@ -487,7 +487,7 @@ export default function AiCreateProcessPage() {
 function PencilHint() {
   return (
     <svg
-      className="inline-block ml-1.5 w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
+      className="inline-block ml-1.5 w-3 h-3 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -514,7 +514,7 @@ function ProgressSteps({ currentStep }: { currentStep: number }) {
       {STEPS.map((step, i) => {
         const isActive = i === currentStep;
         const isCompleted = i < currentStep;
-        const color = isActive ? "#324a4d" : isCompleted ? "#b1bd37" : "#d1d5db";
+        const color = isActive ? "#324a4d" : isCompleted ? "#b1bd37" : "var(--grid-line-strong)";
 
         return (
           <div key={step.label} className="flex items-center">
@@ -546,7 +546,7 @@ function ProgressSteps({ currentStep }: { currentStep: number }) {
               </div>
               <span
                 className="text-xs font-medium transition-colors"
-                style={{ color: isActive ? "#324a4d" : isCompleted ? "#b1bd37" : "#9ca3af" }}
+                style={{ color: isActive ? "#324a4d" : isCompleted ? "#b1bd37" : "var(--text-muted)" }}
               >
                 {step.label}
               </span>
@@ -554,7 +554,7 @@ function ProgressSteps({ currentStep }: { currentStep: number }) {
             {i < STEPS.length - 1 && (
               <div
                 className="w-6 h-0.5 mx-1 rounded transition-colors"
-                style={{ backgroundColor: isCompleted ? "#b1bd37" : "#e5e7eb" }}
+                style={{ backgroundColor: isCompleted ? "#b1bd37" : "var(--grid-line)" }}
               />
             )}
           </div>

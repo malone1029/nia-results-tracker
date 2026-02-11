@@ -15,6 +15,7 @@ import type {
   BaldigeConnections,
 } from "@/lib/types";
 import { Card, Button, Input, Select } from "@/components/ui";
+import MarkdownContent from "@/components/markdown-content";
 
 interface CategoryOption {
   id: number;
@@ -179,7 +180,7 @@ export default function EditProcessPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-nia-dark">Edit Process</h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-text-tertiary mt-1">
           Full ADLI Template
         </p>
       </div>
@@ -213,11 +214,11 @@ export default function EditProcessPage() {
           <div
             onClick={() => setIsKey(!isKey)}
             className={`relative w-11 h-6 rounded-full transition-colors ${
-              isKey ? "bg-nia-orange" : "bg-gray-300"
+              isKey ? "bg-nia-orange" : "bg-surface-muted"
             }`}
           >
             <div
-              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-card rounded-full shadow transition-transform ${
                 isKey ? "translate-x-5" : ""
               }`}
             />
@@ -225,7 +226,7 @@ export default function EditProcessPage() {
           <span className="text-sm font-medium text-nia-dark">
             Key Process
           </span>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-text-muted">
             Key processes directly fulfill key requirements and need LeTCI scoring
           </span>
         </label>
@@ -237,7 +238,7 @@ export default function EditProcessPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+              className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
               placeholder="Briefly describe what this process does..."
             />
           </CollapsibleSection>
@@ -404,16 +405,16 @@ export default function EditProcessPage() {
               </div>
             </CollapsibleSection>
 
-            {/* Workflow */}
+            {/* Process Map */}
             <CollapsibleSection
-              title="Workflow"
+              title="Process Map"
               sectionId="workflow"
               forceOpen={targetSection === "workflow"}
               subtitle={workflow.content ? "imported" : countFilled([workflow.inputs?.length ? "yes" : undefined, workflow.steps?.length ? "yes" : undefined, workflow.outputs?.length ? "yes" : undefined, workflow.quality_controls?.length ? "yes" : undefined])}
             >
               <div className="space-y-4">
                 {workflow.content && (
-                  <TextAreaField label="Full Content (from import)" value={workflow.content} onChange={(v) => setWorkflow({ ...workflow, content: v })} rows={12} />
+                  <MermaidEditor value={workflow.content} onChange={(v) => setWorkflow({ ...workflow, content: v })} />
                 )}
                 {!workflow.content && (
                   <>
@@ -453,50 +454,25 @@ export default function EditProcessPage() {
               </div>
             </CollapsibleSection>
 
-            {/* Baldrige Connections */}
+            {/* Baldrige Connections — now managed via AI mapping */}
             <CollapsibleSection
               title="Baldrige Connections"
               sectionId="baldrige_connections"
               forceOpen={targetSection === "baldrige_connections"}
-              subtitle={baldrigeConn.content ? "imported" : countFilled([baldrigeConn.questions_addressed?.length ? "yes" : undefined, baldrigeConn.evidence_by_dimension ? "yes" : undefined])}
+              subtitle="auto-mapped"
             >
-              <div className="space-y-4">
-                {baldrigeConn.content && (
-                  <TextAreaField label="Full Content (from import)" value={baldrigeConn.content} onChange={(v) => setBaldrigeConn({ ...baldrigeConn, content: v })} rows={12} />
-                )}
-                {!baldrigeConn.content && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-nia-dark mb-1">Questions Addressed</label>
-                      <ListEditor
-                        items={baldrigeConn.questions_addressed?.length ? baldrigeConn.questions_addressed : [""]}
-                        onChange={(items) => setBaldrigeConn({ ...baldrigeConn, questions_addressed: items.filter(Boolean) })}
-                        placeholder="e.g., 1.1a - How do senior leaders set vision?"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-nia-dark mb-2">Evidence by ADLI Dimension</label>
-                      <div className="space-y-3">
-                        {(["approach", "deployment", "learning", "integration"] as const).map((dim) => (
-                          <TextAreaField
-                            key={dim}
-                            label={dim.charAt(0).toUpperCase() + dim.slice(1)}
-                            value={baldrigeConn.evidence_by_dimension?.[dim] || ""}
-                            onChange={(v) => setBaldrigeConn({
-                              ...baldrigeConn,
-                              evidence_by_dimension: {
-                                ...baldrigeConn.evidence_by_dimension,
-                                [dim]: v,
-                              },
-                            })}
-                            placeholder={`Evidence for ${dim}...`}
-                            rows={2}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-start gap-3">
+                <svg className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-blue-300">Managed automatically via AI mapping</p>
+                  <p className="text-sm text-blue-400 mt-1">
+                    Baldrige connections are now maintained through the{" "}
+                    <a href="/criteria" className="underline font-medium hover:text-blue-300">Criteria Map</a>.
+                    AI scans your process documentation and maps it to Excellence Builder questions.
+                  </p>
+                </div>
               </div>
             </CollapsibleSection>
 
@@ -513,7 +489,7 @@ export default function EditProcessPage() {
                 <label
                   key={req.id}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                    isLinked ? "bg-nia-grey-blue/10" : "hover:bg-gray-50"
+                    isLinked ? "bg-nia-grey-blue/10" : "hover:bg-surface-hover"
                   }`}
                 >
                   <input
@@ -525,15 +501,15 @@ export default function EditProcessPage() {
                       else next.add(req.id);
                       setLinkedReqIds(next);
                     }}
-                    className="rounded border-gray-300 text-nia-grey-blue focus:ring-nia-grey-blue"
+                    className="rounded border-border text-nia-grey-blue focus:ring-nia-grey-blue"
                   />
                   <span className="text-sm text-nia-dark">{req.requirement}</span>
-                  <span className="text-xs text-gray-400 ml-auto">{req.stakeholder_group}</span>
+                  <span className="text-xs text-text-muted ml-auto">{req.stakeholder_group}</span>
                 </label>
               );
             })}
             {allRequirements.length === 0 && (
-              <p className="text-sm text-gray-400 italic">No key requirements in the database yet.</p>
+              <p className="text-sm text-text-muted italic">No key requirements in the database yet.</p>
             )}
           </div>
         </CollapsibleSection>
@@ -578,15 +554,15 @@ function CollapsibleSection({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-hover transition-colors text-left"
         >
           <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">{isOpen ? "\u25BC" : "\u25B6"}</span>
+            <span className="text-text-muted text-sm">{isOpen ? "\u25BC" : "\u25B6"}</span>
             <span className="font-semibold text-nia-dark">{title}</span>
           </div>
-          {subtitle && <span className="text-xs text-gray-400">{subtitle}</span>}
+          {subtitle && <span className="text-xs text-text-muted">{subtitle}</span>}
         </button>
-        {isOpen && <div className="border-t border-gray-100 px-4 py-3">{children}</div>}
+        {isOpen && <div className="border-t border-border-light px-4 py-3">{children}</div>}
       </Card>
     </div>
   );
@@ -612,7 +588,7 @@ function TextAreaField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
+        className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
         placeholder={placeholder}
       />
     </div>
@@ -634,7 +610,7 @@ function ListEditor({
     <div className="space-y-2">
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-2">
-          {numbered && <span className="text-sm text-gray-400 w-6 text-right">{i + 1}.</span>}
+          {numbered && <span className="text-sm text-text-muted w-6 text-right">{i + 1}.</span>}
           <input
             type="text"
             value={item}
@@ -643,11 +619,11 @@ function ListEditor({
               updated[i] = e.target.value;
               onChange(updated);
             }}
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
+            className="flex-1 border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
             placeholder={placeholder}
           />
           {items.length > 1 && (
-            <Button variant="ghost" size="xs" type="button" onClick={() => onChange(items.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600">
+            <Button variant="ghost" size="xs" type="button" onClick={() => onChange(items.filter((_, idx) => idx !== i))} className="text-nia-red/60 hover:text-nia-red">
               ✕
             </Button>
           )}
@@ -670,10 +646,10 @@ function WorkflowStepEditor({
   return (
     <div className="space-y-3">
       {steps.map((step, i) => (
-        <div key={i} className="bg-gray-50 rounded-lg p-3 space-y-2">
+        <div key={i} className="bg-surface-hover rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-nia-dark">Step {i + 1}</span>
-            <Button variant="ghost" size="xs" type="button" onClick={() => onChange(steps.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600">
+            <Button variant="ghost" size="xs" type="button" onClick={() => onChange(steps.filter((_, idx) => idx !== i))} className="text-nia-red/60 hover:text-nia-red">
               Remove
             </Button>
           </div>
@@ -685,7 +661,7 @@ function WorkflowStepEditor({
               onChange(updated);
             }}
             rows={2}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
+            className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
             placeholder="What happens in this step?"
           />
           <div className="grid grid-cols-3 gap-2">
@@ -697,7 +673,7 @@ function WorkflowStepEditor({
                 updated[i] = { ...step, responsible: e.target.value };
                 onChange(updated);
               }}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
+              className="border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
               placeholder="Responsible"
             />
             <input
@@ -708,7 +684,7 @@ function WorkflowStepEditor({
                 updated[i] = { ...step, output: e.target.value };
                 onChange(updated);
               }}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
+              className="border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
               placeholder="Output"
             />
             <input
@@ -719,7 +695,7 @@ function WorkflowStepEditor({
                 updated[i] = { ...step, timing: e.target.value };
                 onChange(updated);
               }}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
+              className="border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue text-sm"
               placeholder="Timing"
             />
           </div>
@@ -735,4 +711,49 @@ function WorkflowStepEditor({
 function countFilled(values: (string | undefined)[]): string {
   const filled = values.filter(Boolean).length;
   return `${filled} of ${values.length} filled`;
+}
+
+function MermaidEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const isMermaid = value.includes("```mermaid");
+  const [showCode, setShowCode] = useState(!isMermaid);
+
+  return (
+    <div className="space-y-3">
+      {isMermaid && (
+        <div className="flex items-center justify-between">
+          <div className="flex gap-1 bg-surface-subtle rounded-lg p-0.5">
+            <button
+              type="button"
+              onClick={() => setShowCode(false)}
+              className={`text-xs font-medium rounded-md px-3 py-1.5 transition-colors ${
+                !showCode ? "bg-card text-foreground shadow-sm" : "text-text-tertiary hover:text-text-secondary"
+              }`}
+            >
+              Preview
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCode(true)}
+              className={`text-xs font-medium rounded-md px-3 py-1.5 transition-colors ${
+                showCode ? "bg-card text-foreground shadow-sm" : "text-text-tertiary hover:text-text-secondary"
+              }`}
+            >
+              Edit Code
+            </button>
+          </div>
+          <span className="text-xs text-text-muted">Mermaid diagram</span>
+        </div>
+      )}
+      {isMermaid && !showCode ? (
+        <div className="border border-border rounded-lg p-4 bg-surface-hover">
+          <MarkdownContent content={value} />
+          <p className="text-xs text-text-muted mt-3 pt-3 border-t border-border">
+            Use AI on the process page to refine this diagram visually.
+          </p>
+        </div>
+      ) : (
+        <TextAreaField label="Full Content" value={value} onChange={onChange} rows={12} />
+      )}
+    </div>
+  );
 }

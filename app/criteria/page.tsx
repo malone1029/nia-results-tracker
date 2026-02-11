@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AdminGuard from "@/components/admin-guard";
+import DraftPanel from "@/components/draft-panel";
 
 /* ---------- types ---------- */
 interface Mapping {
@@ -22,6 +23,7 @@ interface Question {
   area_label: string;
   question_text: string;
   question_type: string;
+  tier: "excellence_builder" | "full";
   mappings: Mapping[];
 }
 
@@ -49,7 +51,7 @@ const COVERAGE_COLORS = {
 const COVERAGE_BAR_COLORS: Record<string, string> = {
   full: "bg-nia-green",
   partial: "bg-nia-orange",
-  none: "bg-red-200",
+  none: "bg-nia-red/30",
 };
 
 function coverageBarColor(pct: number) {
@@ -79,25 +81,66 @@ export default function CriteriaMapPage() {
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState("");
 
-  const fetchData = useCallback(async () => {
+  // Tier filter
+  const [tierFilter, setTierFilter] = useState<"excellence_builder" | "full" | "all">("excellence_builder");
+
+  // Draft state
+  const [draftPanel, setDraftPanel] = useState<Item | null>(null);
+  const [latestDrafts, setLatestDrafts] = useState<Map<number, { word_count: number; status: string }>>(new Map());
+
+  const fetchDrafts = useCallback(async () => {
     try {
-      const res = await fetch("/api/criteria");
+      const tier = tierFilter !== "all" ? tierFilter : "excellence_builder";
+      const res = await fetch(`/api/criteria/drafts?tier=${tier}`);
       if (res.ok) {
         const data = await res.json();
+        const map = new Map<number, { word_count: number; status: string }>();
+        for (const d of data) {
+          map.set(d.item_id, { word_count: d.word_count, status: d.status });
+        }
+        setLatestDrafts(map);
+      }
+    } catch { /* silent */ }
+  }, [tierFilter]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [criteriaRes] = await Promise.all([
+        fetch("/api/criteria"),
+        fetchDrafts(),
+      ]);
+      if (criteriaRes.ok) {
+        const data = await criteriaRes.json();
         setItems(data);
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchDrafts]);
 
   useEffect(() => {
     document.title = "Criteria Map | NIA Excellence Hub";
     fetchData();
   }, [fetchData]);
 
+  // Filter items by tier (filter questions within each item, recompute stats)
+  const filteredItems = tierFilter === "all" ? items : items.map((item) => {
+    const questions = item.questions.filter((q) => q.tier === tierFilter);
+    const totalQuestions = questions.length;
+    const mappedQuestions = questions.filter((q) =>
+      q.mappings.some((m) => m.coverage === "primary")
+    ).length;
+    return {
+      ...item,
+      questions,
+      totalQuestions,
+      mappedQuestions,
+      coveragePct: totalQuestions > 0 ? Math.round((mappedQuestions / totalQuestions) * 100) : 0,
+    };
+  }).filter((item) => item.totalQuestions > 0); // Hide items with 0 questions in this tier
+
   // Group items by category
-  const categories = items.reduce(
+  const categories = filteredItems.reduce(
     (acc, item) => {
       const key = item.category_number;
       if (!acc[key]) {
@@ -129,14 +172,18 @@ export default function CriteriaMapPage() {
     >
   );
 
-  // Overall stats
-  const totalQuestions = items.reduce((s, i) => s + i.totalQuestions, 0);
-  const mappedQuestions = items.reduce((s, i) => s + i.mappedQuestions, 0);
+  // Overall stats (computed from filtered items)
+  const totalQuestions = filteredItems.reduce((s, i) => s + i.totalQuestions, 0);
+  const mappedQuestions = filteredItems.reduce((s, i) => s + i.mappedQuestions, 0);
   const overallPct = totalQuestions > 0 ? Math.round((mappedQuestions / totalQuestions) * 100) : 0;
-  const totalPoints = items.reduce((s, i) => s + i.points, 0);
-  const coveredPoints = items
+  const totalPoints = filteredItems.reduce((s, i) => s + i.points, 0);
+  const coveredPoints = filteredItems
     .filter((i) => i.coveragePct >= 80)
     .reduce((s, i) => s + i.points, 0);
+
+  // Page budget from saved drafts
+  const totalDraftWords = [...latestDrafts.values()].reduce((s, d) => s + d.word_count, 0);
+  const estPages = Math.round((totalDraftWords / 500) * 10) / 10; // ~500 words/page
 
   function toggleItem(itemId: number) {
     setExpandedItems((prev) => {
@@ -225,6 +272,8 @@ export default function CriteriaMapPage() {
     try {
       const res = await fetch("/api/criteria/ai-scan", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(tierFilter !== "all" ? { tier: tierFilter } : {}),
       });
       if (res.ok) {
         const data = await res.json();
@@ -282,10 +331,10 @@ export default function CriteriaMapPage() {
     return (
       <AdminGuard>
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-64" />
-          <div className="h-4 bg-gray-200 rounded w-full" />
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
-          <div className="h-64 bg-gray-100 rounded" />
+          <div className="h-8 bg-surface-muted rounded w-64" />
+          <div className="h-4 bg-surface-muted rounded w-full" />
+          <div className="h-4 bg-surface-muted rounded w-3/4" />
+          <div className="h-64 bg-surface-subtle rounded" />
         </div>
       </AdminGuard>
     );
@@ -298,15 +347,36 @@ export default function CriteriaMapPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-nia-dark">Baldrige Criteria Map</h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-text-tertiary mt-1">
               Map your processes to Baldrige criteria questions
             </p>
           </div>
+          {/* Tier filter toggle */}
+          <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
+            {([
+              { key: "excellence_builder", label: "Excellence Builder" },
+              { key: "full", label: "Full Framework" },
+              { key: "all", label: "All" },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setTierFilter(key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  tierFilter === key
+                    ? "bg-card text-nia-dark shadow-sm"
+                    : "text-text-tertiary hover:text-text-secondary"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-2">
             <button
               onClick={runBulkScan}
               disabled={scanning}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-nia-dark text-white rounded-lg text-sm font-medium hover:bg-nia-dark/90 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-nia-dark-solid text-white rounded-lg text-sm font-medium hover:bg-nia-dark-solid/90 transition-colors disabled:opacity-50"
             >
               {scanning ? (
                 <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -333,30 +403,39 @@ export default function CriteriaMapPage() {
         </div>
 
         {/* Summary stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl border p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="bg-card rounded-xl border p-4">
             <div className="text-2xl font-bold text-nia-dark">{overallPct}%</div>
-            <div className="text-xs text-gray-500">Questions Mapped</div>
+            <div className="text-xs text-text-tertiary">Questions Mapped</div>
           </div>
-          <div className="bg-white rounded-xl border p-4">
+          <div className="bg-card rounded-xl border p-4">
             <div className="text-2xl font-bold text-nia-dark">
               {mappedQuestions}
-              <span className="text-lg text-gray-400 font-normal">/{totalQuestions}</span>
+              <span className="text-lg text-text-muted font-normal">/{totalQuestions}</span>
             </div>
-            <div className="text-xs text-gray-500">Questions with Primary Process</div>
+            <div className="text-xs text-text-tertiary">Questions with Primary Process</div>
           </div>
-          <div className="bg-white rounded-xl border p-4">
+          <div className="bg-card rounded-xl border p-4">
             <div className="text-2xl font-bold text-nia-dark">
               {coveredPoints}
-              <span className="text-lg text-gray-400 font-normal">/{totalPoints}</span>
+              <span className="text-lg text-text-muted font-normal">/{totalPoints}</span>
             </div>
-            <div className="text-xs text-gray-500">Points Covered (80%+ items)</div>
+            <div className="text-xs text-text-tertiary">Points Covered (80%+ items)</div>
           </div>
-          <div className="bg-white rounded-xl border p-4">
+          <div className="bg-card rounded-xl border p-4">
             <div className="text-2xl font-bold text-nia-dark">
-              {items.filter((i) => i.coveragePct === 0 && i.item_type !== "profile").length}
+              {filteredItems.filter((i) => i.coveragePct === 0 && i.item_type !== "profile").length}
             </div>
-            <div className="text-xs text-gray-500">Items with Zero Coverage</div>
+            <div className="text-xs text-text-tertiary">Items with Zero Coverage</div>
+          </div>
+          <div className="bg-card rounded-xl border p-4">
+            <div className={`text-2xl font-bold ${estPages > 25 ? "text-nia-red" : "text-nia-dark"}`}>
+              {estPages}
+              <span className="text-lg text-text-muted font-normal">/25</span>
+            </div>
+            <div className="text-xs text-text-tertiary">
+              Est. Pages ({totalDraftWords.toLocaleString()} words)
+            </div>
           </div>
         </div>
 
@@ -394,27 +473,27 @@ export default function CriteriaMapPage() {
                   : 0;
 
               return (
-                <div key={cat.number} className="bg-white rounded-xl border overflow-hidden">
+                <div key={cat.number} className="bg-card rounded-xl border overflow-hidden">
                   {/* Category header */}
-                  <div className="px-5 py-4 border-b bg-gray-50/50">
+                  <div className="px-5 py-4 border-b bg-surface-hover">
                     <div className="flex items-center justify-between">
                       <div>
                         <h2 className="font-semibold text-nia-dark">
                           {cat.number === 0 ? "P" : cat.number}. {cat.name}
                         </h2>
-                        <div className="text-xs text-gray-500 mt-0.5">
+                        <div className="text-xs text-text-tertiary mt-0.5">
                           {cat.mappedQuestions}/{cat.totalQuestions} questions mapped
                           {cat.totalPoints > 0 && ` · ${cat.totalPoints} points`}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="w-24 h-2 bg-surface-muted rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${coverageBarColor(catPct)}`}
                             style={{ width: `${catPct}%` }}
                           />
                         </div>
-                        <span className="text-sm font-medium text-gray-600 w-10 text-right">
+                        <span className="text-sm font-medium text-text-secondary w-10 text-right">
                           {catPct}%
                         </span>
                       </div>
@@ -431,11 +510,11 @@ export default function CriteriaMapPage() {
                           {/* Item row */}
                           <button
                             onClick={() => toggleItem(item.id)}
-                            className="w-full px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+                            className="w-full px-5 py-3 flex items-center justify-between hover:bg-surface-hover transition-colors text-left"
                           >
                             <div className="flex items-center gap-3">
                               <svg
-                                className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                                className={`w-4 h-4 text-text-muted transition-transform ${isExpanded ? "rotate-90" : ""}`}
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -447,20 +526,37 @@ export default function CriteriaMapPage() {
                                   {item.item_code} {item.item_name}
                                 </span>
                                 {item.points > 0 && (
-                                  <span className="ml-2 text-xs text-gray-400">
+                                  <span className="ml-2 text-xs text-text-muted">
                                     {item.points} pts
                                   </span>
                                 )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              {/* Draft badge — only for process items with mappings */}
+                              {item.item_type === "process" && item.mappedQuestions > 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDraftPanel(item);
+                                  }}
+                                  className={`text-xs px-1.5 py-0.5 rounded font-medium transition-colors ${
+                                    latestDrafts.has(item.id)
+                                      ? "bg-nia-green/20 text-nia-dark hover:bg-nia-green/40"
+                                      : "bg-surface-subtle text-text-muted hover:bg-surface-muted"
+                                  }`}
+                                  title={latestDrafts.has(item.id) ? `${latestDrafts.get(item.id)!.word_count} words` : "No draft yet"}
+                                >
+                                  {latestDrafts.has(item.id) ? latestDrafts.get(item.id)!.status.charAt(0).toUpperCase() + latestDrafts.get(item.id)!.status.slice(1) : "Draft"}
+                                </button>
+                              )}
+                              <div className="w-16 h-1.5 bg-surface-muted rounded-full overflow-hidden">
                                 <div
                                   className={`h-full rounded-full ${coverageBarColor(item.coveragePct)}`}
                                   style={{ width: `${item.coveragePct}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-gray-500 w-8 text-right">
+                              <span className="text-xs text-text-tertiary w-8 text-right">
                                 {item.mappedQuestions}/{item.totalQuestions}
                               </span>
                             </div>
@@ -469,6 +565,27 @@ export default function CriteriaMapPage() {
                           {/* Expanded questions */}
                           {isExpanded && (
                             <div className="px-5 pb-4 pl-12 space-y-2">
+                              {/* Draft Narrative button — for process items only */}
+                              {item.item_type === "process" && (
+                                <div className="flex items-center justify-between pb-2 mb-1 border-b border-border-light">
+                                  <span className="text-xs text-text-muted">
+                                    {item.questions.length} questions
+                                    {latestDrafts.has(item.id) && (
+                                      <> &middot; {latestDrafts.get(item.id)!.word_count.toLocaleString()} words ({latestDrafts.get(item.id)!.status})</>
+                                    )}
+                                  </span>
+                                  <button
+                                    onClick={() => setDraftPanel(item)}
+                                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-nia-dark-solid text-white rounded-md font-medium hover:bg-nia-dark-solid/90 transition-colors"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    {latestDrafts.has(item.id) ? "View Draft" : "Draft Narrative"}
+                                  </button>
+                                </div>
+                              )}
+
                               {item.questions.map((q) => {
                                 const isQExpanded = expandedQuestions.has(q.id);
                                 const hasMappings = q.mappings.length > 0;
@@ -479,7 +596,7 @@ export default function CriteriaMapPage() {
                                     className={`rounded-lg border p-3 ${
                                       hasMappings
                                         ? "border-nia-green/30 bg-nia-green/5"
-                                        : "border-gray-200 bg-white"
+                                        : "border-border bg-card"
                                     }`}
                                   >
                                     <button
@@ -488,13 +605,13 @@ export default function CriteriaMapPage() {
                                     >
                                       <div className="flex items-start justify-between gap-2">
                                         <div>
-                                          <span className="text-xs font-mono text-gray-400">
+                                          <span className="text-xs font-mono text-text-muted">
                                             {q.question_code}
                                           </span>
                                           <span className="ml-2 text-xs text-nia-grey-blue font-medium">
                                             {q.area_label}
                                           </span>
-                                          <p className="text-sm text-gray-700 mt-1 line-clamp-2">
+                                          <p className="text-sm text-text-secondary mt-1 line-clamp-2">
                                             {q.question_text}
                                           </p>
                                         </div>
@@ -510,22 +627,22 @@ export default function CriteriaMapPage() {
 
                                     {/* Expanded question detail */}
                                     {isQExpanded && (
-                                      <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                                      <div className="mt-3 pt-3 border-t border-border space-y-2">
                                         {/* Full question text */}
-                                        <p className="text-sm text-gray-700">
+                                        <p className="text-sm text-text-secondary">
                                           {q.question_text}
                                         </p>
 
                                         {/* Mapped processes */}
                                         {q.mappings.length > 0 && (
                                           <div className="space-y-1.5">
-                                            <div className="text-xs font-medium text-gray-500 uppercase">
+                                            <div className="text-xs font-medium text-text-tertiary uppercase">
                                               Mapped Processes
                                             </div>
                                             {q.mappings.map((m) => (
                                               <div
                                                 key={m.id}
-                                                className="flex items-center justify-between bg-white rounded-md px-3 py-2 border"
+                                                className="flex items-center justify-between bg-card rounded-md px-3 py-2 border"
                                               >
                                                 <div className="flex items-center gap-2">
                                                   <Link
@@ -542,7 +659,7 @@ export default function CriteriaMapPage() {
                                                 </div>
                                                 <button
                                                   onClick={() => removeMapping(m.id)}
-                                                  className="text-xs text-red-400 hover:text-red-600"
+                                                  className="text-xs text-nia-red/60 hover:text-nia-red"
                                                 >
                                                   Remove
                                                 </button>
@@ -572,7 +689,7 @@ export default function CriteriaMapPage() {
                                                     >
                                                       {s.coverage}
                                                     </span>
-                                                    <p className="text-xs text-gray-600 mt-1">
+                                                    <p className="text-xs text-text-secondary mt-1">
                                                       {s.rationale}
                                                     </p>
                                                   </div>
@@ -585,7 +702,7 @@ export default function CriteriaMapPage() {
                                                     </button>
                                                     <button
                                                       onClick={(e) => { e.stopPropagation(); dismissSuggestion(q.id, s.process_id); }}
-                                                      className="text-xs px-2 py-1 text-gray-400 hover:text-gray-600"
+                                                      className="text-xs px-2 py-1 text-text-muted hover:text-text-secondary"
                                                     >
                                                       Dismiss
                                                     </button>
@@ -607,7 +724,7 @@ export default function CriteriaMapPage() {
                                           </button>
                                           <Link
                                             href={`/processes/new?baldrige_question_id=${q.id}`}
-                                            className="text-xs px-3 py-1.5 border border-gray-200 text-gray-600 rounded-md font-medium hover:bg-gray-50 transition-colors"
+                                            className="text-xs px-3 py-1.5 border border-border text-text-secondary rounded-md font-medium hover:bg-surface-hover transition-colors"
                                             onClick={(e) => e.stopPropagation()}
                                           >
                                             Create Process
@@ -616,7 +733,7 @@ export default function CriteriaMapPage() {
 
                                         {/* No mappings state */}
                                         {q.mappings.length === 0 && !suggestions.has(q.id) && (
-                                          <div className="text-sm text-gray-400 italic">
+                                          <div className="text-sm text-text-muted italic">
                                             No processes mapped to this question yet.
                                           </div>
                                         )}
@@ -636,6 +753,16 @@ export default function CriteriaMapPage() {
             })}
         </div>
       </div>
+
+      {/* Draft panel drawer */}
+      {draftPanel && (
+        <DraftPanel
+          item={draftPanel}
+          tier={tierFilter !== "all" ? tierFilter : "excellence_builder"}
+          onClose={() => setDraftPanel(null)}
+          onDraftSaved={fetchDrafts}
+        />
+      )}
     </AdminGuard>
   );
 }

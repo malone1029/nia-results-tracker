@@ -21,7 +21,7 @@ export default function AdliScorecard({ scores, onImprove, isLoading }: { scores
   const overallLevel = getMaturityLevel(overall);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 space-y-3">
+    <div className="bg-card rounded-lg border border-border shadow-sm p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-nia-dark">ADLI Assessment</h3>
         <span
@@ -52,8 +52,8 @@ export default function AdliScorecard({ scores, onImprove, isLoading }: { scores
 
           return (
             <div key={key} className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-500 w-20">{label}</span>
-              <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
+              <span className="text-xs font-medium text-text-tertiary w-20">{label}</span>
+              <div className="flex-1 bg-surface-muted rounded-full h-3 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{

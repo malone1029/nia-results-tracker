@@ -151,10 +151,10 @@ export default function ProcessesPage() {
           <h1 className="text-3xl font-bold text-nia-dark">
             Processes{" "}
             {processes.length > 0 && (
-              <span className="text-gray-400 font-normal text-lg">({processes.length})</span>
+              <span className="text-text-muted font-normal text-lg">({processes.length})</span>
             )}
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-text-tertiary mt-1">
             Organizational processes aligned to the Baldrige Excellence Framework
           </p>
         </div>
@@ -179,7 +179,7 @@ export default function ProcessesPage() {
 
       {/* Baldrige Coverage Grid (US-005) */}
       <div>
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider mb-3">
           Baldrige Category Coverage
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -229,7 +229,7 @@ export default function ProcessesPage() {
           className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors ${
             showKeyOnly
               ? "bg-nia-orange text-white"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              : "bg-surface-subtle text-text-tertiary hover:bg-surface-muted"
           }`}
         >
           {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
@@ -274,7 +274,7 @@ export default function ProcessesPage() {
 
       {/* Success message */}
       {successMsg && (
-        <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium">
+        <div className="bg-nia-green/10 border border-nia-green/30 text-nia-green rounded-lg px-4 py-3 text-sm font-medium">
           {successMsg}
         </div>
       )}
@@ -293,8 +293,8 @@ export default function ProcessesPage() {
                   onClick={() => selectByOwner(owner)}
                   className={`text-sm px-3 py-1 rounded-full transition-colors ${
                     allChecked
-                      ? "bg-nia-dark text-white"
-                      : "bg-white text-nia-dark border border-gray-300 hover:border-nia-dark"
+                      ? "bg-nia-dark-solid text-white"
+                      : "bg-card text-nia-dark border border-border hover:border-nia-dark"
                   }`}
                 >
                   {owner}
@@ -302,7 +302,7 @@ export default function ProcessesPage() {
               );
             })}
           </div>
-          <span className="text-gray-300">|</span>
+          <span className="text-text-muted">|</span>
           <button onClick={selectAll} className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors">
             Select All
           </button>
@@ -336,7 +336,7 @@ export default function ProcessesPage() {
           <Card className="hidden md:block">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <tr className="border-b border-border-light text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                   {editMode && <th className="px-4 py-3 w-10"></th>}
                   <th className="px-4 py-3">Process</th>
                   <th className="px-4 py-3">Category</th>
@@ -349,7 +349,7 @@ export default function ProcessesPage() {
                 {filtered.map((process) => (
                   <tr
                     key={process.id}
-                    className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50/80 transition-colors"
+                    className="border-b border-border-light last:border-b-0 hover:bg-surface-hover/80 transition-colors"
                   >
                     {editMode && (
                       <td className="px-4 py-3">
@@ -357,7 +357,7 @@ export default function ProcessesPage() {
                           type="checkbox"
                           checked={selected.has(process.id)}
                           onChange={() => toggleSelect(process.id)}
-                          className="w-4 h-4 rounded border-gray-300 text-nia-dark focus:ring-nia-grey-blue cursor-pointer"
+                          className="w-4 h-4 rounded border-border text-nia-dark focus:ring-nia-grey-blue cursor-pointer"
                         />
                       </td>
                     )}
@@ -371,7 +371,7 @@ export default function ProcessesPage() {
                           className={`text-base leading-none transition-colors ${
                             process.is_key
                               ? "text-nia-orange hover:text-nia-orange-dark"
-                              : "text-gray-300 hover:text-nia-orange"
+                              : "text-text-muted hover:text-nia-orange"
                           }`}
                           title={process.is_key ? "Remove key process flag" : "Mark as key process"}
                         >
@@ -384,18 +384,18 @@ export default function ProcessesPage() {
                           {process.name}
                         </Link>
                         {process.asana_project_gid && (
-                          <span className="text-gray-400 ml-1" title="Linked to Asana">
+                          <span className="text-text-muted ml-1" title="Linked to Asana">
                             <svg className="inline w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-label="Linked to Asana"><circle cx="12" cy="6" r="4"/><circle cx="5" cy="18" r="4"/><circle cx="19" cy="18" r="4"/></svg>
                           </span>
                         )}
                       </span>
                       {process.baldrige_item && (
-                        <span className="text-xs text-gray-400 ml-2">
+                        <span className="text-xs text-text-muted ml-2">
                           ({process.baldrige_item})
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-text-secondary">
                       {process.category_display_name}
                     </td>
                     <td className="px-4 py-3">
@@ -412,7 +412,7 @@ export default function ProcessesPage() {
                         return (
                           <div className="flex items-center gap-2" title={tooltip}>
                             <HealthRing score={health.total} color={health.level.color} size={36} strokeWidth={3} />
-                            <span className="text-xs text-gray-400">{health.level.label}</span>
+                            <span className="text-xs text-text-muted">{health.level.label}</span>
                           </div>
                         );
                       })()}
@@ -434,7 +434,7 @@ export default function ProcessesPage() {
                         );
                       })()}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-4 py-3 text-sm text-text-tertiary">
                       {process.owner || "\u2014"}
                     </td>
                   </tr>
@@ -452,7 +452,7 @@ export default function ProcessesPage() {
                     type="checkbox"
                     checked={selected.has(process.id)}
                     onChange={() => toggleSelect(process.id)}
-                    className="w-4 h-4 mt-4 rounded border-gray-300 text-nia-dark focus:ring-nia-grey-blue cursor-pointer flex-shrink-0"
+                    className="w-4 h-4 mt-4 rounded border-border text-nia-dark focus:ring-nia-grey-blue cursor-pointer flex-shrink-0"
                   />
                 )}
               <Link
@@ -472,7 +472,7 @@ export default function ProcessesPage() {
                           className={`text-base leading-none transition-colors ${
                             process.is_key
                               ? "text-nia-orange hover:text-nia-orange-dark"
-                              : "text-gray-300 hover:text-nia-orange"
+                              : "text-text-muted hover:text-nia-orange"
                           }`}
                           title={process.is_key ? "Remove key process flag" : "Mark as key process"}
                         >
@@ -480,15 +480,15 @@ export default function ProcessesPage() {
                         </button>
                         {process.name}
                         {process.asana_project_gid && (
-                          <span className="text-gray-400 ml-1" title="Linked to Asana">
+                          <span className="text-text-muted ml-1" title="Linked to Asana">
                             <svg className="inline w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-label="Linked to Asana"><circle cx="12" cy="6" r="4"/><circle cx="5" cy="18" r="4"/><circle cx="19" cy="18" r="4"/></svg>
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-500 mt-1">
+                      <div className="text-sm text-text-tertiary mt-1">
                         {process.category_display_name}
                         {process.baldrige_item && (
-                          <span className="text-gray-400">
+                          <span className="text-text-muted">
                             {" "}
                             ({process.baldrige_item})
                           </span>
@@ -496,7 +496,7 @@ export default function ProcessesPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                  <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
                     {(() => {
                       const health = healthScores.get(process.id);
                       if (!health) return null;
@@ -536,7 +536,7 @@ export default function ProcessesPage() {
 
       {/* Floating action bar for edit mode */}
       {editMode && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 px-4 py-3">
+        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50 px-4 py-3">
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center gap-3">
             <span className="text-sm font-medium text-nia-dark whitespace-nowrap">
               {selected.size} process{selected.size !== 1 ? "es" : ""} selected
@@ -548,7 +548,7 @@ export default function ProcessesPage() {
                 onChange={(e) => setNewOwner(e.target.value)}
                 placeholder="New owner name..."
                 list="owner-suggestions"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-nia-dark bg-white placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/40 focus:border-nia-grey-blue hover:border-gray-400"
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm text-nia-dark bg-card placeholder:text-text-muted transition-colors focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/40 focus:border-nia-grey-blue hover:border-border"
               />
               <datalist id="owner-suggestions">
                 {uniqueOwners.map((o) => (

@@ -46,30 +46,30 @@ export default function CoachSuggestionCard({
   return (
     <div
       className="rounded-lg shadow-sm overflow-hidden border-l-4"
-      style={{ borderLeftColor: priority.border, backgroundColor: priority.cardBg, borderTop: "1px solid #e5e7eb", borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb" }}
+      style={{ borderLeftColor: priority.border, backgroundColor: priority.cardBg, borderTop: "1px solid var(--border)", borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
     >
       {/* Header with badges */}
-      <div className="px-3 py-2.5 border-b border-gray-100">
+      <div className="px-3 py-2.5 border-b border-border-light">
         <div className="flex items-center gap-2 mb-1.5">
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${priority.bg} ${priority.text}`}>
             {priority.label}
           </span>
-          <span className="text-xs text-gray-400 flex items-center gap-1">
+          <span className="text-xs text-text-muted flex items-center gap-1">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
             {effortLabel}
           </span>
-          <span className="text-xs text-gray-400 ml-auto">{fieldLabel}</span>
+          <span className="text-xs text-text-muted ml-auto">{fieldLabel}</span>
         </div>
         <p className="text-sm font-semibold text-nia-dark">{suggestion.title}</p>
       </div>
 
       {/* Why it matters + preview */}
       <div className="px-3 py-2 space-y-1.5">
-        <p className="text-xs text-gray-600 italic">{suggestion.whyMatters}</p>
-        <p className="text-xs text-gray-500">{suggestion.preview}</p>
+        <p className="text-xs text-text-secondary italic">{suggestion.whyMatters}</p>
+        <p className="text-xs text-text-tertiary">{suggestion.preview}</p>
         {/* Show affected fields for cleanup suggestions */}
         {suggestion.field === "charter_cleanup" && typeof suggestion.content === "object" && (
           <div className="flex flex-wrap gap-1 mt-1">
@@ -84,7 +84,7 @@ export default function CoachSuggestionCard({
 
       {/* Content preview — expandable */}
       {previewEntries.length > 0 && (
-        <div className="border-t border-gray-100">
+        <div className="border-t border-border-light">
           <button
             onClick={() => setShowPreview(!showPreview)}
             className="w-full px-3 py-2 flex items-center justify-between text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
@@ -101,8 +101,8 @@ export default function CoachSuggestionCard({
             <div className="px-3 pb-3 space-y-3">
               {previewEntries.map(({ label, text }) => (
                 <div key={label}>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{label}</p>
-                  <div className="text-xs text-gray-700 bg-white rounded border border-gray-200 p-2 max-h-48 overflow-y-auto whitespace-pre-wrap">
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">{label}</p>
+                  <div className="text-xs text-text-secondary bg-card rounded border border-border p-2 max-h-48 overflow-y-auto whitespace-pre-wrap">
                     {text.length > 800 ? text.slice(0, 800) + "\n\n..." : text}
                   </div>
                 </div>
@@ -114,8 +114,8 @@ export default function CoachSuggestionCard({
 
       {/* Task preview — shows proposed PDCA tasks if present */}
       {suggestion.tasks && suggestion.tasks.length > 0 && (
-        <div className="px-3 py-2 border-t border-gray-100">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5">
+        <div className="px-3 py-2 border-t border-border-light">
+          <p className="text-xs font-medium text-text-muted uppercase tracking-wider mb-1.5">
             Tasks ({suggestion.tasks.length})
           </p>
           <div className="space-y-1">
@@ -129,7 +129,7 @@ export default function CoachSuggestionCard({
                   >
                     {section?.label || task.pdcaSection}
                   </span>
-                  <span className="text-xs text-gray-600">{task.title}</span>
+                  <span className="text-xs text-text-secondary">{task.title}</span>
                 </div>
               );
             })}
@@ -138,11 +138,11 @@ export default function CoachSuggestionCard({
       )}
 
       {/* Action buttons */}
-      <div className="px-3 py-2 border-t border-gray-100 flex items-center gap-2">
+      <div className="px-3 py-2 border-t border-border-light flex items-center gap-2">
         <button
           onClick={onApply}
           disabled={isApplying}
-          className="text-xs bg-nia-dark text-white rounded px-3 py-1.5 font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
+          className="text-xs bg-nia-dark-solid text-white rounded px-3 py-1.5 font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
         >
           {isApplying ? "Applying..." : suggestion.field === "charter_cleanup"
             ? `Clean Up${typeof suggestion.content === "object" ? ` ${Object.keys(suggestion.content).length} Sections` : ""}`

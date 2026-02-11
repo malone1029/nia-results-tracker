@@ -331,7 +331,7 @@ export default function RequirementsPage() {
       case "green": return "#b1bd37";
       case "yellow": return "#f79935";
       case "red": return "#dc2626";
-      default: return "#e5e7eb";
+      default: return "var(--grid-line)";
     }
   };
 
@@ -358,7 +358,7 @@ export default function RequirementsPage() {
       case "improving": return "#b1bd37";
       case "declining": return "#dc2626";
       case "flat": return "#55787c";
-      default: return "#9ca3af";
+      default: return "var(--text-muted)";
     }
   };
 
@@ -367,10 +367,10 @@ export default function RequirementsPage() {
       <div className="flex items-start justify-between">
         <div>
         <h1 className="text-3xl font-bold text-nia-dark">Key Requirements</h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-text-tertiary mt-1">
           Stakeholder needs from the Organizational Profile — linked to metrics that provide evidence
         </p>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-text-muted mt-1">
           Source: NIA Organizational Profile, Figure P-6
         </p>
         </div>
@@ -389,11 +389,11 @@ export default function RequirementsPage() {
           { val: total, label: "Total Requirements", color: "#324a4d" },
           { val: withMetrics, label: "With Metrics Linked", color: withMetrics > 0 ? "#b1bd37" : "#dc2626" },
           { val: gaps, label: "Gaps (No Metrics)", color: gaps > 0 ? "#f79935" : "#b1bd37" },
-          { val: meetingTargets, label: "Meeting Targets", color: meetingTargets > 0 ? "#b1bd37" : "#9ca3af" },
+          { val: meetingTargets, label: "Meeting Targets", color: meetingTargets > 0 ? "#b1bd37" : "var(--text-muted)" },
         ].map(({ val, label, color }) => (
           <Card key={label} variant="interactive" padding="sm" className="text-center">
             <div className="text-2xl font-bold font-display number-pop" style={{ color }}>{val}</div>
-            <div className="text-xs text-gray-400">{label}</div>
+            <div className="text-xs text-text-muted">{label}</div>
           </Card>
         ))}
       </div>
@@ -433,14 +433,14 @@ export default function RequirementsPage() {
         return (
           <Card padding="sm">
             <h2 className="text-xl font-bold text-nia-dark mb-3">Coverage Heatmap</h2>
-            <p className="text-xs text-gray-400 mb-3">Metric coverage by stakeholder group and Baldrige category</p>
+            <p className="text-xs text-text-muted mb-3">Metric coverage by stakeholder group and Baldrige category</p>
             <div className="overflow-x-auto">
               <table className="text-sm w-full">
                 <thead>
                   <tr>
-                    <th className="text-left px-3 py-2 text-xs text-gray-400 font-medium">Stakeholder</th>
+                    <th className="text-left px-3 py-2 text-xs text-text-muted font-medium">Stakeholder</th>
                     {categoryNames.map((cat) => (
-                      <th key={cat} className="px-3 py-2 text-xs text-gray-400 font-medium text-center">{cat}</th>
+                      <th key={cat} className="px-3 py-2 text-xs text-text-muted font-medium text-center">{cat}</th>
                     ))}
                   </tr>
                 </thead>
@@ -448,17 +448,17 @@ export default function RequirementsPage() {
                   {orderedGroups.map((groupName) => {
                     const catCounts = matrix.get(groupName)!;
                     return (
-                      <tr key={groupName} className="border-t border-gray-100">
+                      <tr key={groupName} className="border-t border-border-light">
                         <td className="px-3 py-2 text-sm font-medium text-nia-dark">{groupName}</td>
                         {categoryNames.map((cat) => {
                           const count = catCounts.get(cat) || 0;
                           const bgColor = count === 0
-                            ? "bg-gray-100"
+                            ? "bg-surface-subtle"
                             : count <= 2
                               ? "bg-nia-orange/20"
                               : "bg-nia-green/20";
                           const textColor = count === 0
-                            ? "text-gray-300"
+                            ? "text-text-muted"
                             : count <= 2
                               ? "text-nia-orange-dark"
                               : "text-[#6b7a1a]";
@@ -488,7 +488,7 @@ export default function RequirementsPage() {
         return (
           <div key={groupName} className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
+              <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
                 {segment}
               </span>
               <h2 className="text-lg font-semibold text-nia-dark">{groupName}</h2>
@@ -505,7 +505,7 @@ export default function RequirementsPage() {
                 >
                   {/* Inline edit form */}
                   {editMode && editingReq === req.id ? (
-                    <div className="px-4 py-3 space-y-2 bg-gray-50">
+                    <div className="px-4 py-3 space-y-2 bg-surface-hover">
                       <Input
                         value={editForm.requirement}
                         onChange={(e) => setEditForm({ ...editForm, requirement: e.target.value })}
@@ -524,8 +524,8 @@ export default function RequirementsPage() {
                       </div>
                     </div>
                   ) : deleteConfirm === req.id ? (
-                    <div className="px-4 py-3 bg-red-50">
-                      <p className="text-sm text-red-700 mb-2">
+                    <div className="px-4 py-3 bg-nia-red/10">
+                      <p className="text-sm text-nia-red mb-2">
                         Delete &quot;{req.requirement}&quot;?
                         {req.linked_metrics.length > 0 && (
                           <> This will unlink <strong>{req.linked_metrics.length} metric{req.linked_metrics.length !== 1 ? "s" : ""}</strong>.</>
@@ -540,11 +540,11 @@ export default function RequirementsPage() {
                     /* Requirement header */
                     <button
                       onClick={() => !editMode && toggleExpand(req.id)}
-                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-hover transition-colors text-left"
                     >
                       <div className="flex items-center gap-3">
                         {!editMode && (
-                          <span className="text-gray-400 text-sm">
+                          <span className="text-text-muted text-sm">
                             {isExpanded ? "\u25BC" : "\u25B6"}
                           </span>
                         )}
@@ -564,7 +564,7 @@ export default function RequirementsPage() {
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setDeleteConfirm(req.id); }}
-                              className="text-xs text-red-400 hover:text-red-600"
+                              className="text-xs text-nia-red/60 hover:text-nia-red"
                             >
                               Delete
                             </button>
@@ -572,7 +572,7 @@ export default function RequirementsPage() {
                         ) : (
                           <>
                             {!isGap && (
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-text-muted">
                                 {req.linked_metrics.length} metric{req.linked_metrics.length !== 1 ? "s" : ""}
                               </span>
                             )}
@@ -589,11 +589,11 @@ export default function RequirementsPage() {
 
                   {/* Expanded detail */}
                   {isExpanded && (
-                    <div className="border-t border-gray-100 px-4 py-3 space-y-3">
+                    <div className="border-t border-border-light px-4 py-3 space-y-3">
                       {/* Linked processes */}
                       {req.linked_processes.length > 0 && (
                         <div>
-                          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                          <span className="text-xs font-medium text-text-muted uppercase tracking-wider">
                             Processes
                           </span>
                           <div className="flex flex-wrap gap-2 mt-1">
@@ -612,25 +612,25 @@ export default function RequirementsPage() {
                       )}
 
                       {req.linked_metrics.length === 0 && req.linked_processes.length === 0 && (
-                        <p className="text-sm text-gray-400 italic">
+                        <p className="text-sm text-text-muted italic">
                           No processes or metrics are linked to this requirement yet.
                         </p>
                       )}
                       {req.linked_metrics.length === 0 && req.linked_processes.length > 0 && (
-                        <p className="text-sm text-gray-400 italic">
+                        <p className="text-sm text-text-muted italic">
                           No metrics are linked to this requirement yet.
                         </p>
                       )}
                       {req.linked_metrics.length > 0 && (
                         <div>
-                          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                          <span className="text-xs font-medium text-text-muted uppercase tracking-wider">
                             Metrics
                           </span>
                           <div className="space-y-1 mt-1">
                           {req.linked_metrics.map((m) => (
                             <div
                               key={m.id}
-                              className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors group"
+                              className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors group"
                             >
                               <Link
                                 href={`/metric/${m.id}`}
@@ -639,7 +639,7 @@ export default function RequirementsPage() {
                                 {m.name}
                               </Link>
                               <div className="flex items-center gap-3 text-sm">
-                                <span className="text-gray-500">
+                                <span className="text-text-tertiary">
                                   {m.latest_value !== null ? m.latest_value : "\u2014"}
                                 </span>
                                 {m.target_value !== null && m.latest_value !== null && (
@@ -656,7 +656,7 @@ export default function RequirementsPage() {
                                 </span>
                                 <button
                                   onClick={() => handleUnlinkMetric(req.id, m.id)}
-                                  className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs transition-opacity"
+                                  className="opacity-0 group-hover:opacity-100 text-nia-red/60 hover:text-nia-red text-xs transition-opacity"
                                   title="Unlink metric"
                                 >
                                   ✕
@@ -672,7 +672,7 @@ export default function RequirementsPage() {
                       {addingTo === req.id ? (
                         <div className="flex items-center gap-2">
                           <select
-                            className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+                            className="flex-1 border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                             defaultValue=""
                             onChange={(e) => {
                               if (e.target.value) handleAddMetric(req.id, Number(e.target.value));
@@ -701,7 +701,7 @@ export default function RequirementsPage() {
                           </select>
                           <button
                             onClick={() => setAddingTo(null)}
-                            className="text-sm text-gray-400 hover:text-gray-600"
+                            className="text-sm text-text-muted hover:text-text-secondary"
                           >
                             Cancel
                           </button>

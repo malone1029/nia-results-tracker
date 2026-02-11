@@ -102,7 +102,7 @@ export default function ImportProcessPage() {
         <h1 className="text-3xl font-bold text-nia-dark mt-2">
           Import from Asana
         </h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-text-tertiary mt-1">
           Select an Asana project to import as a process in the Excellence Hub.
         </p>
       </div>
@@ -160,7 +160,7 @@ export default function ImportProcessPage() {
             <p className="text-sm font-medium text-nia-dark mb-1">
               Connect Asana to import projects
             </p>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-text-muted mb-4">
               You&apos;ll be able to select any project from your workspace.
             </p>
             <Button size="sm" href="/settings">
@@ -176,13 +176,13 @@ export default function ImportProcessPage() {
         )}
 
         {asanaError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+          <div className="bg-nia-red/10 border border-nia-red/30 rounded-lg p-3 mb-4 text-sm text-nia-red">
             {asanaError}
           </div>
         )}
 
         {asanaConnected && !asanaLoading && asanaProjects.length === 0 && !asanaError && (
-          <p className="text-gray-400 text-sm py-4">No projects found in your Asana workspace.</p>
+          <p className="text-text-muted text-sm py-4">No projects found in your Asana workspace.</p>
         )}
 
         {asanaConnected && asanaProjects.length > 0 && (
@@ -191,7 +191,7 @@ export default function ImportProcessPage() {
               <h2 className="font-semibold text-nia-dark">
                 Your Asana Projects
               </h2>
-              <span className="text-xs text-gray-400">{asanaProjects.length} projects</span>
+              <span className="text-xs text-text-muted">{asanaProjects.length} projects</span>
             </div>
             <Input
               value={asanaSearch}
@@ -215,18 +215,18 @@ export default function ImportProcessPage() {
                   return (
                     <div
                       key={project.gid}
-                      className="flex items-center justify-between gap-4 px-3 py-3 rounded-lg border border-gray-100 hover:border-nia-grey-blue/30 transition-colors"
+                      className="flex items-center justify-between gap-4 px-3 py-3 rounded-lg border border-border-light hover:border-nia-grey-blue/30 transition-colors"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-nia-dark truncate">
                           {project.name}
                         </p>
                         {project.description && (
-                          <p className="text-xs text-gray-400 truncate mt-0.5">
+                          <p className="text-xs text-text-muted truncate mt-0.5">
                             {project.description}
                           </p>
                         )}
-                        <div className="flex gap-3 mt-1 text-xs text-gray-400">
+                        <div className="flex gap-3 mt-1 text-xs text-text-muted">
                           {project.team && <span>{project.team}</span>}
                           {project.modified_at && (
                             <span>
@@ -242,7 +242,7 @@ export default function ImportProcessPage() {
                             Imported
                           </span>
                         ) : alreadyExists ? (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-text-muted">
                             Already in Hub
                           </span>
                         ) : (

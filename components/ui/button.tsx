@@ -4,11 +4,11 @@ import Link from "next/link";
 
 const variants = {
   primary:
-    "bg-nia-dark text-white hover:bg-nia-grey-blue focus-ring",
+    "bg-nia-dark-solid text-white hover:bg-nia-grey-blue focus-ring",
   secondary:
-    "bg-white text-nia-dark border border-gray-200 hover:bg-gray-50 hover:border-gray-300 focus-ring",
+    "bg-card text-foreground border border-border hover:bg-surface-hover hover:border-border focus-ring",
   ghost:
-    "bg-transparent text-nia-dark hover:bg-gray-100 focus-ring",
+    "bg-transparent text-foreground hover:bg-surface-subtle focus-ring",
   danger:
     "bg-nia-red text-white hover:bg-red-700 focus-ring",
   success:

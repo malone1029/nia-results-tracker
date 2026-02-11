@@ -30,7 +30,7 @@ function LoginForm() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-nia-dark to-nia-grey-blue">
-      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+      <div className="bg-card rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
         <Image
           src="/logo.png"
           alt="NIA Logo"
@@ -41,19 +41,19 @@ function LoginForm() {
         <h1 className="text-2xl font-bold font-display text-nia-dark mb-1">
           NIA Excellence Hub
         </h1>
-        <p className="text-sm text-gray-500 mb-8">
+        <p className="text-sm text-text-tertiary mb-8">
           Baldrige Excellence Framework
         </p>
 
         {error === "domain" && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+          <div className="bg-nia-red/10 border border-nia-red/30 rounded-lg p-3 mb-4 text-sm text-nia-red">
             Access is restricted to <strong>@thenia.org</strong> email addresses.
             Please sign in with your NIA account.
           </div>
         )}
 
         {error === "auth" && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+          <div className="bg-nia-red/10 border border-nia-red/30 rounded-lg p-3 mb-4 text-sm text-nia-red">
             Something went wrong during sign-in. Please try again.
           </div>
         )}
@@ -86,7 +86,7 @@ function LoginForm() {
           {loading ? "Signing in..." : "Sign in with Google"}
         </Button>
 
-        <p className="text-xs text-gray-400 mt-6">
+        <p className="text-xs text-text-muted mt-6">
           Access restricted to NIA team members
         </p>
       </div>

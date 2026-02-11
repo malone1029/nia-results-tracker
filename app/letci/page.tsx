@@ -229,7 +229,7 @@ export default function LeTCIPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-nia-dark">LeTCI Summary</h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-text-tertiary mt-1">
           Baldrige readiness across all metrics — Levels, Trends, Comparisons, Integration
         </p>
       </div>
@@ -238,11 +238,11 @@ export default function LeTCIPage() {
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Card variant="interactive" accent="dark" padding="sm" className="text-center">
           <div className="text-2xl font-bold font-display number-pop text-nia-dark">{total}</div>
-          <div className="text-xs text-gray-400">Total Metrics</div>
+          <div className="text-xs text-text-muted">Total Metrics</div>
         </Card>
         <Card variant="interactive" accent="green" padding="sm" className="text-center">
           <div className="text-2xl font-bold font-display number-pop text-nia-green">{withLevel}</div>
-          <div className="text-xs text-gray-400">Have Levels</div>
+          <div className="text-xs text-text-muted">Have Levels</div>
         </Card>
         {[
           { val: withTrend, label: "Have Trends" },
@@ -251,12 +251,12 @@ export default function LeTCIPage() {
         ].map(({ val, label }) => (
           <Card key={label} variant="interactive" accent={val > 0 ? "green" : "red"} padding="sm" className="text-center">
             <div className={`text-2xl font-bold font-display number-pop ${val > 0 ? "text-nia-green" : "text-nia-red"}`}>{val}</div>
-            <div className="text-xs text-gray-400">{label}</div>
+            <div className="text-xs text-text-muted">{label}</div>
           </Card>
         ))}
         <Card variant="interactive" accent="green" padding="sm" className="text-center">
           <div className="text-2xl font-bold font-display number-pop text-nia-green">{fullLeTCI}</div>
-          <div className="text-xs text-gray-400">Full LeTCI (4/4)</div>
+          <div className="text-xs text-text-muted">Full LeTCI (4/4)</div>
         </Card>
       </div>
 
@@ -283,7 +283,7 @@ export default function LeTCIPage() {
             </option>
           ))}
         </Select>
-        <span className="text-sm text-gray-400">
+        <span className="text-sm text-text-muted">
           Click column headers to sort
         </span>
       </div>
@@ -293,7 +293,7 @@ export default function LeTCIPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-nia-dark text-white text-left text-xs uppercase">
+              <tr className="bg-nia-dark-solid text-white text-left text-xs uppercase">
                 <SortHeader field="name" label="Metric" />
                 <SortHeader field="process" label="Process" />
                 <SortHeader field="category" label="Category" />
@@ -306,7 +306,7 @@ export default function LeTCIPage() {
             </thead>
             <tbody>
               {sorted.map((metric) => (
-                <tr key={metric.id} className="border-t border-gray-100 hover:bg-gray-50">
+                <tr key={metric.id} className="border-t border-border-light hover:bg-surface-hover">
                   <td className="px-3 py-2">
                     <Link
                       href={`/metric/${metric.id}`}
@@ -315,11 +315,11 @@ export default function LeTCIPage() {
                       {metric.name}
                     </Link>
                   </td>
-                  <td className="px-3 py-2 text-gray-500">
+                  <td className="px-3 py-2 text-text-tertiary">
                     {metric.is_key_process && <span className="text-nia-orange mr-1">&#9733;</span>}
                     {metric.process_name}
                   </td>
-                  <td className="px-3 py-2 text-gray-400 text-xs">{metric.category_display_name}</td>
+                  <td className="px-3 py-2 text-text-muted text-xs">{metric.category_display_name}</td>
                   <td className="px-3 py-2 text-center">
                     <LetciDot ready={metric.has_level} detail={`${metric.entry_count} entries`} />
                   </td>
@@ -409,10 +409,10 @@ function LetciDot({
             ? trendDirection
               ? trendColors[trendDirection] || "#b1bd37"
               : "#b1bd37"
-            : "#e5e7eb",
+            : "var(--grid-line)",
         }}
       />
-      <span className="text-[10px] text-gray-400 leading-tight">
+      <span className="text-[10px] text-text-muted leading-tight">
         {trendDirection && ready ? trendDirection.slice(0, 3) : ""}
       </span>
     </div>

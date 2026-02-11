@@ -23,8 +23,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setSidebarOpen(false);
   }, [pathname]);
 
-  // Login page renders without sidebar/topbar
-  if (pathname === "/login") {
+  // Login page and public survey pages render without sidebar/topbar
+  if (pathname === "/login" || pathname.startsWith("/survey/respond")) {
     return <>{children}</>;
   }
 

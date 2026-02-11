@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { PDCA_SECTIONS } from "@/lib/pdca";
 import type { PdcaSection, ProcessTask } from "@/lib/types";
 
@@ -144,11 +144,11 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {COLUMNS.map((col) => (
-          <div key={col} className="bg-gray-50 rounded-xl p-4 animate-pulse">
-            <div className="h-5 bg-gray-200 rounded w-20 mb-4" />
+          <div key={col} className="bg-surface-hover rounded-xl p-4 animate-pulse">
+            <div className="h-5 bg-surface-muted rounded w-20 mb-4" />
             <div className="space-y-3">
-              <div className="h-16 bg-gray-200 rounded" />
-              <div className="h-16 bg-gray-200 rounded" />
+              <div className="h-16 bg-surface-muted rounded" />
+              <div className="h-16 bg-surface-muted rounded" />
             </div>
           </div>
         ))}
@@ -159,13 +159,13 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
   if (tasks.length === 0) {
     return (
       <div className="flex flex-col items-center text-center py-16 px-4">
-        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-16 h-16 rounded-full bg-surface-subtle flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
         </div>
         <h3 className="text-lg font-semibold text-nia-dark mb-1">No tasks queued</h3>
-        <p className="text-sm text-gray-500 max-w-sm">
+        <p className="text-sm text-text-tertiary max-w-sm">
           Use the AI coach to generate improvement tasks. Each suggestion creates actionable tasks mapped to Plan, Execute, Evaluate, and Improve sections.
         </p>
       </div>
@@ -183,7 +183,7 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
                 Exported {exportResult.exported} task{exportResult.exported !== 1 ? "s" : ""} to Asana
                 {exportResult.failed > 0 && ` (${exportResult.failed} failed)`}
               </p>
-              <p className="text-xs text-gray-600 mt-0.5">
+              <p className="text-xs text-text-secondary mt-0.5">
                 {Object.entries(exportResult.sectionCounts).map(([section, count]) => `${count} ${section}`).join(", ")}
               </p>
             </div>
@@ -220,7 +220,7 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
       {/* Summary bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-text-tertiary">
             {pendingTasks.length} pending{exportedTasks.length > 0 ? `, ${exportedTasks.length} exported` : ""}
           </span>
           <div className="flex gap-1.5">
@@ -262,7 +262,7 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
           const exported = columnTasks.filter((t) => t.status === "exported");
 
           return (
-            <div key={col} className="bg-gray-50 rounded-xl overflow-hidden">
+            <div key={col} className="bg-surface-hover rounded-xl overflow-hidden">
               {/* Column header */}
               <div
                 className="px-4 py-3 flex items-center justify-between"
@@ -272,7 +272,7 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
                   <h3 className="text-sm font-semibold" style={{ color: sectionMeta.color }}>
                     {sectionMeta.label}
                   </h3>
-                  <p className="text-xs text-gray-400">{sectionMeta.description}</p>
+                  <p className="text-xs text-text-muted">{sectionMeta.description}</p>
                 </div>
                 {columnTasks.length > 0 && (
                   <span
@@ -312,10 +312,10 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
                 {exported.map((task) => (
                   <div
                     key={task.id}
-                    className="bg-white/50 rounded-lg p-2.5 border border-gray-100 opacity-60"
+                    className="bg-card/50 rounded-lg p-2.5 border border-border-light opacity-60"
                   >
                     <div className="flex items-start justify-between gap-1">
-                      <span className="text-xs text-gray-500 line-through">{task.title}</span>
+                      <span className="text-xs text-text-tertiary line-through">{task.title}</span>
                       {task.asana_task_url && (
                         <a
                           href={task.asana_task_url}
@@ -332,12 +332,12 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
                         </a>
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-400">Exported</span>
+                    <span className="text-[10px] text-text-muted">Exported</span>
                   </div>
                 ))}
 
                 {columnTasks.length === 0 && (
-                  <p className="text-xs text-gray-400 italic text-center py-4">
+                  <p className="text-xs text-text-muted italic text-center py-4">
                     No tasks yet
                   </p>
                 )}
@@ -391,37 +391,53 @@ function TaskCard({
 }: TaskCardProps) {
   const otherSections = COLUMNS.filter((c) => c !== currentSection);
 
+  // Keyboard shortcut: Escape to cancel editing
+  useEffect(() => {
+    if (!isEditing) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onCancelEdit();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isEditing, onCancelEdit]);
+
   if (isEditing) {
     return (
-      <div className="bg-white rounded-lg p-2.5 border-2 border-nia-grey-blue/30 space-y-2">
-        <input
-          type="text"
-          value={editTitle}
-          onChange={(e) => onEditTitleChange(e.target.value)}
-          className="w-full text-sm font-medium text-nia-dark border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30"
-          autoFocus
-        />
-        <textarea
-          value={editDescription}
-          onChange={(e) => onEditDescriptionChange(e.target.value)}
-          placeholder="Description (optional)"
-          rows={2}
-          className="w-full text-xs text-gray-600 border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30 resize-none"
-        />
-        <div className="flex gap-2">
+      <div className="bg-card rounded-xl p-3 border-2 border-nia-grey-blue/40 shadow-lg shadow-nia-grey-blue/10 space-y-2.5 -mx-1">
+        <div>
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-1 block">Title</label>
+          <input
+            type="text"
+            value={editTitle}
+            onChange={(e) => onEditTitleChange(e.target.value)}
+            className="w-full text-sm font-medium text-nia-dark border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30 focus:border-nia-grey-blue/40"
+            autoFocus
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-1 block">Description</label>
+          <AutoGrowTextarea
+            value={editDescription}
+            onChange={onEditDescriptionChange}
+            placeholder="Add details, acceptance criteria, or notes..."
+            minRows={3}
+          />
+        </div>
+        <div className="flex items-center gap-2 pt-1">
           <button
             onClick={onSaveEdit}
             disabled={!editTitle.trim() || isBusy}
-            className="text-xs font-medium text-white bg-nia-dark rounded px-2.5 py-1 hover:opacity-90 disabled:opacity-50"
+            className="text-xs font-medium text-white bg-nia-dark-solid rounded-lg px-3 py-1.5 hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {isBusy ? "Saving..." : "Save"}
           </button>
           <button
             onClick={onCancelEdit}
-            className="text-xs text-gray-500 hover:text-gray-700"
+            className="text-xs text-text-tertiary hover:text-text-secondary px-2 py-1.5"
           >
             Cancel
           </button>
+          <span className="text-[10px] text-text-muted ml-auto">Esc to cancel</span>
         </div>
       </div>
     );
@@ -441,7 +457,7 @@ function TaskCard({
           </button>
           <button
             onClick={onCancelDelete}
-            className="text-xs text-gray-500 hover:text-gray-700"
+            className="text-xs text-text-tertiary hover:text-text-secondary"
           >
             Cancel
           </button>
@@ -451,14 +467,17 @@ function TaskCard({
   }
 
   return (
-    <div className="bg-white rounded-lg p-2.5 border border-gray-100 hover:border-gray-200 transition-colors group">
+    <div
+      className="bg-card rounded-lg p-2.5 border border-border-light hover:border-border transition-colors group cursor-pointer"
+      onClick={onStartEdit}
+    >
       <div className="flex items-start justify-between gap-1">
         <span className="text-sm font-medium text-nia-dark leading-snug">{task.title}</span>
-        {/* Actions — visible on hover */}
+        {/* Actions — visible on hover (desktop), always tappable via card click (mobile) */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button
-            onClick={onStartEdit}
-            className="text-gray-400 hover:text-nia-grey-blue p-0.5"
+            onClick={(e) => { e.stopPropagation(); onStartEdit(); }}
+            className="text-text-muted hover:text-nia-grey-blue p-0.5"
             title="Edit"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -466,8 +485,8 @@ function TaskCard({
             </svg>
           </button>
           <button
-            onClick={onStartDelete}
-            className="text-gray-400 hover:text-red-500 p-0.5"
+            onClick={(e) => { e.stopPropagation(); onStartDelete(); }}
+            className="text-text-muted hover:text-red-500 p-0.5"
             title="Delete"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -478,7 +497,7 @@ function TaskCard({
       </div>
 
       {task.description && (
-        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description}</p>
+        <p className="text-xs text-text-tertiary mt-1 line-clamp-2">{task.description}</p>
       )}
 
       {/* Badges row */}
@@ -488,7 +507,7 @@ function TaskCard({
             {task.adli_dimension}
           </span>
         )}
-        <span className="text-[10px] text-gray-400">
+        <span className="text-[10px] text-text-muted">
           {task.source === "ai_suggestion" ? "AI" : task.source === "ai_interview" ? "Interview" : "Manual"}
         </span>
 
@@ -499,7 +518,7 @@ function TaskCard({
             onChange={(e) => {
               if (e.target.value) onMove(e.target.value as PdcaSection);
             }}
-            className="text-[10px] text-gray-400 bg-transparent border-none cursor-pointer hover:text-nia-grey-blue focus:outline-none appearance-none pr-3"
+            className="text-[10px] text-text-muted bg-transparent border-none cursor-pointer hover:text-nia-grey-blue focus:outline-none appearance-none pr-3"
             title="Move to section"
             style={{ backgroundImage: "none" }}
           >
@@ -513,5 +532,40 @@ function TaskCard({
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Auto-growing Textarea ──────────────────────────────────
+
+function AutoGrowTextarea({
+  value,
+  onChange,
+  placeholder,
+  minRows = 3,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  minRows?: number;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const minHeight = minRows * 20 + 16; // ~20px per line + padding
+    el.style.height = Math.max(el.scrollHeight, minHeight) + "px";
+  }, [value, minRows]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={minRows}
+      className="w-full text-sm text-text-secondary border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30 focus:border-nia-grey-blue/40 resize-y leading-relaxed"
+    />
   );
 }

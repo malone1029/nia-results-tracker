@@ -40,13 +40,13 @@ export default function MetricSuggestionCard({
       style={{
         borderLeftColor: "#b1bd37",
         backgroundColor: "rgba(177,189,55,0.04)",
-        borderTop: "1px solid #e5e7eb",
-        borderRight: "1px solid #e5e7eb",
-        borderBottom: "1px solid #e5e7eb",
+        borderTop: "1px solid var(--border)",
+        borderRight: "1px solid var(--border)",
+        borderBottom: "1px solid var(--border)",
       }}
     >
       {/* Header */}
-      <div className="px-3 py-2.5 border-b border-gray-100">
+      <div className="px-3 py-2.5 border-b border-border-light">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-nia-green/15 text-nia-green">
             {isCreate ? "New Metric" : "Link Existing"}
@@ -58,17 +58,17 @@ export default function MetricSuggestionCard({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="text-sm font-semibold text-nia-dark w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-nia-green"
+            className="text-sm font-semibold text-nia-dark w-full border border-border rounded px-2 py-1 bg-card focus:outline-none focus:ring-1 focus:ring-nia-green"
           />
         )}
       </div>
 
       {/* Details */}
       <div className="px-3 py-2 space-y-1.5">
-        <p className="text-xs text-gray-600 italic">{suggestion.reason}</p>
+        <p className="text-xs text-text-secondary italic">{suggestion.reason}</p>
 
         {!editing ? (
-          <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+          <div className="flex flex-wrap gap-2 text-xs text-text-tertiary">
             <span>Unit: <strong className="text-nia-dark">{suggestion.unit}</strong></span>
             <span>Cadence: <strong className="text-nia-dark">{suggestion.cadence}</strong></span>
             {suggestion.targetValue != null && (
@@ -78,19 +78,19 @@ export default function MetricSuggestionCard({
         ) : (
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</label>
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Unit</label>
               <input
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-nia-green"
+                className="w-full text-xs border border-border rounded px-2 py-1 bg-card focus:outline-none focus:ring-1 focus:ring-nia-green"
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cadence</label>
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Cadence</label>
               <select
                 value={cadence}
                 onChange={(e) => setCadence(e.target.value)}
-                className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-nia-green bg-white"
+                className="w-full text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-nia-green bg-card"
               >
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
@@ -100,13 +100,13 @@ export default function MetricSuggestionCard({
               </select>
             </div>
             <div className="col-span-2">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Target Value (optional)</label>
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Target Value (optional)</label>
               <input
                 type="number"
                 value={targetValue}
                 onChange={(e) => setTargetValue(e.target.value)}
                 placeholder="e.g. 95"
-                className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-nia-green"
+                className="w-full text-xs border border-border rounded px-2 py-1 bg-card focus:outline-none focus:ring-1 focus:ring-nia-green"
               />
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function MetricSuggestionCard({
       </div>
 
       {/* Actions */}
-      <div className="px-3 py-2 border-t border-gray-100 flex items-center gap-2">
+      <div className="px-3 py-2 border-t border-border-light flex items-center gap-2">
         <button
           onClick={handleConfirm}
           disabled={isLoading}
@@ -137,7 +137,7 @@ export default function MetricSuggestionCard({
         {isCreate && editing && (
           <button
             onClick={() => setEditing(false)}
-            className="text-xs text-gray-400 hover:text-gray-600 font-medium px-2 py-1.5 transition-colors"
+            className="text-xs text-text-muted hover:text-text-secondary font-medium px-2 py-1.5 transition-colors"
           >
             Cancel Edit
           </button>

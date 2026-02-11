@@ -201,13 +201,22 @@ function ProcessOwnerDashboard() {
       }
       setMonthlyImprovedCount(monthlyProcs.size);
 
-      // Check if new user needs onboarding (zero processes + never completed onboarding)
-      // Also allow ?welcome=true to force-preview the onboarding
-      if (uid && (forceWelcome || (procs.length === 0 && !hasCompletedOnboarding(uid)))) {
-        // Check Asana connection status
-        const asanaRes = await fetch("/api/asana/status");
-        const asanaData = asanaRes.ok ? await asanaRes.json() : { connected: false };
-        setAsanaConnected(asanaData.connected);
+      // Check if new user needs onboarding (never completed before)
+      // Also allow ?welcome=true to force-preview the onboarding (e.g. returning from Asana OAuth)
+      if (uid && (forceWelcome || !hasCompletedOnboarding(uid))) {
+        // Check Asana connection status — URL param is a fast path from OAuth callback
+        const urlAsana = new URLSearchParams(window.location.search).get("asana_connected") === "true";
+        let connected = urlAsana;
+        if (!connected) {
+          try {
+            const asanaRes = await fetch("/api/asana/status");
+            const asanaData = asanaRes.ok ? await asanaRes.json() : { connected: false };
+            connected = asanaData.connected;
+          } catch {
+            connected = false;
+          }
+        }
+        setAsanaConnected(connected);
         setShowOnboarding(true);
       }
 
@@ -264,7 +273,7 @@ function ProcessOwnerDashboard() {
       : avgHealth >= 60 ? { label: "On Track", color: "#55787c" }
       : avgHealth >= 40 ? { label: "Developing", color: "#f79935" }
       : { label: "Getting Started", color: "#dc2626" })
-    : { label: "--", color: "#9ca3af" };
+    : { label: "--", color: "var(--text-muted)" };
 
   // Baldrige Ready: count at 80+
   const baldrigeReadyCount = filteredProcesses.filter((p) => {
@@ -371,7 +380,7 @@ function ProcessOwnerDashboard() {
           <h1 className="text-3xl font-bold text-nia-dark">
             Process Owner Dashboard
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-text-tertiary mt-1">
             {isAll ? "Organization-wide view" : `Showing ${selectedOwner}'s processes`}
           </p>
         </div>
@@ -383,7 +392,7 @@ function ProcessOwnerDashboard() {
           >
             {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
           </Button>
-          <label htmlFor="owner-select" className="text-sm text-gray-500">
+          <label htmlFor="owner-select" className="text-sm text-text-tertiary">
             Owner:
           </label>
           <Select
@@ -411,10 +420,10 @@ function ProcessOwnerDashboard() {
               {healthCount > 0 ? (
                 <HealthRing score={avgHealth} color={healthLevel.color} size={48} strokeWidth={4} />
               ) : (
-                <div className="text-2xl font-bold font-display number-pop text-gray-400">--</div>
+                <div className="text-2xl font-bold font-display number-pop text-text-muted">--</div>
               )}
               <div>
-                <div className="text-sm text-gray-500">My Readiness</div>
+                <div className="text-sm text-text-tertiary">My Readiness</div>
                 {healthCount > 0 && (
                   <div className="text-xs font-medium" style={{ color: healthLevel.color }}>
                     {healthLevel.label}
@@ -427,7 +436,7 @@ function ProcessOwnerDashboard() {
         <StatCard
           label="Baldrige Ready"
           value={baldrigeReadyCount}
-          color={baldrigeReadyCount > 0 ? "#b1bd37" : "#9ca3af"}
+          color={baldrigeReadyCount > 0 ? "#b1bd37" : "var(--text-muted)"}
           subtitle={processCount > 0 ? `of ${processCount} processes` : undefined}
           href="/readiness"
         />
@@ -448,25 +457,83 @@ function ProcessOwnerDashboard() {
       </div>
 
       {processCount === 0 ? (
-        <Card>
-          <EmptyState
-            illustration="document"
-            title={isAll ? "No processes yet" : `No processes for ${selectedOwner}`}
-            description={
-              isAll
-                ? "Create your first process to get started with the Excellence Hub."
-                : "Try selecting a different owner or create a new process."
-            }
-            action={{ label: "Go to Processes", href: "/processes" }}
-          />
-        </Card>
+        !isAll ? (
+          /* Filtered to a specific owner who has no processes */
+          <Card>
+            <EmptyState
+              illustration="document"
+              title={`No processes for ${selectedOwner}`}
+              description="Try selecting a different owner or create a new process."
+              action={{ label: "Go to Processes", href: "/processes" }}
+            />
+          </Card>
+        ) : (
+          /* No processes at all — rich getting-started card */
+          <Card padding="lg">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-[#324a4d] mb-1">Get Started with Your First Process</h2>
+              <p className="text-sm text-text-tertiary">Choose how you&apos;d like to add your first process to the Excellence Hub.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+              <Link
+                href="/processes/import"
+                className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-border-light hover:border-[#324a4d]/40 hover:shadow-md bg-card transition-all group text-center"
+              >
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#324a4d] to-[#55787c] flex items-center justify-center shadow-sm">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                    <path d="M12 3v12M12 3l-4 4M12 3l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(180deg)", transformOrigin: "center" }} />
+                    <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-[#324a4d] group-hover:text-[#55787c]">Import from Asana</div>
+                  <div className="text-xs text-text-muted mt-0.5">Bring in an existing project</div>
+                </div>
+              </Link>
+              <Link
+                href="/processes/new/ai"
+                className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-border-light hover:border-[#f79935]/40 hover:shadow-md bg-card transition-all group text-center"
+              >
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#f79935] to-[#e88a28] flex items-center justify-center shadow-sm">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                    <path d="M12 2L14.5 9.5 22 12 14.5 14.5 12 22 9.5 14.5 2 12 9.5 9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="currentColor" opacity="0.3" />
+                    <path d="M12 2L14.5 9.5 22 12 14.5 14.5 12 22 9.5 14.5 2 12 9.5 9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-[#324a4d] group-hover:text-[#f79935]">Create with AI</div>
+                  <div className="text-xs text-text-muted mt-0.5">AI builds it from your answers</div>
+                </div>
+              </Link>
+              <Link
+                href="/processes/new"
+                className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-border-light hover:border-border hover:shadow-md bg-card transition-all group text-center"
+              >
+                <div className="w-12 h-12 rounded-xl bg-surface-subtle flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#55787c]">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-[#324a4d] group-hover:text-text-secondary">Create Manually</div>
+                  <div className="text-xs text-text-muted mt-0.5">Start from a blank template</div>
+                </div>
+              </Link>
+            </div>
+            <div className="text-center mt-5">
+              <Link href="/processes" className="text-xs text-[#55787c] hover:text-[#324a4d] underline underline-offset-2">
+                Or browse existing processes
+              </Link>
+            </div>
+          </Card>
+        )
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column: ADLI Overview + Status Breakdown */}
           <div className="space-y-6">
             {/* ADLI Overview */}
             <Card padding="md">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider mb-4">
                 ADLI Overview
               </h2>
               {dimAvgs ? (
@@ -517,7 +584,7 @@ function ProcessOwnerDashboard() {
           <div className="space-y-6">
             {/* Action Items */}
             <Card padding="md">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider mb-3">
                 Action Items
               </h2>
               {actionItems.length === 0 ? (
@@ -535,7 +602,7 @@ function ProcessOwnerDashboard() {
                       <Link
                         key={`${item.type}-${i}`}
                         href={item.href}
-                        className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 transition-colors group"
+                        className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-surface-hover transition-colors group"
                       >
                         <div
                           className={`w-2 h-2 rounded-full flex-shrink-0 ${item.type === "overdue" ? "overdue-pulse" : ""}`}
@@ -545,7 +612,7 @@ function ProcessOwnerDashboard() {
                                 ? "#dc2626"
                                 : item.type === "due-soon"
                                 ? "#f79935"
-                                : "#9ca3af",
+                                : "var(--text-muted)",
                           }}
                         />
                         <span className="text-sm text-nia-dark group-hover:text-nia-orange transition-colors truncate">
@@ -558,7 +625,7 @@ function ProcessOwnerDashboard() {
                           <Link
                             href={`/log?metricId=${item.metricId}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="ml-1.5 text-xs font-medium text-nia-grey-blue hover:text-nia-dark bg-gray-100 hover:bg-gray-200 rounded px-2 py-0.5 transition-colors flex-shrink-0"
+                            className="ml-1.5 text-xs font-medium text-nia-grey-blue hover:text-nia-dark bg-surface-subtle hover:bg-surface-muted rounded px-2 py-0.5 transition-colors flex-shrink-0"
                           >
                             Log
                           </Link>
@@ -567,7 +634,7 @@ function ProcessOwnerDashboard() {
                     );
                   })}
                   {actionItems.length > 8 && (
-                    <p className="text-xs text-gray-400 px-2 pt-1">
+                    <p className="text-xs text-text-muted px-2 pt-1">
                       +{actionItems.length - 8} more
                     </p>
                   )}
@@ -578,7 +645,7 @@ function ProcessOwnerDashboard() {
             {/* My Next Actions (from health scores) */}
             {topNextActions.length > 0 && (
               <Card padding="md">
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider mb-3">
                   {isAll ? "Top Actions for Readiness" : "My Next Actions"}
                 </h2>
                 <div className="space-y-2">
@@ -593,7 +660,7 @@ function ProcessOwnerDashboard() {
                         ) : (
                           <span className="text-sm text-nia-dark">{action.label}</span>
                         )}
-                        <div className="text-xs text-gray-400 mt-0.5">
+                        <div className="text-xs text-text-muted mt-0.5">
                           +{action.points} pts{action.count > 1 ? ` across ${action.count} processes` : ""}
                         </div>
                       </div>
@@ -616,7 +683,7 @@ function ProcessOwnerDashboard() {
                       <div className="text-sm font-medium text-nia-dark">
                         {monthlyImprovedCount} process{monthlyImprovedCount !== 1 ? "es" : ""} improved this month
                       </div>
-                      <div className="text-xs text-gray-400">Keep the momentum going!</div>
+                      <div className="text-xs text-text-muted">Keep the momentum going!</div>
                     </div>
                   </div>
                 )}
@@ -624,7 +691,7 @@ function ProcessOwnerDashboard() {
                 {/* Recent Wins */}
                 {topWins.length > 0 && (
                   <>
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
                       Recent Wins
                     </h3>
                     <div className="space-y-1.5">
@@ -648,7 +715,7 @@ function ProcessOwnerDashboard() {
             {/* Team Activity */}
             {isAll && recentImprovements.length > 0 && (
               <Card padding="md">
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider mb-3">
                   Recent Activity
                 </h2>
                 <div className="space-y-1">
@@ -659,7 +726,7 @@ function ProcessOwnerDashboard() {
                       <Link
                         key={i}
                         href={`/processes/${imp.processId}`}
-                        className="flex items-start gap-2 py-1.5 px-1 rounded hover:bg-gray-50 transition-colors group"
+                        className="flex items-start gap-2 py-1.5 px-1 rounded hover:bg-surface-hover transition-colors group"
                       >
                         <div className="w-1.5 h-1.5 rounded-full bg-nia-green mt-1.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
@@ -669,7 +736,7 @@ function ProcessOwnerDashboard() {
                             {imp.label}
                           </span>
                         </div>
-                        <span className="text-[10px] text-gray-400 flex-shrink-0 mt-px">{timeLabel}</span>
+                        <span className="text-[10px] text-text-muted flex-shrink-0 mt-px">{timeLabel}</span>
                       </Link>
                     );
                   })}
@@ -680,11 +747,11 @@ function ProcessOwnerDashboard() {
             {/* My Processes */}
             <Card>
               <CardHeader>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider">
                   {isAll ? "All Processes" : "My Processes"}
                 </h2>
               </CardHeader>
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-border-light">
                 {filteredProcesses.map((proc) => {
                   const score = scoreMap.get(proc.id);
                   const health = healthScores.get(proc.id);
@@ -692,7 +759,7 @@ function ProcessOwnerDashboard() {
                     <Link
                       key={proc.id}
                       href={`/processes/${proc.id}`}
-                      className="block px-5 py-3 hover:bg-gray-50/80 transition-colors"
+                      className="block px-5 py-3 hover:bg-surface-hover/80 transition-colors"
                     >
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2 min-w-0">
@@ -709,7 +776,7 @@ function ProcessOwnerDashboard() {
                           )}
                           {proc.asana_project_gid && (
                             <svg
-                              className="w-3.5 h-3.5 text-gray-400 flex-shrink-0"
+                              className="w-3.5 h-3.5 text-text-muted flex-shrink-0"
                               viewBox="0 0 24 24"
                               fill="currentColor"
                               aria-label="Linked to Asana"
@@ -729,7 +796,7 @@ function ProcessOwnerDashboard() {
                           <MiniBar label="I" score={score.integration_score} />
                         </div>
                       )}
-                      <div className="text-[10px] text-gray-400 mt-1">
+                      <div className="text-[10px] text-text-muted mt-1">
                         {proc.category_display_name}
                         {proc.owner && ` \u00b7 ${proc.owner}`}
                       </div>
@@ -765,7 +832,7 @@ function StatCard({
       <div className="text-2xl font-bold font-display number-pop" style={{ color }}>
         {value}
       </div>
-      <div className="text-sm text-gray-500 mt-0.5">{label}</div>
+      <div className="text-sm text-text-tertiary mt-0.5">{label}</div>
       {subtitle && (
         <div className="text-xs mt-0.5" style={{ color }}>
           {subtitle}

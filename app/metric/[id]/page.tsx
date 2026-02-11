@@ -206,7 +206,7 @@ export default function MetricDetailPage() {
   if (!metric) {
     return (
       <div className="text-center py-20">
-        <div className="text-red-600 text-lg">Metric not found</div>
+        <div className="text-nia-red text-lg">Metric not found</div>
         <Link href="/" className="text-nia-grey-blue hover:underline mt-2 inline-block">
           Back to Dashboard
         </Link>
@@ -246,7 +246,7 @@ export default function MetricDetailPage() {
     improving: "#b1bd37",
     declining: "#dc2626",
     flat: "#55787c",
-    insufficient: "#9ca3af",
+    insufficient: "var(--text-muted)",
   };
 
   return (
@@ -259,7 +259,7 @@ export default function MetricDetailPage() {
       )}
 
       {/* Breadcrumb */}
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-text-tertiary">
         <Link href="/" className="hover:text-nia-grey-blue">
           Dashboard
         </Link>
@@ -270,11 +270,11 @@ export default function MetricDetailPage() {
               {metric.linked_processes[0].name}
             </Link>
             {metric.linked_processes.length > 1 && (
-              <span className="text-gray-400"> (+{metric.linked_processes.length - 1} more)</span>
+              <span className="text-text-muted"> (+{metric.linked_processes.length - 1} more)</span>
             )}
           </>
         ) : (
-          <span className="text-gray-400">Unlinked</span>
+          <span className="text-text-muted">Unlinked</span>
         )}
         {" / "}
         <span className="text-nia-dark">{metric.name}</span>
@@ -285,13 +285,13 @@ export default function MetricDetailPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold text-nia-dark">{metric.name}</h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-text-tertiary mt-1">
               {metric.linked_processes.length > 0
                 ? metric.linked_processes.map((p) => p.name).join(", ")
                 : "No linked processes"}
             </p>
             {metric.description && (
-              <p className="text-sm text-gray-400 mt-2">{metric.description}</p>
+              <p className="text-sm text-text-muted mt-2">{metric.description}</p>
             )}
           </div>
           <div className="flex items-center gap-3">
@@ -309,17 +309,17 @@ export default function MetricDetailPage() {
         {/* Quick stats row */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
           <div className="text-center">
-            <div className="text-xs text-gray-400 uppercase">Cadence</div>
+            <div className="text-xs text-text-muted uppercase">Cadence</div>
             <div className="font-medium text-nia-dark capitalize">{metric.cadence}</div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-gray-400 uppercase">Last Value</div>
+            <div className="text-xs text-text-muted uppercase">Last Value</div>
             <div className="font-medium text-nia-dark">
               {lastEntry ? formatValue(lastEntry.value, metric.unit) : "—"}
             </div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-gray-400 uppercase">Target</div>
+            <div className="text-xs text-text-muted uppercase">Target</div>
             <div className="font-medium text-nia-dark">
               {metric.target_value !== null
                 ? formatValue(metric.target_value, metric.unit)
@@ -327,13 +327,13 @@ export default function MetricDetailPage() {
             </div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-gray-400 uppercase">Trend</div>
+            <div className="text-xs text-text-muted uppercase">Trend</div>
             <div className="font-medium" style={{ color: trendColor[trendDirection] }}>
               {trendEmoji[trendDirection]} {trendDirection === "insufficient" ? "Need 3+ points" : trendDirection}
             </div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-gray-400 uppercase">Data Source</div>
+            <div className="text-xs text-text-muted uppercase">Data Source</div>
             <div className="font-medium text-nia-dark text-sm">{metric.data_source || "—"}</div>
           </div>
         </div>
@@ -377,19 +377,19 @@ export default function MetricDetailPage() {
           <h2 className="text-xl font-bold text-nia-dark mb-4">Trend Chart</h2>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
               <XAxis
                 dataKey="label"
-                tick={{ fill: "#324a4d", fontSize: 12 }}
+                tick={{ fill: "var(--foreground)", fontSize: 12 }}
               />
               <YAxis
-                tick={{ fill: "#324a4d", fontSize: 12 }}
+                tick={{ fill: "var(--foreground)", fontSize: 12 }}
                 domain={["auto", "auto"]}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "white",
-                  border: "1px solid #e5e7eb",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
                 }}
                 formatter={(value: unknown) => [
@@ -404,7 +404,7 @@ export default function MetricDetailPage() {
                 dataKey="value"
                 stroke="#324a4d"
                 strokeWidth={2}
-                dot={{ fill: "#324a4d", r: 5 }}
+                dot={{ fill: "var(--foreground)", r: 5 }}
                 activeDot={{ fill: "#f79935", r: 7 }}
                 name="Actual"
               />
@@ -449,7 +449,7 @@ export default function MetricDetailPage() {
             {letciCount} of 4 dimensions ready
           </span>
         </div>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-text-tertiary mb-4">
           Baldrige evaluates results on four dimensions: Levels, Trends, Comparisons, and Integration.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -504,11 +504,11 @@ export default function MetricDetailPage() {
       <Card padding="lg">
         <h2 className="text-xl font-bold text-nia-dark mb-4">Entry History</h2>
         {entries.length === 0 ? (
-          <p className="text-gray-500 text-sm">No entries yet.</p>
+          <p className="text-text-tertiary text-sm">No entries yet.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-nia-dark text-white text-left">
+              <tr className="bg-nia-dark-solid text-white text-left">
                 <th className="px-4 py-2">Date</th>
                 <th className="px-4 py-2">Fiscal Year</th>
                 <th className="px-4 py-2 text-right">Value</th>
@@ -526,17 +526,17 @@ export default function MetricDetailPage() {
                         type="date"
                         value={editForm.date}
                         onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
+                        className="w-full border border-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
                       />
                     </td>
-                    <td className="px-4 py-2 text-gray-400">{toFiscalYear(editForm.date)}</td>
+                    <td className="px-4 py-2 text-text-muted">{toFiscalYear(editForm.date)}</td>
                     <td className="px-4 py-2">
                       <input
                         type="number"
                         step="any"
                         value={editForm.value}
                         onChange={(e) => setEditForm({ ...editForm, value: e.target.value })}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
+                        className="w-full border border-border rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
                       />
                     </td>
                     <td className="px-4 py-2">
@@ -545,7 +545,7 @@ export default function MetricDetailPage() {
                         value={editForm.noteAnalysis}
                         onChange={(e) => setEditForm({ ...editForm, noteAnalysis: e.target.value })}
                         placeholder="Analysis note"
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
+                        className="w-full border border-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
                       />
                     </td>
                     <td className="px-4 py-2">
@@ -554,7 +554,7 @@ export default function MetricDetailPage() {
                         value={editForm.noteCorrection}
                         onChange={(e) => setEditForm({ ...editForm, noteCorrection: e.target.value })}
                         placeholder="Course correction"
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
+                        className="w-full border border-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
                       />
                     </td>
                     <td className="px-4 py-2 text-right whitespace-nowrap">
@@ -567,40 +567,40 @@ export default function MetricDetailPage() {
                       </button>
                       <button
                         onClick={() => setEditingEntryId(null)}
-                        className="text-gray-400 hover:text-gray-600 text-xs"
+                        className="text-text-muted hover:text-text-secondary text-xs"
                       >
                         Cancel
                       </button>
                     </td>
                   </tr>
                 ) : (
-                  <tr key={entry.id} className="border-t border-gray-100 group">
-                    <td className="px-4 py-2 text-gray-600">{formatDate(entry.date)}</td>
-                    <td className="px-4 py-2 text-gray-400">{toFiscalYear(entry.date)}</td>
+                  <tr key={entry.id} className="border-t border-border-light group">
+                    <td className="px-4 py-2 text-text-secondary">{formatDate(entry.date)}</td>
+                    <td className="px-4 py-2 text-text-muted">{toFiscalYear(entry.date)}</td>
                     <td className="px-4 py-2 text-right font-medium text-nia-dark">
                       {formatValue(entry.value, metric.unit)}
                     </td>
-                    <td className="px-4 py-2 text-gray-500">{entry.note_analysis || "—"}</td>
+                    <td className="px-4 py-2 text-text-tertiary">{entry.note_analysis || "—"}</td>
                     <td className="px-4 py-2">
                       {entry.note_course_correction ? (
-                        <span className="inline-block border-l-2 border-nia-orange pl-2 text-gray-600">
+                        <span className="inline-block border-l-2 border-nia-orange pl-2 text-text-secondary">
                           {entry.note_course_correction}
                         </span>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-text-muted">—</span>
                       )}
                     </td>
                     <td className="px-4 py-2 text-right whitespace-nowrap">
                       <button
                         onClick={() => startEditEntry(entry)}
-                        className="text-gray-300 hover:text-nia-grey-blue text-xs opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+                        className="text-text-muted hover:text-nia-grey-blue text-xs opacity-0 group-hover:opacity-100 transition-opacity mr-2"
                         title="Edit this entry"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteEntry(entry.id)}
-                        className="text-gray-300 hover:text-red-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-text-muted hover:text-nia-red text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Delete this entry"
                       >
                         Delete
@@ -633,23 +633,23 @@ function LeTCICard({
   return (
     <div
       className={`rounded-lg border-2 p-4 ${
-        ready ? "border-nia-green bg-nia-green/5" : "border-gray-200 bg-gray-50"
+        ready ? "border-nia-green bg-nia-green/5" : "border-border bg-surface-hover"
       }`}
     >
       <div className="flex items-center gap-3 mb-2">
         <div
           className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-            ready ? "bg-nia-green" : "bg-gray-300"
+            ready ? "bg-nia-green" : "bg-surface-muted"
           }`}
         >
           {letter}
         </div>
         <div>
           <div className="font-medium text-nia-dark">{title}</div>
-          <div className="text-xs text-gray-400">{description}</div>
+          <div className="text-xs text-text-muted">{description}</div>
         </div>
       </div>
-      <p className="text-sm text-gray-600 ml-13">{detail}</p>
+      <p className="text-sm text-text-secondary ml-13">{detail}</p>
     </div>
   );
 }

@@ -17,7 +17,7 @@ import type {
 } from "@/lib/types";
 import Link from "next/link";
 import { Card, Badge, Button, Input } from "@/components/ui";
-import EmptyState from "@/components/empty-state";
+
 import MarkdownContent from "@/components/markdown-content";
 import AiChatPanel from "@/components/ai-chat-panel";
 import TaskReviewPanel from "@/components/task-review-panel";
@@ -881,9 +881,6 @@ function ProcessDetailContent() {
         />
       )}
 
-      {/* Health Score Card */}
-      {healthResult && <ProcessHealthCard health={healthResult} />}
-
       {/* Milestone Celebrations */}
       <MilestoneToast
         processId={process.id}
@@ -1000,18 +997,13 @@ function ProcessDetailContent() {
         ))}
       </div>
 
-      {/* Tasks tab */}
-      {activeTab === "tasks" && (
-        <div id="section-tasks">
-          <TaskReviewPanel processId={process.id} onTaskCountChange={setTaskCount} />
-        </div>
-      )}
-
-      {/* Content tab */}
-      {activeTab === "documentation" && <>
-
-      {/* ADLI Maturity Snapshot */}
-      {adliScoreData ? (
+      {/* ═══ OVERVIEW TAB ═══ */}
+      {activeTab === "overview" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left column: Health + ADLI + Metrics */}
+          <div className="space-y-6">
+            {healthResult && <ProcessHealthCard health={healthResult} />}
+            {adliScoreData ? (
         <div className="bg-card rounded-xl shadow-sm border border-border-light overflow-hidden">
           <div className="flex flex-col sm:flex-row">
             {/* Radar — centered, properly sized */}
@@ -1101,110 +1093,320 @@ function ProcessDetailContent() {
         </div>
       )}
 
-      {/* Metrics & Results — prominent position before documentation */}
-      <Section title={`Metrics & Results (${metrics.length})`} id="section-metrics">
-        {metrics.length > 0 ? (
-          <div className="space-y-2">
-            {metrics.map((m) => {
-              const sparkData = m.sparkline.map((v, i) => ({ i, v }));
-              const first = m.sparkline[0];
-              const last = m.sparkline[m.sparkline.length - 1];
-              const trend = m.sparkline.length >= 2
-                ? (last > first ? "up" : last < first ? "down" : "flat")
-                : null;
-              const improving = trend && ((trend === "up" && m.is_higher_better) || (trend === "down" && !m.is_higher_better));
-              const sparkColor = improving ? "#b1bd37" : trend === "flat" ? "#55787c" : trend ? "#dc2626" : "var(--text-muted)";
-
-              return (
-                <div key={m.id} className="group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface-hover transition-colors">
-                  <Link href={`/metric/${m.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: getStatusColor(m.review_status) }}
-                      title={getStatusLabel(m.review_status)}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-nia-dark">{m.name}</span>
-                      <span className="text-xs text-text-muted ml-2 capitalize">{m.cadence}</span>
-                    </div>
-                    {m.sparkline.length >= 2 ? (
-                      <div className="w-16 h-6 flex-shrink-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={sparkData}>
-                            <Line type="monotone" dataKey="v" stroke={sparkColor} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : (
-                      <span className="text-text-muted text-xs w-16 text-center flex-shrink-0">&mdash;</span>
-                    )}
-                    <div className="text-right flex-shrink-0 w-24">
-                      {m.last_value !== null ? (
-                        <>
-                          <div className="text-sm font-medium text-nia-dark">
-                            {formatValue(m.last_value, m.unit)}
-                          </div>
-                          {m.on_target !== null && (
-                            <div className="text-xs" style={{ color: m.on_target ? "#b1bd37" : "#dc2626" }}>
-                              {m.on_target ? "On Target" : "Below"}
+            {/* Metrics & Results */}
+            <Card accent="orange" id="section-metrics">
+              <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-nia-dark">Metrics & Results ({metrics.length})</h2>
+                <Button variant="secondary" size="xs" onClick={() => { setMetricDialogOpen(true); fetchAvailableMetrics(); }}>+ Add</Button>
+              </div>
+              <div className="px-4 py-3">
+                {metrics.length > 0 ? (
+                  <div className="space-y-2">
+                    {metrics.map((m) => {
+                      const sparkData = m.sparkline.map((v, i) => ({ i, v }));
+                      const first = m.sparkline[0];
+                      const last = m.sparkline[m.sparkline.length - 1];
+                      const trend = m.sparkline.length >= 2 ? (last > first ? "up" : last < first ? "down" : "flat") : null;
+                      const improving = trend && ((trend === "up" && m.is_higher_better) || (trend === "down" && !m.is_higher_better));
+                      const sparkColor = improving ? "#b1bd37" : trend === "flat" ? "#55787c" : trend ? "#dc2626" : "var(--text-muted)";
+                      return (
+                        <div key={m.id} className="group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface-hover transition-colors">
+                          <Link href={`/metric/${m.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: getStatusColor(m.review_status) }} title={getStatusLabel(m.review_status)} />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium text-nia-dark">{m.name}</span>
+                              <span className="text-xs text-text-muted ml-2 capitalize">{m.cadence}</span>
                             </div>
+                            {m.sparkline.length >= 2 ? (
+                              <div className="w-16 h-6 flex-shrink-0">
+                                <ResponsiveContainer width="100%" height="100%"><LineChart data={sparkData}><Line type="monotone" dataKey="v" stroke={sparkColor} strokeWidth={1.5} dot={false} isAnimationActive={false} /></LineChart></ResponsiveContainer>
+                              </div>
+                            ) : (
+                              <span className="text-text-muted text-xs w-16 text-center flex-shrink-0">&mdash;</span>
+                            )}
+                            <div className="text-right flex-shrink-0 w-24">
+                              {m.last_value !== null ? (
+                                <>
+                                  <div className="text-sm font-medium text-nia-dark">{formatValue(m.last_value, m.unit)}</div>
+                                  {m.on_target !== null && <div className="text-xs" style={{ color: m.on_target ? "#b1bd37" : "#dc2626" }}>{m.on_target ? "On Target" : "Below"}</div>}
+                                </>
+                              ) : (
+                                <span className="text-xs text-text-muted">No data</span>
+                              )}
+                            </div>
+                            <Badge color={m.review_status === "current" ? "green" : m.review_status === "overdue" ? "red" : m.review_status === "due-soon" ? "orange" : "gray"} size="xs" className="flex-shrink-0">{getStatusLabel(m.review_status)}</Badge>
+                          </Link>
+                          {unlinkConfirmId === m.id ? (
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button onClick={() => unlinkMetric(m.id)} className="text-xs text-nia-red hover:text-nia-red font-medium px-1.5 py-0.5 rounded hover:bg-nia-red/10">Unlink</button>
+                              <button onClick={() => setUnlinkConfirmId(null)} className="text-xs text-text-muted hover:text-text-secondary px-1.5 py-0.5">Cancel</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setUnlinkConfirmId(m.id)} className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-nia-red transition-all flex-shrink-0 p-1" title="Unlink metric from this process">
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
                           )}
-                        </>
-                      ) : (
-                        <span className="text-xs text-text-muted">No data</span>
-                      )}
-                    </div>
-                    <Badge color={m.review_status === "current" ? "green" : m.review_status === "overdue" ? "red" : m.review_status === "due-soon" ? "orange" : "gray"} size="xs" className="flex-shrink-0">
-                      {getStatusLabel(m.review_status)}
-                    </Badge>
-                  </Link>
-                  {unlinkConfirmId === m.id ? (
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => unlinkMetric(m.id)}
-                        className="text-xs text-nia-red hover:text-nia-red font-medium px-1.5 py-0.5 rounded hover:bg-nia-red/10"
-                      >
-                        Unlink
-                      </button>
-                      <button
-                        onClick={() => setUnlinkConfirmId(null)}
-                        className="text-xs text-text-muted hover:text-text-secondary px-1.5 py-0.5"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setUnlinkConfirmId(m.id)}
-                      className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-nia-red transition-all flex-shrink-0 p-1"
-                      title="Unlink metric from this process"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-            {/* Add metric button when metrics already exist */}
-            <Button variant="secondary" size="sm" onClick={() => { setMetricDialogOpen(true); fetchAvailableMetrics(); }} className="w-full border-dashed">
-              + Add Metric
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center text-center py-6 px-4">
-            <div className="text-4xl mb-3">📊</div>
-            <h3 className="text-sm font-semibold text-nia-dark mb-1">No metrics linked</h3>
-            <p className="text-xs text-text-tertiary mb-3">Add metrics to track results and build LeTCI evidence for this process.</p>
-            <Button size="sm" onClick={() => { setMetricDialogOpen(true); fetchAvailableMetrics(); }}>
-              + Add Metric
-            </Button>
-          </div>
-        )}
-      </Section>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center text-center py-6 px-4">
+                    <h3 className="text-sm font-semibold text-nia-dark mb-1">No metrics linked</h3>
+                    <p className="text-xs text-text-tertiary mb-3">Add metrics to track results and build LeTCI evidence for this process.</p>
+                    <Button size="sm" onClick={() => { setMetricDialogOpen(true); fetchAvailableMetrics(); }}>+ Add Metric</Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>{/* end left column */}
 
-      {/* Add Metric Dialog */}
+          {/* Right column: Surveys + Quick Info */}
+          <div className="space-y-6">
+            <Card accent="orange" id="section-surveys">
+              <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-nia-dark">Surveys{surveys.length > 0 ? ` (${surveys.length})` : ""}</h2>
+                <Button variant="secondary" size="xs" onClick={() => router.push(`/surveys/new?processId=${id}`)}>+ New</Button>
+              </div>
+              <div className="px-4 py-3">
+                {surveys.length > 0 ? (
+                  <div className="space-y-3">
+                    {surveys.map((s) => (
+                      <SurveyCard key={s.id} survey={s} processId={Number(id)} onDeploy={handleDeploySurvey} onClose={handleCloseSurveyWave} onEdit={handleEditSurvey} onDelete={handleDeleteSurvey} deploying={surveyDeploying === s.id} closing={surveyClosing === s.id} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center text-center py-6 px-4">
+                    <h3 className="text-sm font-semibold text-nia-dark mb-1">No surveys yet</h3>
+                    <p className="text-xs text-text-tertiary mb-3">Create a micro-survey to collect stakeholder feedback.</p>
+                    <Button size="sm" onClick={() => router.push(`/surveys/new?processId=${id}`)}>Create Survey</Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card accent="orange">
+              <div className="px-4 py-3 border-b border-border-light">
+                <h2 className="text-lg font-semibold text-nia-dark">Quick Info</h2>
+              </div>
+              <div className="px-4 py-3 space-y-3">
+                {ebMappings.length > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-text-secondary">EB Connections</span>
+                    <Link href="/criteria" className="text-sm font-medium text-nia-green hover:underline">{ebMappings.length} question{ebMappings.length !== 1 ? "s" : ""} &rarr;</Link>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-secondary">Attached Files</span>
+                  <span className="text-sm font-medium text-nia-dark">{attachedFiles.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-secondary">Key Requirements</span>
+                  <span className="text-sm font-medium text-nia-dark">{requirements.length}</span>
+                </div>
+                {process.asana_project_url && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-text-secondary">Asana Project</span>
+                    <a href={process.asana_project_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-nia-grey-blue hover:text-nia-dark">View &rarr;</a>
+                  </div>
+                )}
+                {!process.charter?.content && process.description && (
+                  <div className="pt-2 border-t border-border-light">
+                    <span className="text-xs font-medium text-text-muted uppercase">Description</span>
+                    <p className="text-sm text-nia-dark mt-1">{process.description}</p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ DOCUMENTATION TAB ═══ */}
+      {activeTab === "documentation" && (
+        <div className="space-y-6">
+          <Card accent="orange" id="section-charter">
+            <div className="px-4 py-3 border-b border-border-light">
+              <h2 className="text-lg font-semibold text-nia-dark">Charter</h2>
+            </div>
+            <div className="px-4 py-4">
+              {process.charter ? (
+                process.charter.content ? (
+                  <MarkdownContent content={process.charter.content} />
+                ) : (
+                  <div className="space-y-3">
+                    <Field label="Purpose" value={process.charter.purpose} />
+                    <Field label="Scope (Includes)" value={process.charter.scope_includes} />
+                    <Field label="Scope (Excludes)" value={process.charter.scope_excludes} />
+                    <Field label="Mission Alignment" value={process.charter.mission_alignment} />
+                    {process.charter.stakeholders && process.charter.stakeholders.length > 0 && (
+                      <div>
+                        <span className="text-sm font-medium text-text-tertiary">Stakeholders</span>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {process.charter.stakeholders.map((s, i) => (
+                            <span key={i} className="bg-nia-grey-blue/10 text-nia-dark px-3 py-1 rounded-full text-sm">{s}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              ) : (
+                <EmptyText />
+              )}
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" id="section-adli">
+            <AdliCard title="Approach" data={process.adli_approach} />
+            <AdliCard title="Deployment" data={process.adli_deployment} />
+            <AdliCard title="Learning" data={process.adli_learning} />
+            <AdliCard title="Integration" data={process.adli_integration} />
+          </div>
+
+          <Card accent="orange">
+            <div className="px-4 py-3 border-b border-border-light">
+              <h2 className="text-lg font-semibold text-nia-dark">Linked Key Requirements</h2>
+            </div>
+            <div className="px-4 py-3">
+              {requirements.length > 0 ? (
+                <div className="space-y-2">
+                  {requirements.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-surface-hover">
+                      <span className="text-sm text-nia-dark">{r.requirement}</span>
+                      <span className="text-xs text-text-muted">{r.stakeholder_group}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted italic">No key requirements linked yet. Use the Edit page to link requirements.</p>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ═══ PROCESS MAP TAB ═══ */}
+      {activeTab === "process-map" && (
+        <div id="section-workflow">
+          {process.workflow?.content ? (
+            <ProcessMapView
+              content={process.workflow.content}
+              processName={process.name}
+              onRefine={() => setPendingPrompt("The current process map needs adjustments. Here's what I'd like to change:")}
+              onRegenerate={() => setPendingPrompt("Regenerate the process map from scratch based on the current charter and ADLI content. Create a fresh Mermaid flowchart.")}
+            />
+          ) : (
+            <div className="text-center py-12">
+              <svg className="w-10 h-10 mx-auto text-text-muted mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+              <p className="text-sm font-medium text-nia-dark mb-1">No process map yet</p>
+              <p className="text-xs text-text-muted mb-4 max-w-xs mx-auto">A visual flowchart of your process steps, decision points, and outputs.</p>
+              <button
+                onClick={() => setPendingPrompt("Generate a process map for this process. Create a Mermaid flowchart that shows the key steps, decision points, responsible parties, and outputs based on the charter and ADLI content.")}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-nia-dark-solid hover:bg-nia-grey-blue px-4 py-2 rounded-lg transition-all duration-150 shadow-sm hover:shadow"
+              >
+                <svg className="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                Generate Process Map
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ TASKS TAB ═══ */}
+      {activeTab === "tasks" && (
+        <div id="section-tasks">
+          <TaskReviewPanel processId={process.id} onTaskCountChange={setTaskCount} />
+        </div>
+      )}
+
+      {/* ═══ HISTORY TAB ═══ */}
+      {activeTab === "history" && (
+        <div className="space-y-6">
+          {improvements.length > 0 ? (
+            <Card accent="orange">
+              <div className="px-4 py-3 border-b border-border-light">
+                <h2 className="text-lg font-semibold text-nia-dark">Improvement History ({improvements.length})</h2>
+              </div>
+              <div className="px-4 py-3 space-y-3">
+                {improvements.map((imp) => (
+                  <ImprovementCard
+                    key={imp.id}
+                    improvement={imp}
+                    onStatusUpdate={async (newStatus) => {
+                      const res = await fetch("/api/improvements", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: imp.id, status: newStatus }) });
+                      if (res.ok) {
+                        setImprovements((prev) => prev.map((i) => i.id === imp.id ? { ...i, status: newStatus, ...(newStatus === "implemented" ? { implemented_date: new Date().toISOString() } : {}) } : i));
+                      }
+                    }}
+                    onDelete={async () => {
+                      const res = await fetch(`/api/improvements?id=${imp.id}`, { method: "DELETE" });
+                      if (res.ok) { setImprovements((prev) => prev.filter((i) => i.id !== imp.id)); }
+                    }}
+                  />
+                ))}
+              </div>
+            </Card>
+          ) : (
+            <Card accent="orange">
+              <div className="px-4 py-3 border-b border-border-light">
+                <h2 className="text-lg font-semibold text-nia-dark">Improvement History</h2>
+              </div>
+              <div className="px-4 py-6 text-center">
+                <p className="text-sm text-text-muted">No improvements recorded yet. Use AI coaching to generate and apply improvements.</p>
+              </div>
+            </Card>
+          )}
+
+          {history.length > 0 && (
+            <Card accent="orange">
+              <div className="px-4 py-3 border-b border-border-light">
+                <h2 className="text-lg font-semibold text-nia-dark">Change Log</h2>
+              </div>
+              <div className="px-4 py-3 space-y-2">
+                {history.map((h) => (
+                  <div key={h.id} className="flex items-center justify-between text-sm">
+                    <span className="text-nia-dark">{h.change_description}</span>
+                    <span className="text-text-muted text-xs">{new Date(h.changed_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {attachedFiles.length > 0 && (
+            <Card accent="orange">
+              <div className="px-4 py-3 border-b border-border-light">
+                <h2 className="text-lg font-semibold text-nia-dark">Attached Files ({attachedFiles.length})</h2>
+              </div>
+              <div className="px-4 py-3">
+                <div className="space-y-1">
+                  {attachedFiles.map((f) => (
+                    <div key={f.id} className="flex items-center justify-between py-2 px-1 border-b border-border-light last:border-b-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <svg className="w-4 h-4 text-text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" /></svg>
+                        <span className="text-sm text-nia-dark truncate">{f.file_name}</span>
+                        <span className="text-xs text-text-muted flex-shrink-0">{f.file_size < 1024 ? `${f.file_size} B` : f.file_size < 1048576 ? `${Math.round(f.file_size / 1024)} KB` : `${(f.file_size / 1048576).toFixed(1)} MB`}</span>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="text-xs text-text-muted">{new Date(f.uploaded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                        <button onClick={async () => { const res = await fetch(`/api/ai/files?fileId=${f.id}`, { method: "DELETE" }); if (res.ok) { setAttachedFiles((prev) => prev.filter((file) => file.id !== f.id)); } }} className="text-text-muted hover:text-nia-red transition-colors p-0.5" title="Delete file">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-text-muted mt-2">These files are used as context for AI coaching. Upload more via the AI chat panel.</p>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Add Metric Dialog — outside tabs so it works from any tab */}
       {metricDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setMetricDialogOpen(false); setMetricPickerOpen(false); setMetricSearch(""); }}>
           <div className="bg-card rounded-xl shadow-xl w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
@@ -1212,387 +1414,46 @@ function ProcessDetailContent() {
               <h3 className="text-lg font-semibold text-nia-dark">Add Metric</h3>
               <p className="text-sm text-text-tertiary mt-1">Link an existing metric or create a new one for this process.</p>
             </div>
-
             {!metricPickerOpen ? (
               <div className="p-5 space-y-3">
-                <button
-                  onClick={() => setMetricPickerOpen(true)}
-                  className="w-full text-left px-4 py-3 rounded-lg border border-border hover:border-nia-grey-blue hover:bg-nia-grey-blue/5 transition-colors group"
-                >
+                <button onClick={() => setMetricPickerOpen(true)} className="w-full text-left px-4 py-3 rounded-lg border border-border hover:border-nia-grey-blue hover:bg-nia-grey-blue/5 transition-colors group">
                   <div className="text-sm font-medium text-nia-dark group-hover:text-nia-grey-blue">Link Existing Metric</div>
                   <div className="text-xs text-text-tertiary mt-0.5">Choose from metrics not already linked to this process</div>
                 </button>
-                <Link
-                  href={`/metric/new?processId=${id}`}
-                  className="block w-full text-left px-4 py-3 rounded-lg border border-border hover:border-nia-grey-blue hover:bg-nia-grey-blue/5 transition-colors group"
-                >
+                <Link href={`/metric/new?processId=${id}`} className="block w-full text-left px-4 py-3 rounded-lg border border-border hover:border-nia-grey-blue hover:bg-nia-grey-blue/5 transition-colors group">
                   <div className="text-sm font-medium text-nia-dark group-hover:text-nia-grey-blue">Create New Metric</div>
                   <div className="text-xs text-text-tertiary mt-0.5">Build a new metric and link it to this process</div>
                 </Link>
               </div>
             ) : (
               <div className="p-5 space-y-3">
-                <Button variant="ghost" size="xs" onClick={() => setMetricPickerOpen(false)}>
-                  ← Back
-                </Button>
+                <Button variant="ghost" size="xs" onClick={() => setMetricPickerOpen(false)}>← Back</Button>
                 <Input placeholder="Search metrics..." value={metricSearch} onChange={(e) => setMetricSearch(e.target.value)} autoFocus />
                 <div className="max-h-60 overflow-y-auto space-y-1">
-                  {availableMetrics
-                    .filter((m) => m.name.toLowerCase().includes(metricSearch.toLowerCase()))
-                    .map((m) => (
-                      <button
-                        key={m.id}
-                        onClick={() => linkExistingMetric(m.id)}
-                        disabled={linkingMetric === m.id}
-                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors flex items-center justify-between disabled:opacity-50"
-                      >
-                        <div>
-                          <div className="text-sm font-medium text-nia-dark">{m.name}</div>
-                          <div className="text-xs text-text-muted capitalize">{m.cadence} · {m.unit}</div>
-                        </div>
-                        {linkingMetric === m.id ? (
-                          <span className="text-xs text-text-muted">Linking...</span>
-                        ) : (
-                          <span className="text-xs text-nia-grey-blue font-medium">Link</span>
-                        )}
-                      </button>
-                    ))}
+                  {availableMetrics.filter((m) => m.name.toLowerCase().includes(metricSearch.toLowerCase())).map((m) => (
+                    <button key={m.id} onClick={() => linkExistingMetric(m.id)} disabled={linkingMetric === m.id} className="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors flex items-center justify-between disabled:opacity-50">
+                      <div>
+                        <div className="text-sm font-medium text-nia-dark">{m.name}</div>
+                        <div className="text-xs text-text-muted capitalize">{m.cadence} · {m.unit}</div>
+                      </div>
+                      {linkingMetric === m.id ? <span className="text-xs text-text-muted">Linking...</span> : <span className="text-xs text-nia-grey-blue font-medium">Link</span>}
+                    </button>
+                  ))}
                   {availableMetrics.filter((m) => m.name.toLowerCase().includes(metricSearch.toLowerCase())).length === 0 && (
                     <div className="text-center py-4">
                       <p className="text-sm text-text-tertiary">No unlinked metrics found</p>
-                      <Link
-                        href={`/metric/new?processId=${id}`}
-                        className="text-sm text-nia-grey-blue hover:underline mt-1 inline-block"
-                      >
-                        Create a new metric instead
-                      </Link>
+                      <Link href={`/metric/new?processId=${id}`} className="text-sm text-nia-grey-blue hover:underline mt-1 inline-block">Create a new metric instead</Link>
                     </div>
                   )}
                 </div>
               </div>
             )}
-
             <div className="px-5 py-3 border-t border-border-light">
-              <Button variant="ghost" size="sm" onClick={() => { setMetricDialogOpen(false); setMetricPickerOpen(false); setMetricSearch(""); }}>
-                Cancel
-              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setMetricDialogOpen(false); setMetricPickerOpen(false); setMetricSearch(""); }}>Cancel</Button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Surveys — collect Learning dimension evidence */}
-      <Section title={`Surveys${surveys.length > 0 ? ` (${surveys.length})` : ""}`} id="section-surveys">
-        {surveys.length > 0 ? (
-          <div className="space-y-3">
-            {surveys.map((s) => (
-              <SurveyCard
-                key={s.id}
-                survey={s}
-                processId={Number(id)}
-                onDeploy={handleDeploySurvey}
-                onClose={handleCloseSurveyWave}
-                onEdit={handleEditSurvey}
-                onDelete={handleDeleteSurvey}
-                deploying={surveyDeploying === s.id}
-                closing={surveyClosing === s.id}
-              />
-            ))}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => router.push(`/surveys/new?processId=${id}`)}
-              className="w-full border-dashed"
-            >
-              + Create Another Survey
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center text-center py-6 px-4">
-            <div className="text-4xl mb-3">📋</div>
-            <h3 className="text-sm font-semibold text-nia-dark mb-1">No surveys yet</h3>
-            <p className="text-xs text-text-tertiary mb-3">
-              Create a micro-survey to collect stakeholder feedback. Responses auto-feed your metrics.
-            </p>
-            <Button
-              size="sm"
-              onClick={() => router.push(`/surveys/new?processId=${id}`)}
-            >
-              Create Survey
-            </Button>
-          </div>
-        )}
-      </Section>
-
-      {/* Survey builder moved to full page — /surveys/new?processId=N and /surveys/[id]/edit */}
-
-      {/* Description — only show when no charter content */}
-      {!process.charter?.content && (
-        <Section title="What is this process?">
-          <TextContent text={process.description} />
-        </Section>
-      )}
-
-      {/* Charter & ADLI Sections */}
-      <Section title="Charter" id="section-charter">
-            {process.charter ? (
-              process.charter.content ? (
-                <MarkdownContent content={process.charter.content} />
-              ) : (
-                <div className="space-y-3">
-                  <Field label="Purpose" value={process.charter.purpose} />
-                  <Field
-                    label="Scope (Includes)"
-                    value={process.charter.scope_includes}
-                  />
-                  <Field
-                    label="Scope (Excludes)"
-                    value={process.charter.scope_excludes}
-                  />
-                  <Field
-                    label="Mission Alignment"
-                    value={process.charter.mission_alignment}
-                  />
-                  {process.charter.stakeholders &&
-                    process.charter.stakeholders.length > 0 && (
-                      <div>
-                        <span className="text-sm font-medium text-text-tertiary">
-                          Stakeholders
-                        </span>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {process.charter.stakeholders.map((s, i) => (
-                            <span
-                              key={i}
-                              className="bg-nia-grey-blue/10 text-nia-dark px-3 py-1 rounded-full text-sm"
-                            >
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                </div>
-              )
-            ) : (
-              <EmptyText />
-            )}
-          </Section>
-
-          <AdliSection title="Approach" data={process.adli_approach} id="section-adli" />
-          <AdliSection title="Deployment" data={process.adli_deployment} />
-          <AdliSection title="Learning" data={process.adli_learning} />
-          <AdliSection title="Integration" data={process.adli_integration} />
-
-          <Section title="Process Map" id="section-workflow">
-            {process.workflow?.content ? (
-              <ProcessMapView
-                content={process.workflow.content}
-                processName={process.name}
-                onRefine={() => setPendingPrompt("The current process map needs adjustments. Here's what I'd like to change:")}
-                onRegenerate={() => setPendingPrompt("Regenerate the process map from scratch based on the current charter and ADLI content. Create a fresh Mermaid flowchart.")}
-              />
-            ) : (
-              <div className="text-center py-6">
-                <svg className="w-10 h-10 mx-auto text-text-muted mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-                </svg>
-                <p className="text-sm font-medium text-nia-dark mb-1">No process map yet</p>
-                <p className="text-xs text-text-muted mb-4 max-w-xs mx-auto">
-                  A visual flowchart of your process steps, decision points, and outputs. AI generates it from your charter and ADLI content.
-                </p>
-                <button
-                  onClick={() => setPendingPrompt("Generate a process map for this process. Create a Mermaid flowchart that shows the key steps, decision points, responsible parties, and outputs based on the charter and ADLI content.")}
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-nia-dark-solid hover:bg-nia-grey-blue px-4 py-2 rounded-lg transition-all duration-150 shadow-sm hover:shadow"
-                >
-                  <svg className="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Generate Process Map
-                </button>
-              </div>
-            )}
-          </Section>
-
-          <Section title="Excellence Builder Connections">
-            {ebMappings.length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-xs text-text-tertiary">
-                  AI has mapped this process to {ebMappings.length} Excellence Builder question{ebMappings.length !== 1 ? "s" : ""}. Managed via{" "}
-                  <Link href="/criteria" className="text-nia-green hover:underline font-medium">Criteria Map</Link>.
-                </p>
-                {/* Group by category */}
-                {Object.entries(
-                  ebMappings.reduce((acc, m) => {
-                    const key = m.category_name;
-                    if (!acc[key]) acc[key] = [];
-                    acc[key].push(m);
-                    return acc;
-                  }, {} as Record<string, typeof ebMappings>)
-                ).map(([catName, mappings]) => (
-                  <div key={catName}>
-                    <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">{catName}</span>
-                    <div className="mt-1 space-y-1.5">
-                      {mappings.map((m) => (
-                        <div key={m.question_code} className="flex items-start gap-2 bg-surface-hover rounded-lg px-3 py-2">
-                          <span className="text-xs font-mono text-text-muted mt-0.5 shrink-0">{m.question_code.replace("EB-", "")}</span>
-                          <span className="text-sm text-nia-dark flex-1">{m.question_text}</span>
-                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${
-                            m.coverage === "primary" ? "bg-nia-green/20 text-nia-dark" :
-                            m.coverage === "supporting" ? "bg-blue-100 text-blue-700" :
-                            "bg-nia-orange/20 text-nia-orange"
-                          }`}>
-                            {m.coverage}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-text-tertiary">No Excellence Builder connections yet.</p>
-                <p className="text-xs text-text-muted mt-1">
-                  An admin can run AI mapping from the{" "}
-                  <Link href="/criteria" className="text-nia-green hover:underline font-medium">Criteria Map</Link> page.
-                </p>
-              </div>
-            )}
-          </Section>
-
-      {/* Linked Key Requirements */}
-      <Section title="Linked Key Requirements">
-        {requirements.length > 0 ? (
-          <div className="space-y-2">
-            {requirements.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between px-3 py-2 rounded-lg bg-surface-hover"
-              >
-                <span className="text-sm text-nia-dark">{r.requirement}</span>
-                <span className="text-xs text-text-muted">
-                  {r.stakeholder_group}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-text-muted italic">
-            No key requirements linked yet. Use the Edit page to link
-            requirements.
-          </p>
-        )}
-      </Section>
-
-      {/* Attached Files */}
-      {attachedFiles.length > 0 && (
-        <Section title={`Attached Files (${attachedFiles.length})`}>
-          <div className="space-y-1">
-            {attachedFiles.map((f) => (
-              <div
-                key={f.id}
-                className="flex items-center justify-between py-2 px-1 border-b border-border-light last:border-b-0"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <svg className="w-4 h-4 text-text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
-                  </svg>
-                  <span className="text-sm text-nia-dark truncate">{f.file_name}</span>
-                  <span className="text-xs text-text-muted flex-shrink-0">
-                    {f.file_size < 1024
-                      ? `${f.file_size} B`
-                      : f.file_size < 1048576
-                      ? `${Math.round(f.file_size / 1024)} KB`
-                      : `${(f.file_size / 1048576).toFixed(1)} MB`}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="text-xs text-text-muted">
-                    {new Date(f.uploaded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                  </span>
-                  <button
-                    onClick={async () => {
-                      const res = await fetch(`/api/ai/files?fileId=${f.id}`, { method: "DELETE" });
-                      if (res.ok) {
-                        setAttachedFiles((prev) => prev.filter((file) => file.id !== f.id));
-                      }
-                    }}
-                    className="text-text-muted hover:text-nia-red transition-colors p-0.5"
-                    title="Delete file"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-text-muted mt-2">
-            These files are used as context for AI coaching. Upload more via the AI chat panel.
-          </p>
-        </Section>
-      )}
-
-      {/* Improvement History */}
-      {improvements.length > 0 && (
-        <Section title={`Improvement History (${improvements.length})`}>
-          <div className="space-y-3">
-            {improvements.map((imp) => (
-              <ImprovementCard
-                key={imp.id}
-                improvement={imp}
-                onStatusUpdate={async (newStatus) => {
-                  const res = await fetch("/api/improvements", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id: imp.id, status: newStatus }),
-                  });
-                  if (res.ok) {
-                    setImprovements((prev) =>
-                      prev.map((i) =>
-                        i.id === imp.id
-                          ? { ...i, status: newStatus, ...(newStatus === "implemented" ? { implemented_date: new Date().toISOString() } : {}) }
-                          : i
-                      )
-                    );
-                  }
-                }}
-                onDelete={async () => {
-                  const res = await fetch(`/api/improvements?id=${imp.id}`, {
-                    method: "DELETE",
-                  });
-                  if (res.ok) {
-                    setImprovements((prev) => prev.filter((i) => i.id !== imp.id));
-                  }
-                }}
-              />
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* Change Log */}
-      {history.length > 0 && (
-        <Section title="Change Log">
-          <div className="space-y-2">
-            {history.map((h) => (
-              <div
-                key={h.id}
-                className="flex items-center justify-between text-sm"
-              >
-                <span className="text-nia-dark">{h.change_description}</span>
-                <span className="text-text-muted text-xs">
-                  {new Date(h.changed_at).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      </>}
 
       {/* AI Chat Panel */}
       <AiChatPanel processId={process.id} processName={process.name} onProcessUpdated={fetchProcess} autoAnalyze={autoAnalyze} guidedStep={process.guided_step} pendingPrompt={pendingPrompt} onPromptConsumed={() => setPendingPrompt(null)} />
@@ -1601,44 +1462,6 @@ function ProcessDetailContent() {
 }
 
 // Helper components
-
-function Section({
-  title,
-  children,
-  id,
-}: {
-  title: string;
-  children: React.ReactNode;
-  id?: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <Card accent="orange" className="overflow-hidden" id={id}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-hover transition-colors text-left"
-      >
-        <div className="flex items-center gap-2">
-          <span className={`section-chevron text-text-muted text-sm ${isOpen ? "open" : ""}`}>
-            ▶
-          </span>
-          <h2 className="text-lg font-semibold text-nia-dark">{title}</h2>
-        </div>
-      </button>
-      {isOpen && (
-        <div className="border-t border-border-light px-4 py-3">{children}</div>
-      )}
-    </Card>
-  );
-}
-
-function TextContent({ text }: { text: string | null | undefined }) {
-  return text ? (
-    <p className="text-nia-dark whitespace-pre-wrap">{text}</p>
-  ) : (
-    <EmptyText />
-  );
-}
 
 function EmptyText() {
   return (
@@ -1667,60 +1490,45 @@ function Field({
   );
 }
 
-function AdliSection({
+// Always-expanded ADLI card for the Documentation tab (no collapsible wrapper)
+function AdliCard({
   title,
   data,
-  id,
 }: {
   title: string;
   data: AdliApproach | AdliDeployment | AdliLearning | AdliIntegration | null;
-  id?: string;
 }) {
-  if (!data) {
-    return (
-      <Section title={`ADLI: ${title}`} id={id}>
-        <EmptyText />
-      </Section>
-    );
-  }
-
-  // If full content was imported, show that instead of individual fields
-  if ("content" in data && data.content) {
-    return (
-      <Section title={`ADLI: ${title}`} id={id}>
-        <MarkdownContent content={data.content} />
-      </Section>
-    );
-  }
-
   return (
-    <Section title={`ADLI: ${title}`} id={id}>
-      <div className="space-y-3">
-        {Object.entries(data).map(([key, value]) => {
-          if (key === "content") return null;
-          const label = key
-            .replace(/_/g, " ")
-            .replace(/\b\w/g, (c) => c.toUpperCase());
-          if (Array.isArray(value)) {
-            return value.length > 0 ? (
-              <div key={key}>
-                <span className="text-sm font-medium text-text-tertiary">
-                  {label}
-                </span>
-                <ul className="list-disc list-inside mt-1 text-nia-dark">
-                  {value.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null;
-          }
-          return value ? (
-            <Field key={key} label={label} value={value as string} />
-          ) : null;
-        })}
+    <Card accent="orange">
+      <div className="px-4 py-3 border-b border-border-light">
+        <h2 className="text-lg font-semibold text-nia-dark">ADLI: {title}</h2>
       </div>
-    </Section>
+      <div className="px-4 py-4">
+        {!data ? (
+          <EmptyText />
+        ) : "content" in data && data.content ? (
+          <MarkdownContent content={data.content} />
+        ) : (
+          <div className="space-y-3">
+            {Object.entries(data).map(([key, value]) => {
+              if (key === "content") return null;
+              const label = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+              if (Array.isArray(value)) {
+                return value.length > 0 ? (
+                  <div key={key}>
+                    <span className="text-sm font-medium text-text-tertiary">{label}</span>
+                    <ul className="list-disc list-inside mt-1 text-nia-dark">
+                      {value.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                  </div>
+                ) : null;
+              }
+              return value ? <Field key={key} label={label} value={value as string} /> : null;
+            })}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 

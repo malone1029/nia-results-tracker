@@ -198,15 +198,15 @@ function LogDataContent() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-nia-dark">Log Data</h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-text-tertiary mt-1">
             {mode === "single" ? "Search for a metric and log a new value" : "Log values for all due metrics at once"}
           </p>
         </div>
-        <div className="flex bg-gray-200 rounded-lg p-0.5">
+        <div className="flex bg-surface-muted rounded-lg p-0.5">
           <button
             onClick={() => setMode("single")}
             className={`text-sm px-3 py-1.5 rounded-md transition-colors ${
-              mode === "single" ? "bg-white text-nia-dark shadow-sm font-medium" : "text-gray-500"
+              mode === "single" ? "bg-card text-nia-dark shadow-sm font-medium" : "text-text-tertiary"
             }`}
           >
             Single
@@ -214,7 +214,7 @@ function LogDataContent() {
           <button
             onClick={() => setMode("bulk")}
             className={`text-sm px-3 py-1.5 rounded-md transition-colors ${
-              mode === "bulk" ? "bg-white text-nia-dark shadow-sm font-medium" : "text-gray-500"
+              mode === "bulk" ? "bg-card text-nia-dark shadow-sm font-medium" : "text-text-tertiary"
             }`}
           >
             Bulk Review
@@ -263,7 +263,7 @@ function LogDataContent() {
                     />
                   </div>
                 </div>
-                <p className="text-sm text-gray-400 mb-4">
+                <p className="text-sm text-text-muted mb-4">
                   Enter values for the metrics you want to log. Leave blank to skip.
                 </p>
 
@@ -271,7 +271,7 @@ function LogDataContent() {
                   {dueMetrics.map((metric) => (
                     <div
                       key={metric.id}
-                      className="flex items-center gap-4 py-2 border-b border-gray-100 last:border-b-0"
+                      className="flex items-center gap-4 py-2 border-b border-border-light last:border-b-0"
                     >
                       <div className="flex-1 min-w-0">
                         <Link
@@ -280,7 +280,7 @@ function LogDataContent() {
                         >
                           {metric.name}
                         </Link>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-text-muted">
                           {metric.category_display_name} &middot; {metric.process_name} &middot;{" "}
                           <span className="capitalize">{metric.cadence}</span>
                           {metric.target_value !== null && (
@@ -301,17 +301,17 @@ function LogDataContent() {
                             next.set(metric.id, e.target.value);
                             setBulkValues(next);
                           }}
-                          className="w-24 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+                          className="w-24 border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                           placeholder="Value"
                         />
-                        <span className="text-xs text-gray-400 w-6">{metric.unit}</span>
+                        <span className="text-xs text-text-muted w-6">{metric.unit}</span>
                       </div>
                     </div>
                   ))}
                 </div>
 
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-text-muted">
                     {Array.from(bulkValues.values()).filter((v) => v.trim() !== "").length} of{" "}
                     {dueMetrics.length} filled in
                   </span>
@@ -375,9 +375,9 @@ function LogDataContent() {
             </div>
 
             {/* Metric list */}
-            <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+            <div className="max-h-96 overflow-y-auto border border-border rounded-lg">
               {filtered.length === 0 ? (
-                <div className="p-4 text-gray-400 text-sm text-center">
+                <div className="p-4 text-text-muted text-sm text-center">
                   No metrics match your search
                 </div>
               ) : (
@@ -385,14 +385,14 @@ function LogDataContent() {
                   <button
                     key={metric.id}
                     onClick={() => setSelectedMetricId(metric.id)}
-                    className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                    className={`w-full text-left px-4 py-3 border-b border-border-light hover:bg-surface-hover transition-colors ${
                       selectedMetricId === metric.id
                         ? "bg-nia-grey-blue/10 border-l-4 border-l-nia-grey-blue"
                         : ""
                     }`}
                   >
                     <div className="font-medium text-nia-dark text-sm">{metric.name}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">
+                    <div className="text-xs text-text-muted mt-0.5">
                       {metric.category_display_name} &middot; {metric.process_name} &middot;{" "}
                       <span className="capitalize">{metric.cadence}</span>
                     </div>
@@ -400,7 +400,7 @@ function LogDataContent() {
                 ))
               )}
             </div>
-            <div className="text-xs text-gray-400 mt-2">
+            <div className="text-xs text-text-muted mt-2">
               {filtered.length} of {metrics.length} metrics shown
             </div>
           </Card>
@@ -412,7 +412,7 @@ function LogDataContent() {
             <h2 className="font-bold text-nia-dark mb-3">2. Enter Data</h2>
 
             {!selectedMetric ? (
-              <div className="text-gray-400 text-sm py-8 text-center">
+              <div className="text-text-muted text-sm py-8 text-center">
                 Select a metric from the list to log a value
               </div>
             ) : (
@@ -420,7 +420,7 @@ function LogDataContent() {
                 {/* Selected metric info */}
                 <div className="bg-nia-grey-blue/5 rounded-lg p-3 border border-nia-grey-blue/20">
                   <div className="font-medium text-nia-dark">{selectedMetric.name}</div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-text-tertiary mt-1">
                     {selectedMetric.process_name} &middot;{" "}
                     <span className="capitalize">{selectedMetric.cadence}</span> &middot;{" "}
                     Unit: {selectedMetric.unit}
@@ -429,7 +429,7 @@ function LogDataContent() {
                     )}
                   </div>
                   {selectedMetric.data_source && (
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className="text-xs text-text-muted mt-1">
                       Source: {selectedMetric.data_source}
                     </div>
                   )}
@@ -447,7 +447,7 @@ function LogDataContent() {
                       onChange={(e) => setValue(e.target.value)}
                       placeholder="Enter value"
                     />
-                    <span className="text-xs text-gray-400 mt-0.5 block">
+                    <span className="text-xs text-text-muted mt-0.5 block">
                       {selectedMetric.unit}
                     </span>
                   </div>
@@ -525,8 +525,8 @@ function RecentEntries({ metricId, unit }: { metricId: number; unit: string }) {
       <h3 className="text-sm font-bold text-nia-dark mb-2">Recent Entries</h3>
       <div className="space-y-1">
         {entries.map((entry) => (
-          <div key={entry.id} className="flex justify-between text-sm py-1 border-b border-gray-50">
-            <span className="text-gray-500">{formatDate(entry.date)}</span>
+          <div key={entry.id} className="flex justify-between text-sm py-1 border-b border-border-light">
+            <span className="text-text-tertiary">{formatDate(entry.date)}</span>
             <span className="font-medium text-nia-dark">
               {formatValue(entry.value, unit)}
             </span>

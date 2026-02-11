@@ -38,11 +38,11 @@ export default function ConfirmDeleteModal({
       aria-label={title}
     >
       <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-5"
+        className="bg-card rounded-xl shadow-xl w-full max-w-sm mx-4 p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-semibold text-nia-dark">{title}</h3>
-        <p className="text-sm text-gray-600 mt-2">{description}</p>
+        <p className="text-sm text-text-secondary mt-2">{description}</p>
         <div className="flex justify-end gap-2 mt-5">
           <Button variant="secondary" size="sm" onClick={onCancel} disabled={loading}>
             Cancel

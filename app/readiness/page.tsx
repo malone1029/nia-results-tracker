@@ -356,10 +356,10 @@ export default function ReadinessPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-nia-dark font-display">
+          <h1 className="text-3xl font-bold text-foreground font-display">
             Baldrige Readiness
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-text-tertiary mt-1">
             {isFiltered
               ? `${selectedOwner}\u2019s process readiness vs. organization`
               : "Organization-wide readiness for a Baldrige Excellence application"}
@@ -387,7 +387,7 @@ export default function ReadinessPage() {
             {snapshotSaving ? "Saving..." : "Refresh Snapshot"}
           </Button>
           {snapshotMsg && (
-            <span className={`text-sm font-medium ${snapshotMsg.includes("Failed") ? "text-red-600" : "text-nia-green"}`}>
+            <span className={`text-sm font-medium ${snapshotMsg.includes("Failed") ? "text-nia-red" : "text-nia-green"}`}>
               {snapshotMsg}
             </span>
           )}
@@ -408,17 +408,17 @@ export default function ReadinessPage() {
             <div className="text-lg font-bold font-display" style={{ color: displayLevel.color }}>
               {displayLevel.label}
             </div>
-            <div className="text-3xl font-bold text-nia-dark mt-1">
-              {displayScore}<span className="text-lg text-gray-400 font-normal">/100</span>
+            <div className="text-3xl font-bold text-foreground mt-1">
+              {displayScore}<span className="text-lg text-text-muted font-normal">/100</span>
               {isFiltered && (
-                <span className="ml-3 text-sm font-normal text-gray-400">
-                  Org: <span className="font-medium text-nia-dark">{orgScore}</span>
+                <span className="ml-3 text-sm font-normal text-text-muted">
+                  Org: <span className="font-medium text-foreground">{orgScore}</span>
                   {displayScore > orgScore && <span className="text-nia-green ml-1">+{displayScore - orgScore}</span>}
                   {displayScore < orgScore && <span className="text-nia-orange ml-1">{displayScore - orgScore}</span>}
                 </span>
               )}
             </div>
-            <div className="text-sm text-gray-500 mt-2 space-y-1">
+            <div className="text-sm text-text-tertiary mt-2 space-y-1">
               <div>
                 {readyCount} of {filteredProcesses.length} processes are{" "}
                 <span className="font-medium" style={{ color: "#b1bd37" }}>Baldrige Ready</span>
@@ -426,7 +426,7 @@ export default function ReadinessPage() {
               {keyAvg !== null && keyProcesses.length > 0 && (
                 <div>
                   {keyProcesses.length} Key Process{keyProcesses.length !== 1 ? "es" : ""} avg:{" "}
-                  <span className="font-medium text-nia-dark">{keyAvg}%</span>
+                  <span className="font-medium text-foreground">{keyAvg}%</span>
                 </div>
               )}
             </div>
@@ -437,22 +437,22 @@ export default function ReadinessPage() {
       {/* ── Readiness Trend ────────────────────────────────── */}
       {chartData.length > 0 && (
         <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider mb-3">
             Readiness Trend
           </h2>
           <Card className="p-5">
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 12, fill: "#9ca3af" }}
+                  tick={{ fontSize: 12, fill: "var(--text-muted)" }}
                   tickLine={false}
-                  axisLine={{ stroke: "#e5e7eb" }}
+                  axisLine={{ stroke: "var(--grid-line)" }}
                 />
                 <YAxis
                   domain={[0, 100]}
-                  tick={{ fontSize: 12, fill: "#9ca3af" }}
+                  tick={{ fontSize: 12, fill: "var(--text-muted)" }}
                   tickLine={false}
                   axisLine={false}
                   ticks={[0, 20, 40, 60, 80, 100]}
@@ -460,7 +460,9 @@ export default function ReadinessPage() {
                 <Tooltip
                   contentStyle={{
                     borderRadius: "8px",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--border)",
+                    backgroundColor: "var(--card)",
+                    color: "var(--foreground)",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                     fontSize: "13px",
                   }}
@@ -483,16 +485,16 @@ export default function ReadinessPage() {
                 <Line
                   type="monotone"
                   dataKey="score"
-                  stroke="#324a4d"
+                  stroke="var(--nia-dark)"
                   strokeWidth={2.5}
-                  dot={{ fill: "#324a4d", r: 4, strokeWidth: 2, stroke: "#fff" }}
-                  activeDot={{ r: 6, strokeWidth: 2, stroke: "#324a4d", fill: "#fff" }}
+                  dot={{ fill: "var(--nia-dark)", r: 4, strokeWidth: 2, stroke: "var(--card)" }}
+                  activeDot={{ r: 6, strokeWidth: 2, stroke: "var(--nia-dark)", fill: "var(--card)" }}
                 />
               </LineChart>
             </ResponsiveContainer>
-            <div className="flex items-center justify-center gap-4 mt-2 text-xs text-gray-400">
+            <div className="flex items-center justify-center gap-4 mt-2 text-xs text-text-muted">
               <span className="flex items-center gap-1">
-                <span className="w-3 h-0.5 bg-nia-dark inline-block rounded" />
+                <span className="w-3 h-0.5 bg-nia-dark-solid inline-block rounded" />
                 Org Readiness
               </span>
               <span className="flex items-center gap-1">
@@ -506,7 +508,7 @@ export default function ReadinessPage() {
 
       {/* ── Section B: Category Readiness ───────────────────── */}
       <div>
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider mb-3">
           Category Readiness
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -517,10 +519,10 @@ export default function ReadinessPage() {
                 <div className="flex items-center gap-3 mb-3">
                   <HealthRing score={avgScore} color={catLevel.color} size={44} strokeWidth={4} />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-nia-dark truncate">
+                    <div className="font-medium text-foreground truncate">
                       {category.display_name}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-text-muted">
                       {procs.length === 0
                         ? "No processes"
                         : `${catReady} of ${procs.length} Baldrige Ready`}
@@ -535,7 +537,7 @@ export default function ReadinessPage() {
                 </div>
 
                 {procs.length === 0 ? (
-                  <div className="text-sm text-gray-400 italic py-2">
+                  <div className="text-sm text-text-muted italic py-2">
                     No processes in this category
                   </div>
                 ) : (
@@ -549,7 +551,7 @@ export default function ReadinessPage() {
                           className="flex items-center gap-2 group"
                         >
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm text-nia-dark group-hover:text-nia-orange transition-colors truncate">
+                            <div className="text-sm text-foreground group-hover:text-nia-orange transition-colors truncate">
                               {proc.is_key && (
                                 <span className="text-nia-orange mr-1">{"\u2605"}</span>
                               )}
@@ -558,7 +560,7 @@ export default function ReadinessPage() {
                           </div>
                           {/* Health bar */}
                           <div className="w-24 flex-shrink-0">
-                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-2 bg-surface-subtle rounded-full overflow-hidden">
                               <div
                                 className="h-full rounded-full transition-all duration-500"
                                 style={{
@@ -586,7 +588,7 @@ export default function ReadinessPage() {
 
       {/* ── Section C: Dimension Gap Analysis ───────────────── */}
       <div>
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider mb-3">
           Dimension Gap Analysis
         </h2>
         <Card className="p-5">
@@ -615,18 +617,18 @@ export default function ReadinessPage() {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <span className={`section-chevron text-gray-400 text-xs ${isExpanded ? "open" : ""}`}>{"\u25B6"}</span>
-                        <span className="text-sm font-medium text-nia-dark group-hover:text-nia-orange transition-colors">{dim.label}</span>
+                        <span className={`section-chevron text-text-muted text-xs ${isExpanded ? "open" : ""}`}>{"\u25B6"}</span>
+                        <span className="text-sm font-medium text-foreground group-hover:text-nia-orange transition-colors">{dim.label}</span>
                         {dim.isGap && (
                           <Badge color="orange" size="xs">Gap</Badge>
                         )}
                       </div>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-text-tertiary">
                         {dim.avg}/{dim.max}{" "}
-                        <span className="text-xs text-gray-400">({dim.pct}%)</span>
+                        <span className="text-xs text-text-muted">({dim.pct}%)</span>
                       </span>
                     </div>
-                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-3 bg-surface-subtle rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
@@ -646,11 +648,11 @@ export default function ReadinessPage() {
                             href={`/processes/${p.id}`}
                             className="flex items-center gap-2 group/proc"
                           >
-                            <span className="text-xs text-nia-dark group-hover/proc:text-nia-orange transition-colors truncate flex-1 min-w-0">
+                            <span className="text-xs text-foreground group-hover/proc:text-nia-orange transition-colors truncate flex-1 min-w-0">
                               {p.name}
                             </span>
                             <div className="w-16 flex-shrink-0">
-                              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-1.5 bg-surface-subtle rounded-full overflow-hidden">
                                 <div
                                   className="h-full rounded-full"
                                   style={{ width: `${p.pct}%`, backgroundColor: p.color }}
@@ -675,18 +677,18 @@ export default function ReadinessPage() {
       {/* ── Top Actions ─────────────────────────────────────── */}
       {topActions.length > 0 && (
         <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider mb-3">
             Top Actions to Improve Readiness
           </h2>
-          <Card className="divide-y divide-gray-100">
+          <Card className="divide-y divide-border-light">
             {topActions.map((action, i) => (
               <div key={i} className="flex items-center gap-3 px-5 py-3">
-                <span className="w-6 h-6 rounded-full bg-nia-dark text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                <span className="w-6 h-6 rounded-full bg-nia-dark-solid text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                   {i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-nia-dark">{action.label}</div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-sm text-foreground">{action.label}</div>
+                  <div className="text-xs text-text-muted">
                     Applies to {action.count} process{action.count !== 1 ? "es" : ""}
                   </div>
                 </div>

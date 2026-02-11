@@ -3,9 +3,9 @@ import { forwardRef } from "react";
 /* ─── Shared field styles ───────────────────────────────────── */
 
 const fieldBase =
-  "w-full border rounded-lg px-3 py-2 text-sm text-nia-dark bg-white placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/40 focus:border-nia-grey-blue";
+  "w-full border rounded-lg px-3 py-2 text-sm text-foreground bg-card placeholder:text-text-muted transition-colors focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/40 focus:border-nia-grey-blue";
 
-const fieldNormal = "border-gray-300 hover:border-gray-400";
+const fieldNormal = "border-border hover:border-text-muted";
 const fieldError = "border-nia-red hover:border-nia-red focus:ring-nia-red/30 focus:border-nia-red";
 
 /* ─── Types ─────────────────────────────────────────────────── */
@@ -74,7 +74,7 @@ function FieldMessage({
   return (
     <p
       className={`mt-1 text-xs ${
-        error ? "text-nia-red" : "text-gray-400"
+        error ? "text-nia-red" : "text-text-muted"
       }`}
     >
       {error || hint}
@@ -175,7 +175,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </select>
           {/* Custom chevron — replaces browser default dropdown arrow */}
           <svg
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
             viewBox="0 0 20 20"
             fill="currentColor"
             aria-hidden="true"

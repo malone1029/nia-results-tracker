@@ -1,16 +1,16 @@
 /* ─── Color scheme definitions ──────────────────────────────── */
 
 const colorSchemes = {
-  gray: "bg-gray-100 text-gray-600",
+  gray: "bg-surface-subtle text-text-secondary",
   dark: "bg-nia-dark/10 text-nia-dark",
   orange: "bg-nia-orange/10 text-nia-orange",
   green: "bg-nia-green/15 text-nia-green",
   red: "bg-nia-red/10 text-nia-red",
   purple: "bg-nia-purple/10 text-nia-purple",
   yellow: "bg-nia-yellow/10 text-nia-yellow",
-  blue: "bg-blue-50 text-blue-600",
+  blue: "bg-blue-500/10 text-blue-400",
   // Solid variants — white text on filled background
-  "solid-dark": "bg-nia-dark text-white",
+  "solid-dark": "bg-nia-dark-solid text-white",
   "solid-orange": "bg-nia-orange text-white",
   "solid-green": "bg-nia-green text-white",
   "solid-red": "bg-nia-red text-white",

@@ -117,7 +117,7 @@ export default function SchedulePage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-nia-dark">Review Schedule</h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-text-tertiary mt-1">
             Metrics organized by how often they need to be reviewed
           </p>
         </div>
@@ -211,15 +211,15 @@ function CadenceSection({
     <Card id={id} accent="orange">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-hover transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <span className={`section-chevron text-gray-400 text-sm ${isOpen ? "open" : ""}`}>
+          <span className={`section-chevron text-text-muted text-sm ${isOpen ? "open" : ""}`}>
             ▶
           </span>
           <div>
             <span className="text-lg font-bold text-nia-dark">{label}</span>
-            <span className="text-sm text-gray-400 ml-3">
+            <span className="text-sm text-text-muted ml-3">
               {metrics.length} metric{metrics.length !== 1 ? "s" : ""}
             </span>
           </div>
@@ -230,17 +230,17 @@ function CadenceSection({
               {needsAttention} need attention
             </Badge>
           )}
-          <span className="text-xs text-gray-400">{description}</span>
+          <span className="text-xs text-text-muted">{description}</span>
         </div>
       </button>
 
       <div className={`section-body ${isOpen ? "open" : ""}`}>
         <div>
-        <div className="border-t border-gray-100">
+        <div className="border-t border-border-light">
           {/* Desktop table */}
           <table className="hidden md:table w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-gray-500 text-left text-xs uppercase">
+              <tr className="bg-surface-hover text-text-tertiary text-left text-xs uppercase">
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2">Metric</th>
                 <th className="px-4 py-2">Process</th>
@@ -251,7 +251,7 @@ function CadenceSection({
             </thead>
             <tbody>
               {metrics.map((metric) => (
-                <tr key={metric.id} className="border-t border-gray-100 hover:bg-gray-50">
+                <tr key={metric.id} className="border-t border-border-light hover:bg-surface-hover">
                   <td className="px-4 py-2">
                     <Badge
                       color={metric.review_status === "current" ? "green" : metric.review_status === "overdue" ? "red" : metric.review_status === "due-soon" ? "orange" : "gray"}
@@ -268,15 +268,15 @@ function CadenceSection({
                       {metric.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 text-gray-500">
+                  <td className="px-4 py-2 text-text-tertiary">
                     {metric.is_key_process && <span className="text-nia-orange mr-1">&#9733;</span>}
                     {metric.process_name}
                   </td>
-                  <td className="px-4 py-2 text-gray-400">{metric.data_source || "—"}</td>
+                  <td className="px-4 py-2 text-text-muted">{metric.data_source || "—"}</td>
                   <td className="px-4 py-2 text-right font-medium">
                     {formatValue(metric.last_entry_value, metric.unit)}
                   </td>
-                  <td className="px-4 py-2 text-right text-gray-400">
+                  <td className="px-4 py-2 text-right text-text-muted">
                     {formatDate(metric.last_entry_date)}
                   </td>
                 </tr>
@@ -284,7 +284,7 @@ function CadenceSection({
             </tbody>
           </table>
           {/* Mobile stacked cards */}
-          <div className="md:hidden divide-y divide-gray-100">
+          <div className="md:hidden divide-y divide-border-light">
             {metrics.map((metric) => (
               <div key={metric.id} className="px-4 py-3 space-y-1">
                 <div className="flex items-center justify-between">
@@ -304,7 +304,7 @@ function CadenceSection({
                     {getStatusLabel(metric.review_status)}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-400">
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-text-muted">
                   <span>
                     {metric.is_key_process && <span className="text-nia-orange mr-0.5">&#9733;</span>}
                     {metric.process_name}

@@ -11,7 +11,7 @@ export const DimBar = memo(function DimBar({ label, score }: { label: string; sc
           {score}%
         </span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      <div className="w-full bg-surface-muted rounded-full h-2">
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${score}%`, backgroundColor: level.bgColor }}
@@ -25,14 +25,14 @@ export const MiniBar = memo(function MiniBar({ label, score }: { label: string; 
   const level = getMaturityLevel(score);
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px] text-gray-400 w-3">{label}</span>
-      <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+      <span className="text-[10px] text-text-muted w-3">{label}</span>
+      <div className="flex-1 bg-surface-muted rounded-full h-1.5">
         <div
           className="h-full rounded-full"
           style={{ width: `${score}%`, backgroundColor: level.bgColor }}
         />
       </div>
-      <span className="text-[10px] text-gray-500 w-6 text-right">{score}%</span>
+      <span className="text-[10px] text-text-tertiary w-6 text-right">{score}%</span>
     </div>
   );
 });

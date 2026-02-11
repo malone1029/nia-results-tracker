@@ -28,6 +28,12 @@ export interface CoachSuggestion {
   tasks?: SuggestionTask[];
 }
 
+export interface SurveyQuestionSuggestion {
+  questionText: string;
+  questionType: "rating" | "yes_no";
+  rationale: string;
+}
+
 export interface MetricSuggestion {
   action: "link" | "create";
   metricId?: number;
@@ -130,6 +136,20 @@ export function parseMetricSuggestions(text: string): { metrics: MetricSuggestio
   }
 }
 
+// Parse survey-questions code block from AI response
+export function parseSurveyQuestions(text: string): { questions: SurveyQuestionSuggestion[]; cleanedText: string } {
+  const match = text.match(/```survey-questions\s*\n([\s\S]*?)\n```/);
+  if (!match) return { questions: [], cleanedText: text };
+
+  try {
+    const questions = JSON.parse(match[1]) as SurveyQuestionSuggestion[];
+    const cleanedText = text.replace(/```survey-questions\s*\n[\s\S]*?\n```\s*\n?/, "").trim();
+    return { questions, cleanedText };
+  } catch {
+    return { questions: [], cleanedText: text };
+  }
+}
+
 // Strip partial (still-streaming) structured blocks so raw JSON isn't visible
 // coach-suggestions uses greedy ([\s\S]*) to handle nested backticks (e.g., mermaid)
 export function stripPartialBlocks(text: string): string {
@@ -140,6 +160,7 @@ export function stripPartialBlocks(text: string): string {
   cleaned = cleaned.replace(/```adli-suggestion\s*\n[\s\S]*\n```\s*\n?/g, "");
   cleaned = cleaned.replace(/```proposed-tasks\s*\n[\s\S]*?\n```\s*\n?/g, "");
   cleaned = cleaned.replace(/```metric-suggestions\s*\n[\s\S]*?\n```\s*\n?/g, "");
+  cleaned = cleaned.replace(/```survey-questions\s*\n[\s\S]*?\n```\s*\n?/g, "");
 
   // Remove PARTIAL blocks that started but haven't closed yet (still streaming)
   cleaned = cleaned.replace(/```adli-scores[\s\S]*$/g, "");
@@ -147,15 +168,17 @@ export function stripPartialBlocks(text: string): string {
   cleaned = cleaned.replace(/```adli-suggestion[\s\S]*$/g, "");
   cleaned = cleaned.replace(/```proposed-tasks[\s\S]*$/g, "");
   cleaned = cleaned.replace(/```metric-suggestions[\s\S]*$/g, "");
+  cleaned = cleaned.replace(/```survey-questions[\s\S]*$/g, "");
 
   return cleaned.trim();
 }
 
 // Check if a response has an in-progress structured block (started but not closed)
-export function hasPartialBlock(text: string): "scores" | "suggestions" | "tasks" | "metrics" | null {
+export function hasPartialBlock(text: string): "scores" | "suggestions" | "tasks" | "metrics" | "survey-questions" | null {
   if (/```adli-scores(?![\s\S]*?```)[\s\S]*$/.test(text)) return "scores";
   if (/```coach-suggestions(?![\s\S]*?```)[\s\S]*$/.test(text)) return "suggestions";
   if (/```proposed-tasks(?![\s\S]*?```)[\s\S]*$/.test(text)) return "tasks";
   if (/```metric-suggestions(?![\s\S]*?```)[\s\S]*$/.test(text)) return "metrics";
+  if (/```survey-questions(?![\s\S]*?```)[\s\S]*$/.test(text)) return "survey-questions";
   return null;
 }
