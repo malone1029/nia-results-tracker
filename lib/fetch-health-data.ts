@@ -3,6 +3,7 @@
 // of parallel Supabase queries and Map-building logic.
 
 import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   calculateHealthScore,
   type HealthResult,
@@ -50,7 +51,8 @@ export interface HealthData {
   lastActivityMap: Map<number, string>; // process id → most recent ISO date
 }
 
-export async function fetchHealthData(): Promise<HealthData> {
+export async function fetchHealthData(client?: SupabaseClient): Promise<HealthData> {
+  const db = client ?? supabase;
   // Fetch all 8 tables in parallel
   const [
     { data: catData },
@@ -62,20 +64,20 @@ export async function fetchHealthData(): Promise<HealthData> {
     { data: tasksData },
     { data: improvementsData },
   ] = await Promise.all([
-    supabase.from("categories").select("*").order("sort_order"),
-    supabase.from("processes").select(`
+    db.from("categories").select("*").order("sort_order"),
+    db.from("processes").select(`
       id, name, category_id, is_key, status, owner, baldrige_item,
       charter, adli_approach, adli_deployment, adli_learning, adli_integration,
       workflow, baldrige_connections,
       asana_project_gid, asana_adli_task_gids, updated_at,
       categories!inner ( display_name )
     `).order("name"),
-    supabase.from("process_adli_scores").select("process_id, overall_score"),
-    supabase.from("metric_processes").select("process_id, metric_id"),
-    supabase.from("metrics").select("id, cadence, comparison_value"),
-    supabase.from("entries").select("metric_id, date").order("date", { ascending: false }),
-    supabase.from("process_tasks").select("process_id, status"),
-    supabase.from("process_improvements").select("process_id, committed_date").order("committed_date", { ascending: false }),
+    db.from("process_adli_scores").select("process_id, overall_score"),
+    db.from("metric_processes").select("process_id, metric_id"),
+    db.from("metrics").select("id, cadence, comparison_value"),
+    db.from("entries").select("metric_id, date").order("date", { ascending: false }),
+    db.from("process_tasks").select("process_id, status"),
+    db.from("process_improvements").select("process_id, committed_date").order("committed_date", { ascending: false }),
   ]);
 
   const processes: ProcessWithCategory[] = (procData || []).map(

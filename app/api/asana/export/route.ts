@@ -12,18 +12,26 @@ const PDCA_SECTIONS = ["Plan", "Execute", "Evaluate", "Improve"];
 // Flexible matching for the "Improve" section (handles various naming conventions)
 const IMPROVE_SECTION_NAMES = ["improve", "act", "improvement", "improvements", "act (improve)"];
 
+// Charter fields in the order they should appear in Asana project notes
+const CHARTER_FIELD_ORDER = ["purpose", "stakeholders", "scope_includes", "scope_excludes", "mission_alignment"];
+
 /**
  * Build readable text from a JSONB field (charter, ADLI, etc.)
+ * Charter fields use explicit ordering; other fields use natural object order.
  */
-function fieldToText(data: Record<string, unknown> | null): string {
+function fieldToText(data: Record<string, unknown> | null, orderedKeys?: string[]): string {
   if (!data) return "";
   if (data.content && typeof data.content === "string") {
     return data.content;
   }
 
+  const keys = orderedKeys
+    ? [...orderedKeys, ...Object.keys(data).filter((k) => k !== "content" && !orderedKeys.includes(k))]
+    : Object.keys(data).filter((k) => k !== "content");
+
   const parts: string[] = [];
-  for (const [key, value] of Object.entries(data)) {
-    if (key === "content") continue;
+  for (const key of keys) {
+    const value = data[key];
     const fieldLabel = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     if (Array.isArray(value) && value.length > 0) {
       parts.push(`**${fieldLabel}:**\n${value.map((v) => `- ${v}`).join("\n")}`);
@@ -341,7 +349,7 @@ export async function POST(request: Request) {
   try {
     // Build project description from charter
     const charter = proc.charter as Record<string, unknown> | null;
-    const rawCharterText = fieldToText(charter) || proc.description || "";
+    const rawCharterText = fieldToText(charter, CHARTER_FIELD_ORDER) || proc.description || "";
     const hubLink = `${appUrl}/processes/${processId}`;
 
     // If the charter is too long for Asana, AI condenses it automatically.

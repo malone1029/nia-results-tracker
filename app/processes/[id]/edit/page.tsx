@@ -258,9 +258,6 @@ export default function EditProcessPage() {
                 {!charter.content && (
                   <>
                     <TextAreaField label="Purpose" value={charter.purpose || ""} onChange={(v) => setCharter({ ...charter, purpose: v })} placeholder="Why does this process exist?" />
-                    <TextAreaField label="Scope (Includes)" value={charter.scope_includes || ""} onChange={(v) => setCharter({ ...charter, scope_includes: v })} placeholder="What this process covers..." />
-                    <TextAreaField label="Scope (Excludes)" value={charter.scope_excludes || ""} onChange={(v) => setCharter({ ...charter, scope_excludes: v })} placeholder="What this process does NOT cover..." />
-                    <TextAreaField label="Mission Alignment" value={charter.mission_alignment || ""} onChange={(v) => setCharter({ ...charter, mission_alignment: v })} placeholder="How does this connect to NIA's mission?" />
                     <div>
                       <label className="block text-sm font-medium text-nia-dark mb-1">Stakeholders</label>
                       <ListEditor
@@ -269,6 +266,9 @@ export default function EditProcessPage() {
                         placeholder="e.g., Board, Workforce"
                       />
                     </div>
+                    <TextAreaField label="Scope (Includes)" value={charter.scope_includes || ""} onChange={(v) => setCharter({ ...charter, scope_includes: v })} placeholder="What this process covers..." />
+                    <TextAreaField label="Scope (Excludes)" value={charter.scope_excludes || ""} onChange={(v) => setCharter({ ...charter, scope_excludes: v })} placeholder="What this process does NOT cover..." />
+                    <TextAreaField label="Mission Alignment" value={charter.mission_alignment || ""} onChange={(v) => setCharter({ ...charter, mission_alignment: v })} placeholder="How does this connect to NIA's mission?" />
                   </>
                 )}
               </div>
