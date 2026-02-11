@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/survey-scheduler",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/survey-recurrence",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

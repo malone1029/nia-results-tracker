@@ -32,6 +32,10 @@ interface SurveyData {
   welcome_message: string | null;
   thank_you_message: string | null;
   questions: QuestionInput[];
+  response_target?: number | null;
+  recurrence_enabled?: boolean;
+  recurrence_cadence?: string | null;
+  recurrence_duration_days?: number;
 }
 
 interface SurveyBuilderPageProps {
@@ -925,6 +929,14 @@ export default function SurveyBuilderPage({
   const [isAnonymous, setIsAnonymous] = useState(existingSurvey?.is_anonymous ?? true);
   const [welcomeMessage, setWelcomeMessage] = useState(existingSurvey?.welcome_message || "");
   const [thankYouMessage, setThankYouMessage] = useState(existingSurvey?.thank_you_message || "");
+  const [responseTarget, setResponseTarget] = useState<string>(
+    existingSurvey?.response_target ? String(existingSurvey.response_target) : ""
+  );
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(existingSurvey?.recurrence_enabled ?? false);
+  const [recurrenceCadence, setRecurrenceCadence] = useState(existingSurvey?.recurrence_cadence || "monthly");
+  const [recurrenceDurationDays, setRecurrenceDurationDays] = useState(
+    existingSurvey?.recurrence_duration_days ?? 14
+  );
   const [questions, setQuestions] = useState<QuestionInput[]>(startingQuestions);
 
   // UI state
@@ -1076,6 +1088,10 @@ export default function SurveyBuilderPage({
         is_anonymous: isAnonymous,
         welcome_message: welcomeMessage.trim() || null,
         thank_you_message: thankYouMessage.trim() || null,
+        response_target: responseTarget ? Number(responseTarget) : null,
+        recurrence_enabled: recurrenceEnabled,
+        recurrence_cadence: recurrenceEnabled ? recurrenceCadence : null,
+        recurrence_duration_days: recurrenceEnabled ? recurrenceDurationDays : 14,
         questions: validQuestions.map((q, i) => ({
           ...q,
           sort_order: i,
@@ -1270,6 +1286,89 @@ export default function SurveyBuilderPage({
               rows={3}
             />
           </CollapsibleField>
+        </div>
+
+        {/* ─── Distribution Settings ──────────────────────────── */}
+        <div className="bg-card rounded-xl border border-border shadow-sm p-5 space-y-5">
+          <h3 className="text-sm font-semibold text-nia-dark uppercase tracking-wide">
+            Distribution Settings
+          </h3>
+
+          {/* Response Target */}
+          <div>
+            <label className="block text-sm font-medium text-nia-dark mb-1">
+              Response Target{" "}
+              <span className="text-text-muted font-normal text-xs">(optional)</span>
+            </label>
+            <p className="text-xs text-text-muted mb-2">
+              Set a goal for how many responses you want per round. A progress bar will show on the survey card.
+            </p>
+            <input
+              type="number"
+              value={responseTarget}
+              onChange={(e) => setResponseTarget(e.target.value)}
+              placeholder="e.g., 25"
+              min={1}
+              className="border border-border rounded-lg px-3 py-1.5 text-sm text-foreground bg-card w-32 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/40 focus:border-nia-grey-blue"
+            />
+          </div>
+
+          {/* Recurring Survey */}
+          <div className="pt-3 border-t border-border-light">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div
+                className={`relative w-10 h-5 rounded-full transition-colors ${
+                  recurrenceEnabled ? "bg-nia-green" : "bg-text-muted/30"
+                }`}
+                onClick={() => setRecurrenceEnabled(!recurrenceEnabled)}
+              >
+                <div
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow-sm transition-transform ${
+                    recurrenceEnabled ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-nia-dark">Recurring Survey</div>
+                <div className="text-xs text-text-muted">
+                  Automatically deploy new rounds on a schedule
+                </div>
+              </div>
+            </label>
+
+            {recurrenceEnabled && (
+              <div className="mt-3 ml-13 flex flex-wrap items-center gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">
+                    Cadence
+                  </label>
+                  <select
+                    value={recurrenceCadence}
+                    onChange={(e) => setRecurrenceCadence(e.target.value)}
+                    className="border border-border rounded-md px-2.5 py-1.5 text-sm bg-card text-text-secondary focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/40"
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">
+                    Wave Duration
+                  </label>
+                  <select
+                    value={recurrenceDurationDays}
+                    onChange={(e) => setRecurrenceDurationDays(Number(e.target.value))}
+                    className="border border-border rounded-md px-2.5 py-1.5 text-sm bg-card text-text-secondary focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/40"
+                  >
+                    <option value={7}>7 days</option>
+                    <option value={14}>14 days</option>
+                    <option value={30}>30 days</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ─── Save as Template ─────────────────────────────── */}

@@ -495,10 +495,16 @@ function ProcessDetailContent() {
     }
   }
 
-  async function handleDeploySurvey(surveyId: number) {
+  async function handleDeploySurvey(surveyId: number, scheduleOptions?: { openAt?: string; closeAfterDays?: number }) {
     setSurveyDeploying(surveyId);
     const res = await fetch(`/api/surveys/${surveyId}/waves`, {
       method: "POST",
+      ...(scheduleOptions
+        ? {
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(scheduleOptions),
+          }
+        : {}),
     });
     if (res.ok) {
       fetchSurveys();

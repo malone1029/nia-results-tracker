@@ -832,6 +832,7 @@ export default function SurveyResultsPage() {
   /* ── State — all hooks declared before any early returns ─────── */
 
   const [surveyTitle, setSurveyTitle] = useState("");
+  const [responseTarget, setResponseTarget] = useState<number | null>(null);
   const [processId, setProcessId] = useState<number | null>(null);
   const [waves, setWaves] = useState<Wave[]>([]);
   const [selectedWaveId, setSelectedWaveId] = useState<number | null>(null);
@@ -897,12 +898,14 @@ export default function SurveyResultsPage() {
       ]);
 
       setSurveyTitle(surveyRes.title || "Survey Results");
+      setResponseTarget(surveyRes.response_target || null);
       setProcessId(surveyRes.process_id || null);
       setWaves(wavesRes || []);
 
-      // Default to latest wave (first in the list since ordered desc)
-      if (wavesRes && wavesRes.length > 0) {
-        setSelectedWaveId(wavesRes[0].id);
+      // Default to latest non-scheduled wave (scheduled waves have no results)
+      const resultWaves = (wavesRes || []).filter((w: Wave) => w.status !== "scheduled");
+      if (resultWaves.length > 0) {
+        setSelectedWaveId(resultWaves[0].id);
       }
 
       setLoading(false);
@@ -1003,7 +1006,7 @@ export default function SurveyResultsPage() {
                 size="sm"
                 className="w-40"
               >
-                {waves.map((w) => (
+                {waves.filter((w) => w.status !== "scheduled").map((w) => (
                   <option key={w.id} value={w.id}>
                     Round {w.wave_number}
                     {w.status === "open" ? " (open)" : ` (${w.response_count})`}
@@ -1094,7 +1097,41 @@ export default function SurveyResultsPage() {
                   </div>
                   <div className="text-3xl font-bold text-foreground">
                     {overviewStats.totalResponses}
+                    {responseTarget && responseTarget > 0 && (
+                      <span className="text-sm font-medium text-text-muted ml-1">
+                        / {responseTarget}
+                      </span>
+                    )}
                   </div>
+                  {responseTarget && responseTarget > 0 && (
+                    <div className="mt-2">
+                      <div className="h-1.5 bg-surface-subtle rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            overviewStats.totalResponses >= responseTarget
+                              ? "bg-nia-green"
+                              : "bg-nia-dark-solid"
+                          }`}
+                          style={{
+                            width: `${Math.min(
+                              Math.round(
+                                (overviewStats.totalResponses / responseTarget) * 100
+                              ),
+                              100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="text-[10px] text-text-muted mt-0.5">
+                        {Math.min(
+                          Math.round(
+                            (overviewStats.totalResponses / responseTarget) * 100
+                          ),
+                          100
+                        )}% of target
+                      </div>
+                    </div>
+                  )}
                 </Card>
 
                 {/* NPS (conditional) */}

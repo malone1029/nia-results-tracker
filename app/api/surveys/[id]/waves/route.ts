@@ -24,6 +24,7 @@ export async function GET(
 }
 
 // POST — create new wave (auto-close previous open wave)
+// Accepts optional body: { openAt?: string, closeAfterDays?: number }
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -32,12 +33,28 @@ export async function POST(
   const { id } = await params;
   const surveyId = Number(id);
 
-  // Auto-close any currently open wave for this survey
-  await supabase
-    .from("survey_waves")
-    .update({ status: "closed", closed_at: new Date().toISOString() })
-    .eq("survey_id", surveyId)
-    .eq("status", "open");
+  // Parse optional scheduling params from body
+  let openAt: string | null = null;
+  let closeAfterDays: number | null = null;
+  try {
+    const body = await request.json();
+    openAt = body?.openAt || null;
+    closeAfterDays = body?.closeAfterDays || null;
+  } catch {
+    // No body = immediate open (backwards compatible)
+  }
+
+  const now = new Date().toISOString();
+  const isScheduled = openAt && new Date(openAt) > new Date();
+
+  // Auto-close any currently open wave for this survey (unless scheduling future)
+  if (!isScheduled) {
+    await supabase
+      .from("survey_waves")
+      .update({ status: "closed", closed_at: now })
+      .eq("survey_id", surveyId)
+      .eq("status", "open");
+  }
 
   // Get the next wave number
   const { data: lastWave } = await supabase
@@ -53,14 +70,22 @@ export async function POST(
   // Generate a URL-safe share token with sufficient entropy (80 bits)
   const shareToken = crypto.randomUUID().replace(/-/g, "").slice(0, 20);
 
+  // Calculate scheduled close time if closeAfterDays is set
+  const openDate = isScheduled ? new Date(openAt!) : new Date();
+  const scheduledCloseAt = closeAfterDays
+    ? new Date(openDate.getTime() + closeAfterDays * 24 * 60 * 60 * 1000).toISOString()
+    : null;
+
   const { data: wave, error } = await supabase
     .from("survey_waves")
     .insert({
       survey_id: surveyId,
       wave_number: nextWaveNumber,
-      status: "open",
+      status: isScheduled ? "scheduled" : "open",
       share_token: shareToken,
-      opened_at: new Date().toISOString(),
+      opened_at: isScheduled ? null : now,
+      scheduled_open_at: isScheduled ? new Date(openAt!).toISOString() : null,
+      scheduled_close_at: scheduledCloseAt,
     })
     .select("*")
     .single();

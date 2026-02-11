@@ -23,6 +23,10 @@ interface SurveyApiResponse {
   welcome_message: string | null;
   thank_you_message: string | null;
   questions: QuestionRow[];
+  response_target?: number | null;
+  recurrence_enabled?: boolean;
+  recurrence_cadence?: string | null;
+  recurrence_duration_days?: number;
   error?: string;
 }
 
@@ -104,6 +108,10 @@ export default function EditSurveyPage() {
         welcome_message: survey.welcome_message,
         thank_you_message: survey.thank_you_message,
         questions,
+        response_target: survey.response_target,
+        recurrence_enabled: survey.recurrence_enabled,
+        recurrence_cadence: survey.recurrence_cadence,
+        recurrence_duration_days: survey.recurrence_duration_days,
       }}
     />
   );

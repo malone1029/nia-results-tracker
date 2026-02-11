@@ -167,6 +167,11 @@ export async function PATCH(request: Request) {
   if (is_anonymous !== undefined) updates.is_anonymous = is_anonymous;
   if (welcome_message !== undefined) updates.welcome_message = welcome_message;
   if (thank_you_message !== undefined) updates.thank_you_message = thank_you_message;
+  // Layer 3: response target + recurrence
+  if (body.response_target !== undefined) updates.response_target = body.response_target || null;
+  if (body.recurrence_enabled !== undefined) updates.recurrence_enabled = body.recurrence_enabled;
+  if (body.recurrence_cadence !== undefined) updates.recurrence_cadence = body.recurrence_cadence || null;
+  if (body.recurrence_duration_days !== undefined) updates.recurrence_duration_days = body.recurrence_duration_days;
 
   const { error: updateError } = await supabase
     .from("surveys")
