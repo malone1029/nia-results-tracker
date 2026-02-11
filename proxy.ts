@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -32,7 +32,12 @@ export async function middleware(request: NextRequest) {
 
   // Allow login page and auth callback without a session
   const path = request.nextUrl.pathname;
-  if (path.startsWith("/login") || path.startsWith("/api/auth")) {
+  if (
+    path.startsWith("/login") ||
+    path.startsWith("/api/auth") ||
+    path.startsWith("/survey/respond") ||
+    path.startsWith("/api/surveys/respond")
+  ) {
     return supabaseResponse;
   }
 

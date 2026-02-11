@@ -14,12 +14,14 @@ import {
   parseCoachSuggestions,
   parseProposedTasks,
   parseMetricSuggestions,
+  parseSurveyQuestions,
   stripPartialBlocks,
   hasPartialBlock,
   type AdliScores,
   type CoachSuggestion,
   type SuggestionTask,
   type MetricSuggestion,
+  type SurveyQuestionSuggestion,
 } from "@/lib/ai-parsers";
 
 interface Message {
@@ -70,9 +72,18 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
   const [isQueuing, setIsQueuing] = useState(false);
   const [pendingMetricSuggestions, setPendingMetricSuggestions] = useState<MetricSuggestion[]>([]);
   const [isLinkingMetric, setIsLinkingMetric] = useState(false);
+  const [pendingSurveyQuestions, setPendingSurveyQuestions] = useState<SurveyQuestionSuggestion[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Abort any in-flight stream when the component unmounts
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   // Conversation persistence state
   const conversationIdRef = useRef<number | null>(null);
@@ -229,6 +240,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
     setPendingSuggestions([]);
     setProposedTasks([]);
     setPendingMetricSuggestions([]);
+    setPendingSurveyQuestions([]);
     setShowHistory(false);
     setError(null);
   }
@@ -292,8 +304,11 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
     setIsLoading(true);
 
     try {
+      // Cancel any previous in-flight request
+      abortControllerRef.current?.abort();
       // 3-minute timeout — AI responses with suggestions can be large
       const controller = new AbortController();
+      abortControllerRef.current = controller;
       const timeoutId = setTimeout(() => controller.abort(), 180000);
 
       const response = await fetch("/api/ai/chat", {
@@ -371,6 +386,10 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       const { metrics: newMetricSuggestions } = parseMetricSuggestions(assistantContent);
       if (newMetricSuggestions.length > 0) {
         setPendingMetricSuggestions(newMetricSuggestions);
+      }
+      const { questions: newSurveyQuestions } = parseSurveyQuestions(assistantContent);
+      if (newSurveyQuestions.length > 0) {
+        setPendingSurveyQuestions(newSurveyQuestions);
       }
 
       // Save conversation after each complete AI response
@@ -600,7 +619,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-nia-dark text-white rounded-full px-5 py-3 shadow-lg hover:bg-nia-grey-blue transition-colors flex items-center gap-2 z-50"
+          className="fixed bottom-6 right-6 bg-nia-dark-solid text-white rounded-full px-5 py-3 shadow-lg hover:bg-nia-grey-blue transition-colors flex items-center gap-2 z-50"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2a8 8 0 0 0-8 8c0 3.5 2.1 6.4 5 7.7V22l3-3 3 3v-4.3c2.9-1.3 5-4.2 5-7.7a8 8 0 0 0-8-8z" />
@@ -621,9 +640,9 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
           />
 
           {/* Panel */}
-          <div className={`fixed right-0 top-0 h-full w-full bg-white shadow-2xl z-50 flex flex-col transition-all duration-200 ${isExpanded ? "sm:w-[720px]" : "sm:w-[420px]"}`}>
+          <div className={`fixed right-0 top-0 h-full w-full bg-card shadow-2xl z-50 flex flex-col transition-all duration-200 ${isExpanded ? "sm:w-[720px]" : "sm:w-[420px]"}`}>
             {/* Header */}
-            <div className="bg-nia-dark text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div className="bg-nia-dark-solid text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2 min-w-0">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2a8 8 0 0 0-8 8c0 3.5 2.1 6.4 5 7.7V22l3-3 3 3v-4.3c2.9-1.3 5-4.2 5-7.7a8 8 0 0 0-8-8z" />
@@ -658,17 +677,17 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   </button>
                   {/* History dropdown */}
                   {showHistory && (
-                    <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-80 overflow-y-auto">
-                      <div className="p-2 border-b border-gray-100">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Past Conversations</p>
+                    <div className="absolute right-0 top-full mt-1 w-72 bg-card rounded-lg shadow-xl border border-border z-50 max-h-80 overflow-y-auto">
+                      <div className="p-2 border-b border-border-light">
+                        <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Past Conversations</p>
                       </div>
                       {conversations.length === 0 ? (
-                        <div className="p-3 text-xs text-gray-400 text-center">No conversations yet</div>
+                        <div className="p-3 text-xs text-text-muted text-center">No conversations yet</div>
                       ) : (
                         conversations.map((conv) => (
                           <div
                             key={conv.id}
-                            className={`flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-50 ${conversationIdRef.current === conv.id ? "bg-nia-dark/5" : ""}`}
+                            className={`flex items-center gap-2 px-3 py-2 hover:bg-surface-hover cursor-pointer border-b border-border-light ${conversationIdRef.current === conv.id ? "bg-nia-dark/5" : ""}`}
                           >
                             <button
                               onClick={() => loadConversation(conv.id)}
@@ -677,7 +696,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                               <p className="text-sm text-nia-dark truncate font-medium">
                                 {conv.title}
                               </p>
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs text-text-muted">
                                 {new Date(conv.updated_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                 {" · "}
                                 {new Date(conv.updated_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
@@ -685,7 +704,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
-                              className="text-gray-300 hover:text-red-400 flex-shrink-0 p-1"
+                              className="text-text-muted hover:text-red-400 flex-shrink-0 p-1"
                               title="Delete conversation"
                             >
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -722,10 +741,10 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
             {/* Step context banner — connects stepper to sidebar */}
             {guidedStep && getStepDef(guidedStep) && (
               <div className="bg-nia-dark/5 border-b border-nia-dark/10 px-4 py-2 flex items-center gap-2 flex-shrink-0">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-nia-dark text-white uppercase tracking-wider">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-nia-dark-solid text-white uppercase tracking-wider">
                   {guidedStep.replace(/_/g, " ")}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-text-tertiary">
                   Use the Improvement Cycle steps above to change focus
                 </span>
               </div>
@@ -771,8 +790,8 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   <div
                     className={`rounded-lg px-3 py-2 ${
                       msg.role === "user"
-                        ? "max-w-[85%] bg-nia-dark text-white"
-                        : "w-full bg-gray-100 text-nia-dark"
+                        ? "max-w-[85%] bg-nia-dark-solid text-white"
+                        : "w-full bg-surface-subtle text-nia-dark"
                     }`}
                   >
                     {msg.role === "assistant" ? (
@@ -822,7 +841,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                     </p>
                     <button
                       onClick={() => setPendingSuggestions([])}
-                      className="text-xs text-gray-400 hover:text-gray-600"
+                      className="text-xs text-text-muted hover:text-text-secondary"
                     >
                       Dismiss
                     </button>
@@ -851,14 +870,14 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                     <div className="flex gap-2">
                       <button
                         onClick={() => setProposedTasks([])}
-                        className="text-xs text-gray-400 hover:text-gray-600"
+                        className="text-xs text-text-muted hover:text-text-secondary"
                       >
                         Dismiss
                       </button>
                       <button
                         onClick={queueAllTasks}
                         disabled={isQueuing}
-                        className="text-xs bg-nia-dark text-white rounded px-3 py-1.5 font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
+                        className="text-xs bg-nia-dark-solid text-white rounded px-3 py-1.5 font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
                       >
                         {isQueuing ? "Queuing..." : "Queue All"}
                       </button>
@@ -868,7 +887,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   {proposedTasks.map((task, idx) => {
                     const section = PDCA_SECTIONS[task.pdcaSection as PdcaSection];
                     return (
-                      <div key={idx} className="bg-white rounded-lg border border-gray-200 p-3">
+                      <div key={idx} className="bg-card rounded-lg border border-border p-3">
                         <div className="flex items-start gap-2">
                           <span
                             className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white flex-shrink-0 mt-0.5"
@@ -879,7 +898,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-nia-dark">{task.title}</p>
                             {task.description && (
-                              <p className="text-xs text-gray-500 mt-0.5">{task.description}</p>
+                              <p className="text-xs text-text-tertiary mt-0.5">{task.description}</p>
                             )}
                             {task.adliDimension && (
                               <span className="text-[10px] text-nia-grey-blue capitalize mt-1 inline-block">
@@ -910,7 +929,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                     </p>
                     <button
                       onClick={() => setPendingMetricSuggestions([])}
-                      className="text-xs text-gray-400 hover:text-gray-600"
+                      className="text-xs text-text-muted hover:text-text-secondary"
                     >
                       Dismiss
                     </button>
@@ -927,9 +946,56 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                 </div>
               )}
 
+              {/* Survey question suggestion cards */}
+              {pendingSurveyQuestions.length > 0 && !isLoading && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-nia-dark">
+                      Suggested Survey Questions
+                    </p>
+                    <button
+                      onClick={() => setPendingSurveyQuestions([])}
+                      className="text-xs text-text-muted hover:text-text-secondary"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                  {pendingSurveyQuestions.map((sq, idx) => (
+                    <div
+                      key={idx}
+                      className="border border-blue-200 bg-blue-50/50 rounded-lg p-3"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="text-blue-500 mt-0.5 flex-shrink-0">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            {sq.questionText}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                              {sq.questionType === "rating" ? "Rating 1-5" : "Yes / No"}
+                            </span>
+                          </div>
+                          <p className="text-xs text-text-tertiary mt-1">
+                            {sq.rationale}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs text-text-muted italic">
+                    Use these questions when creating a survey on the process page.
+                  </p>
+                </div>
+              )}
+
               {/* Step-aware buttons — always visible when not loading (even mid-conversation) */}
               {messages.length > 0 && !isLoading && (
-                <div className="pt-2 border-t border-gray-100">
+                <div className="pt-2 border-t border-border-light">
                   <StepActions guidedStep={guidedStep} onAction={handleQuickAction} compact />
                 </div>
               )}
@@ -946,14 +1012,14 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
 
             {/* Sticky Apply All bar — sits between messages and input */}
             {pendingSuggestions.length > 1 && !isLoading && (
-              <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 flex items-center justify-between flex-shrink-0">
-                <span className="text-xs text-gray-500">
+              <div className="border-t border-border bg-surface-hover px-4 py-2 flex items-center justify-between flex-shrink-0">
+                <span className="text-xs text-text-tertiary">
                   {pendingSuggestions.length} suggestions ready
                 </span>
                 <button
                   onClick={applyAllSuggestions}
                   disabled={isApplying}
-                  className="bg-nia-dark text-white rounded-lg px-4 py-1.5 text-sm font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
+                  className="bg-nia-dark-solid text-white rounded-lg px-4 py-1.5 text-sm font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
                 >
                   {isApplying ? "Applying..." : "Apply All"}
                 </button>
@@ -961,7 +1027,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
             )}
 
             {/* Input area */}
-            <div className="border-t border-gray-200 px-4 py-3 flex-shrink-0">
+            <div className="border-t border-border px-4 py-3 flex-shrink-0">
               <div className="flex gap-2">
                 <textarea
                   ref={inputRef}
@@ -974,7 +1040,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   }}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask about this process..."
-                  className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-nia-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue focus:border-transparent"
+                  className="flex-1 resize-none rounded-lg border border-border bg-card px-3 py-2 text-sm text-nia-dark placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-nia-grey-blue focus:border-transparent"
                   rows={3}
                   style={{ minHeight: "72px", maxHeight: "160px" }}
                   disabled={isLoading}
@@ -982,7 +1048,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                 <button
                   onClick={() => sendMessage(input)}
                   disabled={!input.trim() || isLoading}
-                  className="bg-nia-dark text-white rounded-lg px-3 py-2 hover:bg-nia-grey-blue disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
+                  className="bg-nia-dark-solid text-white rounded-lg px-3 py-2 hover:bg-nia-grey-blue disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13" />
@@ -991,7 +1057,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                 </button>
               </div>
               <div className="flex items-center justify-between mt-1">
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-text-muted">
                   Enter to send, Shift+Enter for new line
                 </p>
                 <div className="flex items-center gap-2">
@@ -1027,17 +1093,17 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   {uploadedFiles.map((f) => (
                     <div
                       key={f.id}
-                      className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1"
+                      className="flex items-center justify-between text-xs bg-surface-hover rounded px-2 py-1"
                     >
                       <span className="text-nia-dark truncate mr-2">
                         {f.file_name}
-                        <span className="text-gray-400 ml-1">
+                        <span className="text-text-muted ml-1">
                           ({Math.round(f.file_size / 1024)}KB)
                         </span>
                       </span>
                       <button
                         onClick={() => handleFileDelete(f.id)}
-                        className="text-gray-400 hover:text-red-500 flex-shrink-0"
+                        className="text-text-muted hover:text-red-500 flex-shrink-0"
                         title="Remove file"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1092,12 +1158,12 @@ function StepActions({ guidedStep, onAction, compact }: { guidedStep?: string | 
   return (
     <div className="space-y-2">
       {stepDef && (
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+        <p className="text-xs font-medium text-text-muted uppercase tracking-wider">
           Next Step: {guidedStep?.replace(/_/g, " ")}
         </p>
       )}
       {!stepDef && (
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Quick Actions</p>
+        <p className="text-xs font-medium text-text-muted uppercase tracking-wider">Quick Actions</p>
       )}
 
       {actionList.map((action, idx) => (
@@ -1107,7 +1173,7 @@ function StepActions({ guidedStep, onAction, compact }: { guidedStep?: string | 
           className={`w-full text-left px-3 ${idx === 0 ? "py-3" : "py-2.5"} rounded-lg border ${action.borderClass} ${action.bgClass} text-sm text-nia-dark transition-colors`}
         >
           <span className={`${idx === 0 ? "font-semibold" : "font-medium"} ${action.textClass}`}>{action.label}</span>
-          <span className="text-gray-500 ml-1">— {action.description}</span>
+          <span className="text-text-tertiary ml-1">— {action.description}</span>
         </button>
       ))}
     </div>

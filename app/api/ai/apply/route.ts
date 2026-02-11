@@ -120,7 +120,9 @@ export async function POST(request: Request) {
           source: "ai_suggestion",
           status: "committed",
         });
-      } catch { /* non-critical */ }
+      } catch (err) {
+        console.error("Failed to record charter cleanup improvement history:", err);
+      }
 
       return Response.json({
         success: true,
@@ -194,7 +196,9 @@ export async function POST(request: Request) {
         source: "ai_suggestion",
         status: "committed",
       });
-    } catch { /* non-critical — don't block the main update */ }
+    } catch (err) {
+      console.error("Failed to record improvement history:", err);
+    }
 
     // Queue tasks from the suggestion into process_tasks (pending for review)
     let tasksQueued = 0;

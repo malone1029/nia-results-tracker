@@ -5,6 +5,11 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const errorParam = searchParams.get("error");
+  let returnTo = searchParams.get("state") || "/settings";
+  // Prevent open redirect — only allow relative paths on our own domain
+  if (!returnTo.startsWith("/") || returnTo.startsWith("//")) {
+    returnTo = "/settings";
+  }
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   if (errorParam || !code) {
@@ -68,5 +73,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${appUrl}/settings?asana_error=save`);
   }
 
-  return NextResponse.redirect(`${appUrl}/settings?asana_connected=true`);
+  // Redirect back to the page the user came from (e.g. onboarding or settings)
+  const separator = returnTo.includes("?") ? "&" : "?";
+  return NextResponse.redirect(`${appUrl}${returnTo}${separator}asana_connected=true`);
 }

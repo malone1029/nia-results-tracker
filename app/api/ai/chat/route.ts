@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { ADLI_TO_PDCA_PROMPT } from "@/lib/pdca";
 import { getReviewStatus } from "@/lib/review-status";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // Allow up to 120 seconds for AI streaming responses (requires Vercel Pro)
 export const maxDuration = 120;
@@ -171,6 +172,52 @@ function buildAvailableMetricsContext(metrics: { id: number; name: string; unit:
   return lines.join("\n") + "\n";
 }
 
+interface SurveyContextData {
+  title: string;
+  question_count: number;
+  latest_wave: {
+    wave_number: number;
+    status: string;
+    response_count: number;
+  } | null;
+  results: {
+    question_text: string;
+    question_type: string;
+    avg_value: number;
+    response_count: number;
+  }[];
+}
+
+function buildSurveyContext(surveys: SurveyContextData[]): string {
+  if (surveys.length === 0) return "\n### Process Surveys\nNo surveys created yet. Consider creating a micro-survey to collect stakeholder feedback — this strengthens the Learning dimension.\n";
+
+  const lines = ["\n### Process Surveys"];
+  let charCount = 0;
+  const MAX_CHARS = 1000;
+
+  for (const s of surveys) {
+    const wavePart = s.latest_wave
+      ? `Wave ${s.latest_wave.wave_number} (${s.latest_wave.status}, ${s.latest_wave.response_count} responses)`
+      : "Not deployed yet";
+    lines.push(`- **${s.title}** — ${s.question_count} questions, ${wavePart}`);
+    charCount += 80;
+
+    if (s.results.length > 0) {
+      for (const r of s.results) {
+        const valStr = r.question_type === "yes_no"
+          ? `${Math.round(r.avg_value * 100)}% Yes`
+          : `${r.avg_value.toFixed(1)}/5`;
+        const line = `  - "${r.question_text}" — ${valStr} (${r.response_count} responses)`;
+        charCount += line.length;
+        if (charCount > MAX_CHARS) break;
+        lines.push(line);
+      }
+    }
+    if (charCount > MAX_CHARS) break;
+  }
+  return lines.join("\n") + "\n";
+}
+
 function buildRequirementsContext(requirements: Record<string, unknown>[]): string {
   if (requirements.length === 0) return "\n### Linked Key Requirements\nNo key requirements linked yet.\n";
 
@@ -189,6 +236,20 @@ const SYSTEM_PROMPT = `You are a process improvement coach for NIA (a healthcare
 - **Practical:** Include effort estimates so the user can prioritize. A "quick win" matters more than a perfect plan.
 - **Specific:** Reference actual content from the process. Never give generic advice.
 - **Plain English:** Avoid jargon. If you use a Baldrige term, explain it briefly.
+
+## Grounding Rules (CRITICAL — Read Before Every Response)
+
+You MUST follow these rules to avoid generating inaccurate content:
+
+1. **Only state facts that appear in the process data below.** If a detail isn't in the charter, ADLI sections, Asana data, metrics, or uploaded files — you don't know it. Don't invent it.
+2. **Never fabricate specific details.** This includes: names of people, teams, or departments; dates, timelines, or frequencies; statistics, percentages, or metrics values; names of tools, systems, or software; specific procedures, protocols, or forms; regulatory requirements or standards (unless directly stated in the data).
+3. **Use placeholder markers when information is missing.** When you need to reference something you don't have data for:
+   - Use \`[VERIFY: description]\` for claims you're inferring but aren't certain about — e.g., "[VERIFY: quarterly review cadence]"
+   - Use \`[INSERT: what's needed]\` for details the user must fill in — e.g., "[INSERT: team lead name]", "[INSERT: specific metric target]"
+4. **Ask instead of assuming.** If you need specific facts to write a good suggestion, ask the user 2-3 focused questions rather than making something up.
+5. **Distinguish "what exists" from "what should exist."** When writing ADLI content, clearly separate current-state descriptions (based on data) from aspirational recommendations (your coaching). For example: "Currently, reviews happen [INSERT: frequency]. Consider establishing a quarterly cadence to strengthen the Learning dimension."
+
+These rules apply to ALL content you generate — ADLI sections, charter text, task descriptions, and conversational responses.
 
 ## The ADLI Framework
 
@@ -264,6 +325,7 @@ Rules for suggestions:
 - **Each suggestion MUST include a "tasks" array** with 1-5 concrete, assignable tasks
 - Tasks should be spread across at least 1-2 PDCA sections (use the mapping rules below)
 - Each task title should be action-oriented and specific (e.g., "Train nursing staff on new intake form" not "Do training")
+- **NEVER invent facts in suggestion content.** Only include details that appear in the process data. Use [VERIFY: ...] for inferred claims and [INSERT: ...] for details the user must provide. Example: "The team conducts reviews [INSERT: how often — e.g., quarterly, monthly] to assess process effectiveness."
 
 Only include this block when you are proposing specific improvements. Do NOT include it for general questions or task-building interviews.
 
@@ -437,11 +499,41 @@ The process has a "Guided Step" field that tracks where the user is in the impro
 
 Don't force the flow — if the user asks about something else, help them. But gently nudge toward the next step when appropriate.
 
+## Survey Question Suggestions
+
+When the user asks for help designing a survey, or when you identify a measurement gap that could be filled by stakeholder feedback, suggest survey questions using this block:
+
+\`\`\`survey-questions
+[
+  {
+    "questionText": "How well does our intake process meet your needs?",
+    "questionType": "rating",
+    "rationale": "Directly measures stakeholder satisfaction with the process being improved."
+  },
+  {
+    "questionText": "Did you receive adequate communication about the process change?",
+    "questionType": "yes_no",
+    "rationale": "Tracks Deployment dimension — whether changes are being communicated effectively."
+  }
+]
+\`\`\`
+
+Rules for survey-questions:
+- **Maximum 5 survey questions per suggestion** — micro-surveys get better response rates
+- Tie each question to a specific ADLI dimension or metric gap
+- Include a clear rationale for each question
+- Prefer rating questions (1-5 scale) for satisfaction/quality measures
+- Use yes_no questions for compliance/completion checks
+- **NEVER combine \`survey-questions\` with \`coach-suggestions\` or \`metric-suggestions\`** in the same response
+
+When survey data is available in the process context below, reference specific findings. Survey results are direct evidence for the Learning dimension — mention specific scores, trends, and response rates in your coaching.
+
 ## Important Rules
-- Base your assessment on the ACTUAL process data provided below. Don't make up information.
-- When a section is empty, that IS a gap — note it.
+- **GROUND EVERY CLAIM in the process data below.** If a fact isn't in the data, don't state it. Use [VERIFY: ...] or [INSERT: ...] markers instead.
+- When a section is empty, that IS a gap — note it. Don't fill it with invented details.
 - Score each ADLI dimension independently.
-- Check the Improvement History section to avoid suggesting changes that were already made.`;
+- Check the Improvement History section to avoid suggesting changes that were already made.
+- When writing ADLI content for suggestions, re-read the Grounding Rules above. The most common mistake is inventing specific names, frequencies, tools, or procedures that aren't in the data.`;
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
@@ -453,6 +545,13 @@ export async function POST(request: Request) {
         { error: "processId and messages array are required" },
         { status: 400 }
       );
+    }
+
+    // Rate limit check — uses auth user ID as key
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      const rl = await checkRateLimit(authUser.id);
+      if (!rl.success) return rl.response;
     }
 
     // Load process data from Supabase
@@ -633,6 +732,122 @@ export async function POST(request: Request) {
       }
     }
 
+    // Load survey data for this process — batch queries to avoid N+1
+    const { data: surveysRaw } = await supabase
+      .from("surveys")
+      .select("id, title")
+      .eq("process_id", processId);
+
+    const surveyContextData: SurveyContextData[] = [];
+
+    if (surveysRaw && surveysRaw.length > 0) {
+      const surveyIds = surveysRaw.map((s) => s.id);
+
+      // Batch: fetch all questions, waves, responses, and answers in parallel
+      const [questionsResult, wavesResult] = await Promise.all([
+        supabase
+          .from("survey_questions")
+          .select("id, survey_id, question_text, question_type, sort_order")
+          .in("survey_id", surveyIds)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("survey_waves")
+          .select("id, survey_id, wave_number, status, response_count")
+          .in("survey_id", surveyIds)
+          .order("wave_number", { ascending: false }),
+      ]);
+
+      const allQuestions = questionsResult.data || [];
+      const allWaves = wavesResult.data || [];
+
+      // Group questions by survey
+      const questionsBySurvey = new Map<number, typeof allQuestions>();
+      for (const q of allQuestions) {
+        const list = questionsBySurvey.get(q.survey_id) || [];
+        list.push(q);
+        questionsBySurvey.set(q.survey_id, list);
+      }
+
+      // Find latest wave per survey
+      const latestWaveBySurvey = new Map<number, (typeof allWaves)[0]>();
+      for (const w of allWaves) {
+        if (!latestWaveBySurvey.has(w.survey_id)) {
+          latestWaveBySurvey.set(w.survey_id, w);
+        }
+      }
+
+      // Collect wave IDs that have responses for a single batch fetch
+      const wavesWithResponses = [...latestWaveBySurvey.values()].filter((w) => w.response_count > 0);
+      const waveIds = wavesWithResponses.map((w) => w.id);
+
+      // Fetch responses + answers in parallel (if any waves have responses)
+      let allAnswers: { response_id: number; question_id: number; value_numeric: number | null; wave_id?: number }[] = [];
+      let responsesByWave = new Map<number, number[]>();
+
+      if (waveIds.length > 0) {
+        const { data: responses } = await supabase
+          .from("survey_responses")
+          .select("id, wave_id")
+          .in("wave_id", waveIds);
+
+        if (responses && responses.length > 0) {
+          // Group response IDs by wave
+          for (const r of responses) {
+            const list = responsesByWave.get(r.wave_id) || [];
+            list.push(r.id);
+            responsesByWave.set(r.wave_id, list);
+          }
+
+          const allResponseIds = responses.map((r) => r.id);
+          const { data: answersData } = await supabase
+            .from("survey_answers")
+            .select("response_id, question_id, value_numeric")
+            .in("response_id", allResponseIds);
+
+          allAnswers = answersData || [];
+        }
+      }
+
+      // Build answer lookup: question_id → numeric values (for the latest wave's responses)
+      for (const s of surveysRaw) {
+        const questions = questionsBySurvey.get(s.id) || [];
+        const latestWave = latestWaveBySurvey.get(s.id) || null;
+
+        let results: SurveyContextData["results"] = [];
+
+        if (latestWave && latestWave.response_count > 0) {
+          const waveResponseIds = new Set(responsesByWave.get(latestWave.id) || []);
+
+          // Filter answers to only this wave's responses
+          const waveAnswers = allAnswers.filter((a) => waveResponseIds.has(a.response_id));
+
+          results = questions.map((q) => {
+            const qAnswers = waveAnswers
+              .filter((a) => a.question_id === q.id && a.value_numeric !== null)
+              .map((a) => a.value_numeric as number);
+            const avg = qAnswers.length > 0
+              ? qAnswers.reduce((sum, v) => sum + v, 0) / qAnswers.length
+              : 0;
+            return {
+              question_text: q.question_text,
+              question_type: q.question_type,
+              avg_value: avg,
+              response_count: qAnswers.length,
+            };
+          });
+        }
+
+        surveyContextData.push({
+          title: s.title,
+          question_count: questions.length,
+          latest_wave: latestWave,
+          results,
+        });
+      }
+    }
+
+    const surveyContext = buildSurveyContext(surveyContextData);
+
     // Build Asana context if raw data exists
     let asanaContext = "";
     const rawAsana = procData.asana_raw_data as Record<string, unknown> | null;
@@ -742,6 +957,7 @@ ${processContext}
 ${metricsContext}
 ${availableMetricsContext}
 ${requirementsContext}
+${surveyContext}
 ${improvementsContext}
 ${asanaContext}
 ${snapshotContext}

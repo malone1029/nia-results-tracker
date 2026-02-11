@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 60;
 
@@ -33,6 +34,10 @@ export async function POST(request: Request) {
   if (roleData?.role !== "admin") {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
+
+  // Rate limit check
+  const rl = await checkRateLimit(user.id);
+  if (!rl.success) return rl.response;
 
   const body = await request.json();
   const { question_id } = body;

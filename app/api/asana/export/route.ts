@@ -65,6 +65,9 @@ async function backfillImprovements(
 
   if (!improvements || improvements.length === 0) return 0;
 
+  // Sections that should NOT become Asana tasks (Hub-only features)
+  const SKIP_SECTIONS = ["workflow"];
+
   const sectionLabels: Record<string, string> = {
     approach: "Approach",
     deployment: "Deployment",
@@ -75,6 +78,9 @@ async function backfillImprovements(
 
   let created = 0;
   for (const imp of improvements) {
+    // Skip Hub-only sections (e.g., workflow/process maps) — they don't belong in Asana
+    if (SKIP_SECTIONS.includes(imp.section_affected)) continue;
+
     try {
       const sectionLabel = sectionLabels[imp.section_affected] || imp.section_affected;
       const taskName = `[${sectionLabel}] ${imp.title}`;
@@ -279,6 +285,9 @@ export async function POST(request: Request) {
       try {
         const projCheck = await asanaFetch(token, `/projects/${existingGid}?opt_fields=name,workspace`);
         workspaceGid = projCheck.data?.workspace?.gid;
+        if (!workspaceGid) {
+          return NextResponse.json({ error: "Could not determine Asana workspace for this project. Try unlinking and re-linking." }, { status: 400 });
+        }
       } catch (err) {
         // Project was deleted in Asana — clear the stale link and create a new one
         const errMsg = (err as Error).message || "";
@@ -341,12 +350,11 @@ export async function POST(request: Request) {
         token, proc as Record<string, unknown>, existingGid, existingSections, appUrl, workspaceGid
       );
 
-      // Save updated ADLI task GIDs back to process
+      // Save updated ADLI task GIDs back to process (don't change guided_step — user may be mid-cycle)
       await supabase
         .from("processes")
         .update({
           asana_adli_task_gids: adliResult.gids,
-          guided_step: "export",
         })
         .eq("id", processId);
 
@@ -443,14 +451,14 @@ export async function POST(request: Request) {
       );
       console.log(`[Asana Export] syncAdliTasks result: created=${adliResult.created}, updated=${adliResult.updated}, gids=`, adliResult.gids);
 
-      // Link the process to the new Asana project
+      // Link the process to the new Asana project — start at beginning of improvement cycle
       await supabase
         .from("processes")
         .update({
           asana_project_gid: newProjectGid,
           asana_project_url: asanaUrl,
           asana_adli_task_gids: adliResult.gids,
-          guided_step: "export",
+          guided_step: "start",
         })
         .eq("id", processId);
 

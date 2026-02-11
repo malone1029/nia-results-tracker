@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // Allow up to 120 seconds for AI streaming responses (requires Vercel Pro)
 export const maxDuration = 120;
@@ -75,8 +76,11 @@ When you have enough information, generate a complete process draft. You MUST in
 ### Rules for the draft:
 - Use "full" template (charter + ADLI) — that's the point of AI creation.
 - Write substantial content for each section (at least 3-4 sentences each, more is better).
-- Base EVERYTHING on what the user actually told you. Don't make things up.
-- Where the user didn't provide details, write reasonable placeholders in brackets like [specify the frequency] so they know what to fill in.
+- **GROUND EVERY FACT in what the user told you.** Never invent names, dates, frequencies, tools, metrics, team names, or procedures the user didn't mention.
+- Use placeholder markers for anything the user didn't specify:
+  - \`[INSERT: what's needed]\` for required details — e.g., "[INSERT: review frequency]", "[INSERT: team lead name]"
+  - \`[VERIFY: claim]\` for reasonable assumptions — e.g., "[VERIFY: handled by operations team]"
+- It's better to write "[INSERT: specific metric and target]" than to invent a metric the user never mentioned.
 - The "category_suggestion" should be one of: Leadership, Strategy, Customers, Measurement Analysis and Knowledge Management, Workforce, Operations, Results.
 - Set is_key to true only if the user explicitly says this is a key/critical process.
 
@@ -106,6 +110,13 @@ async function getCategoryMap(supabase: any): Promise<Map<string, number>> {
 export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
   try {
+    // Rate limit check
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      const rl = await checkRateLimit(authUser.id);
+      if (!rl.success) return rl.response;
+    }
+
     const { messages, action, processData } = await request.json();
 
     // Handle "save" action — create the process in Supabase

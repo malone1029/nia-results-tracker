@@ -86,6 +86,7 @@ export function getHealthLevel(score: number): HealthLevel {
 // Calculate days since a date
 function daysSince(dateStr: string): number {
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 999; // Treat invalid dates as very stale
   const now = new Date();
   return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
 }

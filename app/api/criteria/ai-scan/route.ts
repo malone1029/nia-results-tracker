@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 120;
 
@@ -15,8 +16,19 @@ const anthropic = new Anthropic({
  * Scans all unmapped questions in batches and suggests process mappings.
  * Returns a streaming response with progress updates.
  */
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
+
+  // Optional tier filter from request body
+  let tier: string | null = null;
+  try {
+    const body = await request.json();
+    if (body.tier && ["excellence_builder", "full"].includes(body.tier)) {
+      tier = body.tier;
+    }
+  } catch {
+    // No body or invalid JSON — scan all tiers
+  }
 
   // Admin check
   const {
@@ -33,6 +45,10 @@ export async function POST() {
   if (roleData?.role !== "admin") {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
+
+  // Rate limit check
+  const rl = await checkRateLimit(user.id);
+  if (!rl.success) return rl.response;
 
   // Fetch all questions + existing mappings
   const [questionsRes, mappingsRes, processesRes] = await Promise.all([
@@ -59,8 +75,11 @@ export async function POST() {
 
   // For "unmapped", we consider questions with NO mapping at all
   const mappedQuestionIds = new Set((mappingsRes.data || []).map((m) => m.question_id));
-  const unmappedQuestions = (questionsRes.data || []).filter(
-    (q) => !mappedQuestionIds.has(q.id)
+  const allQuestions = (questionsRes.data || []).filter(
+    (q: { tier?: string }) => !tier || q.tier === tier
+  );
+  const unmappedQuestions = allQuestions.filter(
+    (q: { id: number }) => !mappedQuestionIds.has(q.id)
   );
 
   if (unmappedQuestions.length === 0) {
