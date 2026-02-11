@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
 import { ADLI_TASK_NAMES, ADLI_TO_PDCA_SECTION } from "@/lib/asana-helpers";
@@ -31,6 +32,77 @@ function fieldToText(data: Record<string, unknown> | null): string {
     }
   }
   return parts.join("\n\n");
+}
+
+// Asana project descriptions silently truncate around 15K chars.
+// We use 12K as a safe budget to leave room for the Hub link and footer.
+const ASANA_NOTES_CHAR_LIMIT = 12000;
+
+/**
+ * If the charter text exceeds Asana's project description limit,
+ * use AI to condense it while preserving all key information.
+ * Short charters pass through untouched (no AI call, no delay).
+ */
+async function condenseCharterForAsana(
+  charterText: string,
+  processName: string
+): Promise<{ text: string; wasCondensed: boolean }> {
+  if (charterText.length <= ASANA_NOTES_CHAR_LIMIT) {
+    return { text: charterText, wasCondensed: false };
+  }
+
+  console.log(`[Asana Export] Charter is ${charterText.length} chars (limit ${ASANA_NOTES_CHAR_LIMIT}), condensing with AI...`);
+
+  try {
+    const anthropic = new Anthropic();
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-5-20250929",
+      max_tokens: 4000,
+      messages: [
+        {
+          role: "user",
+          content: `Rewrite this process charter to fit within ${ASANA_NOTES_CHAR_LIMIT} characters for an Asana project description. Keep it in plain text (no markdown formatting — Asana project descriptions are plain text).
+
+Rules:
+- Preserve ALL section headings and key information (purpose, scope, stakeholders, measures, risks)
+- Keep specific names, roles, dates, and numbers exactly as written
+- Condense verbose prose into concise bullet points
+- Remove redundant phrasing but never remove a distinct piece of information
+- Convert any tables into compact lists
+- Target ${Math.round(ASANA_NOTES_CHAR_LIMIT * 0.9)} characters to leave some buffer
+
+Process: ${processName}
+
+Charter to condense:
+${charterText}`,
+        },
+      ],
+    });
+
+    const condensed =
+      response.content[0].type === "text" ? response.content[0].text : "";
+
+    if (condensed && condensed.length <= ASANA_NOTES_CHAR_LIMIT) {
+      console.log(`[Asana Export] Condensed from ${charterText.length} to ${condensed.length} chars`);
+      return { text: condensed, wasCondensed: true };
+    }
+
+    // If AI output is still too long, hard-truncate as last resort
+    if (condensed && condensed.length > ASANA_NOTES_CHAR_LIMIT) {
+      console.log(`[Asana Export] AI output still ${condensed.length} chars, truncating`);
+      const truncated = condensed.slice(0, ASANA_NOTES_CHAR_LIMIT - 100) + "\n\n[Condensed — see full charter in the Hub]";
+      return { text: truncated, wasCondensed: true };
+    }
+
+    // AI returned empty — fall back to hard truncation
+    const truncated = charterText.slice(0, ASANA_NOTES_CHAR_LIMIT - 100) + "\n\n[Truncated — see full charter in the Hub]";
+    return { text: truncated, wasCondensed: true };
+  } catch (err) {
+    console.error(`[Asana Export] AI condense failed:`, (err as Error).message);
+    // Non-blocking fallback — hard truncate
+    const truncated = charterText.slice(0, ASANA_NOTES_CHAR_LIMIT - 100) + "\n\n[Truncated — see full charter in the Hub]";
+    return { text: truncated, wasCondensed: true };
+  }
 }
 
 /**
@@ -269,13 +341,21 @@ export async function POST(request: Request) {
   try {
     // Build project description from charter
     const charter = proc.charter as Record<string, unknown> | null;
-    const charterContent = charter?.content && typeof charter.content === "string"
-      ? charter.content
-      : null;
-    const charterPurpose = charter?.purpose && typeof charter.purpose === "string"
-      ? charter.purpose
-      : null;
-    const projectDescription = charterContent || charterPurpose || proc.description || "";
+    const rawCharterText = fieldToText(charter) || proc.description || "";
+    const hubLink = `${appUrl}/processes/${processId}`;
+
+    // If the charter is too long for Asana, AI condenses it automatically.
+    // Short charters pass through untouched (no AI call, no delay).
+    const { text: charterForAsana, wasCondensed } = await condenseCharterForAsana(
+      rawCharterText,
+      proc.name as string
+    );
+
+    const descriptionWithLinks = wasCondensed
+      ? `Full charter: ${hubLink}\n\n---\n\n${charterForAsana}\n\n---\nCondensed by AI to fit Asana — view full charter at link above\nManaged by NIA Excellence Hub`
+      : `Full charter: ${hubLink}\n\n---\n\n${charterForAsana}\n\n---\nManaged by NIA Excellence Hub`;
+
+    console.log(`[Asana Export] Charter: ${rawCharterText.length} chars raw → ${charterForAsana.length} chars for Asana (condensed: ${wasCondensed})`);
 
     let existingGid = forceNew ? null : proc.asana_project_gid;
     let workspaceGid: string | undefined;
@@ -310,12 +390,25 @@ export async function POST(request: Request) {
       // have project-level edit permission even if they can create tasks)
       let notesWarning = "";
       try {
+        // Send plain text (lower overhead than HTML → fits more content)
         await asanaFetch(token, `/projects/${existingGid}`, {
           method: "PUT",
           body: JSON.stringify({
-            data: { notes: projectDescription },
+            data: { notes: descriptionWithLinks },
           }),
         });
+        // Read back to detect if Asana truncated the content
+        try {
+          const readBack = await asanaFetch(token, `/projects/${existingGid}?opt_fields=notes`);
+          const storedLength = readBack.data?.notes?.length || 0;
+          const sentLength = descriptionWithLinks.length;
+          console.log(`[Asana Export] Notes sent: ${sentLength} chars, stored: ${storedLength} chars`);
+          if (storedLength < sentLength - 50) {
+            notesWarning = `Asana truncated the charter (${storedLength.toLocaleString()} of ${sentLength.toLocaleString()} chars kept). The full charter is linked at the top of the project description.`;
+          }
+        } catch {
+          // Non-blocking — read-back check is optional
+        }
       } catch {
         notesWarning = "Could not update project notes (you may not have project edit access in Asana). Tasks were synced successfully.";
       }
@@ -376,12 +469,16 @@ export async function POST(request: Request) {
       });
 
       const allWarnings = [notesWarning, ...adliResult.errors].filter(Boolean);
+      if (wasCondensed) {
+        allWarnings.push("Charter was condensed by AI to fit Asana's description limit. The full charter is linked at the top of the project description.");
+      }
       return NextResponse.json({
         action: "updated",
         asanaUrl: `https://app.asana.com/0/${existingGid}`,
         adliCreated: adliResult.created,
         adliUpdated: adliResult.updated,
         backfillCount,
+        charterCondensed: wasCondensed,
         ...(allWarnings.length > 0 ? { warning: allWarnings.join(" | ") } : {}),
       });
     } else {
@@ -417,7 +514,7 @@ export async function POST(request: Request) {
       // Create the project
       const projectData: Record<string, unknown> = {
         name: proc.name,
-        notes: projectDescription,
+        notes: descriptionWithLinks,
         workspace: workspaceId,
       };
       if (teamId) {
@@ -480,6 +577,8 @@ export async function POST(request: Request) {
         projectGid: newProjectGid,
         adliCreated: adliResult.created,
         backfillCount,
+        charterCondensed: wasCondensed,
+        ...(wasCondensed ? { warning: "Charter was condensed by AI to fit Asana's description limit. The full charter is linked at the top of the project description." } : {}),
       });
     }
   } catch (err) {

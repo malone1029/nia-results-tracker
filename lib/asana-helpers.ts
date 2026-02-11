@@ -44,6 +44,7 @@ export const ADLI_TASK_PATTERNS: Record<string, string> = {
   "[adli: integration]": "integration",
 };
 
+
 /** Canonical task names for export (what we create in Asana) */
 export const ADLI_TASK_NAMES: Record<string, string> = {
   approach: "[ADLI: Approach] How We Do It",
