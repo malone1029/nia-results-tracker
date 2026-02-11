@@ -30,6 +30,7 @@ import ConfirmDeleteModal from "@/components/confirm-delete-modal";
 // Survey builder moved to full page at /surveys/new and /surveys/[id]/edit
 import SurveyCard from "@/components/survey-results";
 import AdliRadar from "@/components/adli-radar";
+import AdliScoringInfo from "@/components/adli-scoring-info";
 import { calculateHealthScore, type HealthResult, type HealthMetricInput } from "@/lib/process-health";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
@@ -161,6 +162,7 @@ function ProcessDetailContent() {
   const [surveyDeploying, setSurveyDeploying] = useState<number | null>(null);
   const [surveyClosing, setSurveyClosing] = useState<number | null>(null);
   const deepLinkFiredRef = useRef(false);
+  const [processMapMounted, setProcessMapMounted] = useState(false);
 
   // Maps scroll target IDs to the tab they live on
   function getTabForScrollTarget(target: string): "overview" | "documentation" | "process-map" | "tasks" | "history" {
@@ -439,6 +441,11 @@ function ProcessDetailContent() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
+
+  // Keep Process Map mounted once viewed (prevents Mermaid re-render race conditions)
+  useEffect(() => {
+    if (activeTab === "process-map" && !processMapMounted) setProcessMapMounted(true);
+  }, [activeTab, processMapMounted]);
 
   async function fetchAvailableMetrics() {
     // Get metric IDs already linked to this process
@@ -1011,9 +1018,13 @@ function ProcessDetailContent() {
             {healthResult && <ProcessHealthCard health={healthResult} />}
             {adliScoreData ? (
         <div className="bg-card rounded-xl shadow-sm border border-border-light overflow-hidden">
+          <div className="px-4 pt-3 pb-1 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">ADLI Maturity</h3>
+            <AdliScoringInfo />
+          </div>
           <div className="flex flex-col sm:flex-row">
             {/* Radar — centered, properly sized */}
-            <div className="flex items-center justify-center px-4 pt-5 pb-2 sm:py-5 sm:pl-5 sm:pr-2">
+            <div className="flex items-center justify-center px-4 pt-2 pb-2 sm:py-3 sm:pl-5 sm:pr-2">
               <AdliRadar
                 approach={adliScoreData.approach_score}
                 deployment={adliScoreData.deployment_score}
@@ -1082,7 +1093,10 @@ function ProcessDetailContent() {
                 <span className="text-lg font-bold text-text-muted">?</span>
               </div>
             </div>
-            <p className="text-sm font-semibold text-nia-dark mb-1">No ADLI scores yet</p>
+            <div className="flex items-center gap-1.5 mb-1">
+              <p className="text-sm font-semibold text-nia-dark">No ADLI scores yet</p>
+              <AdliScoringInfo />
+            </div>
             <p className="text-xs text-text-tertiary max-w-[280px] mb-4">
               Run your first assessment to see maturity scores across all four dimensions.
             </p>
@@ -1232,31 +1246,42 @@ function ProcessDetailContent() {
       {activeTab === "documentation" && (
         <div className="space-y-6">
           <Card accent="orange" id="section-charter">
-            <div className="px-4 py-3 border-b border-border-light">
+            <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
               <h2 className="text-lg font-semibold text-nia-dark">Charter</h2>
+              <SectionEditLink processId={process.id} section="charter" />
             </div>
             <div className="px-4 py-4">
               {process.charter ? (
-                process.charter.content ? (
-                  <MarkdownContent content={process.charter.content} />
-                ) : (
-                  <div className="space-y-3">
-                    <Field label="Purpose" value={process.charter.purpose} />
-                    <Field label="Scope (Includes)" value={process.charter.scope_includes} />
-                    <Field label="Scope (Excludes)" value={process.charter.scope_excludes} />
-                    <Field label="Mission Alignment" value={process.charter.mission_alignment} />
-                    {process.charter.stakeholders && process.charter.stakeholders.length > 0 && (
-                      <div>
-                        <span className="text-sm font-medium text-text-tertiary">Stakeholders</span>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {process.charter.stakeholders.map((s, i) => (
-                            <span key={i} className="bg-nia-grey-blue/10 text-nia-dark px-3 py-1 rounded-full text-sm">{s}</span>
-                          ))}
+                <>
+                  {process.charter.content ? (
+                    <>
+                      <MarkdownContent content={process.charter.content} />
+                      {process.charter.stakeholders && process.charter.stakeholders.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-border-light">
+                          <span className="text-sm font-medium text-text-tertiary">Stakeholders</span>
+                          <p className="text-sm text-nia-dark mt-1">
+                            {process.charter.stakeholders.join(", ")}
+                          </p>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )
+                      )}
+                    </>
+                  ) : (
+                    <div className="space-y-3">
+                      <Field label="Purpose" value={process.charter.purpose} />
+                      {process.charter.stakeholders && process.charter.stakeholders.length > 0 && (
+                        <div>
+                          <span className="text-sm font-medium text-text-tertiary">Stakeholders</span>
+                          <p className="text-sm text-nia-dark mt-1">
+                            {process.charter.stakeholders.join(", ")}
+                          </p>
+                        </div>
+                      )}
+                      <Field label="Scope (Includes)" value={process.charter.scope_includes} />
+                      <Field label="Scope (Excludes)" value={process.charter.scope_excludes} />
+                      <Field label="Mission Alignment" value={process.charter.mission_alignment} />
+                    </div>
+                  )}
+                </>
               ) : (
                 <EmptyText />
               )}
@@ -1264,10 +1289,10 @@ function ProcessDetailContent() {
           </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" id="section-adli">
-            <AdliCard title="Approach" data={process.adli_approach} />
-            <AdliCard title="Deployment" data={process.adli_deployment} />
-            <AdliCard title="Learning" data={process.adli_learning} />
-            <AdliCard title="Integration" data={process.adli_integration} />
+            <AdliCard title="Approach" data={process.adli_approach} processId={process.id} section="adli_approach" />
+            <AdliCard title="Deployment" data={process.adli_deployment} processId={process.id} section="adli_deployment" />
+            <AdliCard title="Learning" data={process.adli_learning} processId={process.id} section="adli_learning" />
+            <AdliCard title="Integration" data={process.adli_integration} processId={process.id} section="adli_integration" />
           </div>
 
           <Card accent="orange">
@@ -1292,9 +1317,9 @@ function ProcessDetailContent() {
         </div>
       )}
 
-      {/* ═══ PROCESS MAP TAB ═══ */}
-      {activeTab === "process-map" && (
-        <div id="section-workflow">
+      {/* ═══ PROCESS MAP TAB — mounted once viewed, kept alive via CSS hidden ═══ */}
+      {processMapMounted && (
+        <div id="section-workflow" className={activeTab !== "process-map" ? "hidden" : ""}>
           {process.workflow?.content ? (
             <ProcessMapView
               content={process.workflow.content}
@@ -1500,14 +1525,19 @@ function Field({
 function AdliCard({
   title,
   data,
+  processId,
+  section,
 }: {
   title: string;
   data: AdliApproach | AdliDeployment | AdliLearning | AdliIntegration | null;
+  processId: number;
+  section: string;
 }) {
   return (
     <Card accent="orange">
-      <div className="px-4 py-3 border-b border-border-light">
+      <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
         <h2 className="text-lg font-semibold text-nia-dark">ADLI: {title}</h2>
+        <SectionEditLink processId={processId} section={section} />
       </div>
       <div className="px-4 py-4">
         {!data ? (
@@ -1535,6 +1565,22 @@ function AdliCard({
         )}
       </div>
     </Card>
+  );
+}
+
+// Small pencil icon that links to the edit page for a specific section
+function SectionEditLink({ processId, section }: { processId: number; section: string }) {
+  return (
+    <Link
+      href={`/processes/${processId}/edit#${section}`}
+      className="text-text-muted hover:text-nia-dark transition-colors p-1 rounded hover:bg-surface-hover"
+      title={`Edit ${section.replace(/_/g, " ")}`}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+        <path d="m15 5 4 4" />
+      </svg>
+    </Link>
   );
 }
 

@@ -8,6 +8,7 @@ import { ListPageSkeleton } from "@/components/skeleton";
 import { getMaturityLevel } from "@/lib/colors";
 import { DimBar, MiniBar } from "@/components/adli-bars";
 import { Card, CardHeader, Badge, Button } from "@/components/ui";
+import AdliScoringInfo from "@/components/adli-scoring-info";
 
 interface ScoreRow {
   id: number;
@@ -150,8 +151,9 @@ export default function AiInsightsPage() {
               {/* Stats panel */}
               <div className="p-6 flex flex-col justify-center space-y-5">
                 <div>
-                  <div className="text-xs text-text-tertiary uppercase tracking-wider mb-1">
+                  <div className="text-xs text-text-tertiary uppercase tracking-wider mb-1 flex items-center gap-1.5">
                     Overall Maturity
+                    <AdliScoringInfo />
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span
