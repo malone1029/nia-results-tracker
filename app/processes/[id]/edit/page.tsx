@@ -12,7 +12,6 @@ import type {
   AdliLearning,
   AdliIntegration,
   Workflow,
-  BaldigeConnections,
 } from "@/lib/types";
 import { Card, Button, Input, Select } from "@/components/ui";
 import MarkdownContent from "@/components/markdown-content";
@@ -64,16 +63,17 @@ export default function EditProcessPage() {
   const [learning, setLearning] = useState<AdliLearning>({});
   const [integration, setIntegration] = useState<AdliIntegration>({});
   const [workflow, setWorkflow] = useState<Workflow>({});
-  const [baldrigeConn, setBaldrigeConn] = useState<BaldigeConnections>({});
+  const [baldrigeMappings, setBaldrigeMappings] = useState<{ item_code: string; item_name: string; category_name: string; questions: { question_code: string; question_text: string; coverage: string }[] }[]>([]);
 
   useEffect(() => {
     async function fetchData() {
       // Fetch categories, requirements, and process data in parallel
-      const [catRes, reqRes, procRes, linkRes] = await Promise.all([
+      const [catRes, reqRes, procRes, linkRes, mappingsRes] = await Promise.all([
         supabase.from("categories").select("id, display_name").order("sort_order"),
         supabase.from("key_requirements").select("id, requirement, stakeholder_group").order("sort_order"),
         supabase.from("processes").select("*").eq("id", id).single(),
         supabase.from("process_requirements").select("requirement_id").eq("process_id", id),
+        supabase.from("process_question_mappings").select("coverage, baldrige_questions!inner(question_code, question_text, baldrige_items!inner(item_code, item_name, category_name))").eq("process_id", id),
       ]);
 
       if (catRes.data) setCategories(catRes.data);
@@ -96,8 +96,23 @@ export default function EditProcessPage() {
         if (p.adli_learning) setLearning(p.adli_learning);
         if (p.adli_integration) setIntegration(p.adli_integration);
         if (p.workflow) setWorkflow(p.workflow);
-        if (p.baldrige_connections) setBaldrigeConn(p.baldrige_connections);
         document.title = `Edit: ${p.name} | NIA Excellence Hub`;
+      }
+
+      // Group Baldrige mappings by item
+      if (mappingsRes.data) {
+        const grouped = new Map<string, { item_name: string; category_name: string; questions: { question_code: string; question_text: string; coverage: string }[] }>();
+        for (const r of mappingsRes.data) {
+          const q = r.baldrige_questions as unknown as {
+            question_code: string; question_text: string;
+            baldrige_items: { item_code: string; item_name: string; category_name: string };
+          };
+          const key = q.baldrige_items.item_code;
+          const existing = grouped.get(key) || { item_name: q.baldrige_items.item_name, category_name: q.baldrige_items.category_name, questions: [] };
+          existing.questions.push({ question_code: q.question_code, question_text: q.question_text, coverage: r.coverage });
+          grouped.set(key, existing);
+        }
+        setBaldrigeMappings([...grouped.entries()].map(([item_code, data]) => ({ item_code, ...data })));
       }
 
       setLoading(false);
@@ -150,7 +165,6 @@ export default function EditProcessPage() {
         adli_learning: { ...learning, metrics: clean(learning.metrics) },
         adli_integration: { ...integration, strategic_goals: clean(integration.strategic_goals), related_processes: clean(integration.related_processes) },
         workflow: { ...workflow, inputs: clean(workflow.inputs), outputs: clean(workflow.outputs), quality_controls: clean(workflow.quality_controls) },
-        baldrige_connections: baldrigeConn,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
@@ -469,26 +483,55 @@ export default function EditProcessPage() {
               </div>
             </CollapsibleSection>
 
-            {/* Baldrige Connections — now managed via AI mapping */}
+            {/* Baldrige Connections — read-only view */}
             <CollapsibleSection
               title="Baldrige Connections"
               sectionId="baldrige_connections"
               forceOpen={targetSection === "baldrige_connections"}
-              subtitle="auto-mapped"
+              subtitle={baldrigeMappings.reduce((sum, g) => sum + g.questions.length, 0) > 0
+                ? `${baldrigeMappings.reduce((sum, g) => sum + g.questions.length, 0)} mapped`
+                : "none"}
             >
-              <div className="bg-nia-grey-blue/10 border border-nia-grey-blue/20 rounded-lg p-4 flex items-start gap-3">
-                <svg className="w-5 h-5 text-nia-grey-blue mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium text-foreground">Managed automatically via AI mapping</p>
-                  <p className="text-sm text-text-secondary mt-1">
-                    Baldrige connections are now maintained through the{" "}
-                    <a href="/criteria" className="underline font-medium text-nia-grey-blue hover:text-nia-dark">Criteria Map</a>.
-                    AI scans your process documentation and maps it to Excellence Builder questions.
+              {baldrigeMappings.length > 0 ? (
+                <div className="space-y-3">
+                  {baldrigeMappings.map((group) => (
+                    <div key={group.item_code}>
+                      <div className="text-sm font-medium text-nia-dark">
+                        {group.item_code} {group.item_name}
+                        <span className="text-text-muted font-normal ml-2 text-xs">{group.category_name}</span>
+                      </div>
+                      <div className="ml-3 mt-1 space-y-1">
+                        {group.questions.map((q) => (
+                          <div key={q.question_code} className="flex items-start gap-2 text-xs">
+                            <span className="font-medium text-text-secondary whitespace-nowrap">{q.question_code}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${
+                              q.coverage === "primary" ? "bg-nia-green/10 text-nia-green"
+                              : q.coverage === "supporting" ? "bg-nia-grey-blue/10 text-nia-grey-blue"
+                              : "bg-nia-orange/10 text-nia-orange"
+                            }`}>
+                              {q.coverage}
+                            </span>
+                            <span className="text-text-tertiary">{q.question_text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t border-border-light">
+                    <a href={`/processes/${id}`} className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium">
+                      Use &ldquo;Find Connections&rdquo; on the process page to add more &rarr;
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-text-tertiary">No Baldrige connections yet.</p>
+                  <p className="text-xs text-text-muted mt-1">
+                    Use <a href={`/processes/${id}`} className="underline text-nia-grey-blue hover:text-nia-dark">Find Connections</a> on the process page,
+                    or <a href="/criteria" className="underline text-nia-grey-blue hover:text-nia-dark">AI Scan</a> on the Criteria Map.
                   </p>
                 </div>
-              </div>
+              )}
             </CollapsibleSection>
 
         {/* Linked Key Requirements */}
