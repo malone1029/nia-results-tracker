@@ -155,7 +155,10 @@ function ProcessDetailContent() {
   const [adliScoreData, setAdliScoreData] = useState<AdliScoreData | null>(null);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [hasAsanaToken, setHasAsanaToken] = useState<boolean | null>(null);
-  const [ebMappings, setEbMappings] = useState<{ question_code: string; area_label: string; question_text: string; coverage: string; category_name: string; item_code: string }[]>([]);
+  const [baldrigeMappings, setBaldrigeMappings] = useState<{ id?: number; question_id: number; question_code: string; area_label: string; question_text: string; coverage: string; category_name: string; item_code: string; item_name: string }[]>([]);
+  const [baldrigeSuggestions, setBaldrigeSuggestions] = useState<{ question_id: number; question_code: string; question_text: string; area_label: string; item_code: string; item_name: string; category_name: string; coverage: string; rationale: string }[] | null>(null);
+  const [findingConnections, setFindingConnections] = useState(false);
+  const [expandedBaldrigeItems, setExpandedBaldrigeItems] = useState<Set<string>>(new Set());
   const [surveys, setSurveys] = useState<{ id: number; title: string; description: string | null; is_anonymous: boolean; is_public: boolean; question_count: number; latest_wave: { id: number; wave_number: number; status: string; share_token: string; opened_at: string; closed_at: string | null; response_count: number } | null; created_at: string }[]>([]);
   // Survey builder state removed — now a full page at /surveys/new and /surveys/[id]/edit
   const [unlinkConfirmId, setUnlinkConfirmId] = useState<number | null>(null);
@@ -331,7 +334,7 @@ function ProcessDetailContent() {
         fetch(`/api/ai/files?processId=${id}`),
         supabase.from("process_adli_scores").select("approach_score, deployment_score, learning_score, integration_score, overall_score, assessed_at").eq("process_id", id).maybeSingle(),
         supabase.from("process_tasks").select("status").eq("process_id", id),
-        supabase.from("process_question_mappings").select("coverage, baldrige_questions!inner(question_code, area_label, question_text, tier, baldrige_items!inner(item_code, category_name))").eq("process_id", id),
+        supabase.from("process_question_mappings").select("id, question_id, coverage, baldrige_questions!inner(question_code, area_label, question_text, tier, baldrige_items!inner(item_code, item_name, category_name))").eq("process_id", id),
       ]);
 
       if (adliScores) setAdliScoreData(adliScores as AdliScoreData);
@@ -341,30 +344,28 @@ function ProcessDetailContent() {
         setAttachedFiles(filesData);
       }
 
-      // Parse EB mappings from joined query
+      // Parse Baldrige mappings from joined query (all tiers)
       if (ebMappingRows) {
-        setEbMappings(
-          ebMappingRows
-            .filter((r) => {
-              const q = r.baldrige_questions as unknown as { tier: string };
-              return q?.tier === "excellence_builder";
-            })
-            .map((r) => {
-              const q = r.baldrige_questions as unknown as {
-                question_code: string;
-                area_label: string;
-                question_text: string;
-                baldrige_items: { item_code: string; category_name: string };
-              };
-              return {
-                question_code: q.question_code,
-                area_label: q.area_label,
-                question_text: q.question_text,
-                coverage: r.coverage,
-                item_code: q.baldrige_items.item_code,
-                category_name: q.baldrige_items.category_name,
-              };
-            })
+        setBaldrigeMappings(
+          ebMappingRows.map((r) => {
+            const q = r.baldrige_questions as unknown as {
+              question_code: string;
+              area_label: string;
+              question_text: string;
+              baldrige_items: { item_code: string; item_name: string; category_name: string };
+            };
+            return {
+              id: r.id as number,
+              question_id: r.question_id as number,
+              question_code: q.question_code,
+              area_label: q.area_label,
+              question_text: q.question_text,
+              coverage: r.coverage,
+              item_code: q.baldrige_items.item_code,
+              item_name: q.baldrige_items.item_name,
+              category_name: q.baldrige_items.category_name,
+            };
+          })
         );
       }
 
@@ -1231,10 +1232,10 @@ function ProcessDetailContent() {
                 <h2 className="text-lg font-semibold text-nia-dark">Quick Info</h2>
               </div>
               <div className="px-4 py-3 space-y-3">
-                {ebMappings.length > 0 && (
+                {baldrigeMappings.length > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-text-secondary">EB Connections</span>
-                    <Link href="/criteria" className="text-sm font-medium text-nia-green hover:underline">{ebMappings.length} question{ebMappings.length !== 1 ? "s" : ""} &rarr;</Link>
+                    <span className="text-sm text-text-secondary">Baldrige Connections</span>
+                    <span className="text-sm font-medium text-nia-dark">{baldrigeMappings.length} question{baldrigeMappings.length !== 1 ? "s" : ""}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
@@ -1255,6 +1256,188 @@ function ProcessDetailContent() {
                   <div className="pt-2 border-t border-border-light">
                     <span className="text-xs font-medium text-text-muted uppercase">Description</span>
                     <p className="text-sm text-nia-dark mt-1">{process.description}</p>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Baldrige Connections Card */}
+            <Card accent="orange">
+              <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-nia-dark">
+                  Baldrige Connections
+                  {baldrigeMappings.length > 0 && (
+                    <span className="text-sm font-normal text-text-muted ml-2">({baldrigeMappings.length})</span>
+                  )}
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      setFindingConnections(true);
+                      setBaldrigeSuggestions(null);
+                      try {
+                        const res = await fetch("/api/criteria/suggest-for-process", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ process_id: process.id }),
+                        });
+                        if (res.ok) {
+                          const data = await res.json();
+                          setBaldrigeSuggestions(data.suggestions);
+                        }
+                      } catch { /* ignore */ }
+                      setFindingConnections(false);
+                    }}
+                    disabled={findingConnections}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg bg-nia-green/10 text-nia-green hover:bg-nia-green/20 transition-colors disabled:opacity-50"
+                  >
+                    {findingConnections ? "Scanning..." : "Find Connections"}
+                  </button>
+                  <Link href="/criteria" className="text-xs text-text-muted hover:text-nia-dark transition-colors py-1.5">
+                    Criteria Map &rarr;
+                  </Link>
+                </div>
+              </div>
+              <div className="px-4 py-3">
+                {baldrigeMappings.length === 0 && !baldrigeSuggestions && (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-text-tertiary">No Baldrige connections yet.</p>
+                    <p className="text-xs text-text-muted mt-1">Click &ldquo;Find Connections&rdquo; to let AI identify matching Baldrige questions.</p>
+                  </div>
+                )}
+
+                {/* Existing connections grouped by item */}
+                {baldrigeMappings.length > 0 && (() => {
+                  const grouped = new Map<string, { item_name: string; category_name: string; questions: typeof baldrigeMappings }>();
+                  for (const m of baldrigeMappings) {
+                    const existing = grouped.get(m.item_code) || { item_name: m.item_name, category_name: m.category_name, questions: [] };
+                    existing.questions.push(m);
+                    grouped.set(m.item_code, existing);
+                  }
+                  return (
+                    <div className="space-y-2">
+                      {[...grouped.entries()].map(([itemCode, group]) => {
+                        const isExpanded = expandedBaldrigeItems.has(itemCode);
+                        return (
+                          <div key={itemCode}>
+                            <button
+                              onClick={() => setExpandedBaldrigeItems((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(itemCode)) next.delete(itemCode);
+                                else next.add(itemCode);
+                                return next;
+                              })}
+                              className="w-full flex items-center justify-between py-1.5 text-left hover:bg-surface-hover rounded-md px-2 -mx-2 transition-colors"
+                            >
+                              <span className="text-sm font-medium text-nia-dark">
+                                {itemCode} {group.item_name}
+                                <span className="text-text-muted font-normal ml-2">
+                                  {group.questions.length} question{group.questions.length !== 1 ? "s" : ""}
+                                </span>
+                              </span>
+                              <span className="text-text-muted text-xs">{isExpanded ? "\u25BC" : "\u25B6"}</span>
+                            </button>
+                            {isExpanded && (
+                              <div className="ml-3 border-l-2 border-border-light pl-3 mt-1 space-y-2">
+                                {group.questions.map((q) => (
+                                  <div key={q.question_code} className="text-xs">
+                                    <span className="font-medium text-text-secondary">{q.question_code}</span>
+                                    <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                      q.coverage === "primary" ? "bg-nia-green/10 text-nia-green"
+                                      : q.coverage === "supporting" ? "bg-nia-grey-blue/10 text-nia-grey-blue"
+                                      : "bg-nia-orange/10 text-nia-orange"
+                                    }`}>
+                                      {q.coverage}
+                                    </span>
+                                    <p className="text-text-tertiary mt-0.5 leading-relaxed">{q.question_text}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
+                {/* AI Suggestions */}
+                {baldrigeSuggestions && baldrigeSuggestions.length > 0 && (
+                  <div className={`${baldrigeMappings.length > 0 ? "mt-4 pt-4 border-t border-border-light" : ""}`}>
+                    <h3 className="text-xs font-semibold text-nia-green uppercase tracking-wider mb-3">
+                      AI Suggestions ({baldrigeSuggestions.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {baldrigeSuggestions.map((s) => (
+                        <div key={s.question_id} className="bg-nia-green/5 border border-nia-green/20 rounded-lg p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-nia-dark">
+                                {s.question_code}
+                                <span className="text-text-muted font-normal ml-1">({s.item_code} {s.item_name})</span>
+                                <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                  s.coverage === "primary" ? "bg-nia-green/10 text-nia-green"
+                                  : s.coverage === "supporting" ? "bg-nia-grey-blue/10 text-nia-grey-blue"
+                                  : "bg-nia-orange/10 text-nia-orange"
+                                }`}>
+                                  {s.coverage}
+                                </span>
+                              </div>
+                              <p className="text-xs text-text-tertiary mt-1">{s.question_text}</p>
+                              <p className="text-xs text-text-muted mt-1 italic">{s.rationale}</p>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch("/api/criteria/mappings", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({
+                                        process_id: process.id,
+                                        question_id: s.question_id,
+                                        coverage: s.coverage,
+                                        mapped_by: "ai_confirmed",
+                                      }),
+                                    });
+                                    if (res.ok) {
+                                      // Add to local mappings
+                                      setBaldrigeMappings((prev) => [...prev, {
+                                        question_id: s.question_id,
+                                        question_code: s.question_code,
+                                        area_label: s.area_label,
+                                        question_text: s.question_text,
+                                        coverage: s.coverage,
+                                        item_code: s.item_code,
+                                        item_name: s.item_name,
+                                        category_name: s.category_name,
+                                      }]);
+                                      // Remove from suggestions
+                                      setBaldrigeSuggestions((prev) => prev?.filter((x) => x.question_id !== s.question_id) || null);
+                                    }
+                                  } catch { /* ignore */ }
+                                }}
+                                className="px-2 py-1 text-xs font-medium bg-nia-green text-white rounded hover:bg-nia-green/80 transition-colors"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                onClick={() => setBaldrigeSuggestions((prev) => prev?.filter((x) => x.question_id !== s.question_id) || null)}
+                                className="px-2 py-1 text-xs font-medium text-text-muted hover:text-nia-dark transition-colors"
+                              >
+                                Dismiss
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {baldrigeSuggestions && baldrigeSuggestions.length === 0 && (
+                  <div className={`${baldrigeMappings.length > 0 ? "mt-4 pt-4 border-t border-border-light" : ""}`}>
+                    <p className="text-sm text-text-tertiary text-center py-2">No new connections found.</p>
                   </div>
                 )}
               </div>
