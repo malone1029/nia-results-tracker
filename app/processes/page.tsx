@@ -10,6 +10,17 @@ import HealthRing from "@/components/health-ring";
 import { type HealthResult } from "@/lib/process-health";
 import { fetchHealthData, type ProcessWithCategory } from "@/lib/fetch-health-data";
 import { formatRelativeTime, getFreshnessColor, getFreshnessDays } from "@/lib/formatting";
+import { useRole } from "@/lib/use-role";
+
+interface ClassificationSuggestion {
+  process_id: number;
+  name: string;
+  category: string;
+  current_type: string;
+  suggestion: "key" | "support";
+  rationale: string;
+  override?: "key" | "support"; // user override
+}
 
 interface CategorySummary {
   id: number;
@@ -27,6 +38,15 @@ export default function ProcessesPage() {
   const [filterCategory, setFilterCategory] = useState<number | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support" | "unclassified">("all");
   const [sortBy, setSortBy] = useState<"name" | "health">("name");
+
+  // Admin role
+  const { isAdmin } = useRole();
+
+  // Classification review state
+  const [classifyLoading, setClassifyLoading] = useState(false);
+  const [classifySuggestions, setClassifySuggestions] = useState<ClassificationSuggestion[] | null>(null);
+  const [classifySaving, setClassifySaving] = useState(false);
+  const [classifyMsg, setClassifyMsg] = useState<string | null>(null);
 
   // Bulk edit state
   const [editMode, setEditMode] = useState(false);
@@ -121,6 +141,68 @@ export default function ProcessesPage() {
     setUpdating(false);
   }
 
+  // Classification review functions
+  async function runClassification() {
+    setClassifyLoading(true);
+    setClassifyMsg(null);
+    try {
+      const res = await fetch("/api/processes/classify", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        setClassifyMsg(data.error || "Classification failed");
+        setClassifyLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setClassifySuggestions(data.suggestions);
+    } catch {
+      setClassifyMsg("Network error — please try again");
+    }
+    setClassifyLoading(false);
+  }
+
+  function setClassifyOverride(processId: number, value: "key" | "support") {
+    setClassifySuggestions((prev) =>
+      prev?.map((s) =>
+        s.process_id === processId
+          ? { ...s, override: s.override === value ? undefined : value }
+          : s
+      ) || null
+    );
+  }
+
+  function acceptAllClassifications() {
+    setClassifySuggestions((prev) =>
+      prev?.map((s) => ({ ...s, override: undefined })) || null
+    );
+  }
+
+  async function saveClassifications() {
+    if (!classifySuggestions) return;
+    setClassifySaving(true);
+    const updates = classifySuggestions.map((s) => ({
+      id: s.process_id,
+      type: s.override || s.suggestion,
+    }));
+    // Update each process
+    for (const u of updates) {
+      await supabase.from("processes").update({ process_type: u.type }).eq("id", u.id);
+    }
+    // Update local state
+    setProcesses((prev) =>
+      prev.map((p) => {
+        const match = updates.find((u) => u.id === p.id);
+        return match ? { ...p, process_type: match.type as "key" | "support" | "unclassified" } : p;
+      })
+    );
+    const keyCount = updates.filter((u) => u.type === "key").length;
+    const supportCount = updates.filter((u) => u.type === "support").length;
+    setClassifyMsg(`Saved: ${keyCount} Key, ${supportCount} Support`);
+    setClassifySuggestions(null);
+    setClassifySaving(false);
+    setTimeout(() => setClassifyMsg(null), 5000);
+  }
+
   // Apply filters and sorting (must be above early return to satisfy Rules of Hooks)
   const filtered = useMemo(() => {
     const result = processes.filter((p) => {
@@ -155,8 +237,18 @@ export default function ProcessesPage() {
             Organizational processes aligned to the Baldrige Excellence Framework
           </p>
         </div>
-        <div className="flex gap-2">
-          {!editMode && (
+        <div className="flex gap-2 flex-wrap">
+          {isAdmin && !editMode && !classifySuggestions && (
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={runClassification}
+              disabled={classifyLoading}
+            >
+              {classifyLoading ? "Analyzing..." : "Review Classifications"}
+            </Button>
+          )}
+          {!editMode && !classifySuggestions && (
             <Button
               variant="secondary"
               size="md"
@@ -274,11 +366,91 @@ export default function ProcessesPage() {
         )}
       </div>
 
-      {/* Success message */}
+      {/* Success / info messages */}
       {successMsg && (
         <div className="bg-nia-green/10 border border-nia-green/30 text-nia-green rounded-lg px-4 py-3 text-sm font-medium">
           {successMsg}
         </div>
+      )}
+      {classifyMsg && !classifySuggestions && (
+        <div className="bg-nia-grey-blue/10 border border-nia-grey-blue/30 text-nia-grey-blue rounded-lg px-4 py-3 text-sm font-medium">
+          {classifyMsg}
+        </div>
+      )}
+
+      {/* Classification Review Panel */}
+      {classifySuggestions && (
+        <Card className="border-2 border-nia-orange/30">
+          <div className="p-4 border-b border-border-light flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-nia-dark">Review Process Classifications</h2>
+              <p className="text-sm text-text-tertiary mt-0.5">
+                AI suggests {classifySuggestions.filter((s) => (s.override || s.suggestion) === "key").length} Key
+                {" "}and {classifySuggestions.filter((s) => (s.override || s.suggestion) === "support").length} Support processes.
+                Click a badge to override.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={acceptAllClassifications}>
+                Reset All to AI
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={saveClassifications}
+                disabled={classifySaving}
+              >
+                {classifySaving ? "Saving..." : "Save All"}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { setClassifySuggestions(null); setClassifyMsg(null); }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+          <div className="divide-y divide-border-light max-h-[60vh] overflow-y-auto">
+            {classifySuggestions.map((s) => {
+              const finalType = s.override || s.suggestion;
+              const isOverridden = !!s.override;
+              return (
+                <div key={s.process_id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-nia-dark truncate">{s.name}</div>
+                    <div className="text-xs text-text-muted">{s.category}</div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => setClassifyOverride(s.process_id, "key")}
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
+                        finalType === "key"
+                          ? "bg-nia-orange text-white shadow-sm"
+                          : "bg-surface-subtle text-text-muted hover:bg-nia-orange/10 hover:text-nia-orange"
+                      } ${isOverridden && finalType === "key" ? "ring-2 ring-nia-orange/40" : ""}`}
+                    >
+                      Key
+                    </button>
+                    <button
+                      onClick={() => setClassifyOverride(s.process_id, "support")}
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
+                        finalType === "support"
+                          ? "bg-nia-grey-blue text-white shadow-sm"
+                          : "bg-surface-subtle text-text-muted hover:bg-nia-grey-blue/10 hover:text-nia-grey-blue"
+                      } ${isOverridden && finalType === "support" ? "ring-2 ring-nia-grey-blue/40" : ""}`}
+                    >
+                      Support
+                    </button>
+                  </div>
+                  <div className="text-xs text-text-tertiary sm:max-w-[40%] leading-relaxed">
+                    {s.rationale}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
       )}
 
       {/* Edit mode toolbar */}
