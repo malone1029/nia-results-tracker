@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { DashboardSkeleton } from "@/components/skeleton";
 import { Card, Badge, Button, Select } from "@/components/ui";
 import HealthRing from "@/components/health-ring";
+import HelpTip from "@/components/help-tip";
 import {
   getHealthLevel,
   type HealthResult,
@@ -357,7 +358,7 @@ export default function ReadinessPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-foreground font-display">
-            Baldrige Readiness
+            Baldrige Readiness<HelpTip text="Weighted average of all health scores. Key processes count 2x." />
           </h1>
           <p className="text-text-tertiary mt-1">
             {isFiltered

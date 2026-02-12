@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { PDCA_SECTIONS } from "@/lib/pdca";
+import HelpTip from "@/components/help-tip";
 import type { PdcaSection, ProcessTask } from "@/lib/types";
 
 const COLUMNS: PdcaSection[] = ["plan", "execute", "evaluate", "improve"];
@@ -222,6 +223,7 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
         <div className="flex items-center gap-3">
           <span className="text-sm text-text-tertiary">
             {pendingTasks.length} pending{exportedTasks.length > 0 ? `, ${exportedTasks.length} exported` : ""}
+            <HelpTip text="Plan-Do-Check-Act: a continuous improvement cycle for organizing tasks." />
           </span>
           <div className="flex gap-1.5">
             {COLUMNS.map((col) => {

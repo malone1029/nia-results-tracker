@@ -364,7 +364,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       if (scores) {
         latestScores = scores;
         setAdliScores(scores);
-        // Persist scores to database
+        // Persist scores to database, then refresh parent page
         fetch("/api/ai/scores", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -375,7 +375,9 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
             learning: scores.learning,
             integration: scores.integration,
           }),
-        }).catch(() => { /* silent — non-critical */ });
+        })
+          .then((r) => { if (r.ok) onProcessUpdated?.(); })
+          .catch(() => { /* silent — non-critical */ });
       }
       const { suggestions } = parseCoachSuggestions(assistantContent);
       if (suggestions.length > 0) {

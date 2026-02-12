@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui";
 import HealthRing from "@/components/health-ring";
+import HelpTip from "@/components/help-tip";
 import type { HealthResult } from "@/lib/process-health";
 
 const DIMENSION_LABELS: Record<string, string> = {
@@ -35,14 +36,14 @@ export default function ProcessHealthCard({ health }: { health: HealthResult }) 
             <div className="text-sm font-semibold" style={{ color: health.level.color }}>
               {health.level.label}
             </div>
-            <div className="text-xs text-text-muted sm:hidden">Process Health</div>
+            <div className="text-xs text-text-muted sm:hidden">Process Health<HelpTip text="Scored across 5 dimensions: Documentation, Maturity, Measurement, Operations, Freshness. 80+ = Baldrige Ready." /></div>
           </div>
         </div>
 
         {/* Right: dimension bars */}
         <div className="flex-1 space-y-2">
           <div className="text-xs font-medium text-text-muted uppercase tracking-wider mb-3">
-            Process Health
+            Process Health<HelpTip text="Scored across 5 dimensions: Documentation, Maturity, Measurement, Operations, Freshness. 80+ = Baldrige Ready." />
           </div>
           {dims.map(([key, dim]) => {
             const pct = Math.round((dim.score / dim.max) * 100);

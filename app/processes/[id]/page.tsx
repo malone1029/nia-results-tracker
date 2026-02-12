@@ -24,6 +24,7 @@ import ImprovementStepper from "@/components/improvement-stepper";
 import { STEPS, getPrimaryAction, type StepActionDef } from "@/lib/step-actions";
 import { useRole } from "@/lib/use-role";
 import ProcessHealthCard from "@/components/process-health-card";
+import HelpTip from "@/components/help-tip";
 import MilestoneToast from "@/components/milestone-toast";
 import ConfirmDeleteModal from "@/components/confirm-delete-modal";
 // Survey builder moved to full page at /surveys/new and /surveys/[id]/edit
@@ -729,6 +730,7 @@ function ProcessDetailContent() {
             {process.process_type === "key" && (
               <Badge color="orange" size="sm">★ Key Process</Badge>
             )}
+            <HelpTip text="Key processes directly serve your mission. Support processes enable Key ones." />
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-text-tertiary">
             <span>{process.category_display_name}</span>
@@ -1063,6 +1065,7 @@ function ProcessDetailContent() {
         <div className="bg-card rounded-xl shadow-sm border border-border-light overflow-hidden">
           <div className="px-4 pt-3 pb-1 flex items-center gap-1.5">
             <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">ADLI Maturity</h3>
+            <HelpTip text="Approach, Deployment, Learning, Integration — the Baldrige process maturity framework." />
             <AdliScoringInfo />
           </div>
           <div className="flex flex-col sm:flex-row">

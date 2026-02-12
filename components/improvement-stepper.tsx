@@ -1,6 +1,7 @@
 "use client";
 
 import { STEPS, getStepIndex } from "@/lib/step-actions";
+import HelpTip from "@/components/help-tip";
 
 interface ImprovementStepperProps {
   currentStep: string;
@@ -23,7 +24,7 @@ export default function ImprovementStepper({ currentStep, onStepClick, onAction 
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
-          <span className="text-xs font-semibold text-nia-dark uppercase tracking-wider">Improvement Cycle</span>
+          <span className="text-xs font-semibold text-nia-dark uppercase tracking-wider">Improvement Cycle<HelpTip text="Your 6-step guided cycle. Complete each step to strengthen your process documentation." /></span>
         </div>
         {isComplete ? (
           <span className="text-xs font-semibold text-nia-green bg-nia-green/10 px-2.5 py-1 rounded-full">

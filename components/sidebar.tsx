@@ -3,6 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { useSidebarGroups } from "@/lib/use-sidebar-groups";
+import SidebarHealthWidget, {
+  type SidebarHealthData,
+} from "@/components/sidebar-health-widget";
+
+// ── Navigation structure ──────────────────────────────────
+// "Actions" group merged into "Overview". Admin group renamed.
 
 const navGroups = [
   {
@@ -11,6 +19,8 @@ const navGroups = [
       { href: "/", label: "Dashboard", icon: "grid" },
       { href: "/data-health", label: "Data Health", icon: "heart" },
       { href: "/requirements", label: "Requirements", icon: "clipboard" },
+      { href: "/log", label: "Log Data", icon: "edit" },
+      { href: "/metric/new", label: "New Metric", icon: "plus" },
     ],
   },
   {
@@ -30,26 +40,22 @@ const navGroups = [
       { href: "/schedule", label: "Schedule", icon: "calendar" },
     ],
   },
-  {
-    label: "Actions",
-    links: [
-      { href: "/log", label: "Log Data", icon: "edit" },
-      { href: "/metric/new", label: "New Metric", icon: "plus" },
-    ],
-  },
 ];
 
 const adminNavGroups = [
   {
-    label: "Application",
+    label: "Admin",
     links: [
       { href: "/application", label: "Application Drafts", icon: "file-text" },
       { href: "/criteria", label: "Criteria Map", icon: "book-open" },
       { href: "/criteria/gaps", label: "Gap Analysis", icon: "alert-triangle" },
       { href: "/surveys", label: "Surveys", icon: "clipboard-list" },
+      { href: "/feedback", label: "Feedback Inbox", icon: "inbox" },
     ],
   },
 ];
+
+// ── Icons ──────────────────────────────────────────────────
 
 function NavIcon({ icon, className }: { icon: string; className?: string }) {
   const cn = className || "w-4 h-4";
@@ -150,6 +156,12 @@ function NavIcon({ icon, className }: { icon: string; className?: string }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       );
+    case "inbox":
+      return (
+        <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+      );
     case "settings":
       return (
         <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,24 +169,134 @@ function NavIcon({ icon, className }: { icon: string; className?: string }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       );
+    case "help":
+      return (
+        <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+        </svg>
+      );
+    case "message":
+      return (
+        <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0M2.25 12c0 4.556 4.03 8.25 9 8.25a9.764 9.764 0 002.555-.337A5.972 5.972 0 0015.75 21a5.969 5.969 0 004.282-1.8A8.224 8.224 0 0021.75 12c0-4.556-4.03-8.25-9-8.25S2.25 7.444 2.25 12z" />
+        </svg>
+      );
     default:
       return null;
   }
 }
 
+// ── Chevron icon for collapse/expand ────────────────────────
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      className={`w-3 h-3 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+// ── Find which group a path belongs to ──────────────────────
+
+function findGroupForPath(
+  path: string,
+  groups: typeof navGroups,
+  adminGroups: typeof adminNavGroups
+): string | null {
+  for (const group of [...groups, ...adminGroups]) {
+    for (const link of group.links) {
+      if (link.href === "/" ? path === "/" : path.startsWith(link.href)) {
+        return group.label;
+      }
+    }
+  }
+  return null;
+}
+
+// ── Sidebar component ───────────────────────────────────────
+
 export default function Sidebar({
   open,
   onClose,
   isAdmin = false,
+  onFeedbackClick,
+  healthData,
+  healthLoading,
 }: {
   open: boolean;
   onClose: () => void;
   isAdmin?: boolean;
+  onFeedbackClick?: () => void;
+  healthData?: SidebarHealthData | null;
+  healthLoading?: boolean;
 }) {
   const pathname = usePathname();
+  const { expandedGroups, toggleGroup, expandGroup } = useSidebarGroups();
+
+  // Auto-expand group containing the active page
+  useEffect(() => {
+    const group = findGroupForPath(pathname, navGroups, adminNavGroups);
+    if (group) {
+      expandGroup(group);
+    }
+  }, [pathname, expandGroup]);
 
   function isActive(href: string) {
     return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  }
+
+  function renderGroup(
+    group: { label: string; links: { href: string; label: string; icon: string }[] },
+    isAdminGroup: boolean
+  ) {
+    const expanded = expandedGroups.has(group.label);
+    const groupId = `sidebar-group-${group.label.toLowerCase().replace(/\s+/g, "-")}`;
+
+    return (
+      <div key={group.label}>
+        <button
+          onClick={() => toggleGroup(group.label)}
+          aria-expanded={expanded}
+          aria-controls={groupId}
+          className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-[10px] uppercase tracking-widest font-medium transition-colors hover:bg-white/5 ${
+            isAdminGroup ? "text-nia-orange/60" : "text-white/40"
+          }`}
+        >
+          <span>{group.label}</span>
+          <ChevronIcon expanded={expanded} />
+        </button>
+        <div
+          id={groupId}
+          className={`flex flex-col gap-0.5 overflow-hidden transition-all duration-200 ${
+            expanded ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0"
+          }`}
+        >
+          {group.links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={onClose}
+              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
+                isActive(link.href)
+                  ? isAdminGroup
+                    ? "bg-nia-orange/20 text-nia-orange font-medium"
+                    : "bg-white/15 text-white font-medium nav-link-active"
+                  : "text-white/60 hover:text-white hover:bg-white/8"
+              }`}
+            >
+              <NavIcon icon={link.icon} className="w-4 h-4 flex-shrink-0" />
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const sidebarContent = (
@@ -198,60 +320,44 @@ export default function Sidebar({
         </div>
       </div>
 
+      {/* Health widget — always visible above nav */}
+      <SidebarHealthWidget
+        data={healthData ?? null}
+        loading={healthLoading}
+        onNavigate={onClose}
+      />
+
       {/* Nav groups */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-        {navGroups.map((group) => (
-          <div key={group.label}>
-            <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1.5 font-medium px-2">
-              {group.label}
-            </div>
-            <div className="flex flex-col gap-0.5">
-              {group.links.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={onClose}
-                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
-                    isActive(link.href)
-                      ? "bg-white/15 text-white font-medium nav-link-active"
-                      : "text-white/60 hover:text-white hover:bg-white/8"
-                  }`}
-                >
-                  <NavIcon icon={link.icon} className="w-4 h-4 flex-shrink-0" />
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        ))}
-        {isAdmin && adminNavGroups.map((group) => (
-          <div key={group.label}>
-            <div className="text-[10px] text-nia-orange/60 uppercase tracking-widest mb-1.5 font-medium px-2">
-              {group.label}
-            </div>
-            <div className="flex flex-col gap-0.5">
-              {group.links.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={onClose}
-                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
-                    isActive(link.href)
-                      ? "bg-nia-orange/20 text-nia-orange font-medium"
-                      : "text-white/60 hover:text-white hover:bg-white/8"
-                  }`}
-                >
-                  <NavIcon icon={link.icon} className="w-4 h-4 flex-shrink-0" />
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        ))}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
+        {navGroups.map((group) => renderGroup(group, false))}
+        {isAdmin &&
+          adminNavGroups.map((group) => renderGroup(group, true))}
       </nav>
 
-      {/* Bottom — Settings */}
-      <div className="px-3 py-3 border-t border-white/10">
+      {/* Bottom — Help, Feedback, Settings */}
+      <div className="px-3 py-3 border-t border-white/10 space-y-0.5">
+        <Link
+          href="/help"
+          onClick={onClose}
+          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
+            isActive("/help")
+              ? "bg-white/15 text-white font-medium nav-link-active"
+              : "text-white/60 hover:text-white hover:bg-white/8"
+          }`}
+        >
+          <NavIcon icon="help" className="w-4 h-4 flex-shrink-0" />
+          Help
+        </Link>
+        <button
+          onClick={() => {
+            onClose?.();
+            onFeedbackClick?.();
+          }}
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all text-white/60 hover:text-white hover:bg-white/8"
+        >
+          <NavIcon icon="message" className="w-4 h-4 flex-shrink-0" />
+          Feedback
+        </button>
         <Link
           href="/settings"
           onClick={onClose}

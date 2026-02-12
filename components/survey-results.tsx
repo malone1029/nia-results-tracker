@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button, Badge } from "@/components/ui";
+import HelpTip from "@/components/help-tip";
 import dynamic from "next/dynamic";
 
 // Lazy-load QR modal (only needed when user clicks QR button)
@@ -581,7 +582,7 @@ export default function SurveyCard({
           {/* Round selector (only if multiple rounds) */}
           {waves.filter((w) => w.status !== "scheduled").length > 1 && (
             <div className="flex items-center gap-2 mb-3 overflow-x-auto">
-              <span className="text-xs text-text-tertiary flex-shrink-0">Round:</span>
+              <span className="text-xs text-text-tertiary flex-shrink-0">Round:<HelpTip text="Each deployment is a 'wave' with its own share link and results." /></span>
               {waves.filter((w) => w.status !== "scheduled").map((w) => (
                 <button
                   key={w.id}
