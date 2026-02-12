@@ -34,6 +34,7 @@ export interface ProcessWithCategory {
   asana_project_gid: string | null;
   asana_adli_task_gids: Record<string, string> | null;
   updated_at: string;
+  classification_rationale: string | null;
 }
 
 export interface CategoryRow {
@@ -65,9 +66,9 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
   ] = await Promise.all([
     db.from("categories").select("*").order("sort_order"),
     db.from("processes").select(`
-      id, name, category_id, is_key, process_type, status, owner, baldrige_item,
+      id, name, category_id, process_type, status, owner, baldrige_item,
       charter, adli_approach, adli_deployment, adli_learning, adli_integration,
-      workflow, baldrige_connections,
+      workflow, classification_rationale,
       asana_project_gid, asana_adli_task_gids, updated_at,
       categories!inner ( display_name )
     `).order("name"),
@@ -109,6 +110,7 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
         asana_project_gid: p.asana_project_gid as string | null,
         asana_adli_task_gids: p.asana_adli_task_gids as Record<string, string> | null,
         updated_at: p.updated_at as string,
+        classification_rationale: p.classification_rationale as string | null,
       };
     }
   );

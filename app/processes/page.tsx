@@ -183,16 +183,20 @@ export default function ProcessesPage() {
     const updates = classifySuggestions.map((s) => ({
       id: s.process_id,
       type: s.override || s.suggestion,
+      rationale: s.rationale,
     }));
-    // Update each process
+    // Update each process with type and rationale
     for (const u of updates) {
-      await supabase.from("processes").update({ process_type: u.type }).eq("id", u.id);
+      await supabase.from("processes").update({
+        process_type: u.type,
+        classification_rationale: u.rationale,
+      }).eq("id", u.id);
     }
     // Update local state
     setProcesses((prev) =>
       prev.map((p) => {
         const match = updates.find((u) => u.id === p.id);
-        return match ? { ...p, process_type: match.type as "key" | "support" | "unclassified" } : p;
+        return match ? { ...p, process_type: match.type as "key" | "support" | "unclassified", classification_rationale: match.rationale } : p;
       })
     );
     const keyCount = updates.filter((u) => u.type === "key").length;
@@ -536,33 +540,11 @@ export default function ProcessesPage() {
                       </td>
                     )}
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (process.process_type === "key") {
-                              setProcessType(process.id, "support");
-                            } else {
-                              setProcessType(process.id, "key");
-                            }
-                          }}
-                          className={`text-xs leading-none transition-colors ${
-                            process.process_type === "key"
-                              ? "text-nia-orange hover:text-nia-orange-dark font-medium"
-                              : process.process_type === "support"
-                              ? "text-text-muted hover:text-nia-orange"
-                              : "text-text-muted/50 hover:text-nia-orange italic"
-                          }`}
-                          title={
-                            process.process_type === "key"
-                              ? "Key process — click to set as Support"
-                              : process.process_type === "support"
-                              ? "Support process — click to set as Key"
-                              : "Unclassified — click to set as Key"
-                          }
-                        >
-                          {process.process_type === "key" ? "\u2605" : process.process_type === "support" ? "Support" : "?"}
-                        </button>
+                      <span className="inline-flex items-center gap-2">
+                        <ClassificationBadge
+                          type={process.process_type}
+                          onToggle={(newType) => setProcessType(process.id, newType)}
+                        />
                         <Link
                           href={`/processes/${process.id}`}
                           className="font-medium text-nia-dark hover:text-nia-orange transition-colors"
@@ -648,34 +630,15 @@ export default function ProcessesPage() {
                 <Card variant="interactive" accent="dark" padding="sm" className="p-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="font-medium text-nia-dark flex items-center gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (process.process_type === "key") {
-                              setProcessType(process.id, "support");
-                            } else {
-                              setProcessType(process.id, "key");
-                            }
+                      <div className="font-medium text-nia-dark flex items-center gap-2">
+                        <ClassificationBadge
+                          type={process.process_type}
+                          onToggle={(newType) => {
+                            // Prevent link navigation on mobile
+                            setProcessType(process.id, newType);
                           }}
-                          className={`text-xs leading-none transition-colors ${
-                            process.process_type === "key"
-                              ? "text-nia-orange hover:text-nia-orange-dark font-medium"
-                              : process.process_type === "support"
-                              ? "text-text-muted hover:text-nia-orange"
-                              : "text-text-muted/50 hover:text-nia-orange italic"
-                          }`}
-                          title={
-                            process.process_type === "key"
-                              ? "Key process — click to set as Support"
-                              : process.process_type === "support"
-                              ? "Support process — click to set as Key"
-                              : "Unclassified — click to set as Key"
-                          }
-                        >
-                          {process.process_type === "key" ? "\u2605" : process.process_type === "support" ? "Support" : "?"}
-                        </button>
+                          preventNavigation
+                        />
                         {process.name}
                         {process.asana_project_gid && (
                           <span className="text-text-muted ml-1" title="Linked to Asana">
@@ -774,5 +737,47 @@ export default function ProcessesPage() {
       {/* Bottom padding when floating bar is visible */}
       {editMode && <div className="h-20" />}
     </div>
+  );
+}
+
+function ClassificationBadge({
+  type,
+  onToggle,
+  preventNavigation,
+}: {
+  type: string;
+  onToggle: (newType: string) => void;
+  preventNavigation?: boolean;
+}) {
+  const nextType = type === "key" ? "support" : type === "support" ? "unclassified" : "key";
+  const labels: Record<string, string> = {
+    key: "\u2605 Key",
+    support: "Support",
+    unclassified: "?",
+  };
+  const tooltips: Record<string, string> = {
+    key: "Key process \u2014 click to change to Support",
+    support: "Support process \u2014 click to change to Unclassified",
+    unclassified: "Unclassified \u2014 click to set as Key",
+  };
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        if (preventNavigation) e.preventDefault();
+        onToggle(nextType);
+      }}
+      title={tooltips[type] || tooltips.unclassified}
+      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full transition-all whitespace-nowrap ${
+        type === "key"
+          ? "bg-nia-orange text-white hover:bg-nia-orange/80"
+          : type === "support"
+          ? "bg-nia-grey-blue text-white hover:bg-nia-grey-blue/80"
+          : "bg-surface-subtle text-text-muted hover:bg-nia-orange/10 hover:text-nia-orange border border-border-light"
+      }`}
+    >
+      {labels[type] || labels.unclassified}
+    </button>
   );
 }

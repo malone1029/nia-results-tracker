@@ -17,6 +17,7 @@ const navGroups = [
     label: "Processes",
     links: [
       { href: "/processes", label: "Processes", icon: "folder" },
+      { href: "/classifications", label: "Classifications", icon: "tag" },
       { href: "/categories", label: "Categories", icon: "layers" },
     ],
   },
@@ -74,6 +75,12 @@ function NavIcon({ icon, className }: { icon: string; className?: string }) {
       return (
         <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+      );
+    case "tag":
+      return (
+        <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
         </svg>
       );
     case "layers":
