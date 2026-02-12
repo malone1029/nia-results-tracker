@@ -245,7 +245,7 @@ export default function SurveyCard({
 
   // Inline helper components for results rendering
   function TrendArrow({ current, previous }: { current: number; previous: number }) {
-    const cls = current > previous ? "text-green-600" : current < previous ? "text-red-500" : "text-text-muted";
+    const cls = current > previous ? "text-nia-green" : current < previous ? "text-nia-red" : "text-text-muted";
     const icon = current > previous ? "\u25B2" : current < previous ? "\u25BC" : "\u2500";
     return <span className={`text-xs ${cls}`}>{icon}</span>;
   }
@@ -303,7 +303,7 @@ export default function SurveyCard({
               </span>
             )}
             {isScheduled && wave?.scheduled_open_at && (
-              <span className="text-xs text-blue-600">
+              <span className="text-xs text-nia-grey-blue">
                 Opens {formatDateTime(wave.scheduled_open_at)}
               </span>
             )}
@@ -408,7 +408,7 @@ export default function SurveyCard({
                 )}
                 <button
                   onClick={() => { setMenuOpen(false); setShowDeleteConfirm(true); }}
-                  className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+                  className="w-full text-left px-3 py-1.5 text-sm text-nia-red hover:bg-nia-red/10"
                 >
                   Delete
                 </button>
@@ -440,7 +440,7 @@ export default function SurveyCard({
 
       {/* Schedule deployment panel */}
       {showSchedule && !isOpen && (
-        <div className="px-4 py-3 border-t border-border-light bg-blue-50/50 space-y-3">
+        <div className="px-4 py-3 border-t border-border-light bg-surface-hover space-y-3">
           <div className="text-xs font-medium text-text-secondary">Schedule Deployment</div>
           <div className="flex flex-wrap gap-3">
             <div>
@@ -508,7 +508,7 @@ export default function SurveyCard({
 
       {/* Scheduled waves list */}
       {scheduledWaves.length > 0 && (
-        <div className="px-4 py-2 border-t border-border-light bg-blue-50/30">
+        <div className="px-4 py-2 border-t border-border-light bg-surface-hover">
           <div className="text-xs font-medium text-text-muted mb-1.5">Upcoming</div>
           {scheduledWaves.map((sw) => (
             <div key={sw.id} className="flex items-center justify-between text-xs py-1">
@@ -524,7 +524,7 @@ export default function SurveyCard({
               <button
                 onClick={() => cancelScheduledWave(sw.id)}
                 disabled={cancellingWaveId === sw.id}
-                className="text-xs text-text-muted hover:text-red-600 transition-colors disabled:opacity-50"
+                className="text-xs text-text-muted hover:text-nia-red transition-colors disabled:opacity-50"
               >
                 {cancellingWaveId === sw.id ? "..." : "Cancel"}
               </button>
@@ -699,8 +699,8 @@ export default function SurveyCard({
 
       {/* Delete confirmation */}
       {showDeleteConfirm && (
-        <div className="px-4 py-3 border-t border-red-100 bg-red-50 flex items-center justify-between gap-2">
-          <span className="text-sm text-red-700">
+        <div className="px-4 py-3 border-t border-nia-red/20 bg-nia-red/10 flex items-center justify-between gap-2">
+          <span className="text-sm text-nia-red">
             Delete this survey and all responses?
           </span>
           <div className="flex gap-2 flex-shrink-0">

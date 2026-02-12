@@ -44,7 +44,7 @@ interface Item {
 /* ---------- constants ---------- */
 const COVERAGE_COLORS = {
   primary: "bg-nia-green text-nia-dark",
-  supporting: "bg-blue-100 text-blue-700",
+  supporting: "bg-nia-grey-blue/15 text-nia-grey-blue",
   partial: "bg-nia-orange/20 text-nia-orange",
 };
 
@@ -441,8 +441,8 @@ export default function CriteriaMapPage() {
 
         {/* Scan progress / Accept All banner */}
         {scanProgress && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center justify-between">
-            <span className="text-sm text-blue-700">{scanProgress}</span>
+          <div className="bg-nia-grey-blue/10 border border-nia-grey-blue/20 rounded-lg px-4 py-3 flex items-center justify-between">
+            <span className="text-sm text-foreground">{scanProgress}</span>
             <div className="flex gap-2">
               {suggestions.size > 0 && (
                 <button
@@ -454,7 +454,7 @@ export default function CriteriaMapPage() {
               )}
               <button
                 onClick={() => { setScanProgress(""); setSuggestions(new Map()); }}
-                className="text-xs text-blue-500 hover:text-blue-700"
+                className="text-xs text-text-tertiary hover:text-foreground"
               >
                 Dismiss
               </button>
@@ -671,13 +671,13 @@ export default function CriteriaMapPage() {
                                         {/* AI Suggestions for this question */}
                                         {(suggestions.get(q.id) || []).length > 0 && (
                                           <div className="space-y-1.5">
-                                            <div className="text-xs font-medium text-blue-600 uppercase">
+                                            <div className="text-xs font-medium text-nia-grey-blue uppercase">
                                               AI Suggestions
                                             </div>
                                             {(suggestions.get(q.id) || []).map((s) => (
                                               <div
                                                 key={s.process_id}
-                                                className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2"
+                                                className="bg-nia-grey-blue/10 border border-nia-grey-blue/20 rounded-md px-3 py-2"
                                               >
                                                 <div className="flex items-start justify-between gap-2">
                                                   <div>

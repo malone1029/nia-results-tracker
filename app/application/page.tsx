@@ -49,7 +49,7 @@ function statusBadge(status: string) {
     case "final":
       return "bg-nia-green/20 text-nia-dark";
     case "review":
-      return "bg-blue-100 text-blue-700";
+      return "bg-nia-grey-blue/15 text-nia-grey-blue";
     default:
       return "bg-nia-orange/20 text-nia-orange";
   }
@@ -350,7 +350,7 @@ export default function ApplicationPage() {
                                 : draft.status === "final"
                                 ? "bg-nia-green"
                                 : draft.status === "review"
-                                ? "bg-blue-500"
+                                ? "bg-nia-grey-blue"
                                 : "bg-nia-orange"
                             }`}
                           />

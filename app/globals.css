@@ -416,6 +416,27 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   }
 }
 
+/* Prose (Typography plugin) dark mode overrides — prevents dark text on dark backgrounds */
+:root[data-theme="dark"] .prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--text-secondary);
+  --tw-prose-links: var(--nia-grey-blue);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--text-tertiary);
+  --tw-prose-bullets: var(--text-muted);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--text-secondary);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--text-tertiary);
+  --tw-prose-kbd: var(--foreground);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--surface-subtle);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border-light);
+}
+
 /* Markdown content styling for imported process documents */
 .markdown-content table {
   width: 100%;

@@ -75,7 +75,7 @@ export default function EditSurveyPage() {
   if (error || !survey) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">
+        <div className="text-sm text-nia-red bg-nia-red/10 border border-nia-red/20 px-4 py-3 rounded-xl">
           {error || "Survey not found"}
         </div>
       </div>

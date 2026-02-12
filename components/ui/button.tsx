@@ -10,7 +10,7 @@ const variants = {
   ghost:
     "bg-transparent text-foreground hover:bg-surface-subtle focus-ring",
   danger:
-    "bg-nia-red text-white hover:bg-red-700 focus-ring",
+    "bg-nia-red text-white hover:opacity-80 focus-ring",
   success:
     "bg-nia-green text-white hover:opacity-90 focus-ring",
   accent:

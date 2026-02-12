@@ -859,7 +859,7 @@ function QuestionCard({
               {total > 1 && (
                 <button
                   onClick={onDelete}
-                  className="p-1.5 text-text-muted hover:text-nia-red rounded hover:bg-red-50"
+                  className="p-1.5 text-text-muted hover:text-nia-red rounded hover:bg-nia-red/10"
                   title="Delete question"
                 >
                   <TrashIcon className="w-4 h-4" />
@@ -1170,7 +1170,7 @@ export default function SurveyBuilderPage({
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {/* Error banner */}
         {error && (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">
+          <div className="text-sm text-nia-red bg-nia-red/10 border border-nia-red/20 px-4 py-3 rounded-xl">
             {error}
           </div>
         )}

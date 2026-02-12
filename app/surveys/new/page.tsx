@@ -146,7 +146,7 @@ function TemplatePicker({
             rows={3}
           />
           {aiError && (
-            <p className="text-sm text-red-600">{aiError}</p>
+            <p className="text-sm text-nia-red">{aiError}</p>
           )}
           <Button
             size="md"
@@ -285,7 +285,7 @@ function CreateSurveyInner() {
   if (error) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">
+        <div className="text-sm text-nia-red bg-nia-red/10 border border-nia-red/20 px-4 py-3 rounded-xl">
           {error}
         </div>
       </div>

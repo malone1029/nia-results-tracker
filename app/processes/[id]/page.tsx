@@ -853,8 +853,8 @@ function ProcessDetailContent() {
 
       {/* Asana resync result */}
       {asanaResyncResult && (
-        <div className="banner-enter bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-center justify-between">
-          <p className="text-sm text-blue-300">
+        <div className="banner-enter bg-nia-grey-blue/10 border border-nia-grey-blue/20 rounded-lg p-3 flex items-center justify-between">
+          <p className="text-sm text-foreground">
             Asana data refreshed: {asanaResyncResult.tasks} tasks, {asanaResyncResult.subtasks} subtasks loaded. AI coach now has full context.
           </p>
           <Button variant="ghost" size="xs" onClick={() => setAsanaResyncResult(null)} className="ml-3">Dismiss</Button>

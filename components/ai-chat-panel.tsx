@@ -963,10 +963,10 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                   {pendingSurveyQuestions.map((sq, idx) => (
                     <div
                       key={idx}
-                      className="border border-blue-200 bg-blue-50/50 rounded-lg p-3"
+                      className="border border-border bg-surface-hover rounded-lg p-3"
                     >
                       <div className="flex items-start gap-2">
-                        <span className="text-blue-500 mt-0.5 flex-shrink-0">
+                        <span className="text-nia-grey-blue mt-0.5 flex-shrink-0">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                           </svg>
@@ -976,7 +976,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
                             {sq.questionText}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                            <span className="text-xs bg-nia-grey-blue/15 text-nia-grey-blue px-1.5 py-0.5 rounded">
                               {sq.questionType === "rating" ? "Rating 1-5" : "Yes / No"}
                             </span>
                           </div>
@@ -1002,7 +1002,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
 
               {/* Error message */}
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600">
+                <div className="bg-nia-red/10 border border-nia-red/20 rounded-lg px-3 py-2 text-sm text-nia-red">
                   {error}
                 </div>
               )}

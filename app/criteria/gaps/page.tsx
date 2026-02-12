@@ -43,7 +43,7 @@ function getPriorityTag(catCoverage: number) {
     return { label: "Critical", className: "bg-nia-red/10 text-nia-red" };
   if (catCoverage < 50)
     return { label: "Important", className: "bg-nia-orange/20 text-nia-orange" };
-  return { label: "Strengthen", className: "bg-blue-100 text-blue-700" };
+  return { label: "Strengthen", className: "bg-nia-grey-blue/15 text-nia-grey-blue" };
 }
 
 /* ---------- component ---------- */

@@ -8,7 +8,7 @@ const colorSchemes = {
   red: "bg-nia-red/10 text-nia-red",
   purple: "bg-nia-purple/10 text-nia-purple",
   yellow: "bg-nia-yellow/10 text-nia-yellow",
-  blue: "bg-blue-500/10 text-blue-400",
+  blue: "bg-nia-grey-blue/10 text-nia-grey-blue",
   // Solid variants — white text on filled background
   "solid-dark": "bg-nia-dark-solid text-white",
   "solid-orange": "bg-nia-orange text-white",

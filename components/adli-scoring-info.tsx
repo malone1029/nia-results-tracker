@@ -143,11 +143,11 @@ export default function AdliScoringInfo() {
                 <h4 className="text-sm font-semibold text-nia-dark mb-2">Maturity levels</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-surface-subtle rounded-lg px-3 py-2">
-                    <span className="text-xs font-semibold text-red-600">0 &ndash; 25%</span>
+                    <span className="text-xs font-semibold text-nia-red">0 &ndash; 25%</span>
                     <p className="text-xs text-text-tertiary mt-0.5">Reacting &mdash; no systematic approach yet</p>
                   </div>
                   <div className="bg-surface-subtle rounded-lg px-3 py-2">
-                    <span className="text-xs font-semibold text-orange-600">30 &ndash; 45%</span>
+                    <span className="text-xs font-semibold text-nia-orange">30 &ndash; 45%</span>
                     <p className="text-xs text-text-tertiary mt-0.5">Early Systematic &mdash; starting to document</p>
                   </div>
                   <div className="bg-surface-subtle rounded-lg px-3 py-2">

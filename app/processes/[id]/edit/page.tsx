@@ -130,6 +130,9 @@ export default function EditProcessPage() {
     if (!name.trim() || categoryId === "") return;
     setSaving(true);
 
+    // Strip empty strings from list fields before saving
+    const clean = (arr?: string[]) => arr?.filter(Boolean);
+
     const { error } = await supabase
       .from("processes")
       .update({
@@ -141,12 +144,12 @@ export default function EditProcessPage() {
         reviewer: reviewer.trim() || null,
         status,
         description: description.trim() || null,
-        charter,
-        adli_approach: approach,
-        adli_deployment: deployment,
-        adli_learning: learning,
-        adli_integration: integration,
-        workflow,
+        charter: { ...charter, stakeholders: clean(charter.stakeholders) },
+        adli_approach: { ...approach, key_steps: clean(approach.key_steps), tools_used: clean(approach.tools_used) },
+        adli_deployment: { ...deployment, teams: clean(deployment.teams) },
+        adli_learning: { ...learning, metrics: clean(learning.metrics) },
+        adli_integration: { ...integration, strategic_goals: clean(integration.strategic_goals), related_processes: clean(integration.related_processes) },
+        workflow: { ...workflow, inputs: clean(workflow.inputs), outputs: clean(workflow.outputs), quality_controls: clean(workflow.quality_controls) },
         baldrige_connections: baldrigeConn,
         updated_at: new Date().toISOString(),
       })
@@ -262,7 +265,7 @@ export default function EditProcessPage() {
                       <label className="block text-sm font-medium text-nia-dark mb-1">Stakeholders</label>
                       <ListEditor
                         items={charter.stakeholders?.length ? charter.stakeholders : [""]}
-                        onChange={(items) => setCharter({ ...charter, stakeholders: items.filter(Boolean) })}
+                        onChange={(items) => setCharter({ ...charter, stakeholders: items })}
                         placeholder="e.g., Board, Workforce"
                       />
                     </div>
@@ -292,7 +295,7 @@ export default function EditProcessPage() {
                       <label className="block text-sm font-medium text-nia-dark mb-1">Key Steps</label>
                       <ListEditor
                         items={approach.key_steps?.length ? approach.key_steps : [""]}
-                        onChange={(items) => setApproach({ ...approach, key_steps: items.filter(Boolean) })}
+                        onChange={(items) => setApproach({ ...approach, key_steps: items })}
                         placeholder="Key step"
                         numbered
                       />
@@ -301,7 +304,7 @@ export default function EditProcessPage() {
                       <label className="block text-sm font-medium text-nia-dark mb-1">Tools Used</label>
                       <ListEditor
                         items={approach.tools_used?.length ? approach.tools_used : [""]}
-                        onChange={(items) => setApproach({ ...approach, tools_used: items.filter(Boolean) })}
+                        onChange={(items) => setApproach({ ...approach, tools_used: items })}
                         placeholder="e.g., Asana, Excel"
                       />
                     </div>
@@ -328,7 +331,7 @@ export default function EditProcessPage() {
                       <label className="block text-sm font-medium text-nia-dark mb-1">Teams</label>
                       <ListEditor
                         items={deployment.teams?.length ? deployment.teams : [""]}
-                        onChange={(items) => setDeployment({ ...deployment, teams: items.filter(Boolean) })}
+                        onChange={(items) => setDeployment({ ...deployment, teams: items })}
                         placeholder="e.g., Senior Leadership Team"
                       />
                     </div>
@@ -357,7 +360,7 @@ export default function EditProcessPage() {
                       <label className="block text-sm font-medium text-nia-dark mb-1">Metrics</label>
                       <ListEditor
                         items={learning.metrics?.length ? learning.metrics : [""]}
-                        onChange={(items) => setLearning({ ...learning, metrics: items.filter(Boolean) })}
+                        onChange={(items) => setLearning({ ...learning, metrics: items })}
                         placeholder="e.g., Customer satisfaction score"
                       />
                     </div>
@@ -386,7 +389,7 @@ export default function EditProcessPage() {
                       <label className="block text-sm font-medium text-nia-dark mb-1">Strategic Goals</label>
                       <ListEditor
                         items={integration.strategic_goals?.length ? integration.strategic_goals : [""]}
-                        onChange={(items) => setIntegration({ ...integration, strategic_goals: items.filter(Boolean) })}
+                        onChange={(items) => setIntegration({ ...integration, strategic_goals: items })}
                         placeholder="e.g., Workforce excellence"
                       />
                     </div>
@@ -395,7 +398,7 @@ export default function EditProcessPage() {
                       <label className="block text-sm font-medium text-nia-dark mb-1">Related Processes</label>
                       <ListEditor
                         items={integration.related_processes?.length ? integration.related_processes : [""]}
-                        onChange={(items) => setIntegration({ ...integration, related_processes: items.filter(Boolean) })}
+                        onChange={(items) => setIntegration({ ...integration, related_processes: items })}
                         placeholder="e.g., Strategic Planning Process"
                       />
                     </div>
@@ -422,7 +425,7 @@ export default function EditProcessPage() {
                       <label className="block text-sm font-medium text-nia-dark mb-1">Inputs</label>
                       <ListEditor
                         items={workflow.inputs?.length ? workflow.inputs : [""]}
-                        onChange={(items) => setWorkflow({ ...workflow, inputs: items.filter(Boolean) })}
+                        onChange={(items) => setWorkflow({ ...workflow, inputs: items })}
                         placeholder="e.g., Survey results, Budget data"
                       />
                     </div>
@@ -437,7 +440,7 @@ export default function EditProcessPage() {
                       <label className="block text-sm font-medium text-nia-dark mb-1">Outputs</label>
                       <ListEditor
                         items={workflow.outputs?.length ? workflow.outputs : [""]}
-                        onChange={(items) => setWorkflow({ ...workflow, outputs: items.filter(Boolean) })}
+                        onChange={(items) => setWorkflow({ ...workflow, outputs: items })}
                         placeholder="e.g., Updated strategic plan"
                       />
                     </div>
@@ -445,7 +448,7 @@ export default function EditProcessPage() {
                       <label className="block text-sm font-medium text-nia-dark mb-1">Quality Controls</label>
                       <ListEditor
                         items={workflow.quality_controls?.length ? workflow.quality_controls : [""]}
-                        onChange={(items) => setWorkflow({ ...workflow, quality_controls: items.filter(Boolean) })}
+                        onChange={(items) => setWorkflow({ ...workflow, quality_controls: items })}
                         placeholder="e.g., SLT review and approval"
                       />
                     </div>
@@ -461,15 +464,15 @@ export default function EditProcessPage() {
               forceOpen={targetSection === "baldrige_connections"}
               subtitle="auto-mapped"
             >
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-nia-grey-blue/10 border border-nia-grey-blue/20 rounded-lg p-4 flex items-start gap-3">
+                <svg className="w-5 h-5 text-nia-grey-blue mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-medium text-blue-300">Managed automatically via AI mapping</p>
-                  <p className="text-sm text-blue-400 mt-1">
+                  <p className="text-sm font-medium text-foreground">Managed automatically via AI mapping</p>
+                  <p className="text-sm text-text-secondary mt-1">
                     Baldrige connections are now maintained through the{" "}
-                    <a href="/criteria" className="underline font-medium hover:text-blue-300">Criteria Map</a>.
+                    <a href="/criteria" className="underline font-medium text-nia-grey-blue hover:text-nia-dark">Criteria Map</a>.
                     AI scans your process documentation and maps it to Excellence Builder questions.
                   </p>
                 </div>

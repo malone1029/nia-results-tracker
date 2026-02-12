@@ -211,9 +211,9 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
 
       {/* Error banner */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-between">
-          <span className="text-sm text-red-700">{error}</span>
-          <button onClick={() => setError("")} className="text-xs text-red-500 hover:text-red-700">Dismiss</button>
+        <div className="bg-nia-red/10 border border-nia-red/20 rounded-lg p-3 flex items-center justify-between">
+          <span className="text-sm text-nia-red">{error}</span>
+          <button onClick={() => setError("")} className="text-xs text-text-tertiary hover:text-foreground">Dismiss</button>
         </div>
       )}
 
@@ -445,13 +445,13 @@ function TaskCard({
 
   if (isDeleting) {
     return (
-      <div className="bg-red-50 rounded-lg p-2.5 border border-red-200">
-        <p className="text-xs text-red-700 mb-2">Delete this task?</p>
+      <div className="bg-nia-red/10 rounded-lg p-2.5 border border-nia-red/20">
+        <p className="text-xs text-nia-red mb-2">Delete this task?</p>
         <div className="flex gap-2">
           <button
             onClick={onConfirmDelete}
             disabled={isBusy}
-            className="text-xs font-medium text-white bg-red-500 rounded px-2.5 py-1 hover:bg-red-600 disabled:opacity-50"
+            className="text-xs font-medium text-white bg-nia-red rounded px-2.5 py-1 hover:opacity-80 disabled:opacity-50"
           >
             {isBusy ? "Deleting..." : "Delete"}
           </button>

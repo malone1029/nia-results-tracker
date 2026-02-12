@@ -77,7 +77,7 @@ export default function SurveyQrModal({ url, surveyTitle, onClose }: SurveyQrMod
         {/* QR Code */}
         <div className="flex justify-center">
           {error ? (
-            <div className="text-sm text-red-600 py-8">{error}</div>
+            <div className="text-sm text-nia-red py-8">{error}</div>
           ) : (
             <canvas ref={canvasRef} className="rounded-lg" />
           )}

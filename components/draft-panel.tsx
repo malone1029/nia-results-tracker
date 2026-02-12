@@ -195,7 +195,7 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
     : draft.status === "final"
     ? "bg-nia-green/20 text-nia-dark"
     : draft.status === "review"
-    ? "bg-blue-500/10 text-blue-400"
+    ? "bg-nia-grey-blue/10 text-nia-grey-blue"
     : "bg-nia-orange/20 text-nia-orange";
 
   return (
@@ -330,7 +330,7 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
             {streaming ? (
               <button
                 onClick={() => abortRef.current?.abort()}
-                className="px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                className="px-3 py-1.5 text-sm text-nia-red border border-nia-red/20 rounded-lg hover:bg-nia-red/10 transition-colors"
               >
                 Stop Generating
               </button>
