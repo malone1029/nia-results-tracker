@@ -10,7 +10,6 @@ import type {
   AdliLearning,
   AdliIntegration,
   Workflow,
-  BaldigeConnections,
 } from "./types";
 
 export interface ParsedProcess {
@@ -32,8 +31,6 @@ export interface ParsedProcess {
   adli_learning: AdliLearning | null;
   adli_integration: AdliIntegration | null;
   workflow: Workflow | null;
-  baldrige_connections: BaldigeConnections | null;
-  is_key: boolean;
   process_type: ProcessType;
 }
 
@@ -399,35 +396,6 @@ export function parseObsidianProcess(markdown: string): ParsedProcess {
     };
   }
 
-  // ── Baldrige Connections ──
-  let baldrige_connections: BaldigeConnections | null = null;
-  const bcSection = extractSection(lines, "Baldrige Connections");
-  if (bcSection.length > 0) {
-    const primaryLines = extractSubSection(bcSection, "Primary Baldrige");
-    const questions = cleanBullets(primaryLines).filter(
-      (l) => !l.startsWith("How this") && !l.startsWith("Evidence of")
-    );
-
-    const evidenceApproach = extractLabeled(primaryLines, "Evidence of systematic approach");
-    const evidenceDeployment = extractLabeled(primaryLines, "Evidence of deployment");
-    const evidenceLearning = extractLabeled(primaryLines, "Evidence of learning");
-    const evidenceIntegration = extractLabeled(primaryLines, "Evidence of integration");
-
-    baldrige_connections = {
-      content: sectionToMarkdown(bcSection) || undefined,
-      questions_addressed: questions.length > 0 ? questions : undefined,
-      evidence_by_dimension:
-        evidenceApproach || evidenceDeployment || evidenceLearning || evidenceIntegration
-          ? {
-              approach: evidenceApproach || undefined,
-              deployment: evidenceDeployment || undefined,
-              learning: evidenceLearning || undefined,
-              integration: evidenceIntegration || undefined,
-            }
-          : undefined,
-    };
-  }
-
   // ── Fallback: document doesn't match any template structure ──
   // Store the full body so the content isn't lost
   if (!description && !charter && !adli_approach && fullBody) {
@@ -458,8 +426,6 @@ export function parseObsidianProcess(markdown: string): ParsedProcess {
     adli_learning,
     adli_integration,
     workflow,
-    baldrige_connections,
-    is_key: false,
     process_type: "unclassified",
   };
 }

@@ -48,7 +48,6 @@ export interface HealthProcessInput {
   adli_learning: Record<string, unknown> | null;
   adli_integration: Record<string, unknown> | null;
   workflow: Record<string, unknown> | null;
-  baldrige_connections: Record<string, unknown> | null;
   baldrige_mapping_count: number; // from process_question_mappings
   status: string;
   asana_project_gid: string | null;

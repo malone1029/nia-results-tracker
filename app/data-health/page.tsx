@@ -75,7 +75,7 @@ export default function DataHealthPage() {
     const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
       supabase.from("metrics").select("*"),
       supabase.from("metric_processes").select("metric_id, process_id"),
-      supabase.from("processes").select("id, name, is_key, process_type, categories!inner ( display_name )"),
+      supabase.from("processes").select("id, name, process_type, categories!inner ( display_name )"),
       supabase.from("entries").select("metric_id, value, date").order("date", { ascending: false }),
     ]);
 
@@ -90,12 +90,11 @@ export default function DataHealthPage() {
     }
 
     // Build process lookup
-    const processMap = new Map<number, { name: string; is_key: boolean; process_type: string; category_display_name: string }>();
+    const processMap = new Map<number, { name: string; process_type: string; category_display_name: string }>();
     for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
       const cat = p.categories as Record<string, unknown>;
       processMap.set(p.id as number, {
         name: p.name as string,
-        is_key: p.is_key as boolean,
         process_type: (p.process_type as string) || "unclassified",
         category_display_name: cat.display_name as string,
       });
@@ -178,10 +177,10 @@ export default function DataHealthPage() {
     async function fetchProcessSummary() {
       const { data } = await supabase
         .from("processes")
-        .select("is_key, process_type, status");
+        .select("process_type, status");
       if (data) {
-        const all = data as { is_key: boolean; process_type: string | null; status: string }[];
-        const keyProcs = all.filter((p) => (p.process_type || (p.is_key ? "key" : "")) === "key");
+        const all = data as { process_type: string | null; status: string }[];
+        const keyProcs = all.filter((p) => (p.process_type || "unclassified") === "key");
         setProcessSummary({
           total: all.length,
           key: keyProcs.length,

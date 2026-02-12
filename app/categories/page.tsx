@@ -24,7 +24,6 @@ interface MetricRow extends Metric {
 interface ProcessGroup {
   id: number;
   name: string;
-  is_key: boolean;
   process_type: string;
   metrics: MetricRow[];
   withData: number;
@@ -61,7 +60,6 @@ function groupByCategory(rows: MetricRow[]): CategoryGroup[] {
       proc = {
         id: row.process_id,
         name: row.process_name,
-        is_key: row.is_key_process,
         process_type: row.process_type,
         metrics: [],
         withData: 0,
@@ -121,7 +119,7 @@ export default function CategoriesPage() {
       const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
         supabase.from("metrics").select("*"),
         supabase.from("metric_processes").select("metric_id, process_id"),
-        supabase.from("processes").select("id, name, is_key, process_type, categories!inner ( id, display_name, sort_order )"),
+        supabase.from("processes").select("id, name, process_type, categories!inner ( id, display_name, sort_order )"),
         supabase.from("entries").select("metric_id, value, date").order("date", { ascending: false }),
       ]);
 
@@ -129,13 +127,12 @@ export default function CategoriesPage() {
       const entriesData = entriesRes.data || [];
 
       // Build process lookup
-      const processMap = new Map<number, { id: number; name: string; is_key: boolean; process_type: string; category_id: number; category_display_name: string; category_sort_order: number }>();
+      const processMap = new Map<number, { id: number; name: string; process_type: string; category_id: number; category_display_name: string; category_sort_order: number }>();
       for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
         const cat = p.categories as Record<string, unknown>;
         processMap.set(p.id as number, {
           id: p.id as number,
           name: p.name as string,
-          is_key: p.is_key as boolean,
           process_type: (p.process_type as string) || "unclassified",
           category_id: cat.id as number,
           category_display_name: cat.display_name as string,
@@ -173,7 +170,7 @@ export default function CategoriesPage() {
             ...(m as unknown as Metric),
             process_id: proc.id,
             process_name: proc.name,
-            is_key_process: proc.is_key,
+            is_key_process: (proc.process_type || "unclassified") === "key",
             process_type: proc.process_type,
             category_id: proc.category_id,
             category_display_name: proc.category_display_name,

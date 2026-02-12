@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     .select(`
       *,
       processes!inner (
-        id, name, status, is_key, process_type, owner,
+        id, name, status, process_type, owner,
         categories!inner ( id, display_name, sort_order )
       )
     `)

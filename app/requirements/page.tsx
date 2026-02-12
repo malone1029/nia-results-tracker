@@ -27,7 +27,6 @@ interface AllMetric {
 interface LinkedProcess {
   id: number;
   name: string;
-  is_key: boolean;
   process_type: string;
 }
 
@@ -125,21 +124,20 @@ export default function RequirementsPage() {
         .from("process_requirements")
         .select(`
           requirement_id,
-          processes!inner ( id, name, is_key, process_type )
+          processes!inner ( id, name, process_type )
         `);
 
       // Build map of requirement_id -> linked processes
       const procsByReq = new Map<number, LinkedProcess[]>();
       if (procLinkData) {
         for (const link of procLinkData) {
-          const proc = link.processes as unknown as { id: number; name: string; is_key: boolean; process_type: string | null };
+          const proc = link.processes as unknown as { id: number; name: string; process_type: string | null };
           if (!procsByReq.has(link.requirement_id)) {
             procsByReq.set(link.requirement_id, []);
           }
           procsByReq.get(link.requirement_id)!.push({
             id: proc.id,
             name: proc.name,
-            is_key: proc.is_key,
             process_type: proc.process_type || "unclassified",
           });
         }

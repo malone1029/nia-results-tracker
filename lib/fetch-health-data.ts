@@ -21,7 +21,6 @@ export interface ProcessWithCategory {
   name: string;
   category_id: number;
   category_display_name: string;
-  is_key: boolean;
   process_type: ProcessType;
   status: ProcessStatus;
   owner: string | null;
@@ -32,7 +31,6 @@ export interface ProcessWithCategory {
   adli_learning: Record<string, unknown> | null;
   adli_integration: Record<string, unknown> | null;
   workflow: Record<string, unknown> | null;
-  baldrige_connections: Record<string, unknown> | null;
   asana_project_gid: string | null;
   asana_adli_task_gids: Record<string, string> | null;
   updated_at: string;
@@ -98,7 +96,6 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
         name: p.name as string,
         category_id: p.category_id as number,
         category_display_name: cat.display_name as string,
-        is_key: p.is_key as boolean,
         process_type: (p.process_type as ProcessType) || "unclassified",
         status: (p.status as ProcessStatus) || "draft",
         owner: p.owner as string | null,
@@ -109,7 +106,6 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
         adli_learning: p.adli_learning as Record<string, unknown> | null,
         adli_integration: p.adli_integration as Record<string, unknown> | null,
         workflow: p.workflow as Record<string, unknown> | null,
-        baldrige_connections: p.baldrige_connections as Record<string, unknown> | null,
         asana_project_gid: p.asana_project_gid as string | null,
         asana_adli_task_gids: p.asana_adli_task_gids as Record<string, string> | null,
         updated_at: p.updated_at as string,

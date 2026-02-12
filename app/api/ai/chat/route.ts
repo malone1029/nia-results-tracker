@@ -92,16 +92,6 @@ function buildProcessContext(process: Record<string, unknown>): string {
     lines.push("");
   }
 
-  // Baldrige Connections
-  const bc = process.baldrige_connections as Record<string, unknown> | null;
-  if (bc) {
-    lines.push(`### Baldrige Connections`);
-    if (bc.content) {
-      lines.push(String(bc.content));
-    }
-    lines.push("");
-  }
-
   return lines.join("\n");
 }
 

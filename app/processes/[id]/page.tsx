@@ -13,7 +13,6 @@ import type {
   AdliLearning,
   AdliIntegration,
   Workflow,
-  BaldigeConnections,
 } from "@/lib/types";
 import Link from "next/link";
 import { Card, Badge, Button, Input } from "@/components/ui";
@@ -41,7 +40,7 @@ interface ProcessDetail {
   category_id: number;
   category_display_name: string;
   baldrige_item: string | null;
-  is_key: boolean;
+  process_type: string;
   status: ProcessStatus;
   owner: string | null;
   reviewer: string | null;
@@ -51,7 +50,6 @@ interface ProcessDetail {
   adli_learning: AdliLearning | null;
   adli_integration: AdliIntegration | null;
   workflow: Workflow | null;
-  baldrige_connections: BaldigeConnections | null;
   updated_at: string;
   asana_project_gid: string | null;
   asana_project_url: string | null;
@@ -388,7 +386,6 @@ function ProcessDetailContent() {
           adli_learning: proc.adli_learning as Record<string, unknown> | null,
           adli_integration: proc.adli_integration as Record<string, unknown> | null,
           workflow: proc.workflow as Record<string, unknown> | null,
-          baldrige_connections: proc.baldrige_connections as Record<string, unknown> | null,
           baldrige_mapping_count: ebMappingRows?.length || 0,
           status: proc.status,
           asana_project_gid: proc.asana_project_gid,
@@ -705,7 +702,7 @@ function ProcessDetailContent() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold text-nia-dark">{process.name}</h1>
-            {process.is_key && (
+            {process.process_type === "key" && (
               <Badge color="orange" size="sm">★ Key Process</Badge>
             )}
           </div>

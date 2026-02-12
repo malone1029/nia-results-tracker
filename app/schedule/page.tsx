@@ -44,24 +44,23 @@ export default function SchedulePage() {
       const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
         supabase.from("metrics").select("*"),
         supabase.from("metric_processes").select("metric_id, process_id"),
-        supabase.from("processes").select("id, name, is_key, process_type, categories!inner ( display_name )"),
+        supabase.from("processes").select("id, name, process_type, categories!inner ( display_name )"),
         supabase.from("entries").select("metric_id, value, date").order("date", { ascending: false }),
       ]);
 
       // Build process lookup
-      const processMap = new Map<number, { name: string; is_key: boolean; process_type: string; category_display_name: string }>();
+      const processMap = new Map<number, { name: string; process_type: string; category_display_name: string }>();
       for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
         const cat = p.categories as Record<string, unknown>;
         processMap.set(p.id as number, {
           name: p.name as string,
-          is_key: p.is_key as boolean,
           process_type: (p.process_type as string) || "unclassified",
           category_display_name: cat.display_name as string,
         });
       }
 
       // Build metric -> first process lookup
-      const metricFirstProcess = new Map<number, { name: string; is_key: boolean; process_type: string; category_display_name: string }>();
+      const metricFirstProcess = new Map<number, { name: string; process_type: string; category_display_name: string }>();
       for (const link of linksRes.data || []) {
         if (metricFirstProcess.has(link.metric_id)) continue;
         const proc = processMap.get(link.process_id);
@@ -83,7 +82,7 @@ export default function SchedulePage() {
         return {
           ...(m as unknown as Metric),
           process_name: proc?.name || "Unlinked",
-          is_key_process: proc?.is_key || false,
+          is_key_process: (proc?.process_type || "unclassified") === "key",
           process_type: proc?.process_type || "unclassified",
           category_display_name: proc?.category_display_name || "—",
           last_entry_date: latest?.date || null,

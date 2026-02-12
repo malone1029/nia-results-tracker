@@ -74,17 +74,6 @@ export interface Workflow {
   quality_controls?: string[];
 }
 
-export interface BaldigeConnections {
-  content?: string;
-  questions_addressed?: string[];
-  evidence_by_dimension?: {
-    approach?: string;
-    deployment?: string;
-    learning?: string;
-    integration?: string;
-  };
-}
-
 export interface Process {
   id: number;
   category_id: number;
@@ -100,8 +89,6 @@ export interface Process {
   adli_learning: AdliLearning | null;
   adli_integration: AdliIntegration | null;
   workflow: Workflow | null;
-  baldrige_connections: BaldigeConnections | null;
-  is_key: boolean;
   process_type: ProcessType;
   asana_raw_data: Record<string, unknown> | null;
   asana_raw_data_previous: Record<string, unknown> | null;

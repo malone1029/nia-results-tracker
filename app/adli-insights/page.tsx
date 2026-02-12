@@ -23,7 +23,6 @@ interface ScoreRow {
     id: number;
     name: string;
     status: string;
-    is_key: boolean;
     process_type: string;
     owner: string | null;
     categories: {
@@ -64,7 +63,7 @@ export default function AiInsightsPage() {
   // Filter by process type
   const filteredScores = typeFilter === "all"
     ? scores
-    : scores.filter((s) => (s.processes.process_type || (s.processes.is_key ? "key" : "unclassified")) === typeFilter);
+    : scores.filter((s) => s.processes.process_type === typeFilter);
 
   // Group by category
   const categoryGroups: CategoryGroup[] = [];
@@ -245,7 +244,7 @@ export default function AiInsightsPage() {
                             <span className="text-sm font-medium text-nia-dark truncate">
                               {s.processes.name}
                             </span>
-                            {(s.processes.process_type || (s.processes.is_key ? "key" : "")) === "key" && (
+                            {s.processes.process_type === "key" && (
                               <Badge color="orange" size="xs" pill={false}>KEY</Badge>
                             )}
                             <span className="text-[10px] text-text-muted flex-shrink-0">
@@ -309,7 +308,7 @@ export default function AiInsightsPage() {
                                 <span className="text-sm font-medium text-nia-dark truncate">
                                   {s.processes.name}
                                 </span>
-                                {s.processes.is_key && (
+                                {s.processes.process_type === "key" && (
                                   <Badge color="orange" size="xs" pill={false}>KEY</Badge>
                                 )}
                               </div>
