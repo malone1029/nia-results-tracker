@@ -77,7 +77,7 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
     db.from("metrics").select("id, cadence, comparison_value"),
     db.from("entries").select("metric_id, date").order("date", { ascending: false }),
     db.from("process_tasks").select("process_id, status"),
-    db.from("process_improvements").select("process_id, committed_date").order("committed_date", { ascending: false }),
+    db.from("improvement_journal").select("process_id, created_at").order("created_at", { ascending: false }),
   ]);
 
   // Fetch Baldrige mapping counts per process (for health scoring)
@@ -153,11 +153,11 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
     tasksByProcess.set(t.process_id, existing);
   }
 
-  // Latest improvement per process
+  // Latest journal entry per process (for health scoring + freshness)
   const improvementsByProcess = new Map<number, string>();
   for (const imp of improvementsData || []) {
     if (!improvementsByProcess.has(imp.process_id)) {
-      improvementsByProcess.set(imp.process_id, imp.committed_date);
+      improvementsByProcess.set(imp.process_id, imp.created_at);
     }
   }
 

@@ -36,7 +36,8 @@ export async function proxy(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/api/auth") ||
     path.startsWith("/survey/respond") ||
-    path.startsWith("/api/surveys/respond")
+    path.startsWith("/api/surveys/respond") ||
+    path.startsWith("/api/cron")
   ) {
     return supabaseResponse;
   }

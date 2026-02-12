@@ -97,6 +97,17 @@ interface ImprovementEntry {
   trigger_detail: string | null;
 }
 
+interface JournalEntry {
+  id: number;
+  process_id: number;
+  title: string;
+  description: string | null;
+  status: "in_progress" | "completed";
+  asana_task_url: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
 interface AdliScoreData {
   approach_score: number;
   deployment_score: number;
@@ -144,7 +155,7 @@ function ProcessDetailContent() {
   const [availableMetrics, setAvailableMetrics] = useState<{ id: number; name: string; unit: string; cadence: string }[]>([]);
   const [metricSearch, setMetricSearch] = useState("");
   const [linkingMetric, setLinkingMetric] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "documentation" | "process-map" | "tasks" | "history">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "documentation" | "process-map" | "tasks" | "improvements">("overview");
   const [taskCount, setTaskCount] = useState(0);
   const [asanaResyncing, setAsanaResyncing] = useState(false);
   const [asanaResyncResult, setAsanaResyncResult] = useState<{ tasks: number; subtasks: number } | null>(null);
@@ -159,6 +170,11 @@ function ProcessDetailContent() {
   const [expandedBaldrigeItems, setExpandedBaldrigeItems] = useState<Set<string>>(new Set());
   const [surveys, setSurveys] = useState<{ id: number; title: string; description: string | null; is_anonymous: boolean; is_public: boolean; question_count: number; latest_wave: { id: number; wave_number: number; status: string; share_token: string; opened_at: string; closed_at: string | null; response_count: number } | null; created_at: string }[]>([]);
   // Survey builder state removed — now a full page at /surveys/new and /surveys/[id]/edit
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [journalFormOpen, setJournalFormOpen] = useState(false);
+  const [journalTitle, setJournalTitle] = useState("");
+  const [journalDesc, setJournalDesc] = useState("");
+  const [journalSaving, setJournalSaving] = useState(false);
   const [unlinkConfirmId, setUnlinkConfirmId] = useState<number | null>(null);
   const [surveyDeploying, setSurveyDeploying] = useState<number | null>(null);
   const [surveyClosing, setSurveyClosing] = useState<number | null>(null);
@@ -166,7 +182,7 @@ function ProcessDetailContent() {
   const [processMapMounted, setProcessMapMounted] = useState(false);
 
   // Maps scroll target IDs to the tab they live on
-  function getTabForScrollTarget(target: string): "overview" | "documentation" | "process-map" | "tasks" | "history" {
+  function getTabForScrollTarget(target: string): "overview" | "documentation" | "process-map" | "tasks" | "improvements" {
     if (target === "section-tasks") return "tasks";
     if (target === "section-charter" || target === "section-adli") return "documentation";
     if (target === "section-workflow") return "process-map";
@@ -327,6 +343,14 @@ function ProcessDetailContent() {
 
       if (impData) setImprovements(impData);
 
+      // Fetch journal entries
+      const { data: journalData } = await supabase
+        .from("improvement_journal")
+        .select("*")
+        .eq("process_id", id)
+        .order("created_at", { ascending: false });
+      if (journalData) setJournalEntries(journalData);
+
       // Fetch attached files + health score data + EB mappings in parallel
       const [filesRes, { data: adliScores }, { data: taskRows }, { data: ebMappingRows }] = await Promise.all([
         fetch(`/api/ai/files?processId=${id}`),
@@ -375,7 +399,7 @@ function ProcessDetailContent() {
         else exportedCount++;
       }
 
-      const latestImpDate = impData && impData.length > 0 ? impData[0].committed_date : null;
+      const latestJournalDate = journalData && journalData.length > 0 ? journalData[0].created_at : null;
 
       setHealthResult(calculateHealthScore(
         {
@@ -395,7 +419,7 @@ function ProcessDetailContent() {
         adliScores ? { overall_score: adliScores.overall_score } : null,
         healthMetrics,
         { pending_count: pendingCount, exported_count: exportedCount },
-        { latest_date: latestImpDate },
+        { latest_date: latestJournalDate },
       ));
 
       setLoading(false);
@@ -918,7 +942,7 @@ function ProcessDetailContent() {
         processId={process.id}
         processName={process.name}
         health={healthResult}
-        hasImprovements={improvements.length > 0}
+        hasImprovements={journalEntries.some(j => j.status === "completed")}
         hasAsanaLink={!!process.asana_project_gid}
         allMetricsCurrent={metrics.length > 0 && metrics.every((m) => m.review_status === "current")}
       />
@@ -1008,7 +1032,7 @@ function ProcessDetailContent() {
           { key: "documentation", label: "Documentation" },
           { key: "process-map", label: "Process Map" },
           { key: "tasks", label: "Tasks", badge: taskCount > 0 ? taskCount : null },
-          { key: "history", label: "History", badge: improvements.length > 0 ? improvements.length : null },
+          { key: "improvements", label: "Improvements", badge: journalEntries.length > 0 ? journalEntries.length : null },
         ] as const).map((tab) => (
           <button
             key={tab.key}
@@ -1219,6 +1243,48 @@ function ProcessDetailContent() {
                     <h3 className="text-sm font-semibold text-nia-dark mb-1">No surveys yet</h3>
                     <p className="text-xs text-text-tertiary mb-3">Create a micro-survey to collect stakeholder feedback.</p>
                     <Button size="sm" onClick={() => router.push(`/surveys/new?processId=${id}`)}>Create Survey</Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Improvement Journal summary */}
+            <Card accent="orange">
+              <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-nia-dark">
+                  Improvement Journal
+                  {journalEntries.length > 0 && (
+                    <span className="text-sm font-normal text-text-muted ml-2">
+                      ({journalEntries.filter(j => j.status === "completed").length}/{journalEntries.length} completed)
+                    </span>
+                  )}
+                </h2>
+                <Button variant="secondary" size="xs" onClick={() => { setActiveTab("improvements"); setJournalFormOpen(true); }}>+ New</Button>
+              </div>
+              <div className="px-4 py-3">
+                {journalEntries.length > 0 ? (
+                  <div className="space-y-2">
+                    {journalEntries.slice(0, 3).map((j) => (
+                      <div key={j.id} className="flex items-center gap-2 py-1">
+                        <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${j.status === "completed" ? "bg-nia-green" : "bg-nia-orange"}`} />
+                        <span className="text-sm text-nia-dark truncate flex-1">{j.title}</span>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${j.status === "completed" ? "bg-nia-green/10 text-nia-green" : "bg-nia-orange/10 text-nia-orange"}`}>
+                          {j.status === "completed" ? "Done" : "In Progress"}
+                        </span>
+                      </div>
+                    ))}
+                    {journalEntries.length > 3 && (
+                      <button onClick={() => setActiveTab("improvements")} className="text-xs text-nia-grey-blue hover:text-nia-dark transition-colors">
+                        View all {journalEntries.length} entries &rarr;
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-text-tertiary">No improvements recorded yet.</p>
+                    <button onClick={() => { setActiveTab("improvements"); setJournalFormOpen(true); }} className="text-xs text-nia-grey-blue hover:text-nia-dark mt-1 transition-colors">
+                      Record your first improvement &rarr;
+                    </button>
                   </div>
                 )}
               </div>
@@ -1515,6 +1581,34 @@ function ProcessDetailContent() {
               )}
             </div>
           </Card>
+
+          {attachedFiles.length > 0 && (
+            <Card accent="orange">
+              <div className="px-4 py-3 border-b border-border-light">
+                <h2 className="text-lg font-semibold text-nia-dark">Attached Files ({attachedFiles.length})</h2>
+              </div>
+              <div className="px-4 py-3">
+                <div className="space-y-1">
+                  {attachedFiles.map((f) => (
+                    <div key={f.id} className="flex items-center justify-between py-2 px-1 border-b border-border-light last:border-b-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <svg className="w-4 h-4 text-text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" /></svg>
+                        <span className="text-sm text-nia-dark truncate">{f.file_name}</span>
+                        <span className="text-xs text-text-muted flex-shrink-0">{f.file_size < 1024 ? `${f.file_size} B` : f.file_size < 1048576 ? `${Math.round(f.file_size / 1024)} KB` : `${(f.file_size / 1048576).toFixed(1)} MB`}</span>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="text-xs text-text-muted">{new Date(f.uploaded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                        <button onClick={async () => { const res = await fetch(`/api/ai/files?fileId=${f.id}`, { method: "DELETE" }); if (res.ok) { setAttachedFiles((prev) => prev.filter((file) => file.id !== f.id)); } }} className="text-text-muted hover:text-nia-red transition-colors p-0.5" title="Delete file">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-text-muted mt-2">These files are used as context for AI coaching. Upload more via the AI chat panel.</p>
+              </div>
+            </Card>
+          )}
         </div>
       )}
 
@@ -1554,44 +1648,125 @@ function ProcessDetailContent() {
         </div>
       )}
 
-      {/* ═══ HISTORY TAB ═══ */}
-      {activeTab === "history" && (
+      {/* ═══ IMPROVEMENTS TAB ═══ */}
+      {activeTab === "improvements" && (
         <div className="space-y-6">
-          {improvements.length > 0 ? (
-            <Card accent="orange">
-              <div className="px-4 py-3 border-b border-border-light">
-                <h2 className="text-lg font-semibold text-nia-dark">Improvement History ({improvements.length})</h2>
-              </div>
-              <div className="px-4 py-3 space-y-3">
-                {improvements.map((imp) => (
-                  <ImprovementCard
-                    key={imp.id}
-                    improvement={imp}
-                    onStatusUpdate={async (newStatus) => {
-                      const res = await fetch("/api/improvements", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: imp.id, status: newStatus }) });
-                      if (res.ok) {
-                        setImprovements((prev) => prev.map((i) => i.id === imp.id ? { ...i, status: newStatus, ...(newStatus === "implemented" ? { implemented_date: new Date().toISOString() } : {}) } : i));
-                      }
-                    }}
-                    onDelete={async () => {
-                      const res = await fetch(`/api/improvements?id=${imp.id}`, { method: "DELETE" });
-                      if (res.ok) { setImprovements((prev) => prev.filter((i) => i.id !== imp.id)); }
-                    }}
+          {/* Improvement Journal */}
+          <Card accent="orange">
+            <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-nia-dark">Improvement Journal</h2>
+              <Button variant="secondary" size="xs" onClick={() => setJournalFormOpen(true)}>+ New Entry</Button>
+            </div>
+            <div className="px-4 py-3">
+              {/* Inline create form */}
+              {journalFormOpen && (
+                <div className="mb-4 p-3 border border-nia-orange/20 rounded-lg bg-nia-orange/5">
+                  <Input
+                    placeholder="What did you improve?"
+                    value={journalTitle}
+                    onChange={(e) => setJournalTitle(e.target.value)}
+                    autoFocus
+                    className="mb-2"
                   />
-                ))}
-              </div>
-            </Card>
-          ) : (
-            <Card accent="orange">
-              <div className="px-4 py-3 border-b border-border-light">
-                <h2 className="text-lg font-semibold text-nia-dark">Improvement History</h2>
-              </div>
-              <div className="px-4 py-6 text-center">
-                <p className="text-sm text-text-muted">No improvements recorded yet. Use AI coaching to generate and apply improvements.</p>
-              </div>
-            </Card>
+                  <textarea
+                    placeholder="Describe the change and why it matters (optional)"
+                    value={journalDesc}
+                    onChange={(e) => setJournalDesc(e.target.value)}
+                    rows={3}
+                    className="w-full text-sm rounded-lg border border-border bg-card px-3 py-2 text-foreground placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-nia-orange/30 resize-none"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <Button size="xs" disabled={!journalTitle.trim() || journalSaving} loading={journalSaving} onClick={async () => {
+                      setJournalSaving(true);
+                      const res = await fetch("/api/journal", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ process_id: Number(id), title: journalTitle.trim(), description: journalDesc.trim() || null }),
+                      });
+                      if (res.ok) {
+                        const entry = await res.json();
+                        setJournalEntries((prev) => [entry, ...prev]);
+                        setJournalTitle("");
+                        setJournalDesc("");
+                        setJournalFormOpen(false);
+                      }
+                      setJournalSaving(false);
+                    }}>
+                      Save
+                    </Button>
+                    <Button variant="ghost" size="xs" onClick={() => { setJournalFormOpen(false); setJournalTitle(""); setJournalDesc(""); }}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Journal entries */}
+              {journalEntries.length > 0 ? (
+                <div className="space-y-3">
+                  {journalEntries.map((entry) => (
+                    <JournalEntryCard
+                      key={entry.id}
+                      entry={entry}
+                      onUpdate={async (updates) => {
+                        const res = await fetch("/api/journal", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: entry.id, ...updates }),
+                        });
+                        if (res.ok) {
+                          const updated = await res.json();
+                          setJournalEntries((prev) => prev.map((e) => e.id === entry.id ? updated : e));
+                        }
+                      }}
+                      onDelete={async () => {
+                        const res = await fetch(`/api/journal?id=${entry.id}`, { method: "DELETE" });
+                        if (res.ok) {
+                          setJournalEntries((prev) => prev.filter((e) => e.id !== entry.id));
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : !journalFormOpen ? (
+                <div className="text-center py-6">
+                  <p className="text-sm font-medium text-nia-dark mb-1">Record your first improvement</p>
+                  <p className="text-xs text-text-tertiary mb-3 max-w-xs mx-auto">Track real process changes here. These drive your health score and can be exported to Asana.</p>
+                  <Button size="sm" onClick={() => setJournalFormOpen(true)}>+ New Entry</Button>
+                </div>
+              ) : null}
+            </div>
+          </Card>
+
+          {/* Edit Log (collapsed) */}
+          {improvements.length > 0 && (
+            <details className="group">
+              <summary className="cursor-pointer text-sm text-text-tertiary hover:text-text-secondary transition-colors flex items-center gap-1.5 py-2 select-none">
+                <svg className="w-3 h-3 transition-transform group-open:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                Edit Log ({improvements.length} entries)
+              </summary>
+              <Card accent="orange" className="mt-2">
+                <div className="px-4 py-3 space-y-3">
+                  {improvements.map((imp) => (
+                    <ImprovementCard
+                      key={imp.id}
+                      improvement={imp}
+                      onStatusUpdate={async (newStatus) => {
+                        const res = await fetch("/api/improvements", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: imp.id, status: newStatus }) });
+                        if (res.ok) {
+                          setImprovements((prev) => prev.map((i) => i.id === imp.id ? { ...i, status: newStatus, ...(newStatus === "implemented" ? { implemented_date: new Date().toISOString() } : {}) } : i));
+                        }
+                      }}
+                      onDelete={async () => {
+                        const res = await fetch(`/api/improvements?id=${imp.id}`, { method: "DELETE" });
+                        if (res.ok) { setImprovements((prev) => prev.filter((i) => i.id !== imp.id)); }
+                      }}
+                    />
+                  ))}
+                </div>
+              </Card>
+            </details>
           )}
 
+          {/* Change Log */}
           {history.length > 0 && (
             <Card accent="orange">
               <div className="px-4 py-3 border-b border-border-light">
@@ -1604,34 +1779,6 @@ function ProcessDetailContent() {
                     <span className="text-text-muted text-xs">{new Date(h.changed_at).toLocaleDateString()}</span>
                   </div>
                 ))}
-              </div>
-            </Card>
-          )}
-
-          {attachedFiles.length > 0 && (
-            <Card accent="orange">
-              <div className="px-4 py-3 border-b border-border-light">
-                <h2 className="text-lg font-semibold text-nia-dark">Attached Files ({attachedFiles.length})</h2>
-              </div>
-              <div className="px-4 py-3">
-                <div className="space-y-1">
-                  {attachedFiles.map((f) => (
-                    <div key={f.id} className="flex items-center justify-between py-2 px-1 border-b border-border-light last:border-b-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <svg className="w-4 h-4 text-text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" /></svg>
-                        <span className="text-sm text-nia-dark truncate">{f.file_name}</span>
-                        <span className="text-xs text-text-muted flex-shrink-0">{f.file_size < 1024 ? `${f.file_size} B` : f.file_size < 1048576 ? `${Math.round(f.file_size / 1024)} KB` : `${(f.file_size / 1048576).toFixed(1)} MB`}</span>
-                      </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        <span className="text-xs text-text-muted">{new Date(f.uploaded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                        <button onClick={async () => { const res = await fetch(`/api/ai/files?fileId=${f.id}`, { method: "DELETE" }); if (res.ok) { setAttachedFiles((prev) => prev.filter((file) => file.id !== f.id)); } }} className="text-text-muted hover:text-nia-red transition-colors p-0.5" title="Delete file">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-text-muted mt-2">These files are used as context for AI coaching. Upload more via the AI chat panel.</p>
               </div>
             </Card>
           )}
@@ -1930,6 +2077,109 @@ function ImprovementCard({
               </pre>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function JournalEntryCard({
+  entry,
+  onUpdate,
+  onDelete,
+}: {
+  entry: JournalEntry;
+  onUpdate: (updates: Partial<JournalEntry>) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(entry.title);
+  const [editDesc, setEditDesc] = useState(entry.description || "");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const isCompleted = entry.status === "completed";
+
+  return (
+    <div className="border border-border-light rounded-lg p-3 hover:border-border transition-colors">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <div className="space-y-2">
+              <input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full text-sm font-medium rounded-md border border-border bg-card px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-nia-orange/30"
+                autoFocus
+              />
+              <textarea
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                rows={2}
+                placeholder="Description (optional)"
+                className="w-full text-xs rounded-md border border-border bg-card px-2 py-1 text-foreground placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-nia-orange/30 resize-none"
+              />
+              <div className="flex gap-2">
+                <Button size="xs" onClick={() => {
+                  onUpdate({ title: editTitle.trim(), description: editDesc.trim() || null });
+                  setEditing(false);
+                }} disabled={!editTitle.trim()}>Save</Button>
+                <Button variant="ghost" size="xs" onClick={() => { setEditing(false); setEditTitle(entry.title); setEditDesc(entry.description || ""); }}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <span className="text-sm font-medium text-nia-dark">{entry.title}</span>
+              {entry.description && (
+                <p className="text-xs text-text-tertiary mt-1">{entry.description}</p>
+              )}
+            </>
+          )}
+        </div>
+        {!editing && (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+              isCompleted ? "bg-nia-green/10 text-nia-green" : "bg-nia-orange/10 text-nia-orange"
+            }`}>
+              {isCompleted ? "Completed" : "In Progress"}
+            </span>
+            {entry.asana_task_url && (
+              <a href={entry.asana_task_url} target="_blank" rel="noopener noreferrer" className="text-nia-grey-blue hover:text-nia-dark transition-colors" title="View Asana task">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="18" r="4" /><circle cx="5" cy="8" r="4" /><circle cx="19" cy="8" r="4" /></svg>
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+
+      {!editing && (
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-xs text-text-muted">
+            {new Date(entry.created_at).toLocaleDateString()}
+            {entry.completed_at && (
+              <> &middot; Completed {new Date(entry.completed_at).toLocaleDateString()}</>
+            )}
+          </span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => onUpdate({ status: isCompleted ? "in_progress" : "completed" })} className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors">
+              {isCompleted ? "Reopen" : "Mark Complete"}
+            </button>
+            <button onClick={() => setEditing(true)} className="text-xs text-text-muted hover:text-nia-dark transition-colors">Edit</button>
+            <button onClick={() => setConfirmDelete(true)} className="text-xs text-text-muted hover:text-nia-red transition-colors" title="Delete entry">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div className="mt-2 p-2 bg-nia-red/10 border border-nia-red/30 rounded-lg flex items-center justify-between">
+          <span className="text-xs text-nia-red">Delete this journal entry?</span>
+          <div className="flex gap-2">
+            <Button variant="danger" size="xs" onClick={onDelete}>Delete</Button>
+            <Button variant="ghost" size="xs" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+          </div>
         </div>
       )}
     </div>

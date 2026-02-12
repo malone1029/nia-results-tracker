@@ -70,7 +70,7 @@ export default function Card({
   return (
     <div
       id={id}
-      className={`${variantStyles[variant]} ${accentBorders[accent]} ${paddings[padding]} overflow-hidden ${className}`}
+      className={`${variantStyles[variant]} ${accentBorders[accent]} ${paddings[padding]} ${className}`}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}

@@ -16,23 +16,32 @@ interface QuestionInput {
 }
 
 // GET ?processId=N — returns surveys with question count + latest wave info
+// GET (no params) — returns ALL surveys with process names (admin overview)
 export async function GET(request: Request) {
   const supabase = await createSupabaseServer();
   const { searchParams } = new URL(request.url);
   const processId = searchParams.get("processId");
 
-  if (!processId) {
-    return NextResponse.json({ error: "processId is required" }, { status: 400 });
+  let query = supabase.from("surveys").select("*").order("created_at", { ascending: false });
+  if (processId) {
+    query = query.eq("process_id", Number(processId));
   }
 
-  const { data: surveys, error } = await supabase
-    .from("surveys")
-    .select("*")
-    .eq("process_id", Number(processId))
-    .order("created_at", { ascending: false });
+  const { data: surveys, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // When fetching all surveys, also look up process names
+  let processMap: Map<number, string> | null = null;
+  if (!processId && surveys && surveys.length > 0) {
+    const processIds = [...new Set(surveys.map((s) => s.process_id))];
+    const { data: processes } = await supabase
+      .from("processes")
+      .select("id, name")
+      .in("id", processIds);
+    processMap = new Map((processes || []).map((p: { id: number; name: string }) => [p.id, p.name]));
   }
 
   // For each survey, fetch question count + latest wave
@@ -55,6 +64,7 @@ export async function GET(request: Request) {
         ...s,
         question_count: questionsRes.count || 0,
         latest_wave: wavesRes.data?.[0] || null,
+        ...(processMap ? { process_name: processMap.get(s.process_id) || "Unknown" } : {}),
       };
     })
   );

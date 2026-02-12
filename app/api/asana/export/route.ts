@@ -125,8 +125,8 @@ function findImproveSectionGid(existingSections: Map<string, string>): string | 
 }
 
 /**
- * Backfill existing improvements as Asana tasks in the Improve section.
- * Only creates tasks for improvements that don't already have a trigger_detail (Asana link).
+ * Backfill journal entries as Asana tasks in the Improve section.
+ * Only creates tasks for entries that don't already have an asana_task_url.
  */
 async function backfillImprovements(
   supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
@@ -138,34 +138,19 @@ async function backfillImprovements(
   workspaceGid?: string
 ) {
   const { data: improvements } = await supabase
-    .from("process_improvements")
-    .select("id, section_affected, title, description")
+    .from("improvement_journal")
+    .select("id, title, description, status")
     .eq("process_id", processId)
-    .is("trigger_detail", null);
+    .is("asana_task_url", null);
 
   if (!improvements || improvements.length === 0) return 0;
 
-  // Sections that should NOT become Asana tasks (Hub-only features)
-  const SKIP_SECTIONS = ["workflow"];
-
-  const sectionLabels: Record<string, string> = {
-    approach: "Approach",
-    deployment: "Deployment",
-    learning: "Learning",
-    integration: "Integration",
-    charter: "Charter",
-  };
-
   let created = 0;
   for (const imp of improvements) {
-    // Skip Hub-only sections (e.g., workflow/process maps) — they don't belong in Asana
-    if (SKIP_SECTIONS.includes(imp.section_affected)) continue;
-
     try {
-      const sectionLabel = sectionLabels[imp.section_affected] || imp.section_affected;
-      const taskName = `[${sectionLabel}] ${imp.title}`;
+      const taskName = `[Improvement] ${imp.title}`;
       const taskNotes = [
-        imp.description || `Improvement to ${sectionLabel} section.`,
+        imp.description || "Improvement recorded in the Hub.",
         "",
         `View process: ${appUrl}/processes/${processId}`,
       ].join("\n");
@@ -185,8 +170,8 @@ async function backfillImprovements(
       const taskUrl = result.data?.permalink_url || null;
       if (taskUrl) {
         await supabase
-          .from("process_improvements")
-          .update({ trigger_detail: taskUrl })
+          .from("improvement_journal")
+          .update({ asana_task_url: taskUrl })
           .eq("id", imp.id);
       }
       created++;

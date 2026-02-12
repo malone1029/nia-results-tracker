@@ -68,7 +68,7 @@ interface WaveResults {
 interface SurveyResultsProps {
   survey: SurveyData;
   processId: number;
-  onDeploy: (surveyId: number, scheduleOptions?: { openAt?: string; closeAfterDays?: number }) => void;
+  onDeploy: (surveyId: number, scheduleOptions?: { openAt?: string; closeAfterDays?: number; emails?: string[] }) => void;
   onClose: (surveyId: number, waveId: number) => void;
   onEdit: (survey: SurveyData) => void;
   onDelete: (surveyId: number) => void;
@@ -118,6 +118,8 @@ export default function SurveyCard({
   const [scheduleOpenAt, setScheduleOpenAt] = useState("");
   const [scheduleCloseAfter, setScheduleCloseAfter] = useState<number>(0);
   const [cancellingWaveId, setCancellingWaveId] = useState<number | null>(null);
+  const [sendEmails, setSendEmails] = useState(false);
+  const [emailText, setEmailText] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
 
   const wave = survey.latest_wave;
@@ -202,24 +204,30 @@ export default function SurveyCard({
   }
 
   function handleDeploy() {
+    // Parse email list if sending invitations
+    const emails = sendEmails && emailText.trim()
+      ? emailText.split(/[,\n]+/).map((e) => e.trim()).filter(Boolean)
+      : undefined;
+
     if (showSchedule && scheduleOpenAt) {
-      // Scheduled deployment
       onDeploy(survey.id, {
         openAt: scheduleOpenAt,
         closeAfterDays: scheduleCloseAfter || undefined,
+        emails,
       });
     } else if (showSchedule && scheduleCloseAfter > 0) {
-      // Immediate open with auto-close
       onDeploy(survey.id, {
         closeAfterDays: scheduleCloseAfter,
+        emails,
       });
     } else {
-      // Immediate deployment (no scheduling)
-      onDeploy(survey.id);
+      onDeploy(survey.id, emails ? { emails } : undefined);
     }
     setShowSchedule(false);
     setScheduleOpenAt("");
     setScheduleCloseAfter(0);
+    setSendEmails(false);
+    setEmailText("");
   }
 
   async function cancelScheduledWave(waveId: number) {
@@ -265,7 +273,7 @@ export default function SurveyCard({
   }
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="border border-border rounded-lg">
       {/* Survey header */}
       <div className="px-4 py-3 flex items-center justify-between gap-2">
         <div className="flex-1 min-w-0">
@@ -466,6 +474,40 @@ export default function SurveyCard({
               </select>
             </div>
           </div>
+
+          {/* Email invitations toggle */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sendEmails}
+                onChange={(e) => setSendEmails(e.target.checked)}
+                className="rounded border-border text-nia-dark-solid focus:ring-nia-dark-solid"
+              />
+              <span className="text-xs text-text-secondary">Send email invitations</span>
+            </label>
+            {sendEmails && (
+              <div className="mt-2">
+                <textarea
+                  value={emailText}
+                  onChange={(e) => setEmailText(e.target.value)}
+                  placeholder={"Enter email addresses\n(comma or newline separated)"}
+                  rows={3}
+                  className="w-full border border-border rounded-md px-2.5 py-1.5 text-xs bg-card text-text-secondary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-nia-dark-solid"
+                />
+                {emailText.trim() && (() => {
+                  const all = emailText.split(/[,\n]+/).filter((e) => e.trim());
+                  const valid = all.filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim()));
+                  return (
+                    <p className={`text-[11px] mt-1 ${valid.length === all.length ? "text-text-muted" : "text-nia-orange"}`}>
+                      {valid.length} valid of {all.length} recipient(s){valid.length < all.length ? " — check formatting" : ""}
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-2">
             <Button
               size="xs"

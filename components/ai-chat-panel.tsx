@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import MarkdownContent from "./markdown-content";
 import CoachSuggestionCard from "./coach-suggestion-card";
 import MetricSuggestionCard from "./metric-suggestion-card";
+import SurveyQuestionCard from "./survey-question-card";
 import AdliScorecard from "./adli-scorecard";
 import { PDCA_SECTIONS } from "@/lib/pdca";
 import type { PdcaSection } from "@/lib/types";
@@ -73,6 +74,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
   const [pendingMetricSuggestions, setPendingMetricSuggestions] = useState<MetricSuggestion[]>([]);
   const [isLinkingMetric, setIsLinkingMetric] = useState(false);
   const [pendingSurveyQuestions, setPendingSurveyQuestions] = useState<SurveyQuestionSuggestion[]>([]);
+  const [isAddingSurveyQ, setIsAddingSurveyQ] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -613,6 +615,158 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
     }
   }
 
+  async function handleAddSurveyQuestion(question: SurveyQuestionSuggestion) {
+    setIsAddingSurveyQ(true);
+    try {
+      // Check if process already has a survey we can add to
+      const listRes = await fetch(`/api/surveys?processId=${processId}`);
+      const surveys = listRes.ok ? await listRes.json() : [];
+      const existingSurvey = surveys.length > 0 ? surveys[0] : null;
+
+      if (existingSurvey) {
+        // Fetch full survey with questions
+        const detailRes = await fetch(`/api/surveys/${existingSurvey.id}`);
+        const surveyDetail = detailRes.ok ? await detailRes.json() : null;
+        const existingQuestions = surveyDetail?.questions || [];
+
+        const newQuestions = [
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          ...existingQuestions.map(({ id: _id, survey_id: _sid, created_at: _ca, ...rest }: Record<string, unknown>) => rest),
+          {
+            question_text: question.questionText,
+            question_type: question.questionType,
+            sort_order: existingQuestions.length,
+            is_required: true,
+            ...(question.questionType === "rating" && { rating_scale_max: 5 }),
+          },
+        ];
+
+        const patchRes = await fetch("/api/surveys", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: existingSurvey.id, questions: newQuestions }),
+        });
+        if (!patchRes.ok) throw new Error("Failed to add question to survey");
+
+        setPendingSurveyQuestions((prev) => prev.filter((q) => q.questionText !== question.questionText));
+        setMessages((prev) => {
+          const updated = [
+            ...prev,
+            { role: "assistant" as const, content: `**Added!** "${question.questionText}" has been added to survey "${surveyDetail?.title || existingSurvey.title}".` },
+          ];
+          saveConversation(updated, adliScores);
+          return updated;
+        });
+      } else {
+        // Create a new survey with this question
+        const postRes = await fetch("/api/surveys", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            process_id: processId,
+            title: `${processName} Feedback`,
+            questions: [{
+              question_text: question.questionText,
+              question_type: question.questionType,
+              sort_order: 0,
+              is_required: true,
+              ...(question.questionType === "rating" && { rating_scale_max: 5 }),
+            }],
+          }),
+        });
+        if (!postRes.ok) throw new Error("Failed to create survey");
+
+        setPendingSurveyQuestions((prev) => prev.filter((q) => q.questionText !== question.questionText));
+        setMessages((prev) => {
+          const updated = [
+            ...prev,
+            { role: "assistant" as const, content: `**Created!** New survey "${processName} Feedback" with question "${question.questionText}". You can add more questions and deploy it from the Overview tab.` },
+          ];
+          saveConversation(updated, adliScores);
+          return updated;
+        });
+      }
+
+      onProcessUpdated?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add survey question");
+    } finally {
+      setIsAddingSurveyQ(false);
+    }
+  }
+
+  async function handleAddAllSurveyQuestions() {
+    setIsAddingSurveyQ(true);
+    try {
+      const listRes = await fetch(`/api/surveys?processId=${processId}`);
+      const surveys = listRes.ok ? await listRes.json() : [];
+      const existingSurvey = surveys.length > 0 ? surveys[0] : null;
+
+      const newQs = pendingSurveyQuestions.map((q, i) => ({
+        question_text: q.questionText,
+        question_type: q.questionType,
+        sort_order: i,
+        is_required: true,
+        ...(q.questionType === "rating" && { rating_scale_max: 5 }),
+      }));
+
+      if (existingSurvey) {
+        const detailRes = await fetch(`/api/surveys/${existingSurvey.id}`);
+        const surveyDetail = detailRes.ok ? await detailRes.json() : null;
+        const existingQuestions = surveyDetail?.questions || [];
+
+        const allQuestions = [
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          ...existingQuestions.map(({ id: _id, survey_id: _sid, created_at: _ca, ...rest }: Record<string, unknown>) => rest),
+          ...newQs.map((q, i) => ({ ...q, sort_order: existingQuestions.length + i })),
+        ];
+
+        const patchRes = await fetch("/api/surveys", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: existingSurvey.id, questions: allQuestions }),
+        });
+        if (!patchRes.ok) throw new Error("Failed to add questions to survey");
+
+        setMessages((prev) => {
+          const updated = [
+            ...prev,
+            { role: "assistant" as const, content: `**Added ${newQs.length} questions** to survey "${existingSurvey.title}".` },
+          ];
+          saveConversation(updated, adliScores);
+          return updated;
+        });
+      } else {
+        const postRes = await fetch("/api/surveys", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            process_id: processId,
+            title: `${processName} Feedback`,
+            questions: newQs,
+          }),
+        });
+        if (!postRes.ok) throw new Error("Failed to create survey");
+
+        setMessages((prev) => {
+          const updated = [
+            ...prev,
+            { role: "assistant" as const, content: `**Created!** New survey "${processName} Feedback" with ${newQs.length} questions. You can deploy it from the Overview tab.` },
+          ];
+          saveConversation(updated, adliScores);
+          return updated;
+        });
+      }
+
+      setPendingSurveyQuestions([]);
+      onProcessUpdated?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add survey questions");
+    } finally {
+      setIsAddingSurveyQ(false);
+    }
+  }
+
   return (
     <>
       {/* Floating "Ask AI" button */}
@@ -948,48 +1102,38 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
 
               {/* Survey question suggestion cards */}
               {pendingSurveyQuestions.length > 0 && !isLoading && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold text-nia-dark">
                       Suggested Survey Questions
                     </p>
-                    <button
-                      onClick={() => setPendingSurveyQuestions([])}
-                      className="text-xs text-text-muted hover:text-text-secondary"
-                    >
-                      Dismiss
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {pendingSurveyQuestions.length > 1 && (
+                        <button
+                          onClick={handleAddAllSurveyQuestions}
+                          disabled={isAddingSurveyQ}
+                          className="text-xs text-nia-grey-blue hover:text-nia-dark font-medium disabled:opacity-50"
+                        >
+                          Add All ({pendingSurveyQuestions.length})
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setPendingSurveyQuestions([])}
+                        className="text-xs text-text-muted hover:text-text-secondary"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
                   </div>
                   {pendingSurveyQuestions.map((sq, idx) => (
-                    <div
-                      key={idx}
-                      className="border border-border bg-surface-hover rounded-lg p-3"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="text-nia-grey-blue mt-0.5 flex-shrink-0">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                          </svg>
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground">
-                            {sq.questionText}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs bg-nia-grey-blue/15 text-nia-grey-blue px-1.5 py-0.5 rounded">
-                              {sq.questionType === "rating" ? "Rating 1-5" : "Yes / No"}
-                            </span>
-                          </div>
-                          <p className="text-xs text-text-tertiary mt-1">
-                            {sq.rationale}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    <SurveyQuestionCard
+                      key={`${sq.questionText}-${idx}`}
+                      suggestion={sq}
+                      onAdd={() => handleAddSurveyQuestion(sq)}
+                      onDismiss={() => setPendingSurveyQuestions((prev) => prev.filter((q) => q.questionText !== sq.questionText))}
+                      isLoading={isAddingSurveyQ}
+                    />
                   ))}
-                  <p className="text-xs text-text-muted italic">
-                    Use these questions when creating a survey on the process page.
-                  </p>
                 </div>
               )}
 

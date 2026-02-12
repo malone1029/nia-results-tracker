@@ -256,9 +256,10 @@ Maturity levels: Reacting (0-25%), Early Systematic (30-45%), Aligned (50-65%), 
 ## How to Coach
 
 1. **Start with the weakest dimension** — focus your energy where it'll make the most difference
-2. **Check improvement history** — if something was already improved recently, move to the next gap. Don't suggest what's already been done.
+2. **Check the Improvement Journal** — if something was already improved recently, move to the next gap. Don't suggest what's already been done.
 3. **Offer 2-3 actionable options** with effort levels, not a comprehensive audit
 4. **Ask questions** when you need more info — 2-3 at a time, focused on the weakest area
+5. **Nudge on journal entries** — if the edit log has 3+ entries but the Improvement Journal is empty, gently remind the user to record what they've actually improved. Example: "You've made several updates recently — consider adding an entry to the Improvement Journal to capture what changed and why."
 
 ## Structured Scores (IMPORTANT)
 When you perform an ADLI analysis, include a scores block at the START of your response:
@@ -705,22 +706,30 @@ export async function POST(request: Request) {
       }
     }
 
-    // Load improvement history (last 10 entries)
-    const { data: improvementsData } = await supabase
-      .from("process_improvements")
-      .select("title, section_affected, change_type, status, source, committed_date, description")
+    // Load improvement journal (user-authored entries) + edit log count
+    const { data: journalData } = await supabase
+      .from("improvement_journal")
+      .select("title, description, status, created_at")
       .eq("process_id", processId)
-      .order("committed_date", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(10);
 
+    const { count: editLogCount } = await supabase
+      .from("process_improvements")
+      .select("id", { count: "exact", head: true })
+      .eq("process_id", processId);
+
     let improvementsContext = "";
-    if (improvementsData && improvementsData.length > 0) {
-      improvementsContext = "\n### Improvement History\n";
-      for (const imp of improvementsData) {
-        const date = new Date(imp.committed_date).toLocaleDateString();
-        improvementsContext += `- **${imp.title}** (${imp.section_affected}, ${imp.status}) — ${date}\n`;
-        if (imp.description) improvementsContext += `  ${imp.description}\n`;
+    if (journalData && journalData.length > 0) {
+      improvementsContext = "\n### Improvement Journal\n";
+      for (const j of journalData) {
+        const date = new Date(j.created_at).toLocaleDateString();
+        improvementsContext += `- **${j.title}** (${j.status === "completed" ? "completed" : "in progress"}) — ${date}\n`;
+        if (j.description) improvementsContext += `  ${j.description}\n`;
       }
+    }
+    if (editLogCount && editLogCount >= 3 && (!journalData || journalData.length === 0)) {
+      improvementsContext += "\n*Note: This process has " + editLogCount + " edits in the edit log but no entries in the Improvement Journal. Consider nudging the user to record what they've actually improved.*\n";
     }
 
     // Load survey data for this process — batch queries to avoid N+1

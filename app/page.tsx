@@ -78,7 +78,7 @@ function ProcessOwnerDashboard() {
         supabase.from("metrics").select("id, name, cadence"),
         supabase.from("metric_processes").select("metric_id, process_id"),
         supabase.from("entries").select("metric_id, date").order("date", { ascending: false }),
-        supabase.from("process_improvements").select("process_id, trigger_label, committed_date, status").order("committed_date", { ascending: false }).limit(20),
+        supabase.from("improvement_journal").select("process_id, title, created_at, status").order("created_at", { ascending: false }).limit(20),
       ]);
 
       const procs = healthData.processes;
@@ -177,7 +177,7 @@ function ProcessOwnerDashboard() {
       setDueSoonMetrics(dueSoon);
 
       // Process improvements for team activity + streak
-      const improvements = (improvementsRes.data || []) as { process_id: number; trigger_label: string; committed_date: string; status: string }[];
+      const improvements = (improvementsRes.data || []) as { process_id: number; title: string; created_at: string; status: string }[];
       const processNameMap = new Map<number, string>();
       for (const p of procs) processNameMap.set(p.id, p.name);
 
@@ -187,8 +187,8 @@ function ProcessOwnerDashboard() {
         .map((imp) => ({
           processId: imp.process_id,
           processName: processNameMap.get(imp.process_id) || "Unknown",
-          label: imp.trigger_label || "Improvement applied",
-          date: imp.committed_date,
+          label: imp.title || "Improvement recorded",
+          date: imp.created_at,
           status: imp.status,
         }));
       setRecentImprovements(recent);
@@ -197,7 +197,7 @@ function ProcessOwnerDashboard() {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const monthlyProcs = new Set<number>();
       for (const imp of improvements) {
-        if (imp.committed_date >= thirtyDaysAgo) monthlyProcs.add(imp.process_id);
+        if (imp.created_at >= thirtyDaysAgo) monthlyProcs.add(imp.process_id);
       }
       setMonthlyImprovedCount(monthlyProcs.size);
 
