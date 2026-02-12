@@ -14,7 +14,7 @@ import {
   type HealthImprovementInput,
 } from "@/lib/process-health";
 import { getReviewStatus } from "@/lib/review-status";
-import type { ProcessStatus } from "@/lib/types";
+import type { ProcessStatus, ProcessType } from "@/lib/types";
 
 export interface ProcessWithCategory {
   id: number;
@@ -22,6 +22,7 @@ export interface ProcessWithCategory {
   category_id: number;
   category_display_name: string;
   is_key: boolean;
+  process_type: ProcessType;
   status: ProcessStatus;
   owner: string | null;
   baldrige_item: string | null;
@@ -66,7 +67,7 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
   ] = await Promise.all([
     db.from("categories").select("*").order("sort_order"),
     db.from("processes").select(`
-      id, name, category_id, is_key, status, owner, baldrige_item,
+      id, name, category_id, is_key, process_type, status, owner, baldrige_item,
       charter, adli_approach, adli_deployment, adli_learning, adli_integration,
       workflow, baldrige_connections,
       asana_project_gid, asana_adli_task_gids, updated_at,
@@ -80,6 +81,15 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
     db.from("process_improvements").select("process_id, committed_date").order("committed_date", { ascending: false }),
   ]);
 
+  // Fetch Baldrige mapping counts per process (for health scoring)
+  const { data: mappingData } = await db
+    .from("process_question_mappings")
+    .select("process_id");
+  const baldrigeMappingCounts = new Map<number, number>();
+  for (const m of mappingData || []) {
+    baldrigeMappingCounts.set(m.process_id, (baldrigeMappingCounts.get(m.process_id) || 0) + 1);
+  }
+
   const processes: ProcessWithCategory[] = (procData || []).map(
     (p: Record<string, unknown>) => {
       const cat = p.categories as Record<string, unknown>;
@@ -89,6 +99,7 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
         category_id: p.category_id as number,
         category_display_name: cat.display_name as string,
         is_key: p.is_key as boolean,
+        process_type: (p.process_type as ProcessType) || "unclassified",
         status: (p.status as ProcessStatus) || "draft",
         owner: p.owner as string | null,
         baldrige_item: p.baldrige_item as string | null,
@@ -155,7 +166,10 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
   // Calculate health scores for all processes
   const healthScores = new Map<number, HealthResult>();
   for (const proc of processes) {
-    const processInput: HealthProcessInput = proc;
+    const processInput: HealthProcessInput = {
+      ...proc,
+      baldrige_mapping_count: baldrigeMappingCounts.get(proc.id) || 0,
+    };
     const scoreInput = scoresByProcess.get(proc.id) || null;
 
     // Build metric health inputs

@@ -3,6 +3,7 @@
 
 import type {
   ProcessStatus,
+  ProcessType,
   Charter,
   AdliApproach,
   AdliDeployment,
@@ -33,6 +34,7 @@ export interface ParsedProcess {
   workflow: Workflow | null;
   baldrige_connections: BaldigeConnections | null;
   is_key: boolean;
+  process_type: ProcessType;
 }
 
 // Map status emoji/text to our status values
@@ -458,5 +460,6 @@ export function parseObsidianProcess(markdown: string): ParsedProcess {
     workflow,
     baldrige_connections,
     is_key: false,
+    process_type: "unclassified",
   };
 }

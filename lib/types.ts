@@ -7,6 +7,9 @@ export interface Category {
   sort_order: number;
 }
 
+// Process classification: key (creates value) vs support (enables key processes)
+export type ProcessType = "key" | "support" | "unclassified";
+
 // Status workflow: draft → ready_for_review → approved
 export type ProcessStatus =
   | "draft"
@@ -99,6 +102,7 @@ export interface Process {
   workflow: Workflow | null;
   baldrige_connections: BaldigeConnections | null;
   is_key: boolean;
+  process_type: ProcessType;
   asana_raw_data: Record<string, unknown> | null;
   asana_raw_data_previous: Record<string, unknown> | null;
   asana_adli_task_gids: Record<string, string> | null;

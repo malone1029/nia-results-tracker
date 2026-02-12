@@ -49,6 +49,7 @@ export interface HealthProcessInput {
   adli_integration: Record<string, unknown> | null;
   workflow: Record<string, unknown> | null;
   baldrige_connections: Record<string, unknown> | null;
+  baldrige_mapping_count: number; // from process_question_mappings
   status: string;
   asana_project_gid: string | null;
   asana_adli_task_gids: Record<string, string> | null;
@@ -130,7 +131,7 @@ export function calculateHealthScore(
   const workflowPts = hasContent(process.workflow) ? 2 : 0;
   docDetails.push({ label: "Workflow", earned: workflowPts, possible: 2 });
 
-  const baldrigePts = hasContent(process.baldrige_connections) ? 2 : 0;
+  const baldrigePts = process.baldrige_mapping_count > 0 ? 2 : 0;
   docDetails.push({ label: "Baldrige Connections", earned: baldrigePts, possible: 2 });
 
   const docScore = docDetails.reduce((sum, d) => sum + d.earned, 0);

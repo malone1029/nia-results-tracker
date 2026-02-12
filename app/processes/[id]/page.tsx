@@ -388,6 +388,7 @@ function ProcessDetailContent() {
           adli_integration: proc.adli_integration as Record<string, unknown> | null,
           workflow: proc.workflow as Record<string, unknown> | null,
           baldrige_connections: proc.baldrige_connections as Record<string, unknown> | null,
+          baldrige_mapping_count: ebMappingRows?.length || 0,
           status: proc.status,
           asana_project_gid: proc.asana_project_gid,
           asana_adli_task_gids: procData.asana_adli_task_gids as Record<string, string> | null,
