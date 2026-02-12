@@ -143,7 +143,7 @@ export default function ClassificationsPage() {
         <div>
           <h1 className="text-3xl font-bold text-nia-dark">Classifications</h1>
           <p className="text-text-tertiary mt-1">
-            Manage Key vs Support process classifications for Baldrige alignment
+            {isAdmin ? "Manage" : "View"} Key vs Support process classifications for Baldrige alignment
           </p>
         </div>
         {isAdmin && (
@@ -274,30 +274,46 @@ export default function ClassificationsPage() {
                     )}
                   </div>
 
-                  {/* Classification toggle */}
+                  {/* Classification toggle (admin) / read-only badge (member) */}
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => setType(p.id, "key")}
-                      disabled={savingId === p.id}
-                      className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
-                        p.process_type === "key"
-                          ? "bg-nia-orange text-white shadow-sm"
-                          : "bg-surface-subtle text-text-muted hover:bg-nia-orange/10 hover:text-nia-orange"
-                      }`}
-                    >
-                      {"\u2605"} Key
-                    </button>
-                    <button
-                      onClick={() => setType(p.id, "support")}
-                      disabled={savingId === p.id}
-                      className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
-                        p.process_type === "support"
-                          ? "bg-nia-grey-blue text-white shadow-sm"
-                          : "bg-surface-subtle text-text-muted hover:bg-nia-grey-blue/10 hover:text-nia-grey-blue"
-                      }`}
-                    >
-                      Support
-                    </button>
+                    {isAdmin ? (
+                      <>
+                        <button
+                          onClick={() => setType(p.id, "key")}
+                          disabled={savingId === p.id}
+                          className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
+                            p.process_type === "key"
+                              ? "bg-nia-orange text-white shadow-sm"
+                              : "bg-surface-subtle text-text-muted hover:bg-nia-orange/10 hover:text-nia-orange"
+                          }`}
+                        >
+                          {"\u2605"} Key
+                        </button>
+                        <button
+                          onClick={() => setType(p.id, "support")}
+                          disabled={savingId === p.id}
+                          className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
+                            p.process_type === "support"
+                              ? "bg-nia-grey-blue text-white shadow-sm"
+                              : "bg-surface-subtle text-text-muted hover:bg-nia-grey-blue/10 hover:text-nia-grey-blue"
+                          }`}
+                        >
+                          Support
+                        </button>
+                      </>
+                    ) : (
+                      <span
+                        className={`px-3 py-1 text-xs font-medium rounded-full ${
+                          p.process_type === "key"
+                            ? "bg-nia-orange text-white"
+                            : p.process_type === "support"
+                            ? "bg-nia-grey-blue text-white"
+                            : "bg-surface-subtle text-text-muted border border-border-light"
+                        }`}
+                      >
+                        {p.process_type === "key" ? "\u2605 Key" : p.process_type === "support" ? "Support" : "Unclassified"}
+                      </span>
+                    )}
                   </div>
 
                   {/* Rationale */}

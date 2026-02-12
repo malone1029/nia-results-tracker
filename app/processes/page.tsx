@@ -544,6 +544,7 @@ export default function ProcessesPage() {
                         <ClassificationBadge
                           type={process.process_type}
                           onToggle={(newType) => setProcessType(process.id, newType)}
+                          readOnly={!isAdmin}
                         />
                         <Link
                           href={`/processes/${process.id}`}
@@ -634,10 +635,10 @@ export default function ProcessesPage() {
                         <ClassificationBadge
                           type={process.process_type}
                           onToggle={(newType) => {
-                            // Prevent link navigation on mobile
                             setProcessType(process.id, newType);
                           }}
                           preventNavigation
+                          readOnly={!isAdmin}
                         />
                         {process.name}
                         {process.asana_project_gid && (
@@ -744,10 +745,12 @@ function ClassificationBadge({
   type,
   onToggle,
   preventNavigation,
+  readOnly,
 }: {
   type: string;
-  onToggle: (newType: string) => void;
+  onToggle?: (newType: string) => void;
   preventNavigation?: boolean;
+  readOnly?: boolean;
 }) {
   const nextType = type === "key" ? "support" : type === "support" ? "unclassified" : "key";
   const labels: Record<string, string> = {
@@ -755,6 +758,23 @@ function ClassificationBadge({
     support: "Support",
     unclassified: "?",
   };
+
+  const baseClasses = `inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full whitespace-nowrap ${
+    type === "key"
+      ? "bg-nia-orange text-white"
+      : type === "support"
+      ? "bg-nia-grey-blue text-white"
+      : "bg-surface-subtle text-text-muted border border-border-light"
+  }`;
+
+  if (readOnly) {
+    return (
+      <span className={baseClasses}>
+        {labels[type] || labels.unclassified}
+      </span>
+    );
+  }
+
   const tooltips: Record<string, string> = {
     key: "Key process \u2014 click to change to Support",
     support: "Support process \u2014 click to change to Unclassified",
@@ -766,15 +786,15 @@ function ClassificationBadge({
       onClick={(e) => {
         e.stopPropagation();
         if (preventNavigation) e.preventDefault();
-        onToggle(nextType);
+        onToggle?.(nextType);
       }}
       title={tooltips[type] || tooltips.unclassified}
-      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full transition-all whitespace-nowrap ${
+      className={`${baseClasses} transition-all ${
         type === "key"
-          ? "bg-nia-orange text-white hover:bg-nia-orange/80"
+          ? "hover:bg-nia-orange/80"
           : type === "support"
-          ? "bg-nia-grey-blue text-white hover:bg-nia-grey-blue/80"
-          : "bg-surface-subtle text-text-muted hover:bg-nia-orange/10 hover:text-nia-orange border border-border-light"
+          ? "hover:bg-nia-grey-blue/80"
+          : "hover:bg-nia-orange/10 hover:text-nia-orange"
       }`}
     >
       {labels[type] || labels.unclassified}
