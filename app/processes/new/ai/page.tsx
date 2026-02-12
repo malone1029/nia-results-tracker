@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MarkdownContent from "@/components/markdown-content";
-import { Button, Badge } from "@/components/ui";
+import { Button } from "@/components/ui";
 
 interface Message {
   role: "user" | "assistant";
@@ -16,7 +16,7 @@ interface ProcessDraft {
   description: string;
   category_suggestion: string;
   owner: string;
-  is_key: boolean;
+  process_type: string;
   charter: { content: string };
   adli_approach: { content: string };
   adli_deployment: { content: string };
@@ -370,9 +370,8 @@ export default function AiCreateProcessPage() {
                 <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-text-tertiary">
                   <span className="bg-surface-subtle rounded px-2 py-0.5">{draft.category_suggestion}</span>
                   {draft.owner && <span className="bg-surface-subtle rounded px-2 py-0.5">{draft.owner}</span>}
-                  {draft.is_key && (
-                    <Badge color="orange" size="xs">Key Process</Badge>
-                  )}
+                  {draft.process_type === "key" && <span className="text-xs px-2 py-0.5 rounded-full bg-nia-orange/20 text-nia-orange font-medium">Key Process</span>}
+                  {draft.process_type === "support" && <span className="text-xs px-2 py-0.5 rounded-full bg-nia-grey-blue/15 text-nia-grey-blue font-medium">Support</span>}
                 </div>
               </div>
 

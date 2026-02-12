@@ -57,8 +57,9 @@ export default function DataHealthPage() {
   const [logForm, setLogForm] = useState<LogFormData | null>(null);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const [showKeyOnly, setShowKeyOnly] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support">("all");
   const [keyMetricIds, setKeyMetricIds] = useState<Set<number>>(new Set());
+  const [supportMetricIds, setSupportMetricIds] = useState<Set<number>>(new Set());
   const logFormRef = useRef<HTMLDivElement>(null);
 
   // Bulk edit state
@@ -74,7 +75,7 @@ export default function DataHealthPage() {
     const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
       supabase.from("metrics").select("*"),
       supabase.from("metric_processes").select("metric_id, process_id"),
-      supabase.from("processes").select("id, name, is_key, categories!inner ( display_name )"),
+      supabase.from("processes").select("id, name, is_key, process_type, categories!inner ( display_name )"),
       supabase.from("entries").select("metric_id, value, date").order("date", { ascending: false }),
     ]);
 
@@ -89,12 +90,13 @@ export default function DataHealthPage() {
     }
 
     // Build process lookup
-    const processMap = new Map<number, { name: string; is_key: boolean; category_display_name: string }>();
+    const processMap = new Map<number, { name: string; is_key: boolean; process_type: string; category_display_name: string }>();
     for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
       const cat = p.categories as Record<string, unknown>;
       processMap.set(p.id as number, {
         name: p.name as string,
         is_key: p.is_key as boolean,
+        process_type: (p.process_type as string) || "unclassified",
         category_display_name: cat.display_name as string,
       });
     }
@@ -103,6 +105,7 @@ export default function DataHealthPage() {
     // Also track which metrics are linked to key processes
     const metricProcesses = new Map<number, { names: string[]; categories: string[] }>();
     const keyMetrics = new Set<number>();
+    const supportMetrics = new Set<number>();
     for (const link of linksRes.data || []) {
       const proc = processMap.get(link.process_id);
       if (!proc) continue;
@@ -114,9 +117,11 @@ export default function DataHealthPage() {
       if (!entry.categories.includes(proc.category_display_name)) {
         entry.categories.push(proc.category_display_name);
       }
-      if (proc.is_key) keyMetrics.add(link.metric_id);
+      if (proc.process_type === "key") keyMetrics.add(link.metric_id);
+      if (proc.process_type === "support") supportMetrics.add(link.metric_id);
     }
     setKeyMetricIds(keyMetrics);
+    setSupportMetricIds(supportMetrics);
 
     const latestEntries = new Map<number, { value: number; date: string }>();
     const sparklines = new Map<number, number[]>();
@@ -173,10 +178,10 @@ export default function DataHealthPage() {
     async function fetchProcessSummary() {
       const { data } = await supabase
         .from("processes")
-        .select("is_key, status");
+        .select("is_key, process_type, status");
       if (data) {
-        const all = data as { is_key: boolean; status: string }[];
-        const keyProcs = all.filter((p) => p.is_key);
+        const all = data as { is_key: boolean; process_type: string | null; status: string }[];
+        const keyProcs = all.filter((p) => (p.process_type || (p.is_key ? "key" : "")) === "key");
         setProcessSummary({
           total: all.length,
           key: keyProcs.length,
@@ -331,8 +336,10 @@ export default function DataHealthPage() {
     setUpdating(false);
   }
 
-  const displayMetricsAll = showKeyOnly
+  const displayMetricsAll = typeFilter === "key"
     ? metrics.filter((m) => keyMetricIds.has(m.id))
+    : typeFilter === "support"
+    ? metrics.filter((m) => supportMetricIds.has(m.id))
     : metrics;
 
   const displayMetrics = displayMetricsAll;
@@ -356,13 +363,16 @@ export default function DataHealthPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant={showKeyOnly ? "accent" : "ghost"}
-            size="sm"
-            onClick={() => setShowKeyOnly(!showKeyOnly)}
-          >
-            {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
-          </Button>
+          <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
+            {(["all", "key", "support"] as const).map((t) => (
+              <button key={t} onClick={() => setTypeFilter(t)}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  typeFilter === t ? "bg-card text-nia-dark shadow-sm" : "text-text-tertiary hover:text-text-secondary"
+                }`}>
+                {t === "all" ? "All" : t === "key" ? "\u2605 Key" : "Support"}
+              </button>
+            ))}
+          </div>
           <Button
             variant={editMode ? "accent" : "secondary"}
             size="sm"
@@ -512,7 +522,7 @@ export default function DataHealthPage() {
             </div>
             <div className="text-sm text-text-muted mt-0.5">
               {displayMetrics.length - noData.length} of {displayMetrics.length} metrics
-              tracked{showKeyOnly && " (key only)"}
+              tracked{typeFilter !== "all" && ` (${typeFilter} only)`}
             </div>
           </div>
         </Card>
@@ -547,15 +557,15 @@ export default function DataHealthPage() {
       {processSummary && processSummary.key > 0 && (
         <Card
           variant="interactive"
-          accent={showKeyOnly ? "orange" : "dark"}
+          accent={typeFilter === "key" ? "orange" : "dark"}
           padding="sm"
-          onClick={() => setShowKeyOnly(!showKeyOnly)}
+          onClick={() => setTypeFilter(typeFilter === "key" ? "all" : "key")}
           className="cursor-pointer"
         >
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider">
-                Key Processes {showKeyOnly && <Badge color="orange" size="xs">Filtered</Badge>}
+                Key Processes {typeFilter === "key" && <Badge color="orange" size="xs">Filtered</Badge>}
               </h2>
               <p className="text-nia-dark mt-1">
                 <span className="text-2xl font-bold">{processSummary.key}</span>

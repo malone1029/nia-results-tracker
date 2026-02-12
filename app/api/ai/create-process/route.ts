@@ -54,7 +54,7 @@ When you have enough information, generate a complete process draft. You MUST in
   "description": "Brief description of what this process does",
   "category_suggestion": "The Baldrige category name that fits best (e.g., Leadership, Strategy, Customers, Measurement, Workforce, Operations, Results)",
   "owner": "Person or role who owns this",
-  "is_key": false,
+  "process_type": "unclassified",
   "charter": {
     "content": "Full markdown content for the charter section. Include purpose, scope, stakeholders, and mission alignment."
   },
@@ -82,7 +82,7 @@ When you have enough information, generate a complete process draft. You MUST in
   - \`[VERIFY: claim]\` for reasonable assumptions — e.g., "[VERIFY: handled by operations team]"
 - It's better to write "[INSERT: specific metric and target]" than to invent a metric the user never mentioned.
 - The "category_suggestion" should be one of: Leadership, Strategy, Customers, Measurement Analysis and Knowledge Management, Workforce, Operations, Results.
-- Set is_key to true only if the user explicitly says this is a key/critical process.
+- Set process_type to "key" if the process directly creates value for customers/stakeholders. Set to "support" if it enables other processes. Default to "unclassified" if unclear.
 
 ## Important
 - DO NOT generate a draft in your first response. Ask questions first.
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
           description: processData.description || null,
           category_id: categoryId,
           owner: processData.owner || null,
-          is_key: processData.is_key || false,
+          process_type: processData.process_type || "unclassified",
           status: "draft",
           template_type: "full",
           charter: processData.charter || null,

@@ -12,6 +12,7 @@ interface MetricRow extends Metric {
   process_id: number;
   process_name: string;
   is_key_process: boolean;
+  process_type: string;
   category_id: number;
   category_display_name: string;
   category_sort_order: number;
@@ -24,6 +25,7 @@ interface ProcessGroup {
   id: number;
   name: string;
   is_key: boolean;
+  process_type: string;
   metrics: MetricRow[];
   withData: number;
   total: number;
@@ -60,6 +62,7 @@ function groupByCategory(rows: MetricRow[]): CategoryGroup[] {
         id: row.process_id,
         name: row.process_name,
         is_key: row.is_key_process,
+        process_type: row.process_type,
         metrics: [],
         withData: 0,
         total: 0,
@@ -97,7 +100,7 @@ export default function CategoriesPage() {
   const [allRows, setAllRows] = useState<MetricRow[]>([]);
   const [dbCategories, setDbCategories] = useState<{ id: number; display_name: string; sort_order: number }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showKeyOnly, setShowKeyOnly] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support">("all");
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const [expandedProcesses, setExpandedProcesses] = useState<Set<number>>(new Set());
 
@@ -118,7 +121,7 @@ export default function CategoriesPage() {
       const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
         supabase.from("metrics").select("*"),
         supabase.from("metric_processes").select("metric_id, process_id"),
-        supabase.from("processes").select("id, name, is_key, categories!inner ( id, display_name, sort_order )"),
+        supabase.from("processes").select("id, name, is_key, process_type, categories!inner ( id, display_name, sort_order )"),
         supabase.from("entries").select("metric_id, value, date").order("date", { ascending: false }),
       ]);
 
@@ -126,13 +129,14 @@ export default function CategoriesPage() {
       const entriesData = entriesRes.data || [];
 
       // Build process lookup
-      const processMap = new Map<number, { id: number; name: string; is_key: boolean; category_id: number; category_display_name: string; category_sort_order: number }>();
+      const processMap = new Map<number, { id: number; name: string; is_key: boolean; process_type: string; category_id: number; category_display_name: string; category_sort_order: number }>();
       for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
         const cat = p.categories as Record<string, unknown>;
         processMap.set(p.id as number, {
           id: p.id as number,
           name: p.name as string,
           is_key: p.is_key as boolean,
+          process_type: (p.process_type as string) || "unclassified",
           category_id: cat.id as number,
           category_display_name: cat.display_name as string,
           category_sort_order: cat.sort_order as number,
@@ -170,6 +174,7 @@ export default function CategoriesPage() {
             process_id: proc.id,
             process_name: proc.name,
             is_key_process: proc.is_key,
+            process_type: proc.process_type,
             category_id: proc.category_id,
             category_display_name: proc.category_display_name,
             category_sort_order: proc.category_sort_order,
@@ -187,8 +192,10 @@ export default function CategoriesPage() {
   }, []);
 
   // Derive categories from rows, applying key filter
-  const filteredRows = showKeyOnly
-    ? allRows.filter((r) => r.is_key_process)
+  const filteredRows = typeFilter === "key"
+    ? allRows.filter((r) => r.process_type === "key")
+    : typeFilter === "support"
+    ? allRows.filter((r) => r.process_type === "support")
     : allRows;
   const categoriesFromMetrics = groupByCategory(filteredRows);
 
@@ -241,14 +248,16 @@ export default function CategoriesPage() {
             Metrics organized by Baldrige Category and process
           </p>
         </div>
-        <Button
-          variant={showKeyOnly ? "accent" : "ghost"}
-          size="sm"
-          onClick={() => setShowKeyOnly(!showKeyOnly)}
-          className="self-start"
-        >
-          {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
-        </Button>
+        <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
+          {(["all", "key", "support"] as const).map((t) => (
+            <button key={t} onClick={() => setTypeFilter(t)}
+              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                typeFilter === t ? "bg-card text-nia-dark shadow-sm" : "text-text-tertiary hover:text-text-secondary"
+              }`}>
+              {t === "all" ? "All" : t === "key" ? "\u2605 Key" : "Support"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Category overview cards */}
@@ -356,7 +365,7 @@ export default function CategoriesPage() {
                             {isExpanded ? "▼" : "▶"}
                           </span>
                           <span className="font-medium text-nia-dark">
-                            {proc.is_key && <span className="text-nia-orange mr-1">&#9733;</span>}
+                            {proc.process_type === "key" && <span className="text-nia-orange mr-1">&#9733;</span>}
                             {proc.name}
                           </span>
                           <span className="text-sm text-text-muted">

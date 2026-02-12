@@ -22,7 +22,7 @@ export default function NewProcessPage() {
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [baldrigeItem, setBaldrigeItem] = useState("");
   const [owner, setOwner] = useState("");
-  const [isKey, setIsKey] = useState(false);
+  const [processType, setProcessType] = useState<"key" | "support" | "unclassified">("unclassified");
   const [description, setDescription] = useState("");
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function NewProcessPage() {
         category_id: categoryId,
         baldrige_item: baldrigeItem.trim() || null,
         owner: owner.trim() || null,
-        is_key: isKey,
+        process_type: processType,
         description: description.trim() || null,
         status: "draft",
         template_type: "full",
@@ -120,27 +120,20 @@ export default function NewProcessPage() {
 
         <Input label="Owner" hint="optional" value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="e.g., Jon Malone" />
 
-        {/* Key Process Toggle */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div
-            onClick={() => setIsKey(!isKey)}
-            className={`relative w-11 h-6 rounded-full transition-colors ${
-              isKey ? "bg-nia-orange" : "bg-surface-muted"
-            }`}
-          >
-            <div
-              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-card rounded-full shadow transition-transform ${
-                isKey ? "translate-x-5" : ""
-              }`}
-            />
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">Process Type</label>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setProcessType("key")}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                processType === "key" ? "bg-nia-orange/15 border-nia-orange text-nia-orange" : "bg-card border-border text-text-tertiary hover:text-text-secondary"
+              }`}>★ Key Process</button>
+            <button type="button" onClick={() => setProcessType("support")}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                processType === "support" ? "bg-nia-grey-blue/15 border-nia-grey-blue text-nia-grey-blue" : "bg-card border-border text-text-tertiary hover:text-text-secondary"
+              }`}>Support Process</button>
           </div>
-          <span className="text-sm font-medium text-nia-dark">
-            Key Process
-          </span>
-          <span className="text-xs text-text-muted">
-            Key processes directly fulfill key requirements and need LeTCI scoring
-          </span>
-        </label>
+          <p className="mt-1.5 text-xs text-text-muted">Key processes directly create value. Support processes enable key processes.</p>
+        </div>
 
         <Textarea label="What is this process?" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Briefly describe what this process does and why it matters..." />
 

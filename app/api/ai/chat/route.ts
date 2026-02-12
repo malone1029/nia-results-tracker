@@ -22,7 +22,8 @@ function buildProcessContext(process: Record<string, unknown>): string {
   lines.push(`- **Baldrige Category:** ${process.category_display_name || "Unknown"}`);
   if (process.baldrige_item) lines.push(`- **Baldrige Item:** ${process.baldrige_item}`);
   if (process.owner) lines.push(`- **Owner:** ${process.owner}`);
-  if (process.is_key) lines.push(`- **Key Process:** Yes`);
+  if (process.process_type === "key") lines.push(`- **Process Type:** Key`);
+  else if (process.process_type === "support") lines.push(`- **Process Type:** Support`);
   if (process.guided_step) lines.push(`- **Guided Step:** ${process.guided_step}`);
   lines.push("");
 

@@ -11,6 +11,7 @@ import { Card, Button, Select } from "@/components/ui";
 interface MetricLeTCI extends Metric {
   process_name: string;
   is_key_process: boolean;
+  process_type: string;
   category_display_name: string;
   category_sort_order: number;
   entry_count: number;
@@ -28,7 +29,7 @@ export default function LeTCIPage() {
   const [allCategoryOptions, setAllCategoryOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [showKeyOnly, setShowKeyOnly] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support">("all");
   const [sortField, setSortField] = useState<string>("letci_score");
   const [sortAsc, setSortAsc] = useState(true);
 
@@ -49,25 +50,26 @@ export default function LeTCIPage() {
       const [metricsRes, linksRes, processesRes] = await Promise.all([
         supabase.from("metrics").select("*"),
         supabase.from("metric_processes").select("metric_id, process_id"),
-        supabase.from("processes").select("id, name, is_key, categories!inner ( display_name, sort_order )"),
+        supabase.from("processes").select("id, name, is_key, process_type, categories!inner ( display_name, sort_order )"),
       ]);
 
       const metricsData = metricsRes.data;
 
       // Build process lookup
-      const processMap = new Map<number, { name: string; is_key: boolean; category_display_name: string; category_sort_order: number }>();
+      const processMap = new Map<number, { name: string; is_key: boolean; process_type: string; category_display_name: string; category_sort_order: number }>();
       for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
         const cat = p.categories as Record<string, unknown>;
         processMap.set(p.id as number, {
           name: p.name as string,
           is_key: p.is_key as boolean,
+          process_type: (p.process_type as string) || "unclassified",
           category_display_name: cat.display_name as string,
           category_sort_order: cat.sort_order as number,
         });
       }
 
       // Build metric -> first linked process lookup (for display)
-      const metricFirstProcess = new Map<number, { name: string; is_key: boolean; category_display_name: string; category_sort_order: number }>();
+      const metricFirstProcess = new Map<number, { name: string; is_key: boolean; process_type: string; category_display_name: string; category_sort_order: number }>();
       for (const link of linksRes.data || []) {
         if (metricFirstProcess.has(link.metric_id)) continue;
         const proc = processMap.get(link.process_id);
@@ -129,6 +131,7 @@ export default function LeTCIPage() {
           ...(m as unknown as Metric),
           process_name: proc?.name || "Unlinked",
           is_key_process: proc?.is_key || false,
+          process_type: proc?.process_type || "unclassified",
           category_display_name: proc?.category_display_name || "—",
           category_sort_order: proc?.category_sort_order || 99,
           entry_count: entries.length,
@@ -158,8 +161,10 @@ export default function LeTCIPage() {
     filterCategory === "all"
       ? metrics
       : metrics.filter((m) => m.category_display_name === filterCategory);
-  if (showKeyOnly) {
-    filtered = filtered.filter((m) => m.is_key_process);
+  if (typeFilter === "key") {
+    filtered = filtered.filter((m) => m.process_type === "key");
+  } else if (typeFilter === "support") {
+    filtered = filtered.filter((m) => m.process_type === "support");
   }
 
   // Sort
@@ -262,13 +267,16 @@ export default function LeTCIPage() {
 
       {/* Filter */}
       <div className="flex items-center gap-4">
-        <Button
-          variant={showKeyOnly ? "accent" : "ghost"}
-          size="sm"
-          onClick={() => setShowKeyOnly(!showKeyOnly)}
-        >
-          {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
-        </Button>
+        <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
+          {(["all", "key", "support"] as const).map((t) => (
+            <button key={t} onClick={() => setTypeFilter(t)}
+              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                typeFilter === t ? "bg-card text-nia-dark shadow-sm" : "text-text-tertiary hover:text-text-secondary"
+              }`}>
+              {t === "all" ? "All" : t === "key" ? "\u2605 Key" : "Support"}
+            </button>
+          ))}
+        </div>
         <Select
           label=""
           size="sm"
@@ -316,7 +324,7 @@ export default function LeTCIPage() {
                     </Link>
                   </td>
                   <td className="px-3 py-2 text-text-tertiary">
-                    {metric.is_key_process && <span className="text-nia-orange mr-1">&#9733;</span>}
+                    {metric.process_type === "key" && <span className="text-nia-orange mr-1">&#9733;</span>}
                     {metric.process_name}
                   </td>
                   <td className="px-3 py-2 text-text-muted text-xs">{metric.category_display_name}</td>

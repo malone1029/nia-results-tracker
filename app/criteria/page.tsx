@@ -81,8 +81,13 @@ export default function CriteriaMapPage() {
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState("");
 
-  // Tier filter
-  const [tierFilter, setTierFilter] = useState<"excellence_builder" | "full" | "all">("excellence_builder");
+  // Tier filter — clear scan results when switching tiers
+  const [tierFilter, setTierFilterRaw] = useState<"excellence_builder" | "full" | "all">("excellence_builder");
+  function setTierFilter(tier: "excellence_builder" | "full" | "all") {
+    setTierFilterRaw(tier);
+    setSuggestions(new Map());
+    setScanProgress("");
+  }
 
   // Draft state
   const [draftPanel, setDraftPanel] = useState<Item | null>(null);
@@ -268,7 +273,7 @@ export default function CriteriaMapPage() {
 
   async function runBulkScan() {
     setScanning(true);
-    setScanProgress("Starting AI scan...");
+    setScanProgress("Scanning unmapped questions...");
     try {
       const res = await fetch("/api/criteria/ai-scan", {
         method: "POST",
@@ -277,6 +282,13 @@ export default function CriteriaMapPage() {
       });
       if (res.ok) {
         const data = await res.json();
+
+        // Handle "all already mapped" case
+        if (data.results?.length === 0) {
+          setScanProgress(data.message || "All questions already have at least one process mapping in this tier.");
+          return;
+        }
+
         // Populate suggestions map from scan results
         const newSuggestions = new Map(suggestions);
         for (const result of data.results || []) {
@@ -285,18 +297,31 @@ export default function CriteriaMapPage() {
           }
         }
         setSuggestions(newSuggestions);
-        setScanProgress(
-          `Done! ${data.withSuggestions} questions with suggestions, ${data.noMatch} with no match.`
-        );
-        // Expand all items that have suggestions
+
+        const sugCount = data.withSuggestions ?? 0;
+        const noMatchCount = data.noMatch ?? 0;
+        if (sugCount > 0) {
+          setScanProgress(
+            `Found suggestions for ${sugCount} question${sugCount !== 1 ? "s" : ""}${noMatchCount > 0 ? ` (${noMatchCount} had no good match)` : ""}.`
+          );
+        } else {
+          setScanProgress(
+            `Scanned ${data.totalScanned ?? 0} unmapped questions — no good process matches found. You may need to create new processes.`
+          );
+        }
+
+        // Expand items AND questions that have suggestions
         const itemsWithSuggestions = new Set<number>();
+        const questionsWithSuggestions = new Set<number>();
         for (const result of data.results || []) {
           if (result.suggestions.length > 0) {
+            questionsWithSuggestions.add(result.question_id);
             const q = items.flatMap((i) => i.questions).find((q) => q.id === result.question_id);
             if (q) itemsWithSuggestions.add(q.item_id);
           }
         }
         setExpandedItems((prev) => new Set([...prev, ...itemsWithSuggestions]));
+        setExpandedQuestions((prev) => new Set([...prev, ...questionsWithSuggestions]));
       } else {
         setScanProgress("Scan failed. Please try again.");
       }
@@ -441,9 +466,21 @@ export default function CriteriaMapPage() {
 
         {/* Scan progress / Accept All banner */}
         {scanProgress && (
-          <div className="bg-nia-grey-blue/10 border border-nia-grey-blue/20 rounded-lg px-4 py-3 flex items-center justify-between">
-            <span className="text-sm text-foreground">{scanProgress}</span>
-            <div className="flex gap-2">
+          <div className={`rounded-lg px-4 py-3 flex items-center justify-between ${
+            suggestions.size > 0
+              ? "bg-nia-green/10 border border-nia-green/20"
+              : "bg-nia-grey-blue/10 border border-nia-grey-blue/20"
+          }`}>
+            <div className="flex items-center gap-2">
+              {scanning && (
+                <svg className="w-4 h-4 animate-spin text-nia-dark flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              <span className="text-sm text-foreground">{scanProgress}</span>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
               {suggestions.size > 0 && (
                 <button
                   onClick={acceptAllSuggestions}
@@ -452,12 +489,14 @@ export default function CriteriaMapPage() {
                   Accept All ({[...suggestions.values()].reduce((s, a) => s + a.length, 0)} suggestions)
                 </button>
               )}
-              <button
-                onClick={() => { setScanProgress(""); setSuggestions(new Map()); }}
-                className="text-xs text-text-tertiary hover:text-foreground"
-              >
-                Dismiss
-              </button>
+              {!scanning && (
+                <button
+                  onClick={() => { setScanProgress(""); setSuggestions(new Map()); }}
+                  className="text-xs text-text-tertiary hover:text-foreground"
+                >
+                  Dismiss
+                </button>
+              )}
             </div>
           </div>
         )}

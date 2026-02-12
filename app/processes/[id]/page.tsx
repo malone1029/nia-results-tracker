@@ -503,18 +503,38 @@ function ProcessDetailContent() {
     }
   }
 
-  async function handleDeploySurvey(surveyId: number, scheduleOptions?: { openAt?: string; closeAfterDays?: number }) {
+  async function handleDeploySurvey(surveyId: number, scheduleOptions?: { openAt?: string; closeAfterDays?: number; emails?: string[] }) {
     setSurveyDeploying(surveyId);
+    const { emails, ...waveOptions } = scheduleOptions || {};
+    const hasWaveOptions = waveOptions.openAt || waveOptions.closeAfterDays;
+
     const res = await fetch(`/api/surveys/${surveyId}/waves`, {
       method: "POST",
-      ...(scheduleOptions
+      ...(hasWaveOptions
         ? {
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(scheduleOptions),
+            body: JSON.stringify(waveOptions),
           }
         : {}),
     });
+
     if (res.ok) {
+      const waveData = await res.json();
+
+      // Send email invitations if provided
+      if (emails && emails.length > 0 && waveData.share_token) {
+        const survey = surveys.find((s) => s.id === surveyId);
+        fetch("/api/surveys/send-invites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            shareToken: waveData.share_token,
+            surveyTitle: survey?.title || "Survey",
+            emails,
+          }),
+        }).catch((err) => console.error("Failed to send invites:", err));
+      }
+
       fetchSurveys();
     }
     setSurveyDeploying(null);

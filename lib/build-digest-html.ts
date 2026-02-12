@@ -35,11 +35,13 @@ export interface DigestNextAction {
 }
 
 export interface DigestData {
+  recipientName: string | null; // null = org-wide digest (no personalization)
   orgScore: number;
   orgScoreDelta: number | null; // week-over-week change, null if no previous snapshot
   baldrigeReadyCount: number;
   needsAttentionCount: number;
   totalProcesses: number;
+  myProcessCount: number; // how many processes this person owns
   overdueMetrics: DigestOverdueMetric[];
   staleProcesses: DigestStaleProcess[];
   nextActions: DigestNextAction[];
@@ -62,16 +64,20 @@ function healthColor(score: number): string {
 
 export function buildDigestHtml(data: DigestData): string {
   const {
+    recipientName,
     orgScore,
     orgScoreDelta,
     baldrigeReadyCount,
     needsAttentionCount,
     totalProcesses,
+    myProcessCount,
     overdueMetrics,
     staleProcesses,
     nextActions,
     weeklyUpdates,
   } = data;
+
+  const firstName = recipientName ? recipientName.split(" ")[0] : null;
 
   // --- Stat cards row ---
   const statCards = `
@@ -223,7 +229,7 @@ export function buildDigestHtml(data: DigestData): string {
                     <div style="font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 4px;">Weekly Digest &middot; ${formatDate(new Date())}</div>
                   </td>
                   <td align="right">
-                    <div style="width: 40px; height: 40px; background: ${NIA_ORANGE}; border-radius: 50%; display: inline-block; text-align: center; line-height: 40px; font-size: 18px; color: #fff; font-weight: 700;">N</div>
+                    <img src="${APP_URL}/logo.png" alt="NIA" width="40" height="40" style="display: block; border-radius: 6px;" />
                   </td>
                 </tr>
               </table>
@@ -235,7 +241,7 @@ export function buildDigestHtml(data: DigestData): string {
             <td style="padding: 24px 32px;">
               <!-- Summary -->
               <p style="font-size: 15px; color: ${TEXT_PRIMARY}; margin: 0 0 8px 0; line-height: 1.5;">
-                Here&rsquo;s your weekly snapshot across <strong>${totalProcesses} processes</strong>.
+                ${firstName ? `Hi ${escapeHtml(firstName)} &mdash; here&rsquo;s` : `Here&rsquo;s`} your weekly snapshot${myProcessCount > 0 && myProcessCount < totalProcesses ? ` across your <strong>${myProcessCount} processes</strong> (${totalProcesses} org-wide)` : ` across <strong>${totalProcesses} processes</strong>`}.
               </p>
 
               ${statCards}

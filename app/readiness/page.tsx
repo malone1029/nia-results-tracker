@@ -71,7 +71,7 @@ export default function ReadinessPage() {
     for (const proc of data.processes) {
       const h = data.healthScores.get(proc.id);
       if (!h) continue;
-      const w = proc.is_key ? 2 : 1;
+      const w = proc.process_type === "key" ? 2 : 1;
       wSum += h.total * w;
       wTot += w;
     }
@@ -193,7 +193,7 @@ export default function ReadinessPage() {
   for (const proc of processes) {
     const health = healthScores.get(proc.id);
     if (!health) continue;
-    const weight = proc.is_key ? 2 : 1;
+    const weight = proc.process_type === "key" ? 2 : 1;
     orgWeightedSum += health.total * weight;
     orgWeightTotal += weight;
   }
@@ -205,7 +205,7 @@ export default function ReadinessPage() {
   for (const proc of filteredProcesses) {
     const health = healthScores.get(proc.id);
     if (!health) continue;
-    const weight = proc.is_key ? 2 : 1;
+    const weight = proc.process_type === "key" ? 2 : 1;
     weightedSum += health.total * weight;
     weightTotal += weight;
   }
@@ -217,7 +217,7 @@ export default function ReadinessPage() {
     return h && h.total >= 80;
   }).length;
 
-  const keyProcesses = filteredProcesses.filter((p) => p.is_key);
+  const keyProcesses = filteredProcesses.filter((p) => p.process_type === "key");
   const keyAvg = keyProcesses.length > 0
     ? Math.round(keyProcesses.reduce((sum, p) => sum + (healthScores.get(p.id)?.total ?? 0), 0) / keyProcesses.length)
     : null;
@@ -552,7 +552,7 @@ export default function ReadinessPage() {
                         >
                           <div className="flex-1 min-w-0">
                             <div className="text-sm text-foreground group-hover:text-nia-orange transition-colors truncate">
-                              {proc.is_key && (
+                              {proc.process_type === "key" && (
                                 <span className="text-nia-orange mr-1">{"\u2605"}</span>
                               )}
                               {proc.name}

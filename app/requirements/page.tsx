@@ -28,6 +28,7 @@ interface LinkedProcess {
   id: number;
   name: string;
   is_key: boolean;
+  process_type: string;
 }
 
 interface EnrichedRequirement extends KeyRequirementWithStatus {
@@ -124,14 +125,14 @@ export default function RequirementsPage() {
         .from("process_requirements")
         .select(`
           requirement_id,
-          processes!inner ( id, name, is_key )
+          processes!inner ( id, name, is_key, process_type )
         `);
 
       // Build map of requirement_id -> linked processes
       const procsByReq = new Map<number, LinkedProcess[]>();
       if (procLinkData) {
         for (const link of procLinkData) {
-          const proc = link.processes as unknown as { id: number; name: string; is_key: boolean };
+          const proc = link.processes as unknown as { id: number; name: string; is_key: boolean; process_type: string | null };
           if (!procsByReq.has(link.requirement_id)) {
             procsByReq.set(link.requirement_id, []);
           }
@@ -139,6 +140,7 @@ export default function RequirementsPage() {
             id: proc.id,
             name: proc.name,
             is_key: proc.is_key,
+            process_type: proc.process_type || "unclassified",
           });
         }
       }
@@ -603,7 +605,7 @@ export default function RequirementsPage() {
                                 href={`/processes/${proc.id}`}
                                 className="inline-flex items-center gap-1 text-sm bg-nia-grey-blue/10 text-nia-dark px-3 py-1 rounded-full hover:bg-nia-grey-blue/20 transition-colors"
                               >
-                                {proc.is_key && <span className="text-nia-orange">&#9733;</span>}
+                                {proc.process_type === "key" && <span className="text-nia-orange">&#9733;</span>}
                                 {proc.name}
                               </Link>
                             ))}

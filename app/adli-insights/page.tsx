@@ -24,6 +24,7 @@ interface ScoreRow {
     name: string;
     status: string;
     is_key: boolean;
+    process_type: string;
     owner: string | null;
     categories: {
       id: number;
@@ -44,7 +45,7 @@ export default function AiInsightsPage() {
   const [scores, setScores] = useState<ScoreRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"category" | "score">("category");
-  const [showKeyOnly, setShowKeyOnly] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support">("all");
 
   useEffect(() => {
     document.title = "ADLI Insights | NIA Excellence Hub";
@@ -60,10 +61,10 @@ export default function AiInsightsPage() {
     fetchScores();
   }, []);
 
-  // Filter by key only
-  const filteredScores = showKeyOnly
-    ? scores.filter((s) => s.processes.is_key)
-    : scores;
+  // Filter by process type
+  const filteredScores = typeFilter === "all"
+    ? scores
+    : scores.filter((s) => (s.processes.process_type || (s.processes.is_key ? "key" : "unclassified")) === typeFilter);
 
   // Group by category
   const categoryGroups: CategoryGroup[] = [];
@@ -172,7 +173,7 @@ export default function AiInsightsPage() {
                   <div className="text-sm text-text-muted mt-1">
                     {filteredScores.length} process
                     {filteredScores.length !== 1 ? "es" : ""} assessed
-                    {showKeyOnly && ` (key only)`}
+                    {typeFilter !== "all" && ` (${typeFilter} only)`}
                   </div>
                 </div>
 
@@ -192,13 +193,16 @@ export default function AiInsightsPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-nia-dark">Process Scores</h2>
             <div className="flex items-center gap-2 text-sm">
-              <Button
-                variant={showKeyOnly ? "accent" : "ghost"}
-                size="xs"
-                onClick={() => setShowKeyOnly(!showKeyOnly)}
-              >
-                {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
-              </Button>
+              <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
+                {(["all", "key", "support"] as const).map((t) => (
+                  <button key={t} onClick={() => setTypeFilter(t)}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                      typeFilter === t ? "bg-card text-nia-dark shadow-sm" : "text-text-tertiary hover:text-text-secondary"
+                    }`}>
+                    {t === "all" ? "All" : t === "key" ? "\u2605 Key" : "Support"}
+                  </button>
+                ))}
+              </div>
               <span className="text-text-muted">|</span>
               <span className="text-text-tertiary">Sort:</span>
               <Button
@@ -241,7 +245,7 @@ export default function AiInsightsPage() {
                             <span className="text-sm font-medium text-nia-dark truncate">
                               {s.processes.name}
                             </span>
-                            {s.processes.is_key && (
+                            {(s.processes.process_type || (s.processes.is_key ? "key" : "")) === "key" && (
                               <Badge color="orange" size="xs" pill={false}>KEY</Badge>
                             )}
                             <span className="text-[10px] text-text-muted flex-shrink-0">

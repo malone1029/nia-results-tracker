@@ -25,7 +25,7 @@ export default function ProcessesPage() {
   const [lastActivityMap, setLastActivityMap] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<number | null>(null);
-  const [showKeyOnly, setShowKeyOnly] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support" | "unclassified">("all");
   const [sortBy, setSortBy] = useState<"name" | "health">("name");
 
   // Bulk edit state
@@ -63,13 +63,10 @@ export default function ProcessesPage() {
     fetchData();
   }, []);
 
-  async function toggleKeyProcess(id: number, currentValue: boolean) {
-    await supabase
-      .from("processes")
-      .update({ is_key: !currentValue })
-      .eq("id", id);
+  async function setProcessType(id: number, newType: string) {
+    await supabase.from("processes").update({ process_type: newType }).eq("id", id);
     setProcesses((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, is_key: !currentValue } : p))
+      prev.map((p) => (p.id === id ? { ...p, process_type: newType as "key" | "support" | "unclassified" } : p))
     );
   }
 
@@ -128,7 +125,7 @@ export default function ProcessesPage() {
   const filtered = useMemo(() => {
     const result = processes.filter((p) => {
       if (filterCategory !== null && p.category_id !== filterCategory) return false;
-      if (showKeyOnly && !p.is_key) return false;
+      if (typeFilter !== "all" && p.process_type !== typeFilter) return false;
       return true;
     });
     if (sortBy === "health") {
@@ -139,7 +136,7 @@ export default function ProcessesPage() {
       });
     }
     return result;
-  }, [processes, filterCategory, showKeyOnly, sortBy, healthScores]);
+  }, [processes, filterCategory, typeFilter, sortBy, healthScores]);
 
   if (loading) return <CategoryGridSkeleton />;
 
@@ -185,8 +182,8 @@ export default function ProcessesPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {categories.map((cat) => {
             // Recompute counts when key filter is active
-            const catProcesses = showKeyOnly
-              ? processes.filter((p) => p.category_id === cat.id && p.is_key)
+            const catProcesses = typeFilter !== "all"
+              ? processes.filter((p) => p.category_id === cat.id && p.process_type === typeFilter)
               : processes.filter((p) => p.category_id === cat.id);
             const count = catProcesses.length;
             const isEmpty = count === 0;
@@ -224,16 +221,21 @@ export default function ProcessesPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <button
-          onClick={() => setShowKeyOnly(!showKeyOnly)}
-          className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors ${
-            showKeyOnly
-              ? "bg-nia-orange text-white"
-              : "bg-surface-subtle text-text-tertiary hover:bg-surface-muted"
-          }`}
-        >
-          {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
-        </button>
+        <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
+          {(["all", "key", "support", "unclassified"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                typeFilter === t
+                  ? "bg-card text-nia-dark shadow-sm"
+                  : "text-text-tertiary hover:text-text-secondary"
+              }`}
+            >
+              {t === "all" ? "All" : t === "key" ? "\u2605 Key" : t === "support" ? "Support" : "Unclassified"}
+            </button>
+          ))}
+        </div>
         <Select
           value={filterCategory ?? ""}
           onChange={(e) =>
@@ -258,11 +260,11 @@ export default function ProcessesPage() {
           <option value="name">Sort: A-Z</option>
           <option value="health">Sort: Needs Attention</option>
         </Select>
-        {(filterCategory !== null || showKeyOnly || sortBy !== "name") && (
+        {(filterCategory !== null || typeFilter !== "all" || sortBy !== "name") && (
           <button
             onClick={() => {
               setFilterCategory(null);
-              setShowKeyOnly(false);
+              setTypeFilter("all");
               setSortBy("name");
             }}
             className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
@@ -366,16 +368,28 @@ export default function ProcessesPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleKeyProcess(process.id, process.is_key);
+                            if (process.process_type === "key") {
+                              setProcessType(process.id, "support");
+                            } else {
+                              setProcessType(process.id, "key");
+                            }
                           }}
-                          className={`text-base leading-none transition-colors ${
-                            process.is_key
-                              ? "text-nia-orange hover:text-nia-orange-dark"
-                              : "text-text-muted hover:text-nia-orange"
+                          className={`text-xs leading-none transition-colors ${
+                            process.process_type === "key"
+                              ? "text-nia-orange hover:text-nia-orange-dark font-medium"
+                              : process.process_type === "support"
+                              ? "text-text-muted hover:text-nia-orange"
+                              : "text-text-muted/50 hover:text-nia-orange italic"
                           }`}
-                          title={process.is_key ? "Remove key process flag" : "Mark as key process"}
+                          title={
+                            process.process_type === "key"
+                              ? "Key process — click to set as Support"
+                              : process.process_type === "support"
+                              ? "Support process — click to set as Key"
+                              : "Unclassified — click to set as Key"
+                          }
                         >
-                          {process.is_key ? "\u2605" : "\u2606"}
+                          {process.process_type === "key" ? "\u2605" : process.process_type === "support" ? "Support" : "?"}
                         </button>
                         <Link
                           href={`/processes/${process.id}`}
@@ -467,16 +481,28 @@ export default function ProcessesPage() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            toggleKeyProcess(process.id, process.is_key);
+                            if (process.process_type === "key") {
+                              setProcessType(process.id, "support");
+                            } else {
+                              setProcessType(process.id, "key");
+                            }
                           }}
-                          className={`text-base leading-none transition-colors ${
-                            process.is_key
-                              ? "text-nia-orange hover:text-nia-orange-dark"
-                              : "text-text-muted hover:text-nia-orange"
+                          className={`text-xs leading-none transition-colors ${
+                            process.process_type === "key"
+                              ? "text-nia-orange hover:text-nia-orange-dark font-medium"
+                              : process.process_type === "support"
+                              ? "text-text-muted hover:text-nia-orange"
+                              : "text-text-muted/50 hover:text-nia-orange italic"
                           }`}
-                          title={process.is_key ? "Remove key process flag" : "Mark as key process"}
+                          title={
+                            process.process_type === "key"
+                              ? "Key process — click to set as Support"
+                              : process.process_type === "support"
+                              ? "Support process — click to set as Key"
+                              : "Unclassified — click to set as Key"
+                          }
                         >
-                          {process.is_key ? "\u2605" : "\u2606"}
+                          {process.process_type === "key" ? "\u2605" : process.process_type === "support" ? "Support" : "?"}
                         </button>
                         {process.name}
                         {process.asana_project_gid && (

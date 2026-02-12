@@ -59,7 +59,7 @@ function ProcessOwnerDashboard() {
   const [dueSoonMetrics, setDueSoonMetrics] = useState<{ id: number; name: string; processOwner: string | null }[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<string>("__all__");
   const [owners, setOwners] = useState<string[]>([]);
-  const [showKeyOnly, setShowKeyOnly] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support">("all");
   const [recentImprovements, setRecentImprovements] = useState<{ processId: number; processName: string; label: string; date: string; status: string }[]>([]);
   const [monthlyImprovedCount, setMonthlyImprovedCount] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -239,11 +239,12 @@ function ProcessOwnerDashboard() {
     );
   }
 
-  // Filter by selected owner + key only
+  // Filter by selected owner + process type
   const isAll = selectedOwner === "__all__";
   const filteredProcesses = processes.filter((p) => {
     if (!isAll && p.owner !== selectedOwner) return false;
-    if (showKeyOnly && !p.is_key) return false;
+    if (typeFilter === "key" && p.process_type !== "key") return false;
+    if (typeFilter === "support" && p.process_type !== "support") return false;
     return true;
   });
   const filteredProcessIds = new Set(filteredProcesses.map((p) => p.id));
@@ -385,13 +386,16 @@ function ProcessOwnerDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant={showKeyOnly ? "accent" : "ghost"}
-            size="sm"
-            onClick={() => setShowKeyOnly(!showKeyOnly)}
-          >
-            {showKeyOnly ? "\u2605 Key Only" : "\u2606 Key Only"}
-          </Button>
+          <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
+            {(["all", "key", "support"] as const).map((t) => (
+              <button key={t} onClick={() => setTypeFilter(t)}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  typeFilter === t ? "bg-card text-nia-dark shadow-sm" : "text-text-tertiary hover:text-text-secondary"
+                }`}>
+                {t === "all" ? "All" : t === "key" ? "\u2605 Key" : "Support"}
+              </button>
+            ))}
+          </div>
           <label htmlFor="owner-select" className="text-sm text-text-tertiary">
             Owner:
           </label>
@@ -769,10 +773,13 @@ function ProcessOwnerDashboard() {
                           <span className="text-sm font-medium text-nia-dark truncate">
                             {proc.name}
                           </span>
-                          {proc.is_key && (
+                          {proc.process_type === "key" && (
                             <Badge color="orange" size="xs" pill={false}>
                               KEY
                             </Badge>
+                          )}
+                          {proc.process_type === "support" && (
+                            <span className="text-[10px] text-text-muted">Support</span>
                           )}
                           {proc.asana_project_gid && (
                             <svg
