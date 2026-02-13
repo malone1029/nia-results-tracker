@@ -14,6 +14,10 @@ All changes must go through a Pull Request:
 
 Branch naming: `jon/<feature>` or `<name>/<feature>`
 
+## New Developer Setup
+
+See `CONTRIBUTING.md` for full setup instructions (clone, install, env vars, dev server).
+
 ## Repository
 
 - **GitHub:** `thenia-org/nia-results-tracker`
