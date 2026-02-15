@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { getAsanaToken, asanaFetch } from "@/lib/asana";
 import {
   PDCA_SECTION_VALUES,
   ADLI_DIMENSION_VALUES,
@@ -7,6 +8,14 @@ import {
   TASK_STATUS_VALUES,
   TASK_ORIGIN_VALUES,
 } from "@/lib/pdca";
+
+// Map pdca_section values to capitalized section names for Asana
+const SECTION_LABEL: Record<string, string> = {
+  plan: "Plan",
+  execute: "Execute",
+  evaluate: "Evaluate",
+  improve: "Improve",
+};
 
 // ── Per-user rate limiter (shared with PATCH /api/tasks/[id]) ──
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -161,11 +170,116 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Single insert: return the full task object (used by creation form)
+  // Single insert: attempt Asana sync if process is linked
   if (isSingleInsert && data.length === 1) {
+    const createdTask = data[0];
+    let asanaSyncFailed = false;
+
+    // Check if the process is linked to Asana
+    if (createdTask.origin === "hub_manual") {
+      const { data: proc } = await supabase
+        .from("processes")
+        .select("asana_project_gid")
+        .eq("id", createdTask.process_id)
+        .single();
+
+      if (proc?.asana_project_gid) {
+        const token = await getAsanaToken(user.id);
+        if (token) {
+          try {
+            // Get project sections
+            const sectionsRes = await asanaFetch(
+              token,
+              `/projects/${proc.asana_project_gid}/sections?opt_fields=name`
+            );
+            const sectionMap = new Map<string, string>();
+            for (const s of sectionsRes.data) {
+              sectionMap.set(s.name.toLowerCase(), s.gid);
+            }
+
+            // Find or create the target PDCA section
+            const targetLabel = SECTION_LABEL[createdTask.pdca_section] || createdTask.pdca_section;
+            let sectionGid = sectionMap.get(targetLabel.toLowerCase());
+            if (!sectionGid) {
+              const newSection = await asanaFetch(
+                token,
+                `/projects/${proc.asana_project_gid}/sections`,
+                {
+                  method: "POST",
+                  body: JSON.stringify({ data: { name: targetLabel } }),
+                }
+              );
+              sectionGid = newSection.data.gid;
+            }
+
+            // Get workspace GID from project
+            const projRes = await asanaFetch(
+              token,
+              `/projects/${proc.asana_project_gid}?opt_fields=workspace`
+            );
+            const workspaceGid = projRes.data.workspace?.gid;
+
+            // Build Asana task data
+            const asanaData: Record<string, unknown> = {
+              name: createdTask.title,
+              notes: createdTask.description || "",
+              workspace: workspaceGid,
+              memberships: [{ project: proc.asana_project_gid, section: sectionGid }],
+            };
+            if (createdTask.assignee_asana_gid) {
+              asanaData.assignee = createdTask.assignee_asana_gid;
+            }
+            if (createdTask.due_date) {
+              asanaData.due_on = createdTask.due_date;
+            }
+
+            // Create the Asana task
+            const result = await asanaFetch(token, "/tasks", {
+              method: "POST",
+              body: JSON.stringify({ data: asanaData }),
+            });
+
+            // Move to correct section (memberships can be unreliable)
+            if (result.data?.gid && sectionGid) {
+              await asanaFetch(token, `/sections/${sectionGid}/addTask`, {
+                method: "POST",
+                body: JSON.stringify({ data: { task: result.data.gid } }),
+              }).catch(() => {}); // Non-blocking
+            }
+
+            // Update Supabase with Asana GID and URL
+            const asanaTaskGid = result.data?.gid || null;
+            const asanaTaskUrl = result.data?.permalink_url || null;
+            if (asanaTaskGid) {
+              await supabase
+                .from("process_tasks")
+                .update({
+                  asana_task_gid: asanaTaskGid,
+                  asana_task_url: asanaTaskUrl,
+                  asana_section_name: targetLabel,
+                  asana_section_gid: sectionGid,
+                  last_synced_at: new Date().toISOString(),
+                })
+                .eq("id", createdTask.id);
+
+              createdTask.asana_task_gid = asanaTaskGid;
+              createdTask.asana_task_url = asanaTaskUrl;
+              createdTask.asana_section_name = targetLabel;
+              createdTask.asana_section_gid = sectionGid;
+              createdTask.last_synced_at = new Date().toISOString();
+            }
+          } catch (err) {
+            console.warn("[Task Create] Asana sync failed:", (err as Error).message);
+            asanaSyncFailed = true;
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
-      ...data[0],
+      ...createdTask,
       success: true,
+      ...(asanaSyncFailed ? { asana_sync_failed: true } : {}),
     });
   }
 
