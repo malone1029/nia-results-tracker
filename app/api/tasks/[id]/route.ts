@@ -62,7 +62,7 @@ export async function PATCH(
   // Fetch the task (includes fields needed for activity log diffs)
   const { data: task, error: fetchError } = await supabase
     .from("process_tasks")
-    .select("id, origin, asana_task_gid, process_id, priority, assignee_name, completed")
+    .select("id, origin, asana_task_gid, process_id, priority, assignee_name, assignee_email, completed")
     .eq("id", id)
     .single();
 
@@ -80,6 +80,7 @@ export async function PATCH(
     updates.title = body.title.trim();
   }
   if (body.description !== undefined) updates.description = body.description;
+  if (body.start_date !== undefined) updates.start_date = body.start_date;
   if (body.due_date !== undefined) updates.due_date = body.due_date;
   if (body.assignee_name !== undefined) updates.assignee_name = body.assignee_name;
   if (body.assignee_email !== undefined) updates.assignee_email = body.assignee_email;
@@ -151,6 +152,7 @@ export async function PATCH(
     const asanaData: Record<string, unknown> = {};
     if (body.title !== undefined) asanaData.name = body.title;
     if (body.description !== undefined) asanaData.notes = body.description;
+    if (body.start_date !== undefined) asanaData.start_on = body.start_date;
     if (body.due_date !== undefined) asanaData.due_on = body.due_date;
     if (body.completed !== undefined) asanaData.completed = body.completed;
     if (body.assignee_asana_gid !== undefined)
@@ -224,6 +226,36 @@ export async function PATCH(
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
+  // ── Dependency check on completion (soft warning) ──
+  let blockerWarning: { warning: string; blockerCount: number } | null = null;
+  if (body.completed === true && !task.completed) {
+    try {
+      // Get all tasks this task depends on
+      const { data: deps } = await supabase
+        .from("task_dependencies")
+        .select("depends_on_task_id")
+        .eq("task_id", id);
+
+      if (deps && deps.length > 0) {
+        const depIds = deps.map((d) => d.depends_on_task_id);
+        const { data: depTasks } = await supabase
+          .from("process_tasks")
+          .select("id, completed")
+          .in("id", depIds);
+
+        const incompleteCount = (depTasks || []).filter((t) => !t.completed).length;
+        if (incompleteCount > 0) {
+          blockerWarning = {
+            warning: "completed_with_blockers",
+            blockerCount: incompleteCount,
+          };
+        }
+      }
+    } catch {
+      // Non-critical — don't block the update
+    }
+  }
+
   // ── Activity logging (best-effort, non-blocking) ──
   try {
     const { data: roleRow } = await supabase
@@ -274,7 +306,10 @@ export async function PATCH(
     // Activity logging is non-critical — don't fail the request
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({
+    success: true,
+    ...(blockerWarning || {}),
+  });
 }
 
 /**

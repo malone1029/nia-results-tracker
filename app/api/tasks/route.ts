@@ -165,6 +165,7 @@ export async function POST(request: Request) {
       assignee_name: task.assignee_name || null,
       assignee_email: task.assignee_email || null,
       assignee_asana_gid: task.assignee_asana_gid || null,
+      start_date: task.start_date || null,
       due_date: task.due_date || null,
       priority: task.priority || "medium",
     });
@@ -273,6 +274,9 @@ export async function POST(request: Request) {
             };
             if (createdTask.assignee_asana_gid) {
               asanaData.assignee = createdTask.assignee_asana_gid;
+            }
+            if (createdTask.start_date) {
+              asanaData.start_on = createdTask.start_date;
             }
             if (createdTask.due_date) {
               asanaData.due_on = createdTask.due_date;

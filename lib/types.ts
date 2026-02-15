@@ -206,6 +206,7 @@ export interface ProcessTask {
   assignee_name: string | null;
   assignee_email: string | null;
   assignee_asana_gid: string | null;
+  start_date: string | null;
   due_date: string | null;
   completed: boolean;
   completed_at: string | null;
@@ -240,7 +241,24 @@ export type TaskActivityAction =
   | "reassigned"
   | "priority_changed"
   | "status_changed"
-  | "commented";
+  | "commented"
+  | "dependency_added"
+  | "dependency_removed";
+
+// ── Task dependencies ────────────────────────────────────────
+
+export interface TaskDependency {
+  id: number;
+  task_id: number;
+  depends_on_task_id: number;
+  created_at: string;
+  created_by: string;
+}
+
+export interface TaskDependencyWithTitle extends TaskDependency {
+  title: string;
+  completed: boolean;
+}
 
 export interface TaskActivity {
   id: number;
