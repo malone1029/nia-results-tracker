@@ -73,21 +73,27 @@ export async function POST(request: Request) {
     );
   }
 
-  // Fetch pending tasks
-  const { data: pendingTasks, error: tasksError } = await supabase
+  // Fetch tasks that need syncing to Asana:
+  // - status = 'active' (approved by user) AND no Asana GID yet AND not from Asana
+  // - Also include legacy 'pending' tasks for backwards compatibility
+  const { data: unsyncedTasks, error: tasksError } = await supabase
     .from("process_tasks")
     .select("*")
     .eq("process_id", processId)
-    .eq("status", "pending")
+    .in("status", ["active", "pending"])
+    .is("asana_task_gid", null)
+    .neq("origin", "asana")
     .order("created_at", { ascending: true });
 
   if (tasksError) {
     return NextResponse.json({ error: tasksError.message }, { status: 500 });
   }
 
-  if (!pendingTasks || pendingTasks.length === 0) {
-    return NextResponse.json({ error: "No pending tasks to export" }, { status: 400 });
+  if (!unsyncedTasks || unsyncedTasks.length === 0) {
+    return NextResponse.json({ error: "No tasks to sync to Asana" }, { status: 400 });
   }
+
+  const pendingTasks = unsyncedTasks;
 
   const projectGid = proc.asana_project_gid;
   const adliTaskGids = (proc.asana_adli_task_gids as Record<string, string>) || {};
