@@ -194,6 +194,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Log 'created' activity for each new task (best-effort)
+  try {
+    const { data: roleRow } = await supabase
+      .from("user_roles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .single();
+    const userName = roleRow?.full_name || user.email || "Unknown";
+
+    await supabase.from("task_activity_log").insert(
+      data.map((t: { id: number }) => ({
+        task_id: t.id,
+        user_id: user.id,
+        user_name: userName,
+        action: "created",
+      }))
+    );
+  } catch {
+    // Activity logging is non-critical
+  }
+
   // Single insert: attempt Asana sync if process is linked
   if (isSingleInsert && data.length === 1) {
     const createdTask = data[0];

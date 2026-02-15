@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { ProcessTask, TaskPriority } from "@/lib/types";
+import type { ProcessTask, TaskPriority, TaskComment, TaskActivity } from "@/lib/types";
 import { PDCA_SECTIONS } from "@/lib/pdca";
 import AssigneePicker from "@/components/assignee-picker";
 
@@ -35,6 +35,14 @@ export default function TaskDetailPanel({
   const [editedDescription, setEditedDescription] = useState(task.description || "");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Comments state
+  const [comments, setComments] = useState<TaskComment[]>([]);
+  const [commentBody, setCommentBody] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+
+  // Activity state
+  const [activities, setActivities] = useState<TaskActivity[]>([]);
+
   const titleRef = useRef<HTMLInputElement>(null);
   const descTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -54,6 +62,18 @@ export default function TaskDetailPanel({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  // Fetch comments + activity on open
+  useEffect(() => {
+    fetch(`/api/tasks/${task.id}/comments`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => { if (isMountedRef.current) setComments(data); })
+      .catch(() => {});
+    fetch(`/api/tasks/${task.id}/activity`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => { if (isMountedRef.current) setActivities(data); })
+      .catch(() => {});
+  }, [task.id]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -95,6 +115,76 @@ export default function TaskDetailPanel({
   // ── Delete ──
   function handleDelete() {
     onDelete(task.id);
+  }
+
+  // ── Post comment ──
+  async function handlePostComment() {
+    const trimmed = commentBody.trim();
+    if (!trimmed || postingComment) return;
+
+    setPostingComment(true);
+    // Optimistic add
+    const tempComment: TaskComment = {
+      id: -Date.now(),
+      task_id: task.id,
+      user_id: "",
+      user_name: "You",
+      body: trimmed,
+      created_at: new Date().toISOString(),
+    };
+    setComments((prev) => [...prev, tempComment]);
+    setCommentBody("");
+
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: trimmed }),
+      });
+      if (!res.ok) throw new Error("Failed to post comment");
+      const real = await res.json();
+      // Replace temp with real
+      setComments((prev) => prev.map((c) => (c.id === tempComment.id ? real : c)));
+    } catch {
+      // Revert
+      setComments((prev) => prev.filter((c) => c.id !== tempComment.id));
+      setCommentBody(trimmed);
+    } finally {
+      setPostingComment(false);
+    }
+  }
+
+  // ── Format activity entry ──
+  function formatActivity(a: TaskActivity): string {
+    const name = a.user_name.split(" ")[0]; // First name only
+    switch (a.action) {
+      case "created": return `${name} created this task`;
+      case "completed": return `${name} marked complete`;
+      case "uncompleted": return `${name} marked incomplete`;
+      case "deleted": return `${name} deleted this task`;
+      case "commented": return `${name} commented`;
+      case "reassigned": {
+        const d = a.detail as { from?: string; to?: string } | null;
+        return `${name} reassigned from ${d?.from || "?"} to ${d?.to || "?"}`;
+      }
+      case "priority_changed": {
+        const d = a.detail as { from?: string; to?: string } | null;
+        return `${name} changed priority from ${d?.from || "?"} to ${d?.to || "?"}`;
+      }
+      case "status_changed": return `${name} changed status`;
+      default: return `${name} updated task`;
+    }
+  }
+
+  function timeAgo(iso: string): string {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   }
 
   const badge = ORIGIN_BADGE[task.origin] || ORIGIN_BADGE.hub_manual;
@@ -290,6 +380,67 @@ export default function TaskDetailPanel({
               className="w-full text-sm bg-surface-hover border border-border-light rounded-lg px-3 py-2 text-foreground placeholder:text-text-muted focus:outline-none focus:border-nia-grey-blue resize-none"
             />
           </div>
+
+          {/* Comments */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wide">
+              Comments {comments.length > 0 && `(${comments.length})`}
+            </h4>
+            {comments.length > 0 && (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {comments.map((c) => (
+                  <div key={c.id} className="bg-surface-hover rounded-lg px-3 py-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-medium text-nia-dark">{c.user_name}</span>
+                      <span className="text-[10px] text-text-muted">{timeAgo(c.created_at)}</span>
+                    </div>
+                    <p className="text-xs text-text-secondary whitespace-pre-wrap">{c.body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={commentBody}
+                onChange={(e) => setCommentBody(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handlePostComment();
+                  }
+                }}
+                placeholder="Add a comment..."
+                maxLength={2000}
+                className="flex-1 text-xs bg-surface-hover border border-border-light rounded-lg px-3 py-1.5 text-foreground placeholder:text-text-muted focus:outline-none focus:border-nia-grey-blue"
+              />
+              <button
+                onClick={handlePostComment}
+                disabled={!commentBody.trim() || postingComment}
+                className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark disabled:opacity-40 transition-colors px-2"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+
+          {/* Activity */}
+          {activities.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wide">Activity</h4>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {activities.map((a) => (
+                  <div key={a.id} className="flex items-start gap-2">
+                    <div className="w-1 h-1 rounded-full bg-border mt-1.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-text-secondary">{formatActivity(a)}</p>
+                      <p className="text-[10px] text-text-muted">{timeAgo(a.created_at)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Metadata (read-only) */}
           <div className="space-y-2">

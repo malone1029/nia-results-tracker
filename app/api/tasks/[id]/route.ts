@@ -59,10 +59,10 @@ export async function PATCH(
     );
   }
 
-  // Fetch the task to check origin, asana_task_gid, and process_id
+  // Fetch the task (includes fields needed for activity log diffs)
   const { data: task, error: fetchError } = await supabase
     .from("process_tasks")
-    .select("id, origin, asana_task_gid, process_id")
+    .select("id, origin, asana_task_gid, process_id, priority, assignee_name, completed")
     .eq("id", id)
     .single();
 
@@ -222,6 +222,56 @@ export async function PATCH(
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+
+  // ── Activity logging (best-effort, non-blocking) ──
+  try {
+    const { data: roleRow } = await supabase
+      .from("user_roles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .single();
+    const userName = roleRow?.full_name || user.email || "Unknown";
+
+    const activities: {
+      task_id: number;
+      user_id: string;
+      user_name: string;
+      action: string;
+      detail?: Record<string, unknown>;
+    }[] = [];
+
+    if (body.completed === true && !task.completed) {
+      activities.push({ task_id: id, user_id: user.id, user_name: userName, action: "completed" });
+    } else if (body.completed === false && task.completed) {
+      activities.push({ task_id: id, user_id: user.id, user_name: userName, action: "uncompleted" });
+    }
+
+    if (body.priority !== undefined && body.priority !== task.priority) {
+      activities.push({
+        task_id: id,
+        user_id: user.id,
+        user_name: userName,
+        action: "priority_changed",
+        detail: { from: task.priority, to: body.priority },
+      });
+    }
+
+    if (body.assignee_name !== undefined && body.assignee_name !== task.assignee_name) {
+      activities.push({
+        task_id: id,
+        user_id: user.id,
+        user_name: userName,
+        action: "reassigned",
+        detail: { from: task.assignee_name || "Unassigned", to: body.assignee_name || "Unassigned" },
+      });
+    }
+
+    if (activities.length > 0) {
+      await supabase.from("task_activity_log").insert(activities);
+    }
+  } catch {
+    // Activity logging is non-critical — don't fail the request
   }
 
   return NextResponse.json({ success: true });
