@@ -3,7 +3,8 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
 import { PDCA_SECTION_VALUES, PDCA_SECTIONS } from "@/lib/pdca";
 import { sendTaskNotification } from "@/lib/send-task-notification";
-import type { PdcaSection } from "@/lib/types";
+import { computeNextDueDate, validateRecurrenceRule } from "@/lib/recurrence";
+import type { PdcaSection, RecurrenceRule } from "@/lib/types";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://nia-results-tracker.vercel.app";
 
@@ -65,7 +66,7 @@ export async function PATCH(
   // Fetch the task (includes fields needed for activity log diffs)
   const { data: task, error: fetchError } = await supabase
     .from("process_tasks")
-    .select("id, origin, asana_task_gid, process_id, priority, assignee_name, assignee_email, completed")
+    .select("id, title, origin, asana_task_gid, process_id, priority, assignee_name, assignee_email, completed, recurrence_rule, pdca_section, description, assignee_asana_gid, start_date, due_date")
     .eq("id", id)
     .single();
 
@@ -120,6 +121,19 @@ export async function PATCH(
       );
     }
     updates.priority = body.priority;
+  }
+
+  // Recurrence rule (Hub-only — not synced to Asana)
+  if (body.recurrence_rule !== undefined) {
+    if (body.recurrence_rule === null) {
+      updates.recurrence_rule = null;
+    } else {
+      const ruleError = validateRecurrenceRule(body.recurrence_rule);
+      if (ruleError) {
+        return NextResponse.json({ error: ruleError }, { status: 400 });
+      }
+      updates.recurrence_rule = body.recurrence_rule;
+    }
   }
 
   // Auto-derive status and completed_at from completed boolean
@@ -259,6 +273,67 @@ export async function PATCH(
     }
   }
 
+  // ── Recurrence spawn on completion ──
+  let spawnedTaskId: number | null = null;
+  if (body.completed === true && !task.completed && task.recurrence_rule) {
+    try {
+      const rule = task.recurrence_rule as RecurrenceRule;
+      const nextDueDate = computeNextDueDate(new Date().toISOString(), rule);
+
+      if (nextDueDate) {
+        // Check if a next occurrence already exists (prevent double-spawn)
+        const parentId = (task as Record<string, unknown>).recurring_parent_id as number | null || task.id;
+        const { data: existing } = await supabase
+          .from("process_tasks")
+          .select("id")
+          .eq("recurring_parent_id", parentId)
+          .eq("completed", false)
+          .limit(1);
+
+        if (!existing || existing.length === 0) {
+          // Spawn new recurring task
+          const { data: maxRow } = await supabase
+            .from("process_tasks")
+            .select("sort_order")
+            .eq("process_id", task.process_id)
+            .eq("pdca_section", task.pdca_section)
+            .order("sort_order", { ascending: false })
+            .limit(1)
+            .single();
+
+          const { data: newTask } = await supabase
+            .from("process_tasks")
+            .insert({
+              process_id: task.process_id,
+              title: task.title,
+              description: task.description,
+              pdca_section: task.pdca_section,
+              assignee_name: task.assignee_name,
+              assignee_email: task.assignee_email,
+              assignee_asana_gid: task.assignee_asana_gid,
+              due_date: nextDueDate,
+              start_date: null,
+              priority: (task as Record<string, unknown>).priority as string || "medium",
+              recurrence_rule: task.recurrence_rule,
+              recurring_parent_id: parentId,
+              origin: task.origin === "asana" ? "hub_manual" : task.origin,
+              source: "user_created",
+              status: "active",
+              sort_order: (maxRow?.sort_order ?? 0) + 1000,
+            })
+            .select("id")
+            .single();
+
+          if (newTask) {
+            spawnedTaskId = newTask.id;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[PATCH /api/tasks] Recurrence spawn error:", (err as Error).message);
+    }
+  }
+
   // ── Activity logging (best-effort, non-blocking) ──
   try {
     const { data: roleRow } = await supabase
@@ -299,6 +374,16 @@ export async function PATCH(
         user_name: userName,
         action: "reassigned",
         detail: { from: task.assignee_name || "Unassigned", to: body.assignee_name || "Unassigned" },
+      });
+    }
+
+    if (body.recurrence_rule !== undefined) {
+      activities.push({
+        task_id: id,
+        user_id: user.id,
+        user_name: userName,
+        action: "recurrence_set",
+        detail: body.recurrence_rule ? { rule: body.recurrence_rule } : { removed: true },
       });
     }
 
@@ -418,6 +503,7 @@ export async function PATCH(
   return NextResponse.json({
     success: true,
     ...(blockerWarning || {}),
+    ...(spawnedTaskId ? { spawnedTaskId } : {}),
   });
 }
 

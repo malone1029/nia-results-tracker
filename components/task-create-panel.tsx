@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { PdcaSection, ProcessTask, TaskPriority } from "@/lib/types";
+import type { PdcaSection, ProcessTask, TaskPriority, RecurrenceRule } from "@/lib/types";
 import { PDCA_SECTIONS } from "@/lib/pdca";
 import AssigneePicker from "@/components/assignee-picker";
+
+const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const PDCA_KEYS: PdcaSection[] = ["plan", "execute", "evaluate", "improve"];
 
@@ -33,6 +35,11 @@ export default function TaskCreatePanel({
     gid: string;
   } | null>(null);
   const [priority, setPriority] = useState<TaskPriority>("medium");
+  const [recurring, setRecurring] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceRule["type"]>("weekly");
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceDayOfWeek, setRecurrenceDayOfWeek] = useState(1); // Monday
+  const [recurrenceDayOfMonth, setRecurrenceDayOfMonth] = useState(1);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +83,12 @@ export default function TaskCreatePanel({
           priority,
           origin: "hub_manual",
           source: "user_created",
+          recurrence_rule: recurring ? {
+            type: recurrenceType,
+            interval: recurrenceInterval,
+            ...(recurrenceType === "weekly" ? { dayOfWeek: recurrenceDayOfWeek } : {}),
+            ...(recurrenceType === "monthly" ? { dayOfMonth: recurrenceDayOfMonth } : {}),
+          } : null,
         }),
       });
 
@@ -246,6 +259,103 @@ export default function TaskCreatePanel({
             </div>
             {dateError && (
               <p className="text-[10px] text-nia-red">{dateError}</p>
+            )}
+          </div>
+
+          {/* Recurrence */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">
+                Recurring
+              </label>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={recurring}
+                onClick={() => setRecurring(!recurring)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  recurring ? "bg-nia-green" : "bg-border"
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                    recurring ? "translate-x-4.5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {recurring && (
+              <div className="space-y-2 bg-surface-hover rounded-lg p-3">
+                {/* Type chips */}
+                <div className="flex gap-2">
+                  {(["daily", "weekly", "monthly"] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setRecurrenceType(type)}
+                      className={`text-xs font-medium px-3 py-1 rounded-lg capitalize transition-all ${
+                        recurrenceType === type
+                          ? "bg-nia-grey-blue text-white"
+                          : "bg-card text-text-secondary hover:text-foreground"
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Interval */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-text-secondary">Every</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={recurrenceInterval}
+                    onChange={(e) => setRecurrenceInterval(Math.max(1, Number(e.target.value)))}
+                    className="w-14 text-xs text-center bg-card border border-border-light rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-nia-grey-blue"
+                  />
+                  <span className="text-xs text-text-secondary">
+                    {recurrenceType === "daily" ? "day(s)" : recurrenceType === "weekly" ? "week(s)" : "month(s)"}
+                  </span>
+                </div>
+
+                {/* Day of week for weekly */}
+                {recurrenceType === "weekly" && (
+                  <div className="flex gap-1">
+                    {DAYS_OF_WEEK.map((day, idx) => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => setRecurrenceDayOfWeek(idx)}
+                        className={`text-[10px] font-medium w-8 h-6 rounded transition-all ${
+                          recurrenceDayOfWeek === idx
+                            ? "bg-nia-grey-blue text-white"
+                            : "bg-card text-text-muted hover:text-foreground"
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Day of month for monthly */}
+                {recurrenceType === "monthly" && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-text-secondary">On day</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={recurrenceDayOfMonth}
+                      onChange={(e) => setRecurrenceDayOfMonth(Math.max(1, Math.min(31, Number(e.target.value))))}
+                      className="w-14 text-xs text-center bg-card border border-border-light rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-nia-grey-blue"
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
