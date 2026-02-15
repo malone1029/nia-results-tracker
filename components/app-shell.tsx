@@ -90,6 +90,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Floating help button */}
       <button
         onClick={() => setHelpOpen(true)}
+        data-tour="ai-help"
         className="fixed bottom-6 right-6 z-30 w-12 h-12 rounded-full bg-nia-grey-blue text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center text-lg font-bold hover:scale-105"
         aria-label="Get help"
       >

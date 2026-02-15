@@ -103,6 +103,8 @@ export default function WelcomeOnboarding({
 
   const markComplete = useCallback(() => {
     localStorage.setItem(getStorageKey(userId), "true");
+    localStorage.setItem("onboarding-completed", "true");
+    localStorage.setItem("tour-pending", "true");
     setVisible(false);
     setTimeout(onComplete, 300);
   }, [userId, onComplete]);
