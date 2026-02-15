@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
 import { PDCA_SECTION_VALUES, PDCA_SECTIONS } from "@/lib/pdca";
+import { sendTaskNotification } from "@/lib/send-task-notification";
 import type { PdcaSection } from "@/lib/types";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://nia-results-tracker.vercel.app";
 
 // ── Simple per-user rate limiter (protects Asana's 150 req/min limit) ──
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -304,6 +307,112 @@ export async function PATCH(
     }
   } catch {
     // Activity logging is non-critical — don't fail the request
+  }
+
+  // ── Email notifications (fire-and-forget) ──
+  try {
+    // Get task info for emails (need title + process name)
+    const { data: taskInfo } = await supabase
+      .from("process_tasks")
+      .select("title, process_id, assignee_email, assignee_name")
+      .eq("id", id)
+      .single();
+
+    if (taskInfo) {
+      const { data: updaterRole } = await supabase
+        .from("user_roles")
+        .select("full_name, email")
+        .eq("user_id", user.id)
+        .single();
+      const updaterDisplayName = updaterRole?.full_name || user.email || "Someone";
+      const updaterEmail = updaterRole?.email || user.email;
+
+      const { data: proc } = await supabase
+        .from("processes")
+        .select("name")
+        .eq("id", taskInfo.process_id)
+        .single();
+      const processName = proc?.name || "Unknown process";
+
+      // Assignment email: when assignee_email changes to someone other than the updater
+      if (
+        body.assignee_email !== undefined &&
+        body.assignee_email !== task.assignee_email &&
+        body.assignee_email &&
+        body.assignee_email !== updaterEmail
+      ) {
+        // Check recipient's preference
+        const { data: assigneeUser } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("email", body.assignee_email)
+          .single();
+
+        let shouldSend = true;
+        if (assigneeUser) {
+          const { data: pref } = await supabase
+            .from("notification_preferences")
+            .select("notify_on_assignment")
+            .eq("user_id", assigneeUser.user_id)
+            .single();
+          if (pref && pref.notify_on_assignment === false) shouldSend = false;
+        }
+
+        if (shouldSend) {
+          await sendTaskNotification({
+            to: body.assignee_email,
+            subject: `You've been assigned: "${taskInfo.title}"`,
+            recipientName: body.assignee_name || "there",
+            taskTitle: taskInfo.title,
+            processName,
+            bodyText: `<strong>${updaterDisplayName}</strong> assigned you to this task.`,
+            ctaLabel: "View Task",
+            ctaUrl: `${APP_URL}/processes/${taskInfo.process_id}`,
+          });
+        }
+      }
+
+      // Completion email: when task completed and assignee differs from completer
+      if (
+        body.completed === true &&
+        !task.completed &&
+        taskInfo.assignee_email &&
+        taskInfo.assignee_email !== updaterEmail
+      ) {
+        // Check recipient's preference
+        const { data: assigneeUser } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("email", taskInfo.assignee_email)
+          .single();
+
+        let shouldSend = true;
+        if (assigneeUser) {
+          const { data: pref } = await supabase
+            .from("notification_preferences")
+            .select("notify_on_completion")
+            .eq("user_id", assigneeUser.user_id)
+            .single();
+          if (pref && pref.notify_on_completion === false) shouldSend = false;
+        }
+
+        if (shouldSend) {
+          await sendTaskNotification({
+            to: taskInfo.assignee_email,
+            subject: `Task completed: "${taskInfo.title}"`,
+            recipientName: taskInfo.assignee_name || "there",
+            taskTitle: taskInfo.title,
+            processName,
+            bodyText: `<strong>${updaterDisplayName}</strong> marked this task as complete.`,
+            ctaLabel: "View Task",
+            ctaUrl: `${APP_URL}/processes/${taskInfo.process_id}`,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    // Email notifications are non-critical — never fail the request
+    console.warn("[PATCH /api/tasks] Notification error:", (err as Error).message);
   }
 
   return NextResponse.json({
