@@ -5,15 +5,21 @@ import { PDCA_SECTIONS } from "@/lib/pdca";
 import HelpTip from "@/components/help-tip";
 import type { PdcaSection, ProcessTask } from "@/lib/types";
 
-const COLUMNS: PdcaSection[] = ["plan", "execute", "evaluate", "improve"];
+// ── Constants ────────────────────────────────────────────────
 
-interface TaskReviewPanelProps {
-  processId: number;
-  asanaProjectGid?: string | null;
-  onTaskCountChange?: (count: number) => void;
-}
+const PDCA_KEYS: PdcaSection[] = ["plan", "execute", "evaluate", "improve"];
+const SYNC_COOLDOWN_MS = 2 * 60 * 1000;
+const REFRESH_COOLDOWN_MS = 10 * 1000;
 
-/** Format a relative time string like "2 min ago" or "just now" */
+// Origin badge colors
+const ORIGIN_BADGE: Record<string, { label: string; bg: string; text: string }> = {
+  asana:      { label: "Asana",         bg: "bg-nia-grey-blue/15", text: "text-nia-grey-blue" },
+  hub_ai:     { label: "AI Suggestion", bg: "bg-nia-orange/15",    text: "text-nia-orange" },
+  hub_manual: { label: "Manual",        bg: "bg-surface-muted",    text: "text-text-muted" },
+};
+
+// ── Helpers ──────────────────────────────────────────────────
+
 function formatSyncTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -25,16 +31,122 @@ function formatSyncTime(iso: string): string {
   return `${hours} hours ago`;
 }
 
-const SYNC_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes between auto-syncs
-const REFRESH_COOLDOWN_MS = 10 * 1000;   // 10 seconds between manual refreshes
+function formatDueDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function isOverdue(task: ProcessTask): boolean {
+  if (!task.due_date || task.completed) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  return task.due_date < today;
+}
+
+/** Match Asana section name to a PDCA section (case-insensitive) */
+function matchPdcaSection(sectionName: string): PdcaSection | null {
+  const lower = sectionName.toLowerCase().trim();
+  if (PDCA_KEYS.includes(lower as PdcaSection)) return lower as PdcaSection;
+  return null;
+}
+
+/** Group tasks by section, preserving Asana section names with PDCA color matching */
+interface TaskSection {
+  key: string;           // unique key for React
+  label: string;         // display name
+  pdcaMatch: PdcaSection | null;  // PDCA match for color coding
+  tasks: ProcessTask[];  // non-subtask tasks (subtasks are nested)
+  completedCount: number;
+  totalCount: number;
+}
+
+function buildSections(tasks: ProcessTask[]): TaskSection[] {
+  // Separate tasks by origin type
+  const asanaTasks = tasks.filter((t) => t.origin === "asana" && !t.is_subtask);
+  const hubTasks = tasks.filter((t) => t.origin !== "asana" && t.status !== "pending");
+
+  // Group Asana tasks by section name
+  const asanaSectionMap = new Map<string, ProcessTask[]>();
+  for (const t of asanaTasks) {
+    const key = t.asana_section_name || "Uncategorized";
+    if (!asanaSectionMap.has(key)) asanaSectionMap.set(key, []);
+    asanaSectionMap.get(key)!.push(t);
+  }
+
+  const sections: TaskSection[] = [];
+
+  // Asana sections (in order they appear)
+  for (const [sectionName, sectionTasks] of asanaSectionMap) {
+    const completedCount = sectionTasks.filter((t) => t.completed).length;
+    // Count subtasks too
+    const subtaskGids = sectionTasks.map((t) => t.asana_task_gid).filter(Boolean);
+    const subtasks = tasks.filter((t) => t.is_subtask && t.parent_asana_gid && subtaskGids.includes(t.parent_asana_gid));
+    const subtaskCompleted = subtasks.filter((t) => t.completed).length;
+
+    sections.push({
+      key: `asana-${sectionName}`,
+      label: sectionName,
+      pdcaMatch: matchPdcaSection(sectionName),
+      tasks: sortTasks(sectionTasks),
+      completedCount: completedCount + subtaskCompleted,
+      totalCount: sectionTasks.length + subtasks.length,
+    });
+  }
+
+  // Hub tasks grouped by PDCA section
+  if (hubTasks.length > 0) {
+    const hubByPdca = new Map<PdcaSection, ProcessTask[]>();
+    for (const t of hubTasks) {
+      const section = t.pdca_section;
+      if (!hubByPdca.has(section)) hubByPdca.set(section, []);
+      hubByPdca.get(section)!.push(t);
+    }
+
+    for (const key of PDCA_KEYS) {
+      const sectionTasks = hubByPdca.get(key);
+      if (!sectionTasks || sectionTasks.length === 0) continue;
+
+      // Check if this PDCA section already exists as an Asana section
+      const existingSection = sections.find((s) => s.pdcaMatch === key);
+      if (existingSection) {
+        // Merge hub tasks into the existing Asana section
+        existingSection.tasks = sortTasks([...existingSection.tasks, ...sectionTasks]);
+        existingSection.totalCount += sectionTasks.length;
+        existingSection.completedCount += sectionTasks.filter((t) => t.status === "completed").length;
+      } else {
+        sections.push({
+          key: `hub-${key}`,
+          label: PDCA_SECTIONS[key].label,
+          pdcaMatch: key,
+          tasks: sortTasks(sectionTasks),
+          completedCount: sectionTasks.filter((t) => t.status === "completed").length,
+          totalCount: sectionTasks.length,
+        });
+      }
+    }
+  }
+
+  return sections;
+}
+
+/** Sort tasks: active first, then completed (dimmed) */
+function sortTasks(tasks: ProcessTask[]): ProcessTask[] {
+  return [...tasks].sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return 0;
+  });
+}
+
+// ── Main Component ──────────────────────────────────────────
+
+interface TaskReviewPanelProps {
+  processId: number;
+  asanaProjectGid?: string | null;
+  onTaskCountChange?: (count: number) => void;
+}
 
 export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCountChange }: TaskReviewPanelProps) {
   const [tasks, setTasks] = useState<ProcessTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportResult, setExportResult] = useState<{ exported: number; failed: number; sectionCounts: Record<string, number>; asanaUrl: string; errors?: string[] } | null>(null);
@@ -55,7 +167,6 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
         setTasks(data);
         onTaskCountChange?.(data.filter((t) => t.status === "pending").length);
 
-        // Derive last synced time from task data
         const syncedTasks = data.filter((t) => t.last_synced_at);
         if (syncedTasks.length > 0) {
           const latest = syncedTasks.reduce((a, b) =>
@@ -70,7 +181,6 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     setLoading(false);
   }, [processId, onTaskCountChange]);
 
-  // Sync tasks from Asana
   const syncFromAsana = useCallback(async () => {
     if (!asanaProjectGid || syncing) return;
     setSyncing(true);
@@ -91,7 +201,6 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
         return;
       }
       setLastSyncedAt(data.lastSyncedAt);
-      // Refresh tasks to show synced data
       await fetchTasks();
     } catch {
       setSyncError("Couldn't refresh from Asana. Showing cached data.");
@@ -100,23 +209,16 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     }
   }, [asanaProjectGid, syncing, processId, fetchTasks]);
 
-  // Auto-sync on mount (if linked and last sync > 2 min ago)
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
   useEffect(() => {
     if (!asanaProjectGid || syncTriggeredRef.current) return;
     syncTriggeredRef.current = true;
-
-    // Check if last sync was recent enough to skip
     const shouldSync = !lastSyncedAt ||
       (Date.now() - new Date(lastSyncedAt).getTime() > SYNC_COOLDOWN_MS);
-
-    if (shouldSync) {
-      syncFromAsana();
-    }
+    if (shouldSync) syncFromAsana();
   }, [asanaProjectGid, lastSyncedAt, syncFromAsana]);
 
-  // Manual refresh with cooldown
   function handleManualRefresh() {
     if (refreshCooldown || syncing) return;
     setRefreshCooldown(true);
@@ -124,72 +226,46 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     setTimeout(() => setRefreshCooldown(false), REFRESH_COOLDOWN_MS);
   }
 
-  async function handleDelete(taskId: number) {
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/tasks?id=${taskId}`, { method: "DELETE" });
-      if (!res.ok) { setError("Failed to delete task"); return; }
-      const updatedTasks = tasks.filter((t) => t.id !== taskId);
-      setTasks(updatedTasks);
-      setDeletingId(null);
-      onTaskCountChange?.(updatedTasks.filter((t) => t.status === "pending").length);
-    } catch {
-      setError("Failed to delete task");
-    } finally {
-      setSaving(false);
-    }
-  }
+  // ── Keep / Dismiss for AI suggestions ──
 
-  async function handleMove(taskId: number, newSection: PdcaSection) {
+  async function handleKeep(taskId: number) {
+    setSaving(true);
     try {
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: taskId, pdca_section: newSection }),
+        body: JSON.stringify({ id: taskId, status: "active" }),
       });
       if (res.ok) {
         setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? { ...t, pdca_section: newSection } : t))
+          prev.map((t) => (t.id === taskId ? { ...t, status: "active" as const } : t))
         );
+        onTaskCountChange?.(tasks.filter((t) => t.id !== taskId && t.status === "pending").length);
       }
     } catch {
-      setError("Failed to move task");
-    }
-  }
-
-  function startEdit(task: ProcessTask) {
-    setEditingId(task.id);
-    setEditTitle(task.title);
-    setEditDescription(task.description || "");
-  }
-
-  async function saveEdit(taskId: number) {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/tasks", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: taskId,
-          title: editTitle.trim(),
-          description: editDescription.trim() || null,
-        }),
-      });
-      if (!res.ok) { setError("Failed to save changes"); return; }
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId
-            ? { ...t, title: editTitle.trim(), description: editDescription.trim() || null }
-            : t
-        )
-      );
-      setEditingId(null);
-    } catch {
-      setError("Failed to save changes");
+      setError("Failed to keep task");
     } finally {
       setSaving(false);
     }
   }
+
+  async function handleDismiss(taskId: number) {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/tasks?id=${taskId}`, { method: "DELETE" });
+      if (res.ok) {
+        const updated = tasks.filter((t) => t.id !== taskId);
+        setTasks(updated);
+        onTaskCountChange?.(updated.filter((t) => t.status === "pending").length);
+      }
+    } catch {
+      setError("Failed to dismiss task");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ── Export to Asana ──
 
   async function handleExportToAsana() {
     setExporting(true);
@@ -204,16 +280,15 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
       const data = await res.json();
       if (!res.ok) {
         if (data.error === "not_linked") {
-          setError(data.message || "Process not linked to Asana. Use the export dialog on the Content tab first.");
+          setError(data.message || "Process not linked to Asana.");
         } else if (data.error === "not_connected") {
-          setError(data.message || "Asana not connected. Go to Settings to connect.");
+          setError(data.message || "Asana not connected.");
         } else {
           setError(data.error || "Export failed");
         }
         return;
       }
       setExportResult(data);
-      // Refresh tasks to show updated statuses
       fetchTasks();
     } catch {
       setError("Export to Asana failed");
@@ -222,24 +297,33 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     }
   }
 
-  const pendingTasks = tasks.filter((t) => t.status === "pending");
-  const exportedTasks = tasks.filter((t) => t.status === "exported");
+  // ── Derived data ──
+
+  const pendingSuggestions = tasks.filter((t) => t.origin === "hub_ai" && t.status === "pending");
+  const sections = buildSections(tasks);
+  const allSubtasks = tasks.filter((t) => t.is_subtask);
+  const pendingCount = pendingSuggestions.length;
+  const exportableTasks = tasks.filter((t) => t.status === "pending");
+
+  // ── Loading state ──
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {COLUMNS.map((col) => (
-          <div key={col} className="bg-surface-hover rounded-xl p-4 animate-pulse">
-            <div className="h-5 bg-surface-muted rounded w-20 mb-4" />
-            <div className="space-y-3">
-              <div className="h-16 bg-surface-muted rounded" />
-              <div className="h-16 bg-surface-muted rounded" />
+      <div className="space-y-4">
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-surface-hover rounded-xl p-4 animate-pulse">
+            <div className="h-5 bg-surface-muted rounded w-32 mb-3" />
+            <div className="space-y-2">
+              <div className="h-14 bg-surface-muted rounded" />
+              <div className="h-14 bg-surface-muted rounded" />
             </div>
           </div>
         ))}
       </div>
     );
   }
+
+  // ── Empty state ──
 
   if (tasks.length === 0) {
     return (
@@ -249,9 +333,11 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-nia-dark mb-1">No tasks queued</h3>
+        <h3 className="text-lg font-semibold text-nia-dark mb-1">No tasks yet</h3>
         <p className="text-sm text-text-tertiary max-w-sm">
-          Use the AI coach to generate improvement tasks. Each suggestion creates actionable tasks mapped to Plan, Execute, Evaluate, and Improve sections.
+          {asanaProjectGid
+            ? "Tasks will appear here after syncing from Asana, or use the AI coach to generate improvement suggestions."
+            : "Link this process to an Asana project to import tasks, or use the AI coach to generate improvement suggestions."}
         </p>
       </div>
     );
@@ -269,7 +355,7 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                 {exportResult.failed > 0 && ` (${exportResult.failed} failed)`}
               </p>
               <p className="text-xs text-text-secondary mt-0.5">
-                {Object.entries(exportResult.sectionCounts).map(([section, count]) => `${count} ${section}`).join(", ")}
+                {Object.entries(exportResult.sectionCounts).map(([s, c]) => `${c} ${s}`).join(", ")}
               </p>
             </div>
             <a
@@ -281,16 +367,6 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
               View in Asana &rarr;
             </a>
           </div>
-          {exportResult.failed > 0 && (
-            <div className="mt-2 text-xs text-amber-700 bg-amber-50 rounded p-2">
-              <p className="font-medium">Export errors ({exportResult.failed} tasks failed):</p>
-              {exportResult.errors && exportResult.errors.length > 0 ? (
-                <p className="mt-1">{[...new Set(exportResult.errors)].join("; ")}</p>
-              ) : (
-                <p className="mt-1">No error details available.</p>
-              )}
-            </div>
-          )}
         </div>
       )}
 
@@ -300,9 +376,7 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
           <span className="text-sm text-amber-700">{syncError}</span>
           <div className="flex items-center gap-2">
             {syncError.includes("Reconnect") && (
-              <a href="/settings" className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark">
-                Reconnect Asana
-              </a>
+              <a href="/settings" className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark">Reconnect Asana</a>
             )}
             <button onClick={() => setSyncError(null)} className="text-xs text-text-tertiary hover:text-foreground">Dismiss</button>
           </div>
@@ -317,12 +391,13 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
         </div>
       )}
 
-      {/* Sync status + Summary bar */}
+      {/* Summary bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <span className="text-sm text-text-tertiary">
-            {pendingTasks.length} pending{exportedTasks.length > 0 ? `, ${exportedTasks.length} exported` : ""}
-            <HelpTip text="Plan-Do-Check-Act: a continuous improvement cycle for organizing tasks." />
+            {tasks.length} task{tasks.length !== 1 ? "s" : ""}
+            {pendingCount > 0 && ` (${pendingCount} to review)`}
+            <HelpTip text="Tasks from Asana, AI suggestions, and manual entries — all in one view." />
           </span>
           {/* Sync status */}
           {asanaProjectGid && (
@@ -338,360 +413,208 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                 className="text-text-muted hover:text-nia-grey-blue disabled:opacity-40 p-0.5 transition-colors"
                 title={syncing ? "Syncing..." : refreshCooldown ? "Please wait..." : "Refresh from Asana"}
               >
-                <svg
-                  className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
             </div>
           )}
-          <div className="flex gap-1.5">
-            {COLUMNS.map((col) => {
-              const count = pendingTasks.filter((t) => t.pdca_section === col).length;
-              if (count === 0) return null;
-              return (
-                <span
-                  key={col}
-                  className="text-xs font-medium px-2 py-0.5 rounded-full"
-                  style={{
-                    backgroundColor: PDCA_SECTIONS[col].color + "20",
-                    color: PDCA_SECTIONS[col].color,
-                  }}
-                >
-                  {count} {PDCA_SECTIONS[col].label}
-                </span>
-              );
-            })}
-          </div>
         </div>
-        {pendingTasks.length > 0 && (
+        {exportableTasks.length > 0 && (
           <button
             onClick={handleExportToAsana}
             disabled={exporting}
             className="bg-nia-green text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
-            {exporting ? "Exporting..." : `Export ${pendingTasks.length} to Asana`}
+            {exporting ? "Exporting..." : `Export ${exportableTasks.length} to Asana`}
           </button>
         )}
       </div>
 
-      {/* PDCA columns */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {COLUMNS.map((col) => {
-          const sectionMeta = PDCA_SECTIONS[col];
-          const columnTasks = tasks.filter((t) => t.pdca_section === col);
-          const pending = columnTasks.filter((t) => t.status === "pending");
-          const exported = columnTasks.filter((t) => t.status === "exported");
-
-          return (
-            <div key={col} className="bg-surface-hover rounded-xl overflow-hidden">
-              {/* Column header */}
+      {/* ═══ AI SUGGESTIONS SECTION ═══ */}
+      {pendingSuggestions.length > 0 && (
+        <div className="bg-nia-orange/5 border border-nia-orange/20 rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-nia-orange mb-3">
+            AI Suggestions — {pendingSuggestions.length} to review
+          </h3>
+          <div className="space-y-2">
+            {pendingSuggestions.map((task) => (
               <div
-                className="px-4 py-3 flex items-center justify-between"
-                style={{ borderBottom: `3px solid ${sectionMeta.color}` }}
+                key={task.id}
+                className="bg-card border border-dashed border-nia-orange/30 rounded-lg p-3"
               >
-                <div>
-                  <h3 className="text-sm font-semibold" style={{ color: sectionMeta.color }}>
-                    {sectionMeta.label}
-                  </h3>
-                  <p className="text-xs text-text-muted">{sectionMeta.description}</p>
-                </div>
-                {columnTasks.length > 0 && (
-                  <span
-                    className="text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: sectionMeta.color + "20", color: sectionMeta.color }}
-                  >
-                    {columnTasks.length}
-                  </span>
-                )}
-              </div>
-
-              {/* Task list */}
-              <div className="p-3 space-y-2 min-h-[80px]">
-                {pending.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    isEditing={editingId === task.id}
-                    editTitle={editTitle}
-                    editDescription={editDescription}
-                    onEditTitleChange={setEditTitle}
-                    onEditDescriptionChange={setEditDescription}
-                    onStartEdit={() => startEdit(task)}
-                    onSaveEdit={() => saveEdit(task.id)}
-                    onCancelEdit={() => setEditingId(null)}
-                    isDeleting={deletingId === task.id}
-                    onStartDelete={() => setDeletingId(task.id)}
-                    onConfirmDelete={() => handleDelete(task.id)}
-                    onCancelDelete={() => setDeletingId(null)}
-                    onMove={(newSection) => handleMove(task.id, newSection)}
-                    currentSection={col}
-                    isBusy={saving}
-                  />
-                ))}
-
-                {/* Exported tasks (greyed out) */}
-                {exported.map((task) => (
-                  <div
-                    key={task.id}
-                    className="bg-card/50 rounded-lg p-2.5 border border-border-light opacity-60"
-                  >
-                    <div className="flex items-start justify-between gap-1">
-                      <span className="text-xs text-text-tertiary line-through">{task.title}</span>
-                      {task.asana_task_url && (
-                        <a
-                          href={task.asana_task_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-nia-grey-blue hover:text-nia-dark flex-shrink-0"
-                          title="View in Asana"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                            <circle cx="12" cy="18" r="4" />
-                            <circle cx="5" cy="8" r="4" />
-                            <circle cx="19" cy="8" r="4" />
-                          </svg>
-                        </a>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-nia-dark">{task.title}</p>
+                    {task.description && (
+                      <p className="text-xs text-text-tertiary mt-1 line-clamp-2">{task.description}</p>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <span
+                        className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                        style={{
+                          backgroundColor: PDCA_SECTIONS[task.pdca_section].color + "20",
+                          color: PDCA_SECTIONS[task.pdca_section].color,
+                        }}
+                      >
+                        {PDCA_SECTIONS[task.pdca_section].label}
+                      </span>
+                      {task.source_detail && (
+                        <span className="text-[10px] text-text-muted">From: {task.source_detail}</span>
                       )}
                     </div>
-                    <span className="text-[10px] text-text-muted">Exported</span>
                   </div>
-                ))}
-
-                {columnTasks.length === 0 && (
-                  <p className="text-xs text-text-muted italic text-center py-4">
-                    No tasks yet
-                  </p>
-                )}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleKeep(task.id)}
+                      disabled={saving}
+                      className="p-1.5 rounded-lg bg-nia-green/10 text-nia-green hover:bg-nia-green/20 transition-colors"
+                      title="Keep"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDismiss(task.id)}
+                      disabled={saving}
+                      className="p-1.5 rounded-lg bg-nia-red/10 text-nia-red hover:bg-nia-red/20 transition-colors"
+                      title="Dismiss"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ TASK SECTIONS ═══ */}
+      {sections.map((section) => {
+        const pdca = section.pdcaMatch;
+        const borderColor = pdca ? PDCA_SECTIONS[pdca].color : "var(--border)";
+
+        return (
+          <div key={section.key} className="bg-surface-hover rounded-xl overflow-visible">
+            {/* Section header */}
+            <div
+              className="px-4 py-3 flex items-center justify-between"
+              style={{ borderBottom: `3px solid ${borderColor}` }}
+            >
+              <h3 className="text-sm font-semibold" style={{ color: pdca ? PDCA_SECTIONS[pdca].color : undefined }}>
+                {section.label}
+                <span className="font-normal text-text-muted ml-2">
+                  {section.completedCount}/{section.totalCount} complete
+                </span>
+              </h3>
             </div>
-          );
-        })}
-      </div>
+
+            {/* Task cards */}
+            <div className="p-3 space-y-2">
+              {section.tasks.map((task) => {
+                // Find subtasks for this task
+                const subtasks = task.asana_task_gid
+                  ? allSubtasks.filter((s) => s.parent_asana_gid === task.asana_task_gid)
+                  : [];
+
+                return (
+                  <div key={task.id}>
+                    <UnifiedTaskCard task={task} />
+                    {/* Subtasks indented */}
+                    {subtasks.length > 0 && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        {sortTasks(subtasks).map((sub) => (
+                          <UnifiedTaskCard key={sub.id} task={sub} isSubtask />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-// ── Task Card ────────────────────────────────────────────────
+// ── Unified Task Card ────────────────────────────────────────
 
-interface TaskCardProps {
-  task: ProcessTask;
-  isEditing: boolean;
-  editTitle: string;
-  editDescription: string;
-  onEditTitleChange: (v: string) => void;
-  onEditDescriptionChange: (v: string) => void;
-  onStartEdit: () => void;
-  onSaveEdit: () => void;
-  onCancelEdit: () => void;
-  isDeleting: boolean;
-  onStartDelete: () => void;
-  onConfirmDelete: () => void;
-  onCancelDelete: () => void;
-  onMove: (section: PdcaSection) => void;
-  currentSection: PdcaSection;
-  isBusy: boolean;
-}
-
-function TaskCard({
-  task,
-  isEditing,
-  editTitle,
-  editDescription,
-  onEditTitleChange,
-  onEditDescriptionChange,
-  onStartEdit,
-  onSaveEdit,
-  onCancelEdit,
-  isDeleting,
-  onStartDelete,
-  onConfirmDelete,
-  onCancelDelete,
-  onMove,
-  currentSection,
-  isBusy,
-}: TaskCardProps) {
-  const otherSections = COLUMNS.filter((c) => c !== currentSection);
-
-  // Keyboard shortcut: Escape to cancel editing
-  useEffect(() => {
-    if (!isEditing) return;
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onCancelEdit();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isEditing, onCancelEdit]);
-
-  if (isEditing) {
-    return (
-      <div className="bg-card rounded-xl p-3 border-2 border-nia-grey-blue/40 shadow-lg shadow-nia-grey-blue/10 space-y-2.5 -mx-1">
-        <div>
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-1 block">Title</label>
-          <input
-            type="text"
-            value={editTitle}
-            onChange={(e) => onEditTitleChange(e.target.value)}
-            className="w-full text-sm font-medium text-nia-dark border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30 focus:border-nia-grey-blue/40"
-            autoFocus
-          />
-        </div>
-        <div>
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-1 block">Description</label>
-          <AutoGrowTextarea
-            value={editDescription}
-            onChange={onEditDescriptionChange}
-            placeholder="Add details, acceptance criteria, or notes..."
-            minRows={3}
-          />
-        </div>
-        <div className="flex items-center gap-2 pt-1">
-          <button
-            onClick={onSaveEdit}
-            disabled={!editTitle.trim() || isBusy}
-            className="text-xs font-medium text-white bg-nia-dark-solid rounded-lg px-3 py-1.5 hover:opacity-90 disabled:opacity-50 transition-opacity"
-          >
-            {isBusy ? "Saving..." : "Save"}
-          </button>
-          <button
-            onClick={onCancelEdit}
-            className="text-xs text-text-tertiary hover:text-text-secondary px-2 py-1.5"
-          >
-            Cancel
-          </button>
-          <span className="text-[10px] text-text-muted ml-auto">Esc to cancel</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (isDeleting) {
-    return (
-      <div className="bg-nia-red/10 rounded-lg p-2.5 border border-nia-red/20">
-        <p className="text-xs text-nia-red mb-2">Delete this task?</p>
-        <div className="flex gap-2">
-          <button
-            onClick={onConfirmDelete}
-            disabled={isBusy}
-            className="text-xs font-medium text-white bg-nia-red rounded px-2.5 py-1 hover:opacity-80 disabled:opacity-50"
-          >
-            {isBusy ? "Deleting..." : "Delete"}
-          </button>
-          <button
-            onClick={onCancelDelete}
-            className="text-xs text-text-tertiary hover:text-text-secondary"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  }
+function UnifiedTaskCard({ task, isSubtask }: { task: ProcessTask; isSubtask?: boolean }) {
+  const overdue = isOverdue(task);
+  const badge = ORIGIN_BADGE[task.origin] || ORIGIN_BADGE.hub_manual;
 
   return (
     <div
-      className="bg-card rounded-lg p-2.5 border border-border-light hover:border-border transition-colors group cursor-pointer"
-      onClick={onStartEdit}
+      className={`bg-card rounded-lg border border-border-light transition-colors ${
+        task.completed ? "opacity-50" : "hover:border-border"
+      } ${isSubtask ? "p-2" : "p-3"}`}
     >
-      <div className="flex items-start justify-between gap-1">
-        <span className="text-sm font-medium text-nia-dark leading-snug">{task.title}</span>
-        {/* Actions — visible on hover (desktop), always tappable via card click (mobile) */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); onStartEdit(); }}
-            className="text-text-muted hover:text-nia-grey-blue p-0.5"
-            title="Edit"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      <div className="flex items-start gap-2">
+        {/* Completion indicator */}
+        <div className={`flex-shrink-0 mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+          task.completed
+            ? "border-nia-green bg-nia-green"
+            : "border-border"
+        }`}>
+          {task.completed && (
+            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onStartDelete(); }}
-            className="text-text-muted hover:text-red-500 p-0.5"
-            title="Delete"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+          )}
         </div>
-      </div>
 
-      {task.description && (
-        <p className="text-xs text-text-tertiary mt-1 line-clamp-2">{task.description}</p>
-      )}
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className={`font-medium leading-snug ${
+              isSubtask ? "text-xs" : "text-sm"
+            } ${task.completed ? "line-through text-text-tertiary" : "text-nia-dark"}`}>
+              {task.title}
+            </p>
 
-      {/* Badges row */}
-      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-        {task.adli_dimension && (
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-nia-grey-blue/10 text-nia-grey-blue capitalize">
-            {task.adli_dimension}
-          </span>
-        )}
-        <span className="text-[10px] text-text-muted">
-          {task.source === "ai_suggestion" ? "AI" : task.source === "ai_interview" ? "Interview" : "Manual"}
-        </span>
+            {/* External link for Asana tasks */}
+            {task.asana_task_url && (
+              <a
+                href={task.asana_task_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-text-muted hover:text-nia-grey-blue flex-shrink-0 p-0.5"
+                title="Open in Asana"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
+          </div>
 
-        {/* Move dropdown */}
-        <div className="ml-auto relative">
-          <select
-            value=""
-            onChange={(e) => {
-              if (e.target.value) onMove(e.target.value as PdcaSection);
-            }}
-            className="text-[10px] text-text-muted bg-transparent border-none cursor-pointer hover:text-nia-grey-blue focus:outline-none appearance-none pr-3"
-            title="Move to section"
-            style={{ backgroundImage: "none" }}
-          >
-            <option value="">Move...</option>
-            {otherSections.map((s) => (
-              <option key={s} value={s}>
-                {PDCA_SECTIONS[s].label}
-              </option>
-            ))}
-          </select>
+          {/* Meta row: assignee, due date, origin badge */}
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {/* Assignee */}
+            <span className={`text-[10px] ${task.assignee_name ? "text-text-secondary" : "text-text-muted"}`}>
+              {task.assignee_name || "Unassigned"}
+            </span>
+
+            {/* Due date */}
+            {task.due_date && (
+              <span className={`text-[10px] ${overdue ? "text-red-600 font-medium" : "text-text-muted"}`}>
+                {overdue ? "Overdue: " : ""}{formatDueDate(task.due_date)}
+              </span>
+            )}
+
+            {/* Origin badge */}
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>
+              {badge.label}
+            </span>
+          </div>
         </div>
       </div>
     </div>
-  );
-}
-
-// ── Auto-growing Textarea ──────────────────────────────────
-
-function AutoGrowTextarea({
-  value,
-  onChange,
-  placeholder,
-  minRows = 3,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  minRows?: number;
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    const minHeight = minRows * 20 + 16; // ~20px per line + padding
-    el.style.height = Math.max(el.scrollHeight, minHeight) + "px";
-  }, [value, minRows]);
-
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={minRows}
-      className="w-full text-sm text-text-secondary border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30 focus:border-nia-grey-blue/40 resize-y leading-relaxed"
-    />
   );
 }
