@@ -13,6 +13,8 @@ export interface SubtaskData {
   notes: string;
   completed: boolean;
   assignee: string | null;
+  assignee_gid: string | null;
+  completed_at: string | null;
   due_on: string | null;
 }
 
@@ -22,6 +24,8 @@ export interface TaskData {
   notes: string;
   completed: boolean;
   assignee: string | null;
+  assignee_gid: string | null;
+  completed_at: string | null;
   due_on: string | null;
   num_subtasks: number;
   permalink_url: string | null;
@@ -87,8 +91,30 @@ export function findAdliTasks(
 // ── Fetch helpers ────────────────────────────────────────────
 
 /**
+ * Fetch all pages of a paginated Asana API endpoint.
+ * Asana returns max 100 items per request with a `next_page.offset` for pagination.
+ */
+async function fetchAllPages(token: string, endpoint: string): Promise<any[]> {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const allData: any[] = [];
+  let url = endpoint.includes("?") ? `${endpoint}&limit=100` : `${endpoint}?limit=100`;
+
+  while (url) {
+    const res = await asanaFetch(token, url);
+    allData.push(...(res.data || []));
+    url = res.next_page?.uri
+      ? res.next_page.uri.replace("https://app.asana.com/api/1.0", "")
+      : "";
+  }
+
+  return allData;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+/**
  * Fetch all sections and their tasks (with subtasks) for an Asana project.
- * Shared between import and resync to eliminate duplicated fetch logic.
+ * Shared between import, resync, and task sync routes.
+ * Handles Asana API pagination for projects with 100+ tasks per section.
  */
 export async function fetchProjectSections(
   token: string,
@@ -103,27 +129,31 @@ export async function fetchProjectSections(
   const sectionData: SectionData[] = [];
 
   for (const section of sections) {
-    const tasksRes = await asanaFetch(
+    const taskFields = "name,notes,completed,completed_at,assignee.name,assignee.gid,due_on,due_at,num_subtasks,permalink_url,custom_fields";
+    const allTasks = await fetchAllPages(
       token,
-      `/sections/${section.gid}/tasks?opt_fields=name,notes,completed,assignee.name,due_on,due_at,num_subtasks,permalink_url,custom_fields&limit=100`
+      `/sections/${section.gid}/tasks?opt_fields=${taskFields}`
     );
 
     /* eslint-disable @typescript-eslint/no-explicit-any */
     const tasks: TaskData[] = [];
-    for (const t of tasksRes.data as any[]) {
+    for (const t of allTasks as any[]) {
       let subtasks: SubtaskData[] = [];
       if (t.num_subtasks > 0) {
         try {
-          const subRes = await asanaFetch(
+          const subtaskFields = "name,notes,completed,completed_at,assignee.name,assignee.gid,due_on";
+          const subData = await fetchAllPages(
             token,
-            `/tasks/${t.gid}/subtasks?opt_fields=name,notes,completed,assignee.name,due_on`
+            `/tasks/${t.gid}/subtasks?opt_fields=${subtaskFields}`
           );
-          subtasks = (subRes.data || []).map((s: any) => ({
+          subtasks = subData.map((s: any) => ({
             gid: s.gid,
             name: s.name,
             notes: s.notes || "",
             completed: s.completed,
             assignee: s.assignee?.name || null,
+            assignee_gid: s.assignee?.gid || null,
+            completed_at: s.completed_at || null,
             due_on: s.due_on || null,
           }));
         } catch {
@@ -137,6 +167,8 @@ export async function fetchProjectSections(
         notes: t.notes || "",
         completed: t.completed,
         assignee: t.assignee?.name || null,
+        assignee_gid: t.assignee?.gid || null,
+        completed_at: t.completed_at || null,
         due_on: t.due_on || t.due_at || null,
         num_subtasks: t.num_subtasks || 0,
         permalink_url: t.permalink_url || null,
