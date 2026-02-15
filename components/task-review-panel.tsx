@@ -5,6 +5,7 @@ import { PDCA_SECTIONS } from "@/lib/pdca";
 import HelpTip from "@/components/help-tip";
 import Toast from "@/components/toast";
 import TaskDetailPanel from "@/components/task-detail-panel";
+import TaskCreatePanel from "@/components/task-create-panel";
 import type { PdcaSection, ProcessTask } from "@/lib/types";
 
 // ── Constants ────────────────────────────────────────────────
@@ -95,46 +96,46 @@ function buildSections(tasks: ProcessTask[]): TaskSection[] {
   }
 
   // Hub tasks grouped by PDCA section
-  if (hubTasks.length > 0) {
-    const hubByPdca = new Map<PdcaSection, ProcessTask[]>();
-    for (const t of hubTasks) {
-      const section = t.pdca_section;
-      if (!hubByPdca.has(section)) hubByPdca.set(section, []);
-      hubByPdca.get(section)!.push(t);
-    }
+  const hubByPdca = new Map<PdcaSection, ProcessTask[]>();
+  for (const t of hubTasks) {
+    const section = t.pdca_section;
+    if (!hubByPdca.has(section)) hubByPdca.set(section, []);
+    hubByPdca.get(section)!.push(t);
+  }
 
-    for (const key of PDCA_KEYS) {
-      const sectionTasks = hubByPdca.get(key);
-      if (!sectionTasks || sectionTasks.length === 0) continue;
+  for (const key of PDCA_KEYS) {
+    const sectionTasks = hubByPdca.get(key) || [];
 
-      // Check if this PDCA section already exists as an Asana section
-      const existingSection = sections.find((s) => s.pdcaMatch === key);
-      if (existingSection) {
-        // Merge hub tasks into the existing Asana section
+    // Check if this PDCA section already exists as an Asana section
+    const existingSection = sections.find((s) => s.pdcaMatch === key);
+    if (existingSection) {
+      // Merge hub tasks into the existing Asana section
+      if (sectionTasks.length > 0) {
         existingSection.tasks = sortTasks([...existingSection.tasks, ...sectionTasks]);
         existingSection.totalCount += sectionTasks.length;
         existingSection.completedCount += sectionTasks.filter((t) => t.status === "completed").length;
-      } else {
-        sections.push({
-          key: `hub-${key}`,
-          label: PDCA_SECTIONS[key].label,
-          pdcaMatch: key,
-          tasks: sortTasks(sectionTasks),
-          completedCount: sectionTasks.filter((t) => t.status === "completed").length,
-          totalCount: sectionTasks.length,
-        });
       }
+    } else {
+      // Always create the PDCA section (even if empty) so "+ Add task" is visible
+      sections.push({
+        key: `hub-${key}`,
+        label: PDCA_SECTIONS[key].label,
+        pdcaMatch: key,
+        tasks: sortTasks(sectionTasks),
+        completedCount: sectionTasks.filter((t) => t.status === "completed").length,
+        totalCount: sectionTasks.length,
+      });
     }
   }
 
   return sections;
 }
 
-/** Sort tasks: active first, then completed (dimmed) */
+/** Sort tasks: active first (by sort_order), then completed (dimmed, by sort_order) */
 function sortTasks(tasks: ProcessTask[]): ProcessTask[] {
   return [...tasks].sort((a, b) => {
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
-    return 0;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });
 }
 
@@ -171,6 +172,10 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     type: "error" | "success";
     retry?: () => void;
   } | null>(null);
+
+  // Create task state
+  const [createPanelOpen, setCreatePanelOpen] = useState(false);
+  const [createPdcaDefault, setCreatePdcaDefault] = useState<PdcaSection>("plan");
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -379,6 +384,23 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     }
   }
 
+  // ── Task created from form ──
+
+  function handleTaskCreated(newTask: ProcessTask) {
+    setTasks((prev) => [...prev, newTask]);
+    setCreatePanelOpen(false);
+    // Check if Asana sync failed (flag set by POST /api/tasks)
+    const syncFailed = (newTask as ProcessTask & { asana_sync_failed?: boolean }).asana_sync_failed;
+    if (syncFailed) {
+      setToastState({
+        message: "Task created but Asana sync failed. You can export it later.",
+        type: "error",
+      });
+    } else {
+      setToastState({ message: "Task created", type: "success" });
+    }
+  }
+
   // ── Keep / Dismiss for AI suggestions ──
 
   async function handleKeep(taskId: number) {
@@ -490,11 +512,29 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
           </svg>
         </div>
         <h3 className="text-lg font-semibold text-nia-dark mb-1">No tasks yet</h3>
-        <p className="text-sm text-text-tertiary max-w-sm">
+        <p className="text-sm text-text-tertiary max-w-sm mb-4">
           {asanaProjectGid
             ? "Tasks will appear here after syncing from Asana, or use the AI coach to generate improvement suggestions."
             : "Link this process to an Asana project to import tasks, or use the AI coach to generate improvement suggestions."}
         </p>
+        <button
+          onClick={() => { setCreatePdcaDefault("plan"); setCreatePanelOpen(true); }}
+          className="bg-nia-grey-blue text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          New Task
+        </button>
+        {createPanelOpen && (
+          <TaskCreatePanel
+            processId={processId}
+            asanaProjectGid={asanaProjectGid}
+            defaultPdcaSection={createPdcaDefault}
+            onCreated={handleTaskCreated}
+            onClose={() => setCreatePanelOpen(false)}
+          />
+        )}
       </div>
     );
   }
@@ -576,15 +616,26 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
             </div>
           )}
         </div>
-        {unsyncedTasks.length > 0 && (
+        <div className="flex items-center gap-2">
+          {unsyncedTasks.length > 0 && (
+            <button
+              onClick={handleExportToAsana}
+              disabled={exporting}
+              className="bg-nia-green text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {exporting ? "Syncing..." : `Sync ${unsyncedTasks.length} to Asana`}
+            </button>
+          )}
           <button
-            onClick={handleExportToAsana}
-            disabled={exporting}
-            className="bg-nia-green text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            onClick={() => { setCreatePdcaDefault("plan"); setCreatePanelOpen(true); }}
+            className="bg-nia-grey-blue text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
           >
-            {exporting ? "Syncing..." : `Sync ${unsyncedTasks.length} to Asana`}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Task
           </button>
-        )}
+        </div>
       </div>
 
       {/* ═══ AI SUGGESTIONS SECTION ═══ */}
@@ -659,6 +710,17 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
         />
       )}
 
+      {/* ═══ TASK CREATE PANEL ═══ */}
+      {createPanelOpen && (
+        <TaskCreatePanel
+          processId={processId}
+          asanaProjectGid={asanaProjectGid}
+          defaultPdcaSection={createPdcaDefault}
+          onCreated={handleTaskCreated}
+          onClose={() => setCreatePanelOpen(false)}
+        />
+      )}
+
       {/* ═══ TASK DETAIL PANEL ═══ */}
       {selectedTaskId && (() => {
         const selectedTask = tasks.find((t) => t.id === selectedTaskId);
@@ -694,6 +756,14 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                   {section.completedCount}/{section.totalCount} complete
                 </span>
               </h3>
+              {pdca && (
+                <button
+                  onClick={() => { setCreatePdcaDefault(pdca); setCreatePanelOpen(true); }}
+                  className="text-xs text-text-muted hover:text-nia-grey-blue transition-colors"
+                >
+                  + Add task
+                </button>
+              )}
             </div>
 
             {/* Task cards */}
