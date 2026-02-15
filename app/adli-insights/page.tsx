@@ -10,6 +10,7 @@ import { DimBar, MiniBar } from "@/components/adli-bars";
 import { Card, CardHeader, Badge, Button } from "@/components/ui";
 import AdliScoringInfo from "@/components/adli-scoring-info";
 import HelpTip from "@/components/help-tip";
+import SectionIntro from "@/components/section-intro";
 
 interface ScoreRow {
   id: number;
@@ -124,6 +125,10 @@ export default function AiInsightsPage() {
           ADLI maturity scores across all assessed processes.
         </p>
       </div>
+
+      <SectionIntro storageKey="intro-adli">
+        ADLI = Approach, Deployment, Learning, Integration — the four dimensions Baldrige uses to evaluate process maturity. Run an AI assessment on any process to generate scores.
+      </SectionIntro>
 
       {filteredScores.length === 0 && scores.length === 0 ? (
         <Card>

@@ -409,7 +409,12 @@ function LogDataContent() {
         {/* Right: Entry form */}
         <div>
           <Card padding="sm">
-            <h2 className="font-bold text-nia-dark mb-3">2. Enter Data</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-bold text-nia-dark">2. Enter Data</h2>
+              <a href="/help" className="text-xs text-text-muted hover:text-nia-orange transition-colors">
+                Need help? View FAQ &rarr;
+              </a>
+            </div>
 
             {!selectedMetric ? (
               <div className="text-text-muted text-sm py-8 text-center">

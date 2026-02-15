@@ -7,6 +7,7 @@ import { useRole } from "@/lib/use-role";
 import { ListPageSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 import { Card, Button, Badge } from "@/components/ui";
+import SectionIntro from "@/components/section-intro";
 
 type ProcessType = "key" | "support" | "unclassified";
 
@@ -159,6 +160,10 @@ export default function ClassificationsPage() {
       </div>
 
       {/* Stats */}
+      <SectionIntro storageKey="intro-classifications">
+        Key processes directly serve your mission. Support processes enable them. This classification affects readiness scoring — Key processes count 2x.
+      </SectionIntro>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <button onClick={() => setFilterType(filterType === "key" ? "all" : "key")}>
           <Card

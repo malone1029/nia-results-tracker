@@ -11,6 +11,7 @@ import { Card, CardHeader, CardBody, Badge, Button, Input } from "@/components/u
 import { useRole } from "@/lib/use-role";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import HelpTip from "@/components/help-tip";
+import SectionIntro from "@/components/section-intro";
 
 interface MetricRow extends Metric {
   process_names: string;
@@ -383,6 +384,10 @@ export default function DataHealthPage() {
           </Button>
         </div>
       </div>
+
+      <SectionIntro storageKey="intro-data-health">
+        Track which metrics are current and which need attention. Green = healthy, orange = due soon, red = overdue. Use &apos;Edit Metrics&apos; for bulk changes.
+      </SectionIntro>
 
       {/* Bulk edit toolbar */}
       {editMode && (

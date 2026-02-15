@@ -8,6 +8,7 @@ import type { Metric } from "@/lib/types";
 import Link from "next/link";
 import { Card, Button, Select } from "@/components/ui";
 import HelpTip from "@/components/help-tip";
+import SectionIntro from "@/components/section-intro";
 
 interface MetricLeTCI extends Metric {
   process_name: string;
@@ -241,6 +242,10 @@ export default function LeTCIPage() {
           Baldrige readiness across all metrics — Levels, Trends, Comparisons, Integration
         </p>
       </div>
+
+      <SectionIntro storageKey="intro-letci">
+        LeTCI measures four elements Baldrige examiners look for in your metrics. Complete all four for full readiness: Level (data exists), Trend (3+ points), Comparison (benchmark set), Integration (linked to a requirement).
+      </SectionIntro>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
