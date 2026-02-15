@@ -11,6 +11,8 @@ import { Card, Select } from "@/components/ui";
 import { fetchHealthData, type ProcessWithCategory } from "@/lib/fetch-health-data";
 import { type HealthResult, type HealthNextAction } from "@/lib/process-health";
 import WelcomeOnboarding, { hasCompletedOnboarding } from "@/components/welcome-onboarding";
+import PageTour from "@/components/page-tour";
+import ContextualTip from "@/components/contextual-tip";
 import Link from "next/link";
 
 // Dashboard components
@@ -430,7 +432,10 @@ function ProcessOwnerDashboard() {
         </div>
       </div>
 
+      <PageTour />
+
       {/* ── Stat cards (5-wide) ── */}
+      <div data-tour="stat-cards">
       <StatCardsRow
         avgHealth={avgHealth}
         healthCount={healthCount}
@@ -442,6 +447,12 @@ function ProcessOwnerDashboard() {
         overdueTaskCount={dashboardTasks?.stats.totalOverdue ?? 0}
         taskStats={dashboardTasks?.stats ?? null}
       />
+      </div>
+
+      {/* Contextual tip: low health */}
+      <ContextualTip tipId="dashboard-low-health" show={avgHealth < 40 && processCount > 0}>
+        Focus on processes marked &quot;Needs Attention&quot; to improve your readiness score.
+      </ContextualTip>
 
       {processCount === 0 ? (
         !isAll ? (
@@ -516,11 +527,13 @@ function ProcessOwnerDashboard() {
         <>
           {/* ── Task Hub (full width, most prominent) ── */}
           {dashboardTasks && (
+            <div data-tour="task-hub">
             <TaskHub
               data={dashboardTasks}
               isAllOwners={isAll}
               onRefresh={() => fetchTaskData(selectedOwner)}
             />
+            </div>
           )}
 
           {/* ── ADLI + Actions (two-column) ── */}
@@ -536,12 +549,14 @@ function ProcessOwnerDashboard() {
           </div>
 
           {/* ── Processes (full width) ── */}
+          <div data-tour="process-list">
           <ProcessList
             processes={filteredProcesses}
             healthScores={healthScores}
             scoreMap={scoreMap}
             isAllOwners={isAll}
           />
+          </div>
 
           {/* ── Recent Activity (full width, org-only) ── */}
           {isAll && (

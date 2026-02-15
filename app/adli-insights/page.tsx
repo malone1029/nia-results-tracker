@@ -11,6 +11,8 @@ import { Card, CardHeader, Badge, Button } from "@/components/ui";
 import AdliScoringInfo from "@/components/adli-scoring-info";
 import HelpTip from "@/components/help-tip";
 import SectionIntro from "@/components/section-intro";
+import ContextualTip from "@/components/contextual-tip";
+import { supabase } from "@/lib/supabase";
 
 interface ScoreRow {
   id: number;
@@ -44,6 +46,7 @@ interface CategoryGroup {
 
 export default function AiInsightsPage() {
   const [scores, setScores] = useState<ScoreRow[]>([]);
+  const [totalProcessCount, setTotalProcessCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"category" | "score">("category");
   const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support">("all");
@@ -52,11 +55,15 @@ export default function AiInsightsPage() {
     document.title = "ADLI Insights | NIA Excellence Hub";
 
     async function fetchScores() {
-      const res = await fetch("/api/ai/scores");
+      const [res, countRes] = await Promise.all([
+        fetch("/api/ai/scores"),
+        supabase.from("processes").select("id", { count: "exact", head: true }),
+      ]);
       if (res.ok) {
         const data = await res.json();
         setScores(data);
       }
+      setTotalProcessCount(countRes.count ?? 0);
       setLoading(false);
     }
     fetchScores();
@@ -129,6 +136,16 @@ export default function AiInsightsPage() {
       <SectionIntro storageKey="intro-adli">
         ADLI = Approach, Deployment, Learning, Integration — the four dimensions Baldrige uses to evaluate process maturity. Run an AI assessment on any process to generate scores.
       </SectionIntro>
+
+      {(() => {
+        const assessedIds = new Set(scores.map((s) => s.process_id));
+        const unassessed = totalProcessCount - assessedIds.size;
+        return unassessed > 0 ? (
+          <ContextualTip tipId="adli-unassessed" show={scores.length > 0}>
+            {unassessed} process{unassessed !== 1 ? "es" : ""} ha{unassessed !== 1 ? "ven't" : "sn't"} been assessed yet. Open them and use the AI Coach to run an ADLI analysis.
+          </ContextualTip>
+        ) : null;
+      })()}
 
       {filteredScores.length === 0 && scores.length === 0 ? (
         <Card>
