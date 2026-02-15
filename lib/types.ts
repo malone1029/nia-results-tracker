@@ -270,6 +270,27 @@ export interface TaskActivity {
   created_at: string;
 }
 
+// ── Notification preferences ─────────────────────────────────
+
+export interface NotificationPreferences {
+  notify_on_assignment: boolean;
+  notify_on_due_approaching: boolean;
+  notify_on_completion: boolean;
+  notify_on_mention: boolean;
+  notify_weekly_digest: boolean;
+}
+
+// ── Task mentions ────────────────────────────────────────────
+
+export interface TaskMention {
+  id: number;
+  comment_id: number;
+  task_id: number;
+  mentioned_user_id: string;
+  mentioned_user_name: string;
+  created_at: string;
+}
+
 // Extended types for UI (joins data from multiple tables)
 
 export interface KeyRequirementWithStatus extends KeyRequirement {

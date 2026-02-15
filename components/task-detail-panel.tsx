@@ -49,6 +49,14 @@ export default function TaskDetailPanel({
   const [commentBody, setCommentBody] = useState("");
   const [postingComment, setPostingComment] = useState(false);
 
+  // @mention autocomplete state
+  const [members, setMembers] = useState<{ name: string; email: string; gid: string }[]>([]);
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [mentionCursorPos, setMentionCursorPos] = useState(0);
+  const commentInputRef = useRef<HTMLInputElement>(null);
+
   // Activity state
   const [activities, setActivities] = useState<TaskActivity[]>([]);
 
@@ -235,6 +243,106 @@ export default function TaskDetailPanel({
     } finally {
       setPostingComment(false);
     }
+  }
+
+  // ── Fetch workspace members (once, for @mention autocomplete) ──
+  useEffect(() => {
+    fetch("/api/asana/workspace-members")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => {
+        if (isMountedRef.current && Array.isArray(data)) {
+          setMembers(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── @mention input handler ──
+  function handleCommentInput(value: string) {
+    setCommentBody(value);
+    const input = commentInputRef.current;
+    if (!input) return;
+
+    const cursorPos = input.selectionStart || value.length;
+
+    // Find if we're mid-mention: look backwards from cursor for "@"
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const mentionMatch = textBeforeCursor.match(/@([A-Za-z ]*)$/);
+
+    if (mentionMatch) {
+      setMentionSearch(mentionMatch[1].toLowerCase());
+      setMentionCursorPos(cursorPos);
+      setShowMentionDropdown(true);
+      setMentionIndex(0);
+    } else {
+      setShowMentionDropdown(false);
+    }
+  }
+
+  // ── Insert mention into comment ──
+  function insertMention(memberName: string) {
+    const textBeforeCursor = commentBody.slice(0, mentionCursorPos);
+    const atPos = textBeforeCursor.lastIndexOf("@");
+    const before = commentBody.slice(0, atPos);
+    const after = commentBody.slice(mentionCursorPos);
+    const newValue = `${before}@${memberName} ${after}`;
+    setCommentBody(newValue);
+    setShowMentionDropdown(false);
+    setMentionSearch("");
+    // Re-focus input
+    setTimeout(() => commentInputRef.current?.focus(), 0);
+  }
+
+  // Filtered members for dropdown
+  const filteredMembers = members.filter(
+    (m) => m.name && m.name.toLowerCase().includes(mentionSearch)
+  ).slice(0, 5);
+
+  // ── Mention keyboard navigation ──
+  function handleCommentKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (showMentionDropdown && filteredMembers.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionIndex((prev) => Math.min(prev + 1, filteredMembers.length - 1));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionIndex((prev) => Math.max(prev - 1, 0));
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        insertMention(filteredMembers[mentionIndex].name);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowMentionDropdown(false);
+        return;
+      }
+    }
+
+    // Default Enter → send comment
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handlePostComment();
+    }
+  }
+
+  // ── Render comment body with @mention highlights ──
+  function renderCommentBody(text: string) {
+    const parts = text.split(/(@[A-Za-z]+ [A-Za-z]+)/g);
+    return parts.map((part, i) => {
+      if (part.match(/^@[A-Za-z]+ [A-Za-z]+$/)) {
+        return (
+          <span key={i} className="text-nia-grey-blue font-medium bg-nia-grey-blue/10 rounded px-0.5">
+            {part}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
   }
 
   // ── Format activity entry ──
@@ -631,33 +739,54 @@ export default function TaskDetailPanel({
                       <span className="text-[10px] font-medium text-nia-dark">{c.user_name}</span>
                       <span className="text-[10px] text-text-muted">{timeAgo(c.created_at)}</span>
                     </div>
-                    <p className="text-xs text-text-secondary whitespace-pre-wrap">{c.body}</p>
+                    <p className="text-xs text-text-secondary whitespace-pre-wrap">{renderCommentBody(c.body)}</p>
                   </div>
                 ))}
               </div>
             )}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={commentBody}
-                onChange={(e) => setCommentBody(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handlePostComment();
-                  }
-                }}
-                placeholder="Add a comment..."
-                maxLength={2000}
-                className="flex-1 text-xs bg-surface-hover border border-border-light rounded-lg px-3 py-1.5 text-foreground placeholder:text-text-muted focus:outline-none focus:border-nia-grey-blue"
-              />
-              <button
-                onClick={handlePostComment}
-                disabled={!commentBody.trim() || postingComment}
-                className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark disabled:opacity-40 transition-colors px-2"
-              >
-                Send
-              </button>
+            <div className="relative">
+              <div className="flex gap-2">
+                <input
+                  ref={commentInputRef}
+                  type="text"
+                  value={commentBody}
+                  onChange={(e) => handleCommentInput(e.target.value)}
+                  onKeyDown={handleCommentKeyDown}
+                  placeholder="Add a comment... (@ to mention)"
+                  maxLength={2000}
+                  className="flex-1 text-xs bg-surface-hover border border-border-light rounded-lg px-3 py-1.5 text-foreground placeholder:text-text-muted focus:outline-none focus:border-nia-grey-blue"
+                />
+                <button
+                  onClick={handlePostComment}
+                  disabled={!commentBody.trim() || postingComment}
+                  className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark disabled:opacity-40 transition-colors px-2"
+                >
+                  Send
+                </button>
+              </div>
+
+              {/* @mention dropdown */}
+              {showMentionDropdown && filteredMembers.length > 0 && (
+                <div className="absolute bottom-full left-0 right-0 mb-1 bg-card border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto z-10">
+                  {filteredMembers.map((m, idx) => (
+                    <button
+                      key={m.gid}
+                      type="button"
+                      onClick={() => insertMention(m.name)}
+                      className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                        idx === mentionIndex
+                          ? "bg-nia-grey-blue/10 text-nia-dark"
+                          : "text-text-secondary hover:bg-surface-hover"
+                      }`}
+                    >
+                      <span className="font-medium">{m.name}</span>
+                      {m.email && (
+                        <span className="ml-2 text-text-muted">{m.email}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
