@@ -335,7 +335,7 @@ export default function Sidebar({
       />
 
       {/* Nav groups */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
+      <nav data-tour="sidebar-nav" className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
         {navGroups.map((group) => renderGroup(group, false))}
         {isAdmin &&
           adminNavGroups.map((group) => renderGroup(group, true))}

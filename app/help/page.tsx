@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { helpSections } from "@/lib/help-content";
+import { resetTour } from "@/components/page-tour";
 import { Card } from "@/components/ui";
 
 // Reuse sidebar's NavIcon concept — inline small SVGs for section headers
@@ -79,10 +81,16 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function HelpPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [myFeedback, setMyFeedback] = useState<FeedbackItem[]>([]);
   const [feedbackLoading, setFeedbackLoading] = useState(true);
+
+  function startTour() {
+    resetTour();
+    router.push("/?tour=true");
+  }
 
   useEffect(() => {
     fetch("/api/feedback")
@@ -113,9 +121,20 @@ export default function HelpPage() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-nia-dark">Help Center</h1>
-        <p className="text-sm text-text-secondary mt-0.5">How can we help?</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-nia-dark">Help Center</h1>
+          <p className="text-sm text-text-secondary mt-0.5">How can we help?</p>
+        </div>
+        <button
+          onClick={startTour}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-nia-grey-blue border border-border rounded-lg hover:bg-surface-hover transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Start Tour
+        </button>
       </div>
 
       {/* Search */}

@@ -25,6 +25,7 @@ import { STEPS, getPrimaryAction, type StepActionDef } from "@/lib/step-actions"
 import { useRole } from "@/lib/use-role";
 import ProcessHealthCard from "@/components/process-health-card";
 import HelpTip from "@/components/help-tip";
+import ContextualTip from "@/components/contextual-tip";
 import MilestoneToast from "@/components/milestone-toast";
 import ConfirmDeleteModal from "@/components/confirm-delete-modal";
 // Survey builder moved to full page at /surveys/new and /surveys/[id]/edit
@@ -1675,6 +1676,9 @@ function ProcessDetailContent() {
       {/* ═══ TASKS TAB ═══ */}
       {activeTab === "tasks" && (
         <div id="section-tasks">
+          <ContextualTip tipId={`process-${process.id}-no-tasks`} show={taskCount === 0}>
+            Use the AI Coach to generate improvement tasks for this process.
+          </ContextualTip>
           <TaskReviewPanel processId={process.id} asanaProjectGid={process.asana_project_gid} onTaskCountChange={setTaskCount} />
         </div>
       )}
