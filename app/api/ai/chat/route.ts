@@ -209,6 +209,83 @@ function buildSurveyContext(surveys: SurveyContextData[]): string {
   return lines.join("\n") + "\n";
 }
 
+interface TaskContextRow {
+  title: string;
+  description: string | null;
+  status: string;
+  pdca_section: string | null;
+  adli_dimension: string | null;
+  assignee_name: string | null;
+  due_date: string | null;
+  completed: boolean;
+  origin: string | null;
+  asana_section_name: string | null;
+}
+
+function buildTaskContext(tasks: TaskContextRow[]): string {
+  if (tasks.length === 0) return "\n### Process Tasks\nNo tasks exist for this process yet.\n";
+
+  const today = new Date().toISOString().slice(0, 10);
+  const active = tasks.filter((t) => !t.completed);
+  const completed = tasks.filter((t) => t.completed);
+  const overdue = active.filter((t) => t.due_date && t.due_date < today);
+  const withAssignee = tasks.filter((t) => t.assignee_name);
+  const withDueDate = tasks.filter((t) => t.due_date);
+
+  const lines: string[] = ["\n### Process Tasks"];
+  lines.push(`**Summary:** ${tasks.length} total — ${active.length} active, ${completed.length} completed, ${overdue.length} overdue`);
+  lines.push(`**Coverage:** ${withAssignee.length}/${tasks.length} have assignees, ${withDueDate.length}/${tasks.length} have due dates`);
+  lines.push("");
+
+  // Cap at ~4000 chars
+  let charCount = 0;
+  const MAX_CHARS = 4000;
+
+  // Active and overdue tasks — full detail
+  if (active.length > 0) {
+    lines.push("**Active Tasks:**");
+    for (const t of active) {
+      const assignee = t.assignee_name ? ` [${t.assignee_name}]` : "";
+      const due = t.due_date ? ` due ${t.due_date}` : "";
+      const isOverdue = t.due_date && t.due_date < today;
+      const overdueFlag = isOverdue ? " **OVERDUE**" : "";
+      const section = t.asana_section_name || t.pdca_section || "";
+      const sectionPart = section ? ` (${section})` : "";
+      const origin = t.origin === "asana" ? " [Asana]" : "";
+
+      let line = `- ${t.title}${assignee}${due}${overdueFlag}${sectionPart}${origin}`;
+      if (t.description) {
+        const desc = t.description.length > 150 ? t.description.slice(0, 150) + "..." : t.description;
+        line += `\n  ${desc}`;
+      }
+      line += "\n";
+
+      charCount += line.length;
+      if (charCount > MAX_CHARS) {
+        lines.push(`  ...and ${active.length - lines.filter((l) => l.startsWith("- ")).length} more active tasks\n`);
+        break;
+      }
+      lines.push(line);
+    }
+  }
+
+  // Completed tasks — titles only
+  if (completed.length > 0 && charCount < MAX_CHARS) {
+    lines.push("**Completed Tasks:**");
+    for (const t of completed) {
+      const line = `- ~~${t.title}~~\n`;
+      charCount += line.length;
+      if (charCount > MAX_CHARS) {
+        lines.push(`  ...and ${completed.length} more completed tasks\n`);
+        break;
+      }
+      lines.push(line);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 function buildRequirementsContext(requirements: Record<string, unknown>[]): string {
   if (requirements.length === 0) return "\n### Linked Key Requirements\nNo key requirements linked yet.\n";
 
@@ -257,9 +334,11 @@ Maturity levels: Reacting (0-25%), Early Systematic (30-45%), Aligned (50-65%), 
 
 1. **Start with the weakest dimension** — focus your energy where it'll make the most difference
 2. **Check the Improvement Journal** — if something was already improved recently, move to the next gap. Don't suggest what's already been done.
-3. **Offer 2-3 actionable options** with effort levels, not a comprehensive audit
-4. **Ask questions** when you need more info — 2-3 at a time, focused on the weakest area
-5. **Nudge on journal entries** — if the edit log has 3+ entries but the Improvement Journal is empty, gently remind the user to record what they've actually improved. Example: "You've made several updates recently — consider adding an entry to the Improvement Journal to capture what changed and why."
+3. **Check Process Tasks** — before suggesting new tasks, review the existing tasks in the Process Tasks section. Do NOT suggest tasks that already exist (even if incomplete). Instead, reference existing tasks and suggest next steps or improvements.
+4. **Offer 2-3 actionable options** with effort levels, not a comprehensive audit
+5. **Ask questions** when you need more info — 2-3 at a time, focused on the weakest area
+6. **Nudge on journal entries** — if the edit log has 3+ entries but the Improvement Journal is empty, gently remind the user to record what they've actually improved. Example: "You've made several updates recently — consider adding an entry to the Improvement Journal to capture what changed and why."
+7. **Call out task hygiene** — if many tasks lack assignees or due dates, or if several are overdue, mention it as a practical next step. Good task hygiene directly improves the health score.
 
 ## Structured Scores (IMPORTANT)
 When you perform an ADLI analysis, include a scores block at the START of your response:
@@ -732,6 +811,17 @@ export async function POST(request: Request) {
       improvementsContext += "\n*Note: This process has " + editLogCount + " edits in the edit log but no entries in the Improvement Journal. Consider nudging the user to record what they've actually improved.*\n";
     }
 
+    // Load process tasks for AI context (excludes pending AI suggestions)
+    const { data: taskRows } = await supabase
+      .from("process_tasks")
+      .select("title, description, status, pdca_section, adli_dimension, assignee_name, due_date, completed, origin, asana_section_name")
+      .eq("process_id", processId)
+      .neq("status", "pending")
+      .order("completed", { ascending: true })
+      .order("due_date", { ascending: true });
+
+    const taskContext = buildTaskContext((taskRows || []) as TaskContextRow[]);
+
     // Load survey data for this process — batch queries to avoid N+1
     const { data: surveysRaw } = await supabase
       .from("surveys")
@@ -959,6 +1049,7 @@ ${availableMetricsContext}
 ${requirementsContext}
 ${surveyContext}
 ${improvementsContext}
+${taskContext}
 ${asanaContext}
 ${snapshotContext}
 ${filesContext}`;
