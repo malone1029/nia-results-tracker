@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import AdminGuard from "@/components/admin-guard";
 import { Card } from "@/components/ui";
+import EmptyState from "@/components/empty-state";
 
 interface SurveyWave {
   id: number;
@@ -139,11 +140,18 @@ export default function SurveysPage() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="px-4 py-12 text-center">
-              <p className="text-sm text-text-muted">
-                {surveys.length === 0 ? "No surveys created yet." : "No surveys match your filter."}
-              </p>
-            </div>
+            surveys.length === 0 ? (
+              <EmptyState
+                illustration="document"
+                title="No surveys yet"
+                description="Create your first survey on any process page to gather team feedback and auto-generate metric data."
+                action={{ label: "Go to Processes", href: "/processes" }}
+              />
+            ) : (
+              <div className="px-4 py-12 text-center">
+                <p className="text-sm text-text-muted">No surveys match your filter.</p>
+              </div>
+            )
           ) : (
             <>
               {/* Desktop table */}

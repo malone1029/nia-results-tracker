@@ -121,6 +121,9 @@ function TemplatePicker({
           <h1 className="text-lg font-semibold text-nia-dark">
             Create Survey
           </h1>
+          <a href="/help" className="ml-auto text-xs text-text-muted hover:text-nia-orange transition-colors">
+            Need help? View FAQ &rarr;
+          </a>
         </div>
       </div>
 

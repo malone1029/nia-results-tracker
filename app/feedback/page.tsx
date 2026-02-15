@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import AdminGuard from "@/components/admin-guard";
 import { Card } from "@/components/ui";
+import EmptyState from "@/components/empty-state";
 
 interface FeedbackRow {
   id: number;
@@ -200,9 +201,19 @@ export default function FeedbackPage() {
 
         {/* Empty state */}
         {!loading && filtered.length === 0 && (
-          <Card className="p-8 text-center">
-            <p className="text-text-muted">No feedback found</p>
-          </Card>
+          items.length === 0 ? (
+            <Card>
+              <EmptyState
+                illustration="check"
+                title="No feedback submitted yet"
+                description="When team members submit bugs, ideas, or questions, they'll appear here for review."
+              />
+            </Card>
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-text-muted">No feedback matches your filter.</p>
+            </Card>
+          )
         )}
 
         {/* Desktop table */}
