@@ -40,6 +40,97 @@ function relativeTime(dateStr: string | null): string {
   return date.toLocaleDateString();
 }
 
+interface BulkSyncResult {
+  processId: number;
+  processName: string;
+  imported: number;
+  updated: number;
+  removed: number;
+  total: number;
+  error?: string;
+}
+
+function BulkSyncCard() {
+  const [syncing, setSyncing] = useState(false);
+  const [results, setResults] = useState<BulkSyncResult[] | null>(null);
+  const [summary, setSummary] = useState<{ total: number; synced: number; failed: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleBulkSync() {
+    setSyncing(true);
+    setResults(null);
+    setSummary(null);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/asana/sync-all", { method: "POST" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || data.message || "Sync failed");
+        return;
+      }
+
+      setResults(data.results);
+      setSummary(data.summary);
+    } catch {
+      setError("Network error — please try again.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  return (
+    <Card padding="md">
+      <h2 className="text-xl font-semibold text-nia-dark mb-2">
+        Sync All Asana Tasks
+      </h2>
+      <p className="text-sm text-text-tertiary mb-4">
+        Import and update tasks from all Asana-linked processes. This may take a few minutes.
+      </p>
+
+      <Button onClick={handleBulkSync} disabled={syncing} size="sm">
+        {syncing ? "Syncing..." : "Sync All Processes"}
+      </Button>
+
+      {error && (
+        <div className="mt-3 rounded-lg p-3 text-sm bg-nia-red/10 border border-nia-red/30 text-nia-red">
+          {error}
+        </div>
+      )}
+
+      {summary && (
+        <div className="mt-3 rounded-lg p-3 text-sm bg-nia-green/20 border border-nia-green text-nia-dark">
+          Synced {summary.synced}/{summary.total} processes
+          {summary.failed > 0 && ` (${summary.failed} failed)`}
+        </div>
+      )}
+
+      {results && results.length > 0 && (
+        <div className="mt-3 space-y-1 text-sm">
+          {results.map((r) => (
+            <div
+              key={r.processId}
+              className={`flex items-center justify-between py-1 px-2 rounded ${
+                r.error ? "bg-nia-red/5" : "bg-card"
+              }`}
+            >
+              <span className="text-nia-dark truncate mr-2">{r.processName}</span>
+              {r.error ? (
+                <span className="text-nia-red text-xs whitespace-nowrap">Error</span>
+              ) : (
+                <span className="text-text-tertiary text-xs whitespace-nowrap">
+                  {r.imported} new, {r.updated} updated, {r.removed} removed
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function SettingsContent() {
   const searchParams = useSearchParams();
   const { isAdmin, loading: roleLoading } = useRole();
@@ -253,6 +344,11 @@ function SettingsContent() {
           </div>
         </div>
       </Card>
+
+      {/* Bulk Asana Sync — admin only */}
+      {!roleLoading && isAdmin && (
+        <BulkSyncCard />
+      )}
 
       {/* User Management — admin only */}
       {!roleLoading && isAdmin && (
