@@ -76,7 +76,7 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
     db.from("metric_processes").select("process_id, metric_id"),
     db.from("metrics").select("id, cadence, comparison_value"),
     db.from("entries").select("metric_id, date").order("date", { ascending: false }),
-    db.from("process_tasks").select("process_id, status"),
+    db.from("process_tasks").select("process_id, status, assignee_name, due_date, completed"),
     db.from("improvement_journal").select("process_id, created_at").order("created_at", { ascending: false }),
   ]);
 
@@ -144,12 +144,40 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
     entryCountByMetric.set(e.metric_id, (entryCountByMetric.get(e.metric_id) || 0) + 1);
   }
 
-  // Tasks per process
+  // Tasks per process (enhanced aggregation for execution quality scoring)
   const tasksByProcess = new Map<number, HealthTaskInput>();
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD for overdue comparison
   for (const t of tasksData || []) {
-    const existing = tasksByProcess.get(t.process_id) || { pending_count: 0, exported_count: 0 };
-    if (t.status === "pending") existing.pending_count++;
-    else existing.exported_count++;
+    const existing = tasksByProcess.get(t.process_id) || {
+      pending_count: 0,
+      exported_count: 0,
+      total_active_tasks: 0,
+      completed_count: 0,
+      tasks_with_assignee: 0,
+      tasks_with_due_date: 0,
+      overdue_count: 0,
+    };
+
+    if (t.status === "pending") {
+      existing.pending_count++;
+    } else {
+      existing.exported_count++;
+    }
+
+    // Count active tasks (not pending AI suggestions) for execution metrics
+    if (t.status !== "pending") {
+      existing.total_active_tasks++;
+      if (t.completed) existing.completed_count++;
+      if (t.assignee_name) existing.tasks_with_assignee++;
+      if (t.due_date) {
+        existing.tasks_with_due_date++;
+        // Overdue = has due date in the past and not completed
+        if (!t.completed && t.due_date < today) {
+          existing.overdue_count++;
+        }
+      }
+    }
+
     tasksByProcess.set(t.process_id, existing);
   }
 
@@ -192,7 +220,15 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
       };
     });
 
-    const taskInput = tasksByProcess.get(proc.id) || { pending_count: 0, exported_count: 0 };
+    const taskInput = tasksByProcess.get(proc.id) || {
+      pending_count: 0,
+      exported_count: 0,
+      total_active_tasks: 0,
+      completed_count: 0,
+      tasks_with_assignee: 0,
+      tasks_with_due_date: 0,
+      overdue_count: 0,
+    };
     const improvementInput: HealthImprovementInput = {
       latest_date: improvementsByProcess.get(proc.id) || null,
     };
