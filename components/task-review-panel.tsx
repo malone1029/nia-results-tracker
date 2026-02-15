@@ -744,7 +744,6 @@ function UnifiedTaskCard({
 }) {
   const overdue = isOverdue(task);
   const badge = ORIGIN_BADGE[task.origin] || ORIGIN_BADGE.hub_manual;
-  const dateInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div
@@ -815,31 +814,27 @@ function UnifiedTaskCard({
             </span>
 
             {/* Inline due date (click to edit) */}
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                dateInputRef.current?.showPicker();
-              }}
-              className={`text-[10px] cursor-pointer hover:underline ${
+            <label
+              onClick={(e) => e.stopPropagation()}
+              className={`relative text-[10px] cursor-pointer hover:underline inline-flex items-center ${
                 overdue ? "text-red-600 font-medium" : task.due_date ? "text-text-muted" : "text-text-muted/50"
               }`}
             >
               {task.due_date
                 ? `${overdue ? "Overdue: " : ""}${formatDueDate(task.due_date)}`
                 : "Add due date"}
-            </span>
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={task.due_date || ""}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => {
-                e.stopPropagation();
-                onDueDateChange?.(task.id, e.target.value);
-              }}
-              className="sr-only"
-              tabIndex={-1}
-            />
+              <input
+                type="date"
+                value={task.due_date || ""}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onDueDateChange?.(task.id, e.target.value);
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                tabIndex={-1}
+              />
+            </label>
 
             {/* Origin badge */}
             <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>
