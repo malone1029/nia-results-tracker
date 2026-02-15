@@ -7,6 +7,7 @@ import { ListPageSkeleton } from "@/components/skeleton";
 import type { Metric } from "@/lib/types";
 import Link from "next/link";
 import { Card, Button, Select } from "@/components/ui";
+import HelpTip from "@/components/help-tip";
 
 interface MetricLeTCI extends Metric {
   process_name: string;
@@ -232,7 +233,10 @@ export default function LeTCIPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-nia-dark">LeTCI Summary</h1>
+        <h1 className="text-3xl font-bold text-nia-dark">
+          LeTCI Summary
+          <HelpTip text="Levels, Trends, Comparisons, Integration — the four elements Baldrige examiners look for in your data." />
+        </h1>
         <p className="text-text-tertiary mt-1">
           Baldrige readiness across all metrics — Levels, Trends, Comparisons, Integration
         </p>
@@ -292,6 +296,7 @@ export default function LeTCIPage() {
         </Select>
         <span className="text-sm text-text-muted">
           Click column headers to sort
+          <HelpTip text="Green dot = complete. Grey = missing. Trend: green = improving, red = declining, teal = flat." />
         </span>
       </div>
 

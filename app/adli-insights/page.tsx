@@ -9,6 +9,7 @@ import { getMaturityLevel } from "@/lib/colors";
 import { DimBar, MiniBar } from "@/components/adli-bars";
 import { Card, CardHeader, Badge, Button } from "@/components/ui";
 import AdliScoringInfo from "@/components/adli-scoring-info";
+import HelpTip from "@/components/help-tip";
 
 interface ScoreRow {
   id: number;
@@ -115,7 +116,10 @@ export default function AiInsightsPage() {
     <div className="space-y-8 content-appear">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-nia-dark">ADLI Insights</h1>
+        <h1 className="text-3xl font-bold text-nia-dark">
+          ADLI Insights
+          <HelpTip text="Approach, Deployment, Learning, Integration — the Baldrige process maturity dimensions. Scores come from AI assessments." />
+        </h1>
         <p className="text-text-tertiary mt-1">
           ADLI maturity scores across all assessed processes.
         </p>

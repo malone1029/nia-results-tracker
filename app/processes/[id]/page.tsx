@@ -1280,6 +1280,7 @@ function ProcessDetailContent() {
               <div className="px-4 py-3 border-b border-border-light flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-nia-dark">
                   Improvement Journal
+                  <HelpTip text="Track changes with before/after snapshots. Completed entries count toward your health score." />
                   {journalEntries.length > 0 && (
                     <span className="text-sm font-normal text-text-muted ml-2">
                       ({journalEntries.filter(j => j.status === "completed").length}/{journalEntries.length} completed)
@@ -1655,7 +1656,10 @@ function ProcessDetailContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
               </svg>
               <p className="text-sm font-medium text-nia-dark mb-1">No process map yet</p>
-              <p className="text-xs text-text-muted mb-4 max-w-xs mx-auto">A visual flowchart of your process steps, decision points, and outputs.</p>
+              <p className="text-xs text-text-muted mb-4 max-w-xs mx-auto">
+                AI generates a Mermaid diagram. You can refine it, edit the code, and download as SVG or PNG.
+                <HelpTip text="AI generates a Mermaid diagram. You can refine it, edit the code, and download as SVG or PNG." />
+              </p>
               <button
                 onClick={() => setPendingPrompt("Generate a process map for this process. Create a Mermaid flowchart that shows the key steps, decision points, responsible parties, and outputs based on the charter and ADLI content.")}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-nia-dark-solid hover:bg-nia-grey-blue px-4 py-2 rounded-lg transition-all duration-150 shadow-sm hover:shadow"

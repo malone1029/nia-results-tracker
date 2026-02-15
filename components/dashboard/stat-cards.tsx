@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui";
 import HealthRing from "@/components/health-ring";
+import HelpTip from "@/components/help-tip";
 import type { DashboardTaskStats } from "./types";
 
 /* ─── StatCard ─────────────────────────────────────────────── */
@@ -12,6 +13,7 @@ export function StatCard({
   subtitle,
   glow,
   href,
+  helpText,
 }: {
   label: string;
   value: number | string;
@@ -19,6 +21,7 @@ export function StatCard({
   subtitle?: string;
   glow?: "red" | "orange" | "green" | "dark";
   href?: string;
+  helpText?: string;
 }) {
   const card = (
     <Card
@@ -29,7 +32,10 @@ export function StatCard({
       <div className="text-2xl font-bold font-display number-pop" style={{ color }}>
         {value}
       </div>
-      <div className="text-sm text-text-tertiary mt-0.5">{label}</div>
+      <div className="text-sm text-text-tertiary mt-0.5">
+        {label}
+        {helpText && <HelpTip text={helpText} />}
+      </div>
       {subtitle && (
         <div className="text-xs mt-0.5" style={{ color }}>
           {subtitle}
@@ -73,7 +79,10 @@ export function ReadinessCard({
             <div className="text-2xl font-bold font-display number-pop text-text-muted">--</div>
           )}
           <div>
-            <div className="text-sm text-text-tertiary">My Readiness</div>
+            <div className="text-sm text-text-tertiary">
+              My Readiness
+              <HelpTip text="Weighted average of all process health scores. Key processes count 2x." />
+            </div>
             {healthCount > 0 && (
               <div className="text-xs font-medium" style={{ color: healthLevel.color }}>
                 {healthLevel.label}
@@ -133,6 +142,7 @@ export default function StatCardsRow({
         color={baldrigeReadyCount > 0 ? "#b1bd37" : "var(--text-muted)"}
         subtitle={processCount > 0 ? `of ${processCount} processes` : undefined}
         href="/readiness"
+        helpText="Processes scoring 80+ on health assessment."
       />
       <StatCard
         label="Needs Attention"
@@ -140,6 +150,7 @@ export default function StatCardsRow({
         color={needsAttentionCount > 0 ? "#f79935" : "#b1bd37"}
         glow={needsAttentionCount > 0 ? "orange" : undefined}
         href="/processes"
+        helpText="Processes scoring 40-79 that need improvement work."
       />
       <StatCard
         label="Overdue"
@@ -148,6 +159,7 @@ export default function StatCardsRow({
         glow={totalOverdue > 0 ? "red" : undefined}
         subtitle={overdueSubtitle}
         href="/data-health"
+        helpText="Metrics past review date or tasks past due date."
       />
       <StatCard
         label="Active Tasks"
@@ -158,6 +170,7 @@ export default function StatCardsRow({
             ? `${taskStats.completionRate}% complete`
             : undefined
         }
+        helpText="In-progress tasks across all linked processes."
       />
     </div>
   );

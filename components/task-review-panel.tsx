@@ -1034,6 +1034,9 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
               >
                 <h3 className="text-sm font-semibold" style={{ color: pdca ? PDCA_SECTIONS[pdca].color : undefined }}>
                   {section.label}
+                  {pdca === "plan" && (
+                    <HelpTip text="Plan-Do-Check-Act — the continuous improvement cycle. Drag tasks between sections to reclassify." />
+                  )}
                   <span className="font-normal text-text-muted ml-2">
                     {section.completedCount}/{section.totalCount} complete
                   </span>

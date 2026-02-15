@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Card, Badge } from "@/components/ui";
+import HelpTip from "@/components/help-tip";
 import type { DashboardTask, DashboardTaskData } from "./types";
 
 /* ─── Task row ─────────────────────────────────────────────── */
@@ -181,6 +182,7 @@ export default function TaskHub({
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider">
           {isAllOwners ? "Tasks" : "My Tasks"}
+          <HelpTip text="Your cross-process task queue. Red = overdue, orange = due soon, green = recently done." />
         </h2>
         <Link
           href="/my-tasks"
