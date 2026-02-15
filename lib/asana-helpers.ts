@@ -15,6 +15,7 @@ export interface SubtaskData {
   assignee: string | null;
   assignee_gid: string | null;
   completed_at: string | null;
+  start_on: string | null;
   due_on: string | null;
 }
 
@@ -26,6 +27,7 @@ export interface TaskData {
   assignee: string | null;
   assignee_gid: string | null;
   completed_at: string | null;
+  start_on: string | null;
   due_on: string | null;
   num_subtasks: number;
   permalink_url: string | null;
@@ -129,7 +131,7 @@ export async function fetchProjectSections(
   const sectionData: SectionData[] = [];
 
   for (const section of sections) {
-    const taskFields = "name,notes,completed,completed_at,assignee.name,assignee.gid,due_on,due_at,num_subtasks,permalink_url,custom_fields";
+    const taskFields = "name,notes,completed,completed_at,assignee.name,assignee.gid,start_on,due_on,due_at,num_subtasks,permalink_url,custom_fields";
     const allTasks = await fetchAllPages(
       token,
       `/sections/${section.gid}/tasks?opt_fields=${taskFields}`
@@ -141,7 +143,7 @@ export async function fetchProjectSections(
       let subtasks: SubtaskData[] = [];
       if (t.num_subtasks > 0) {
         try {
-          const subtaskFields = "name,notes,completed,completed_at,assignee.name,assignee.gid,due_on";
+          const subtaskFields = "name,notes,completed,completed_at,assignee.name,assignee.gid,start_on,due_on";
           const subData = await fetchAllPages(
             token,
             `/tasks/${t.gid}/subtasks?opt_fields=${subtaskFields}`
@@ -154,6 +156,7 @@ export async function fetchProjectSections(
             assignee: s.assignee?.name || null,
             assignee_gid: s.assignee?.gid || null,
             completed_at: s.completed_at || null,
+            start_on: s.start_on || null,
             due_on: s.due_on || null,
           }));
         } catch {
@@ -169,6 +172,7 @@ export async function fetchProjectSections(
         assignee: t.assignee?.name || null,
         assignee_gid: t.assignee?.gid || null,
         completed_at: t.completed_at || null,
+        start_on: t.start_on || null,
         due_on: t.due_on || t.due_at || null,
         num_subtasks: t.num_subtasks || 0,
         permalink_url: t.permalink_url || null,

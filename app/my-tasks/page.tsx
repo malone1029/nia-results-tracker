@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui";
 import { DashboardSkeleton } from "@/components/skeleton";
 import TaskDetailPanel from "@/components/task-detail-panel";
+import TaskListView from "@/components/task-list-view";
 import type { ProcessTask, TaskPriority } from "@/lib/types";
 
 interface MyTask extends ProcessTask {
@@ -22,6 +23,9 @@ export default function MyTasksPage() {
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "overdue">("all");
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // View mode
+  const [viewMode, setViewMode] = useState<"list" | "grouped">("grouped");
 
   // Detail panel
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
@@ -161,6 +165,34 @@ export default function MyTasksPage() {
 
       {/* Filter bar */}
       <div className="flex items-center gap-2 flex-wrap">
+        {/* View toggle */}
+        <div className="flex bg-surface-muted rounded-lg p-0.5 mr-2">
+          <button
+            onClick={() => setViewMode("grouped")}
+            className={`p-1.5 rounded-md transition-colors ${
+              viewMode === "grouped" ? "bg-card shadow-sm text-nia-dark" : "text-text-muted hover:text-foreground"
+            }`}
+            title="Grouped by process"
+            aria-label="Grouped view"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setViewMode("list")}
+            className={`p-1.5 rounded-md transition-colors ${
+              viewMode === "list" ? "bg-card shadow-sm text-nia-dark" : "text-text-muted hover:text-foreground"
+            }`}
+            title="List view"
+            aria-label="List view"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,7 +259,7 @@ export default function MyTasksPage() {
         )}
       </div>
 
-      {/* Task groups by process */}
+      {/* Task display */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center text-center py-16 px-4">
           <div className="w-16 h-16 rounded-full bg-surface-subtle flex items-center justify-center mb-4">
@@ -244,6 +276,14 @@ export default function MyTasksPage() {
               : "Try adjusting your search or filters."}
           </p>
         </div>
+      ) : viewMode === "list" ? (
+        <TaskListView
+          tasks={filtered}
+          onToggleComplete={handleToggleComplete}
+          togglingTaskIds={togglingIds}
+          onCardClick={(t) => setSelectedTaskId(t.id)}
+          onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
+        />
       ) : (
         <div className="space-y-4">
           {Array.from(grouped.entries()).map(([processName, processTasks]) => (

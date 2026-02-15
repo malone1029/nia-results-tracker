@@ -5,6 +5,13 @@ import type { ProcessTask, TaskPriority, TaskComment, TaskActivity } from "@/lib
 import { PDCA_SECTIONS } from "@/lib/pdca";
 import AssigneePicker from "@/components/assignee-picker";
 
+interface DependencyItem {
+  dependency_id: number;
+  task_id: number;
+  title: string;
+  completed: boolean;
+}
+
 // Origin badge styles (same as task-review-panel)
 const ORIGIN_BADGE: Record<string, { label: string; bg: string; text: string }> = {
   asana:      { label: "Asana",         bg: "bg-nia-grey-blue/15", text: "text-nia-grey-blue" },
@@ -20,6 +27,7 @@ interface TaskDetailPanelProps {
   onToggleComplete: (taskId: number, currentCompleted: boolean) => void;
   isToggling?: boolean;
   savingField?: string | null;
+  allTasks?: ProcessTask[];
 }
 
 export default function TaskDetailPanel({
@@ -30,6 +38,7 @@ export default function TaskDetailPanel({
   onToggleComplete,
   isToggling,
   savingField,
+  allTasks,
 }: TaskDetailPanelProps) {
   const [editedTitle, setEditedTitle] = useState(task.title);
   const [editedDescription, setEditedDescription] = useState(task.description || "");
@@ -42,6 +51,13 @@ export default function TaskDetailPanel({
 
   // Activity state
   const [activities, setActivities] = useState<TaskActivity[]>([]);
+
+  // Dependencies state
+  const [blockedBy, setBlockedBy] = useState<DependencyItem[]>([]);
+  const [blocking, setBlocking] = useState<DependencyItem[]>([]);
+  const [showDepPicker, setShowDepPicker] = useState(false);
+  const [depSearch, setDepSearch] = useState("");
+  const [addingDep, setAddingDep] = useState(false);
 
   const titleRef = useRef<HTMLInputElement>(null);
   const descTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,7 +79,7 @@ export default function TaskDetailPanel({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  // Fetch comments + activity on open
+  // Fetch comments + activity + dependencies on open
   useEffect(() => {
     fetch(`/api/tasks/${task.id}/comments`)
       .then((r) => r.ok ? r.json() : [])
@@ -72,6 +88,15 @@ export default function TaskDetailPanel({
     fetch(`/api/tasks/${task.id}/activity`)
       .then((r) => r.ok ? r.json() : [])
       .then((data) => { if (isMountedRef.current) setActivities(data); })
+      .catch(() => {});
+    fetch(`/api/tasks/${task.id}/dependencies`)
+      .then((r) => r.ok ? r.json() : { blockedBy: [], blocking: [] })
+      .then((data) => {
+        if (isMountedRef.current) {
+          setBlockedBy(data.blockedBy || []);
+          setBlocking(data.blocking || []);
+        }
+      })
       .catch(() => {});
   }, [task.id]);
 
@@ -107,9 +132,67 @@ export default function TaskDetailPanel({
     }, 500);
   }
 
+  // ── Start date save (immediate) ──
+  function handleStartDateChange(value: string) {
+    onUpdate(task.id, { start_date: value || null } as Partial<ProcessTask>);
+  }
+
   // ── Due date save (immediate) ──
   function handleDueDateChange(value: string) {
     onUpdate(task.id, { due_date: value || null } as Partial<ProcessTask>);
+  }
+
+  // ── Add dependency ──
+  async function handleAddDependency(dependsOnTaskId: number) {
+    setAddingDep(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/dependencies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ depends_on_task_id: dependsOnTaskId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to add dependency");
+      }
+      // Refresh dependencies
+      const depsRes = await fetch(`/api/tasks/${task.id}/dependencies`);
+      if (depsRes.ok) {
+        const data = await depsRes.json();
+        setBlockedBy(data.blockedBy || []);
+        setBlocking(data.blocking || []);
+      }
+      setShowDepPicker(false);
+      setDepSearch("");
+    } catch {
+      // Error handled silently for now
+    } finally {
+      setAddingDep(false);
+    }
+  }
+
+  // ── Remove dependency ──
+  async function handleRemoveDependency(dependencyId: number) {
+    // Optimistic remove
+    setBlockedBy((prev) => prev.filter((d) => d.dependency_id !== dependencyId));
+    setBlocking((prev) => prev.filter((d) => d.dependency_id !== dependencyId));
+
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/dependencies`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dependency_id: dependencyId }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      // Refresh on error to revert
+      fetch(`/api/tasks/${task.id}/dependencies`)
+        .then((r) => r.ok ? r.json() : { blockedBy: [], blocking: [] })
+        .then((data) => {
+          setBlockedBy(data.blockedBy || []);
+          setBlocking(data.blocking || []);
+        });
+    }
   }
 
   // ── Delete ──
@@ -172,6 +255,11 @@ export default function TaskDetailPanel({
         return `${name} changed priority from ${d?.from || "?"} to ${d?.to || "?"}`;
       }
       case "status_changed": return `${name} changed status`;
+      case "dependency_added": {
+        const d = a.detail as { depends_on_title?: string } | null;
+        return `${name} added dependency on "${d?.depends_on_title || "a task"}"`;
+      }
+      case "dependency_removed": return `${name} removed a dependency`;
       default: return `${name} updated task`;
     }
   }
@@ -274,6 +362,17 @@ export default function TaskDetailPanel({
           <div className="space-y-3">
             <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wide">Details</h4>
 
+            {/* Start date */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-secondary">Start date</span>
+              <input
+                type="date"
+                value={task.start_date || ""}
+                onChange={(e) => handleStartDateChange(e.target.value)}
+                className="text-sm bg-transparent border border-border-light rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-nia-grey-blue"
+              />
+            </div>
+
             {/* Due date */}
             <div className="flex items-center justify-between">
               <span className="text-sm text-text-secondary">Due date</span>
@@ -284,6 +383,34 @@ export default function TaskDetailPanel({
                 className="text-sm bg-transparent border border-border-light rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-nia-grey-blue"
               />
             </div>
+
+            {/* Date progress bar (when both start and due are set) */}
+            {task.start_date && task.due_date && !task.completed && (() => {
+              const start = new Date(task.start_date + "T00:00:00").getTime();
+              const end = new Date(task.due_date + "T00:00:00").getTime();
+              const now = Date.now();
+              const total = end - start;
+              const elapsed = now - start;
+              const pct = total > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / total) * 100))) : 0;
+              const overdue = now > end;
+
+              return (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] text-text-muted">
+                    <span>{pct}% of time elapsed</span>
+                    {overdue && <span className="text-red-600 font-medium">Overdue</span>}
+                  </div>
+                  <div className="h-1.5 bg-surface-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        overdue ? "bg-red-500" : pct > 75 ? "bg-amber-500" : "bg-nia-green"
+                      }`}
+                      style={{ width: `${Math.min(100, pct)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* PDCA section */}
             {pdca && (
@@ -379,6 +506,116 @@ export default function TaskDetailPanel({
               rows={4}
               className="w-full text-sm bg-surface-hover border border-border-light rounded-lg px-3 py-2 text-foreground placeholder:text-text-muted focus:outline-none focus:border-nia-grey-blue resize-none"
             />
+          </div>
+
+          {/* Dependencies */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wide">Dependencies</h4>
+
+            {/* Blocked by list */}
+            {blockedBy.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[10px] text-text-muted font-medium">Blocked by</span>
+                {blockedBy.map((dep) => (
+                  <div key={dep.dependency_id} className="flex items-center gap-2 bg-surface-hover rounded-lg px-2.5 py-1.5">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dep.completed ? "bg-nia-green" : "bg-red-500"}`} />
+                    <span className={`text-xs flex-1 min-w-0 truncate ${dep.completed ? "line-through text-text-muted" : "text-nia-dark"}`}>
+                      {dep.title}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDependency(dep.dependency_id)}
+                      className="text-text-muted hover:text-nia-red p-0.5 transition-colors flex-shrink-0"
+                      title="Remove dependency"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Blocking list */}
+            {blocking.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[10px] text-text-muted font-medium">Blocking</span>
+                {blocking.map((dep) => (
+                  <div key={dep.dependency_id} className="flex items-center gap-2 bg-surface-hover rounded-lg px-2.5 py-1.5">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dep.completed ? "bg-nia-green" : "bg-amber-500"}`} />
+                    <span className={`text-xs flex-1 min-w-0 truncate ${dep.completed ? "line-through text-text-muted" : "text-nia-dark"}`}>
+                      {dep.title}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDependency(dep.dependency_id)}
+                      className="text-text-muted hover:text-nia-red p-0.5 transition-colors flex-shrink-0"
+                      title="Remove dependency"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add dependency */}
+            {showDepPicker ? (
+              <div className="space-y-1.5">
+                <input
+                  type="text"
+                  value={depSearch}
+                  onChange={(e) => setDepSearch(e.target.value)}
+                  placeholder="Search tasks in this process..."
+                  autoFocus
+                  className="w-full text-xs bg-surface-hover border border-border-light rounded-lg px-3 py-1.5 text-foreground placeholder:text-text-muted focus:outline-none focus:border-nia-grey-blue"
+                />
+                <div className="max-h-32 overflow-y-auto space-y-0.5">
+                  {(allTasks || [])
+                    .filter(
+                      (t) =>
+                        t.id !== task.id &&
+                        t.process_id === task.process_id &&
+                        !t.is_subtask &&
+                        !blockedBy.some((d) => d.task_id === t.id) &&
+                        (!depSearch || t.title.toLowerCase().includes(depSearch.toLowerCase()))
+                    )
+                    .slice(0, 8)
+                    .map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => handleAddDependency(t.id)}
+                        disabled={addingDep}
+                        className="w-full text-left text-xs px-2.5 py-1.5 rounded-lg hover:bg-surface-hover/80 text-nia-dark transition-colors disabled:opacity-50 truncate"
+                      >
+                        {t.title}
+                      </button>
+                    ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowDepPicker(false); setDepSearch(""); }}
+                  className="text-[10px] text-text-muted hover:text-foreground transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowDepPicker(true)}
+                className="text-xs text-nia-grey-blue hover:text-nia-dark transition-colors inline-flex items-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                Link dependency
+              </button>
+            )}
           </div>
 
           {/* Comments */}

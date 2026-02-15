@@ -27,6 +27,7 @@ export interface UnifiedTaskCardProps {
   isToggling?: boolean;
   onCardClick?: (task: ProcessTask) => void;
   onDueDateChange?: (taskId: number, date: string) => void;
+  hasBlockers?: boolean;
 }
 
 export default function UnifiedTaskCard({
@@ -36,6 +37,7 @@ export default function UnifiedTaskCard({
   isToggling,
   onCardClick,
   onDueDateChange,
+  hasBlockers,
 }: UnifiedTaskCardProps) {
   const overdue = isOverdue(task);
   const badge = ORIGIN_BADGE[task.origin] || ORIGIN_BADGE.hub_manual;
@@ -105,21 +107,25 @@ export default function UnifiedTaskCard({
             )}
           </div>
 
-          {/* Meta row: assignee, due date, origin badge */}
+          {/* Meta row: assignee, due date, origin badge, blockers */}
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {/* Assignee */}
             <span className={`text-[10px] ${task.assignee_name ? "text-text-secondary" : "text-text-muted"}`}>
               {task.assignee_name || "Unassigned"}
             </span>
 
-            {/* Inline due date (click to edit) */}
+            {/* Inline due date / date range (click to edit) */}
             <label
               onClick={(e) => e.stopPropagation()}
               className={`relative text-[10px] cursor-pointer hover:underline inline-flex items-center ${
                 overdue ? "text-red-600 font-medium" : task.due_date ? "text-text-muted" : "text-text-muted/50"
               }`}
             >
-              {task.due_date
+              {task.start_date && task.due_date
+                ? `${overdue ? "Overdue: " : ""}${formatDueDate(task.start_date)} – ${formatDueDate(task.due_date)}`
+                : task.start_date && !task.due_date
+                ? `Starts ${formatDueDate(task.start_date)}`
+                : task.due_date
                 ? `${overdue ? "Overdue: " : ""}${formatDueDate(task.due_date)}`
                 : "Add due date"}
               <input
@@ -135,6 +141,15 @@ export default function UnifiedTaskCard({
                 aria-label={`Due date for ${task.title}`}
               />
             </label>
+
+            {/* Blocker icon */}
+            {hasBlockers && (
+              <span className="text-amber-500 flex items-center gap-0.5" title="Has incomplete blockers">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </span>
+            )}
 
             {/* Origin badge */}
             <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>
