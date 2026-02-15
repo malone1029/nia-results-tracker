@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { PDCA_SECTIONS } from "@/lib/pdca";
 import HelpTip from "@/components/help-tip";
 import Toast from "@/components/toast";
+import TaskDetailPanel from "@/components/task-detail-panel";
 import type { PdcaSection, ProcessTask } from "@/lib/types";
 
 // ── Constants ────────────────────────────────────────────────
@@ -162,6 +163,8 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
 
   // Edit state
   const [togglingTaskIds, setTogglingTaskIds] = useState<Set<number>>(new Set());
+  const [savingField, setSavingField] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [toastState, setToastState] = useState<{
     message: string;
     type: "error" | "success";
@@ -291,6 +294,74 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     };
 
     doToggle();
+  }
+
+  // ── Generic update (optimistic UI with revert) ──
+
+  async function handleUpdateTask(taskId: number, fields: Partial<ProcessTask>) {
+    const snapshot = tasks.find((t) => t.id === taskId);
+    if (!snapshot) return;
+
+    // Determine which field we're saving (for "Saving..." indicator)
+    const fieldName = Object.keys(fields)[0] || null;
+    setSavingField(fieldName);
+
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, ...fields } : t))
+    );
+
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || data.error || "Update failed");
+      }
+    } catch (err) {
+      // Revert
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? snapshot : t))
+      );
+      setToastState({
+        message: (err as Error).message || "Couldn't update task. Please try again.",
+        type: "error",
+        retry: () => handleUpdateTask(taskId, fields),
+      });
+    } finally {
+      setSavingField(null);
+    }
+  }
+
+  // ── Delete task ──
+
+  async function handleDeleteTask(taskId: number) {
+    const snapshot = tasks.find((t) => t.id === taskId);
+    if (!snapshot) return;
+
+    // Optimistic remove
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setSelectedTaskId(null);
+
+    try {
+      const res = await fetch(`/api/tasks?id=${taskId}`, { method: "DELETE" });
+      if (!res.ok) {
+        throw new Error("Delete failed");
+      }
+      setToastState({ message: "Task deleted", type: "success" });
+    } catch {
+      // Revert
+      setTasks((prev) => [...prev, snapshot]);
+      setToastState({
+        message: "Couldn't delete task. Please try again.",
+        type: "error",
+        retry: () => handleDeleteTask(taskId),
+      });
+    }
   }
 
   // ── Keep / Dismiss for AI suggestions ──
@@ -573,6 +644,23 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
         />
       )}
 
+      {/* ═══ TASK DETAIL PANEL ═══ */}
+      {selectedTaskId && (() => {
+        const selectedTask = tasks.find((t) => t.id === selectedTaskId);
+        if (!selectedTask) return null;
+        return (
+          <TaskDetailPanel
+            task={selectedTask}
+            onClose={() => setSelectedTaskId(null)}
+            onUpdate={handleUpdateTask}
+            onDelete={handleDeleteTask}
+            onToggleComplete={handleToggleComplete}
+            isToggling={togglingTaskIds.has(selectedTaskId)}
+            savingField={savingField}
+          />
+        );
+      })()}
+
       {/* ═══ TASK SECTIONS ═══ */}
       {sections.map((section) => {
         const pdca = section.pdcaMatch;
@@ -607,6 +695,8 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                       task={task}
                       onToggleComplete={handleToggleComplete}
                       isToggling={togglingTaskIds.has(task.id)}
+                      onCardClick={(t) => setSelectedTaskId(t.id)}
+                      onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
                     />
                     {/* Subtasks indented */}
                     {subtasks.length > 0 && (
@@ -618,6 +708,8 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                             isSubtask
                             onToggleComplete={handleToggleComplete}
                             isToggling={togglingTaskIds.has(sub.id)}
+                            onCardClick={(t) => setSelectedTaskId(t.id)}
+                            onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
                           />
                         ))}
                       </div>
@@ -640,19 +732,25 @@ function UnifiedTaskCard({
   isSubtask,
   onToggleComplete,
   isToggling,
+  onCardClick,
+  onDueDateChange,
 }: {
   task: ProcessTask;
   isSubtask?: boolean;
   onToggleComplete?: (taskId: number, currentCompleted: boolean) => void;
   isToggling?: boolean;
+  onCardClick?: (task: ProcessTask) => void;
+  onDueDateChange?: (taskId: number, date: string) => void;
 }) {
   const overdue = isOverdue(task);
   const badge = ORIGIN_BADGE[task.origin] || ORIGIN_BADGE.hub_manual;
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div
-      className={`bg-card rounded-lg border border-border-light transition-colors ${
-        task.completed ? "opacity-50" : "hover:border-border"
+      onClick={() => onCardClick?.(task)}
+      className={`bg-card rounded-lg border border-border-light transition-colors cursor-pointer ${
+        task.completed ? "opacity-50" : "hover:border-border hover:shadow-sm"
       } ${isSubtask ? "p-2" : "p-3"}`}
     >
       <div className="flex items-start gap-2">
@@ -698,6 +796,7 @@ function UnifiedTaskCard({
                 href={task.asana_task_url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="text-text-muted hover:text-nia-grey-blue flex-shrink-0 p-0.5"
                 title="Open in Asana"
               >
@@ -715,12 +814,32 @@ function UnifiedTaskCard({
               {task.assignee_name || "Unassigned"}
             </span>
 
-            {/* Due date */}
-            {task.due_date && (
-              <span className={`text-[10px] ${overdue ? "text-red-600 font-medium" : "text-text-muted"}`}>
-                {overdue ? "Overdue: " : ""}{formatDueDate(task.due_date)}
-              </span>
-            )}
+            {/* Inline due date (click to edit) */}
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                dateInputRef.current?.showPicker();
+              }}
+              className={`text-[10px] cursor-pointer hover:underline ${
+                overdue ? "text-red-600 font-medium" : task.due_date ? "text-text-muted" : "text-text-muted/50"
+              }`}
+            >
+              {task.due_date
+                ? `${overdue ? "Overdue: " : ""}${formatDueDate(task.due_date)}`
+                : "Add due date"}
+            </span>
+            <input
+              ref={dateInputRef}
+              type="date"
+              value={task.due_date || ""}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                e.stopPropagation();
+                onDueDateChange?.(task.id, e.target.value);
+              }}
+              className="sr-only"
+              tabIndex={-1}
+            />
 
             {/* Origin badge */}
             <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>
