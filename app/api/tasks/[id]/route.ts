@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
+import { PDCA_SECTION_VALUES, PDCA_SECTIONS } from "@/lib/pdca";
+import type { PdcaSection } from "@/lib/types";
 
 // ── Simple per-user rate limiter (protects Asana's 150 req/min limit) ──
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -57,10 +59,10 @@ export async function PATCH(
     );
   }
 
-  // Fetch the task to check origin and get asana_task_gid
+  // Fetch the task to check origin, asana_task_gid, and process_id
   const { data: task, error: fetchError } = await supabase
     .from("process_tasks")
-    .select("id, origin, asana_task_gid")
+    .select("id, origin, asana_task_gid, process_id")
     .eq("id", id)
     .single();
 
@@ -83,6 +85,19 @@ export async function PATCH(
   if (body.assignee_email !== undefined) updates.assignee_email = body.assignee_email;
   if (body.assignee_asana_gid !== undefined)
     updates.assignee_asana_gid = body.assignee_asana_gid;
+
+  // PDCA section change (used by drag-and-drop between sections)
+  if (body.pdca_section !== undefined) {
+    if (!PDCA_SECTION_VALUES.includes(body.pdca_section)) {
+      return NextResponse.json(
+        { error: `Invalid pdca_section. Must be one of: ${PDCA_SECTION_VALUES.join(", ")}` },
+        { status: 400 }
+      );
+    }
+    updates.pdca_section = body.pdca_section;
+    // Update the displayed section name to match
+    updates.asana_section_name = PDCA_SECTIONS[body.pdca_section as PdcaSection].label;
+  }
 
   // Auto-derive status and completed_at from completed boolean
   if (body.completed !== undefined) {
@@ -138,6 +153,41 @@ export async function PATCH(
           },
           { status: 502 }
         );
+      }
+    }
+
+    // Move to new Asana section when pdca_section changes
+    if (body.pdca_section !== undefined) {
+      try {
+        // Look up the process's Asana project
+        const { data: proc } = await supabase
+          .from("processes")
+          .select("asana_project_gid")
+          .eq("id", task.process_id)
+          .single();
+
+        if (proc?.asana_project_gid) {
+          // Fetch sections from the Asana project
+          const sectionsRes = await asanaFetch(
+            token,
+            `/projects/${proc.asana_project_gid}/sections?opt_fields=name`
+          );
+          const targetLabel = PDCA_SECTIONS[body.pdca_section as PdcaSection].label.toLowerCase();
+          const targetSection = sectionsRes.data?.find(
+            (s: { name: string; gid: string }) => s.name.toLowerCase() === targetLabel
+          );
+
+          if (targetSection) {
+            await asanaFetch(token, `/sections/${targetSection.gid}/addTask`, {
+              method: "POST",
+              body: JSON.stringify({ data: { task: task.asana_task_gid } }),
+            });
+            updates.asana_section_gid = targetSection.gid;
+          }
+        }
+      } catch {
+        // Section move is best-effort — don't block the update
+        console.warn(`[PATCH /api/tasks/${id}] Asana section move failed (non-blocking)`);
       }
     }
 

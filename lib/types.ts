@@ -215,6 +215,7 @@ export interface ProcessTask {
   last_synced_at: string | null;
   asana_task_gid: string | null;
   asana_task_url: string | null;
+  sort_order: number;
   created_at: string;
 }
 
