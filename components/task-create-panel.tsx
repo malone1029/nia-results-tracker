@@ -92,14 +92,14 @@ export default function TaskCreatePanel({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — z-[55] to cover the Ask AI floating button (z-50) */}
       <div
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
+        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[55]"
         onClick={onClose}
       />
 
       {/* Panel */}
-      <div className="fixed inset-0 sm:left-auto sm:right-0 sm:top-0 h-full w-full sm:w-[420px] bg-card shadow-2xl z-50 animate-slide-in-right flex flex-col">
+      <div className="fixed inset-0 sm:left-auto sm:right-0 sm:top-0 h-full w-full sm:w-[420px] bg-card shadow-2xl z-[60] animate-slide-in-right flex flex-col">
         {/* Header */}
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-base font-semibold text-nia-dark">New Task</h2>
