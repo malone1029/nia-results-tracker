@@ -81,8 +81,10 @@ export default function AssigneePicker({
     return () => document.removeEventListener("keydown", handleKey);
   }, [isOpen]);
 
+  const searchLower = search.toLowerCase();
   const filtered = members.filter((m) =>
-    m.name.toLowerCase().includes(search.toLowerCase())
+    m.name.toLowerCase().includes(searchLower) ||
+    m.email.toLowerCase().includes(searchLower)
   );
 
   return (
@@ -116,7 +118,7 @@ export default function AssigneePicker({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search members..."
+              placeholder="Search by name or email..."
               className="w-full text-sm bg-surface-hover border border-border-light rounded-lg px-2.5 py-1.5 text-foreground placeholder:text-text-muted focus:outline-none focus:border-nia-grey-blue"
             />
           </div>
