@@ -19,6 +19,7 @@ export default function SortableTaskCard({
   onCardClick,
   onDueDateChange,
   hasBlockers,
+  attachmentCount,
 }: SortableTaskCardProps) {
   const {
     attributes,
@@ -65,6 +66,7 @@ export default function SortableTaskCard({
             onCardClick={onCardClick}
             onDueDateChange={onDueDateChange}
             hasBlockers={hasBlockers}
+            attachmentCount={attachmentCount}
           />
         </div>
       </div>

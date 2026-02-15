@@ -28,6 +28,7 @@ export interface UnifiedTaskCardProps {
   onCardClick?: (task: ProcessTask) => void;
   onDueDateChange?: (taskId: number, date: string) => void;
   hasBlockers?: boolean;
+  attachmentCount?: number;
 }
 
 export default function UnifiedTaskCard({
@@ -38,6 +39,7 @@ export default function UnifiedTaskCard({
   onCardClick,
   onDueDateChange,
   hasBlockers,
+  attachmentCount,
 }: UnifiedTaskCardProps) {
   const overdue = isOverdue(task);
   const badge = ORIGIN_BADGE[task.origin] || ORIGIN_BADGE.hub_manual;
@@ -141,6 +143,25 @@ export default function UnifiedTaskCard({
                 aria-label={`Due date for ${task.title}`}
               />
             </label>
+
+            {/* Recurring icon */}
+            {task.recurrence_rule && (
+              <span className="text-nia-grey-blue flex items-center" title="Recurring task">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </span>
+            )}
+
+            {/* Attachment count */}
+            {(attachmentCount || 0) > 0 && (
+              <span className="text-text-muted flex items-center gap-0.5 text-[10px]" title={`${attachmentCount} attachment${attachmentCount !== 1 ? "s" : ""}`}>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                {attachmentCount}
+              </span>
+            )}
 
             {/* Blocker icon */}
             {hasBlockers && (

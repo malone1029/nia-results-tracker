@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
+import { validateRecurrenceRule } from "@/lib/recurrence";
 import {
   PDCA_SECTION_VALUES,
   ADLI_DIMENSION_VALUES,
@@ -151,6 +152,16 @@ export async function POST(request: Request) {
     // Manual tasks skip "pending" review — they're immediately active
     const status = origin === "hub_manual" ? "active" : (task.status || "pending");
 
+    // Validate recurrence rule if provided
+    let recurrenceRule = null;
+    if (task.recurrence_rule) {
+      const ruleError = validateRecurrenceRule(task.recurrence_rule);
+      if (ruleError) {
+        return NextResponse.json({ error: ruleError }, { status: 400 });
+      }
+      recurrenceRule = task.recurrence_rule;
+    }
+
     rows.push({
       process_id: task.process_id,
       title: task.title.trim(),
@@ -168,6 +179,7 @@ export async function POST(request: Request) {
       start_date: task.start_date || null,
       due_date: task.due_date || null,
       priority: task.priority || "medium",
+      recurrence_rule: recurrenceRule,
     });
   }
 

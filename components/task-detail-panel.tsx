@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { ProcessTask, TaskPriority, TaskComment, TaskActivity } from "@/lib/types";
+import type { ProcessTask, TaskPriority, TaskComment, TaskActivity, TaskAttachment, RecurrenceRule } from "@/lib/types";
 import { PDCA_SECTIONS } from "@/lib/pdca";
+import { describeRecurrence } from "@/lib/recurrence";
 import AssigneePicker from "@/components/assignee-picker";
+
+const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 interface DependencyItem {
   dependency_id: number;
@@ -67,6 +70,18 @@ export default function TaskDetailPanel({
   const [depSearch, setDepSearch] = useState("");
   const [addingDep, setAddingDep] = useState(false);
 
+  // Recurrence state
+  const [showRecurrenceEditor, setShowRecurrenceEditor] = useState(false);
+  const [recType, setRecType] = useState<RecurrenceRule["type"]>("weekly");
+  const [recInterval, setRecInterval] = useState(1);
+  const [recDayOfWeek, setRecDayOfWeek] = useState(1);
+  const [recDayOfMonth, setRecDayOfMonth] = useState(1);
+
+  // Attachments state
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const titleRef = useRef<HTMLInputElement>(null);
   const descTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -105,6 +120,10 @@ export default function TaskDetailPanel({
           setBlocking(data.blocking || []);
         }
       })
+      .catch(() => {});
+    fetch(`/api/tasks/${task.id}/attachments`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => { if (isMountedRef.current) setAttachments(data); })
       .catch(() => {});
   }, [task.id]);
 
@@ -330,6 +349,80 @@ export default function TaskDetailPanel({
     }
   }
 
+  // ── Save recurrence rule ──
+  async function handleSaveRecurrence() {
+    const rule: RecurrenceRule = {
+      type: recType,
+      interval: recInterval,
+      ...(recType === "weekly" ? { dayOfWeek: recDayOfWeek } : {}),
+      ...(recType === "monthly" ? { dayOfMonth: recDayOfMonth } : {}),
+    };
+    onUpdate(task.id, { recurrence_rule: rule } as Partial<ProcessTask>);
+    setShowRecurrenceEditor(false);
+  }
+
+  function handleRemoveRecurrence() {
+    onUpdate(task.id, { recurrence_rule: null } as Partial<ProcessTask>);
+    setShowRecurrenceEditor(false);
+  }
+
+  // ── Upload attachment ──
+  async function handleUploadAttachment(file: File) {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/tasks/${task.id}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Upload failed");
+      }
+      const attachment = await res.json();
+      setAttachments((prev) => [...prev, attachment]);
+    } catch {
+      // Error silently for now
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  // ── Delete attachment ──
+  async function handleDeleteAttachment(attachmentId: number) {
+    // Optimistic remove
+    setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/attachments`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attachment_id: attachmentId }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      // Refresh on error
+      fetch(`/api/tasks/${task.id}/attachments`)
+        .then((r) => r.ok ? r.json() : [])
+        .then((data) => setAttachments(data));
+    }
+  }
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function getFileIcon(mimeType: string): string {
+    if (mimeType.startsWith("image/")) return "🖼";
+    if (mimeType === "application/pdf") return "📄";
+    if (mimeType.includes("word")) return "📝";
+    return "📎";
+  }
+
   // ── Render comment body with @mention highlights ──
   function renderCommentBody(text: string) {
     const parts = text.split(/(@[A-Za-z]+ [A-Za-z]+)/g);
@@ -368,6 +461,18 @@ export default function TaskDetailPanel({
         return `${name} added dependency on "${d?.depends_on_title || "a task"}"`;
       }
       case "dependency_removed": return `${name} removed a dependency`;
+      case "attachment_added": {
+        const d = a.detail as { file_name?: string } | null;
+        return `${name} added "${d?.file_name || "a file"}"`;
+      }
+      case "attachment_removed": {
+        const d = a.detail as { file_name?: string } | null;
+        return `${name} removed "${d?.file_name || "a file"}"`;
+      }
+      case "recurrence_set": {
+        const d = a.detail as { removed?: boolean } | null;
+        return d?.removed ? `${name} removed recurrence` : `${name} set recurrence`;
+      }
       default: return `${name} updated task`;
     }
   }
@@ -724,6 +829,211 @@ export default function TaskDetailPanel({
                 Link dependency
               </button>
             )}
+          </div>
+
+          {/* Recurrence */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wide">Recurrence</h4>
+
+            {showRecurrenceEditor ? (
+              <div className="space-y-2 bg-surface-hover rounded-lg p-3">
+                {/* Type chips */}
+                <div className="flex gap-2">
+                  {(["daily", "weekly", "monthly"] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setRecType(type)}
+                      className={`text-xs font-medium px-3 py-1 rounded-lg capitalize transition-all ${
+                        recType === type
+                          ? "bg-nia-grey-blue text-white"
+                          : "bg-card text-text-secondary hover:text-foreground"
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Interval */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-text-secondary">Every</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={recInterval}
+                    onChange={(e) => setRecInterval(Math.max(1, Number(e.target.value)))}
+                    className="w-14 text-xs text-center bg-card border border-border-light rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-nia-grey-blue"
+                  />
+                  <span className="text-xs text-text-secondary">
+                    {recType === "daily" ? "day(s)" : recType === "weekly" ? "week(s)" : "month(s)"}
+                  </span>
+                </div>
+
+                {/* Day of week for weekly */}
+                {recType === "weekly" && (
+                  <div className="flex gap-1">
+                    {DAYS_OF_WEEK.map((day, idx) => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => setRecDayOfWeek(idx)}
+                        className={`text-[10px] font-medium w-8 h-6 rounded transition-all ${
+                          recDayOfWeek === idx
+                            ? "bg-nia-grey-blue text-white"
+                            : "bg-card text-text-muted hover:text-foreground"
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Day of month for monthly */}
+                {recType === "monthly" && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-text-secondary">On day</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={recDayOfMonth}
+                      onChange={(e) => setRecDayOfMonth(Math.max(1, Math.min(31, Number(e.target.value))))}
+                      className="w-14 text-xs text-center bg-card border border-border-light rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-nia-grey-blue"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleSaveRecurrence}
+                    className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
+                  >
+                    Save
+                  </button>
+                  {task.recurrence_rule && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveRecurrence}
+                      className="text-xs font-medium text-nia-red hover:text-red-700 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowRecurrenceEditor(false)}
+                    className="text-xs text-text-muted hover:text-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : task.recurrence_rule ? (
+              <div className="flex items-center justify-between bg-surface-hover rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <svg className="w-3.5 h-3.5 text-nia-grey-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span className="text-xs text-nia-dark">{describeRecurrence(task.recurrence_rule)}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Pre-fill editor with current values
+                    setRecType(task.recurrence_rule!.type);
+                    setRecInterval(task.recurrence_rule!.interval);
+                    if (task.recurrence_rule!.dayOfWeek !== undefined) setRecDayOfWeek(task.recurrence_rule!.dayOfWeek);
+                    if (task.recurrence_rule!.dayOfMonth !== undefined) setRecDayOfMonth(task.recurrence_rule!.dayOfMonth);
+                    setShowRecurrenceEditor(true);
+                  }}
+                  className="text-[10px] text-nia-grey-blue hover:text-nia-dark transition-colors"
+                >
+                  Edit
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowRecurrenceEditor(true)}
+                className="text-xs text-nia-grey-blue hover:text-nia-dark transition-colors inline-flex items-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Set up recurrence
+              </button>
+            )}
+          </div>
+
+          {/* Attachments */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wide">
+              Attachments {attachments.length > 0 && `(${attachments.length})`}
+            </h4>
+
+            {attachments.length > 0 && (
+              <div className="space-y-1.5">
+                {attachments.map((att) => (
+                  <div key={att.id} className="flex items-center gap-2 bg-surface-hover rounded-lg px-2.5 py-1.5">
+                    <span className="text-sm flex-shrink-0">{getFileIcon(att.mime_type)}</span>
+                    <div className="flex-1 min-w-0">
+                      {att.url ? (
+                        <a
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-nia-grey-blue hover:underline truncate block"
+                        >
+                          {att.file_name}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-nia-dark truncate block">{att.file_name}</span>
+                      )}
+                      <span className="text-[10px] text-text-muted">{formatFileSize(att.file_size)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAttachment(att.id)}
+                      className="text-text-muted hover:text-nia-red p-0.5 transition-colors flex-shrink-0"
+                      title="Remove attachment"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload area */}
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={`border border-dashed border-border-light rounded-lg p-3 text-center cursor-pointer hover:border-nia-grey-blue transition-colors ${
+                uploading ? "opacity-50 pointer-events-none" : ""
+              }`}
+            >
+              <p className="text-xs text-text-muted">
+                {uploading ? "Uploading..." : "Click to upload a file"}
+              </p>
+              <p className="text-[10px] text-text-muted mt-0.5">
+                Images, PDF, Word, text (max 10MB)
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.txt"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadAttachment(file);
+                }}
+              />
+            </div>
           </div>
 
           {/* Comments */}
