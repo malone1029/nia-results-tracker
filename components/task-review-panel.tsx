@@ -1410,14 +1410,11 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                         }}
                         onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
                         hasBlockers={taskBlockerMap.get(task.id) || false}
-<<<<<<< HEAD
+                        attachmentCount={attachmentCounts.get(task.id) || 0}
                         isSelected={isSelected(task.id)}
                         isAnySelected={isAnySelected}
                         onToggleSelection={toggleId}
                         onContextMenu={selectionHandleContextMenu}
-=======
-                        attachmentCount={attachmentCounts.get(task.id) || 0}
->>>>>>> 92aaf5a (Add recurring tasks and file attachments)
                       />
                     );
                   })}
