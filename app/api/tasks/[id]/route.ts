@@ -86,6 +86,14 @@ export async function PATCH(
   if (body.assignee_asana_gid !== undefined)
     updates.assignee_asana_gid = body.assignee_asana_gid;
 
+  // Sort order (used by drag-and-drop reorder)
+  if (body.sort_order !== undefined) {
+    if (typeof body.sort_order !== "number" || body.sort_order < 0) {
+      return NextResponse.json({ error: "sort_order must be a non-negative number" }, { status: 400 });
+    }
+    updates.sort_order = body.sort_order;
+  }
+
   // PDCA section change (used by drag-and-drop between sections)
   if (body.pdca_section !== undefined) {
     if (!PDCA_SECTION_VALUES.includes(body.pdca_section)) {

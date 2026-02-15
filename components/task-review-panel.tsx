@@ -3,12 +3,16 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
+  rectIntersection,
   PointerSensor,
   TouchSensor,
   useSensor,
   useSensors,
+  useDroppable,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -173,6 +177,9 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   // Create task state
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
   const [createPdcaDefault, setCreatePdcaDefault] = useState<PdcaSection>("plan");
+
+  // DnD state
+  const [activeDragId, setActiveDragId] = useState<number | null>(null);
 
   // DnD sensors: mouse needs 5px movement to start, touch needs 200ms hold
   const sensors = useSensors(
@@ -404,71 +411,144 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     }
   }
 
-  // ── Drag-and-drop reorder within a section ──
+  // ── Drag-and-drop ──
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveDragId(event.active.id as number);
+  }
 
   async function handleDragEnd(event: DragEndEvent) {
+    setActiveDragId(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
     const activeId = active.id as number;
-    const overId = over.id as number;
-
-    // Find the section that contains the active task
     const activeTask = tasks.find((t) => t.id === activeId);
+    if (!activeTask) return;
+
+    // Determine the target: is "over" a task or a section droppable?
+    const overIdStr = String(over.id);
+    const isSectionDrop = overIdStr.startsWith("section-");
+
+    if (isSectionDrop) {
+      // Dropped on a section container — move to that section at the end
+      const targetPdca = overIdStr.replace("section-", "") as PdcaSection;
+      if (!PDCA_KEYS.includes(targetPdca)) return;
+      if (activeTask.pdca_section === targetPdca) return; // Already in this section
+
+      await handleCrossSectionMove(activeTask, targetPdca);
+      return;
+    }
+
+    // "over" is a task — check if same or different section
+    const overId = over.id as number;
     const overTask = tasks.find((t) => t.id === overId);
-    if (!activeTask || !overTask) return;
+    if (!overTask) return;
 
-    // Only handle within-section reordering in this PR
-    if (activeTask.pdca_section !== overTask.pdca_section) return;
+    if (activeTask.pdca_section === overTask.pdca_section) {
+      // ── Within-section reorder ──
+      const sectionTasks = tasks
+        .filter(
+          (t) =>
+            !t.is_subtask &&
+            t.status !== "pending" &&
+            t.pdca_section === activeTask.pdca_section
+        )
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
-    // Get all non-subtask, non-pending tasks in this section, sorted by sort_order
-    const sectionTasks = tasks
-      .filter(
-        (t) =>
-          !t.is_subtask &&
-          t.status !== "pending" &&
-          t.pdca_section === activeTask.pdca_section
-      )
-      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      const oldIndex = sectionTasks.findIndex((t) => t.id === activeId);
+      const newIndex = sectionTasks.findIndex((t) => t.id === overId);
+      if (oldIndex === -1 || newIndex === -1) return;
 
-    const oldIndex = sectionTasks.findIndex((t) => t.id === activeId);
-    const newIndex = sectionTasks.findIndex((t) => t.id === overId);
-    if (oldIndex === -1 || newIndex === -1) return;
+      const reordered = [...sectionTasks];
+      const [moved] = reordered.splice(oldIndex, 1);
+      reordered.splice(newIndex, 0, moved);
 
-    // Reorder: remove from old position, insert at new position
-    const reordered = [...sectionTasks];
-    const [moved] = reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, moved);
+      const updates: { id: number; sort_order: number }[] = reordered.map(
+        (t, i) => ({ id: t.id, sort_order: (i + 1) * 1000 })
+      );
 
-    // Assign new gap-based sort_order values (1000, 2000, 3000...)
-    const updates: { id: number; sort_order: number }[] = reordered.map(
-      (t, i) => ({ id: t.id, sort_order: (i + 1) * 1000 })
+      const snapshot = [...tasks];
+      setTasks((prev) => {
+        const next = [...prev];
+        for (const u of updates) {
+          const idx = next.findIndex((t) => t.id === u.id);
+          if (idx !== -1) next[idx] = { ...next[idx], sort_order: u.sort_order };
+        }
+        return next;
+      });
+
+      try {
+        const res = await fetch("/api/tasks/reorder", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updates }),
+        });
+        if (!res.ok) throw new Error("Reorder failed");
+      } catch {
+        setTasks(snapshot);
+        setToastState({
+          message: "Couldn't save new order. Please try again.",
+          type: "error",
+        });
+      }
+    } else {
+      // ── Cross-section move ──
+      await handleCrossSectionMove(activeTask, overTask.pdca_section);
+    }
+  }
+
+  /** Move a task to a different PDCA section */
+  async function handleCrossSectionMove(task: ProcessTask, targetPdca: PdcaSection) {
+    const targetLabel = PDCA_SECTIONS[targetPdca].label;
+
+    // Calculate sort_order for the end of the target section
+    const targetTasks = tasks.filter(
+      (t) => t.pdca_section === targetPdca && !t.is_subtask && t.status !== "pending"
     );
+    const maxSortOrder = targetTasks.reduce(
+      (max, t) => Math.max(max, t.sort_order ?? 0),
+      0
+    );
+    const newSortOrder = maxSortOrder + 1000;
 
     // Optimistic update
     const snapshot = [...tasks];
-    setTasks((prev) => {
-      const next = [...prev];
-      for (const u of updates) {
-        const idx = next.findIndex((t) => t.id === u.id);
-        if (idx !== -1) next[idx] = { ...next[idx], sort_order: u.sort_order };
-      }
-      return next;
-    });
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? {
+              ...t,
+              pdca_section: targetPdca,
+              asana_section_name: targetLabel,
+              sort_order: newSortOrder,
+            }
+          : t
+      )
+    );
 
-    // Persist to API
+    // Persist via PATCH /api/tasks/{id} (handles Asana section move)
     try {
-      const res = await fetch("/api/tasks/reorder", {
+      const res = await fetch(`/api/tasks/${task.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates }),
+        body: JSON.stringify({
+          pdca_section: targetPdca,
+          sort_order: newSortOrder,
+        }),
       });
-      if (!res.ok) throw new Error("Reorder failed");
-    } catch {
-      // Revert on failure
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || data.error || "Move failed");
+      }
+      setToastState({
+        message: `Moved to ${targetLabel}`,
+        type: "success",
+      });
+    } catch (err) {
       setTasks(snapshot);
       setToastState({
-        message: "Couldn't save new order. Please try again.",
+        message: (err as Error).message || "Couldn't move task. Please try again.",
         type: "error",
       });
     }
@@ -812,14 +892,25 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
       })()}
 
       {/* ═══ TASK SECTIONS (with drag-and-drop) ═══ */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={rectIntersection}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
         {sections.map((section) => {
           const pdca = section.pdcaMatch;
           const borderColor = pdca ? PDCA_SECTIONS[pdca].color : "var(--border)";
           const taskIds = section.tasks.map((t) => t.id);
+          const droppableId = pdca ? `section-${pdca}` : section.key;
 
           return (
-            <div key={section.key} className="bg-surface-hover rounded-xl overflow-visible">
+            <DroppableSection
+              key={section.key}
+              id={droppableId}
+              pdca={pdca}
+              isDragging={activeDragId !== null}
+            >
               {/* Section header */}
               <div
                 className="px-4 py-3 flex items-center justify-between"
@@ -861,14 +952,62 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                       />
                     );
                   })}
+                  {/* Empty section drop hint */}
+                  {section.tasks.length === 0 && activeDragId !== null && (
+                    <div className="py-6 text-center text-xs text-text-muted border-2 border-dashed border-border-light rounded-lg">
+                      Drop here
+                    </div>
+                  )}
                 </div>
               </SortableContext>
-            </div>
+            </DroppableSection>
           );
         })}
+
+        {/* Drag overlay: semi-transparent preview of the dragged card */}
+        <DragOverlay>
+          {activeDragId ? (() => {
+            const dragTask = tasks.find((t) => t.id === activeDragId);
+            if (!dragTask) return null;
+            return (
+              <div className="opacity-80 shadow-lg rounded-lg">
+                <UnifiedTaskCard task={dragTask} />
+              </div>
+            );
+          })() : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );
 }
 
-// ── Unified Task Card ────────────────────────────────────────
+// ── Droppable Section Wrapper ─────────────────────────────────
+
+function DroppableSection({
+  id,
+  pdca,
+  isDragging,
+  children,
+}: {
+  id: string;
+  pdca: PdcaSection | null;
+  isDragging: boolean;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  const highlightColor = pdca ? PDCA_SECTIONS[pdca].color : "var(--border)";
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="bg-surface-hover rounded-xl overflow-visible transition-all"
+      style={
+        isDragging && isOver
+          ? { outline: `2px solid ${highlightColor}`, outlineOffset: "2px" }
+          : undefined
+      }
+    >
+      {children}
+    </div>
+  );
+}
