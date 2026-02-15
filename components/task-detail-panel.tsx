@@ -38,6 +38,7 @@ export default function TaskDetailPanel({
   const titleRef = useRef<HTMLInputElement>(null);
   const descTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
 
   // Sync local state when task prop changes (e.g. after optimistic revert)
   useEffect(() => {
@@ -54,9 +55,10 @@ export default function TaskDetailPanel({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  // Cleanup description timer
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (descTimerRef.current) clearTimeout(descTimerRef.current);
     };
   }, []);
@@ -79,7 +81,7 @@ export default function TaskDetailPanel({
     setEditedDescription(value);
     if (descTimerRef.current) clearTimeout(descTimerRef.current);
     descTimerRef.current = setTimeout(() => {
-      if (value !== (task.description || "")) {
+      if (isMountedRef.current && value !== (task.description || "")) {
         onUpdate(task.id, { description: value || null } as Partial<ProcessTask>);
       }
     }, 500);
@@ -110,7 +112,7 @@ export default function TaskDetailPanel({
       {/* Panel */}
       <div
         ref={panelRef}
-        className="fixed right-0 top-0 h-full w-full sm:w-[420px] bg-card shadow-2xl z-50 animate-slide-in-right flex flex-col"
+        className="fixed inset-0 sm:left-auto sm:right-0 sm:top-0 h-full w-full sm:w-[420px] bg-card shadow-2xl z-50 animate-slide-in-right flex flex-col"
       >
         {/* Header */}
         <div className="px-5 py-4 border-b border-border flex items-start gap-3">

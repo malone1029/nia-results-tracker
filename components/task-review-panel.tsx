@@ -165,6 +165,7 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   const [togglingTaskIds, setTogglingTaskIds] = useState<Set<number>>(new Set());
   const [savingField, setSavingField] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const snapshotsRef = useRef<Map<number, ProcessTask>>(new Map());
   const [toastState, setToastState] = useState<{
     message: string;
     type: "error" | "success";
@@ -241,9 +242,13 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   // ── Toggle completion (optimistic UI with revert) ──
 
   async function handleToggleComplete(taskId: number, currentCompleted: boolean) {
-    // Snapshot for revert
     const snapshot = tasks.find((t) => t.id === taskId);
     if (!snapshot) return;
+
+    // Store pre-edit snapshot (only if not already in-flight for this task)
+    if (!snapshotsRef.current.has(taskId)) {
+      snapshotsRef.current.set(taskId, snapshot);
+    }
 
     const newCompleted = !currentCompleted;
 
@@ -262,38 +267,40 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     );
     setTogglingTaskIds((prev) => new Set(prev).add(taskId));
 
-    const doToggle = async () => {
-      try {
-        const res = await fetch(`/api/tasks/${taskId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ completed: newCompleted }),
-        });
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: newCompleted }),
+      });
 
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.message || data.error || "Update failed");
-        }
-      } catch (err) {
-        // Revert
-        setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? snapshot : t))
-        );
-        setToastState({
-          message: (err as Error).message || "Couldn't update task. Please try again.",
-          type: "error",
-          retry: () => handleToggleComplete(taskId, currentCompleted),
-        });
-      } finally {
-        setTogglingTaskIds((prev) => {
-          const next = new Set(prev);
-          next.delete(taskId);
-          return next;
-        });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || data.error || "Update failed");
       }
-    };
-
-    doToggle();
+      // Success — clear snapshot
+      snapshotsRef.current.delete(taskId);
+    } catch (err) {
+      // Revert to original pre-edit state
+      const original = snapshotsRef.current.get(taskId);
+      if (original) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? original : t))
+        );
+        snapshotsRef.current.delete(taskId);
+      }
+      setToastState({
+        message: (err as Error).message || "Couldn't update task. Please try again.",
+        type: "error",
+        retry: () => handleToggleComplete(taskId, currentCompleted),
+      });
+    } finally {
+      setTogglingTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
+    }
   }
 
   // ── Generic update (optimistic UI with revert) ──
@@ -302,7 +309,11 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     const snapshot = tasks.find((t) => t.id === taskId);
     if (!snapshot) return;
 
-    // Determine which field we're saving (for "Saving..." indicator)
+    // Store pre-edit snapshot (only first in-flight edit per task)
+    if (!snapshotsRef.current.has(taskId)) {
+      snapshotsRef.current.set(taskId, snapshot);
+    }
+
     const fieldName = Object.keys(fields)[0] || null;
     setSavingField(fieldName);
 
@@ -322,11 +333,15 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
         const data = await res.json();
         throw new Error(data.message || data.error || "Update failed");
       }
+      snapshotsRef.current.delete(taskId);
     } catch (err) {
-      // Revert
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? snapshot : t))
-      );
+      const original = snapshotsRef.current.get(taskId);
+      if (original) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? original : t))
+        );
+        snapshotsRef.current.delete(taskId);
+      }
       setToastState({
         message: (err as Error).message || "Couldn't update task. Please try again.",
         type: "error",
@@ -767,6 +782,7 @@ function UnifiedTaskCard({
               : "border-border hover:border-nia-green/50"
           } ${task.status === "pending" ? "opacity-30 cursor-default" : "cursor-pointer"}`}
           title={task.status === "pending" ? "Review this suggestion first" : task.completed ? "Mark incomplete" : "Mark complete"}
+          aria-label={task.completed ? `Mark "${task.title}" incomplete` : `Mark "${task.title}" complete`}
         >
           {isToggling ? (
             <svg className="w-2.5 h-2.5 text-text-muted animate-spin" fill="none" viewBox="0 0 24 24">
@@ -827,12 +843,13 @@ function UnifiedTaskCard({
                 type="date"
                 value={task.due_date || ""}
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   e.stopPropagation();
                   onDueDateChange?.(task.id, e.target.value);
                 }}
                 className="absolute inset-0 opacity-0 cursor-pointer"
-                tabIndex={-1}
+                aria-label={`Due date for ${task.title}`}
               />
             </label>
 

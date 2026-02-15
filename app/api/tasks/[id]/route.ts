@@ -2,6 +2,23 @@ import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAsanaToken, asanaFetch } from "@/lib/asana";
 
+// ── Simple per-user rate limiter (protects Asana's 150 req/min limit) ──
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const MAX_REQUESTS = 30;
+const WINDOW_MS = 60 * 1000;
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= MAX_REQUESTS) return false;
+  entry.count++;
+  return true;
+}
+
 /**
  * PATCH /api/tasks/[id] — Update a task with Asana write-back.
  *
@@ -32,6 +49,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
+  // Rate limit: 30 updates/min per user
+  if (!checkRateLimit(user.id)) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait a moment." },
+      { status: 429 }
+    );
+  }
+
   // Fetch the task to check origin and get asana_task_gid
   const { data: task, error: fetchError } = await supabase
     .from("process_tasks")
@@ -46,7 +71,12 @@ export async function PATCH(
   // Build Supabase update object from allowed fields
   const updates: Record<string, unknown> = {};
 
-  if (body.title !== undefined) updates.title = body.title;
+  if (body.title !== undefined) {
+    if (typeof body.title !== "string" || body.title.trim().length === 0) {
+      return NextResponse.json({ error: "Title cannot be empty" }, { status: 400 });
+    }
+    updates.title = body.title.trim();
+  }
   if (body.description !== undefined) updates.description = body.description;
   if (body.due_date !== undefined) updates.due_date = body.due_date;
   if (body.assignee_name !== undefined) updates.assignee_name = body.assignee_name;
