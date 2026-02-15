@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { PDCA_SECTIONS } from "@/lib/pdca";
 import HelpTip from "@/components/help-tip";
+import Toast from "@/components/toast";
 import type { PdcaSection, ProcessTask } from "@/lib/types";
 
 // ── Constants ────────────────────────────────────────────────
@@ -159,6 +160,14 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   const [refreshCooldown, setRefreshCooldown] = useState(false);
   const syncTriggeredRef = useRef(false);
 
+  // Edit state
+  const [togglingTaskIds, setTogglingTaskIds] = useState<Set<number>>(new Set());
+  const [toastState, setToastState] = useState<{
+    message: string;
+    type: "error" | "success";
+    retry?: () => void;
+  } | null>(null);
+
   const fetchTasks = useCallback(async () => {
     try {
       const res = await fetch(`/api/tasks?processId=${processId}`);
@@ -224,6 +233,64 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     setRefreshCooldown(true);
     syncFromAsana();
     setTimeout(() => setRefreshCooldown(false), REFRESH_COOLDOWN_MS);
+  }
+
+  // ── Toggle completion (optimistic UI with revert) ──
+
+  async function handleToggleComplete(taskId: number, currentCompleted: boolean) {
+    // Snapshot for revert
+    const snapshot = tasks.find((t) => t.id === taskId);
+    if (!snapshot) return;
+
+    const newCompleted = !currentCompleted;
+
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              completed: newCompleted,
+              completed_at: newCompleted ? new Date().toISOString() : null,
+              status: newCompleted ? ("completed" as const) : ("active" as const),
+            }
+          : t
+      )
+    );
+    setTogglingTaskIds((prev) => new Set(prev).add(taskId));
+
+    const doToggle = async () => {
+      try {
+        const res = await fetch(`/api/tasks/${taskId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ completed: newCompleted }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || data.error || "Update failed");
+        }
+      } catch (err) {
+        // Revert
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? snapshot : t))
+        );
+        setToastState({
+          message: (err as Error).message || "Couldn't update task. Please try again.",
+          type: "error",
+          retry: () => handleToggleComplete(taskId, currentCompleted),
+        });
+      } finally {
+        setTogglingTaskIds((prev) => {
+          const next = new Set(prev);
+          next.delete(taskId);
+          return next;
+        });
+      }
+    };
+
+    doToggle();
   }
 
   // ── Keep / Dismiss for AI suggestions ──
@@ -496,6 +563,16 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
         </div>
       )}
 
+      {/* Toast for edit feedback */}
+      {toastState && (
+        <Toast
+          message={toastState.message}
+          type={toastState.type}
+          onRetry={toastState.retry}
+          onDismiss={() => setToastState(null)}
+        />
+      )}
+
       {/* ═══ TASK SECTIONS ═══ */}
       {sections.map((section) => {
         const pdca = section.pdcaMatch;
@@ -526,12 +603,22 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
 
                 return (
                   <div key={task.id}>
-                    <UnifiedTaskCard task={task} />
+                    <UnifiedTaskCard
+                      task={task}
+                      onToggleComplete={handleToggleComplete}
+                      isToggling={togglingTaskIds.has(task.id)}
+                    />
                     {/* Subtasks indented */}
                     {subtasks.length > 0 && (
                       <div className="ml-6 mt-1 space-y-1">
                         {sortTasks(subtasks).map((sub) => (
-                          <UnifiedTaskCard key={sub.id} task={sub} isSubtask />
+                          <UnifiedTaskCard
+                            key={sub.id}
+                            task={sub}
+                            isSubtask
+                            onToggleComplete={handleToggleComplete}
+                            isToggling={togglingTaskIds.has(sub.id)}
+                          />
                         ))}
                       </div>
                     )}
@@ -548,7 +635,17 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
 
 // ── Unified Task Card ────────────────────────────────────────
 
-function UnifiedTaskCard({ task, isSubtask }: { task: ProcessTask; isSubtask?: boolean }) {
+function UnifiedTaskCard({
+  task,
+  isSubtask,
+  onToggleComplete,
+  isToggling,
+}: {
+  task: ProcessTask;
+  isSubtask?: boolean;
+  onToggleComplete?: (taskId: number, currentCompleted: boolean) => void;
+  isToggling?: boolean;
+}) {
   const overdue = isOverdue(task);
   const badge = ORIGIN_BADGE[task.origin] || ORIGIN_BADGE.hub_manual;
 
@@ -559,18 +656,32 @@ function UnifiedTaskCard({ task, isSubtask }: { task: ProcessTask; isSubtask?: b
       } ${isSubtask ? "p-2" : "p-3"}`}
     >
       <div className="flex items-start gap-2">
-        {/* Completion indicator */}
-        <div className={`flex-shrink-0 mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-          task.completed
-            ? "border-nia-green bg-nia-green"
-            : "border-border"
-        }`}>
-          {task.completed && (
+        {/* Completion toggle */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleComplete?.(task.id, task.completed);
+          }}
+          disabled={isToggling || task.status === "pending"}
+          className={`flex-shrink-0 mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+            task.completed
+              ? "border-nia-green bg-nia-green"
+              : "border-border hover:border-nia-green/50"
+          } ${task.status === "pending" ? "opacity-30 cursor-default" : "cursor-pointer"}`}
+          title={task.status === "pending" ? "Review this suggestion first" : task.completed ? "Mark incomplete" : "Mark complete"}
+        >
+          {isToggling ? (
+            <svg className="w-2.5 h-2.5 text-text-muted animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : task.completed ? (
             <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
-          )}
-        </div>
+          ) : null}
+        </button>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
