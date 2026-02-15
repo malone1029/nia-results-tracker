@@ -9,10 +9,26 @@ const COLUMNS: PdcaSection[] = ["plan", "execute", "evaluate", "improve"];
 
 interface TaskReviewPanelProps {
   processId: number;
+  asanaProjectGid?: string | null;
   onTaskCountChange?: (count: number) => void;
 }
 
-export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskReviewPanelProps) {
+/** Format a relative time string like "2 min ago" or "just now" */
+function formatSyncTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins === 1) return "1 min ago";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours === 1) return "1 hour ago";
+  return `${hours} hours ago`;
+}
+
+const SYNC_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes between auto-syncs
+const REFRESH_COOLDOWN_MS = 10 * 1000;   // 10 seconds between manual refreshes
+
+export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCountChange }: TaskReviewPanelProps) {
   const [tasks, setTasks] = useState<ProcessTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -24,6 +40,13 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
   const [exportResult, setExportResult] = useState<{ exported: number; failed: number; sectionCounts: Record<string, number>; asanaUrl: string; errors?: string[] } | null>(null);
   const [error, setError] = useState("");
 
+  // Sync state
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [refreshCooldown, setRefreshCooldown] = useState(false);
+  const syncTriggeredRef = useRef(false);
+
   const fetchTasks = useCallback(async () => {
     try {
       const res = await fetch(`/api/tasks?processId=${processId}`);
@@ -31,6 +54,15 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
         const data: ProcessTask[] = await res.json();
         setTasks(data);
         onTaskCountChange?.(data.filter((t) => t.status === "pending").length);
+
+        // Derive last synced time from task data
+        const syncedTasks = data.filter((t) => t.last_synced_at);
+        if (syncedTasks.length > 0) {
+          const latest = syncedTasks.reduce((a, b) =>
+            (a.last_synced_at! > b.last_synced_at!) ? a : b
+          );
+          setLastSyncedAt(latest.last_synced_at);
+        }
       }
     } catch {
       setError("Failed to load tasks");
@@ -38,7 +70,59 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
     setLoading(false);
   }, [processId, onTaskCountChange]);
 
+  // Sync tasks from Asana
+  const syncFromAsana = useCallback(async () => {
+    if (!asanaProjectGid || syncing) return;
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const res = await fetch("/api/asana/sync-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ processId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === "not_connected") {
+          setSyncError("Asana token expired. Reconnect in Settings.");
+        } else {
+          setSyncError(data.message || data.error || "Sync failed");
+        }
+        return;
+      }
+      setLastSyncedAt(data.lastSyncedAt);
+      // Refresh tasks to show synced data
+      await fetchTasks();
+    } catch {
+      setSyncError("Couldn't refresh from Asana. Showing cached data.");
+    } finally {
+      setSyncing(false);
+    }
+  }, [asanaProjectGid, syncing, processId, fetchTasks]);
+
+  // Auto-sync on mount (if linked and last sync > 2 min ago)
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  useEffect(() => {
+    if (!asanaProjectGid || syncTriggeredRef.current) return;
+    syncTriggeredRef.current = true;
+
+    // Check if last sync was recent enough to skip
+    const shouldSync = !lastSyncedAt ||
+      (Date.now() - new Date(lastSyncedAt).getTime() > SYNC_COOLDOWN_MS);
+
+    if (shouldSync) {
+      syncFromAsana();
+    }
+  }, [asanaProjectGid, lastSyncedAt, syncFromAsana]);
+
+  // Manual refresh with cooldown
+  function handleManualRefresh() {
+    if (refreshCooldown || syncing) return;
+    setRefreshCooldown(true);
+    syncFromAsana();
+    setTimeout(() => setRefreshCooldown(false), REFRESH_COOLDOWN_MS);
+  }
 
   async function handleDelete(taskId: number) {
     setSaving(true);
@@ -210,6 +294,21 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
         </div>
       )}
 
+      {/* Sync error banner */}
+      {syncError && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-center justify-between">
+          <span className="text-sm text-amber-700">{syncError}</span>
+          <div className="flex items-center gap-2">
+            {syncError.includes("Reconnect") && (
+              <a href="/settings" className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark">
+                Reconnect Asana
+              </a>
+            )}
+            <button onClick={() => setSyncError(null)} className="text-xs text-text-tertiary hover:text-foreground">Dismiss</button>
+          </div>
+        </div>
+      )}
+
       {/* Error banner */}
       {error && (
         <div className="bg-nia-red/10 border border-nia-red/20 rounded-lg p-3 flex items-center justify-between">
@@ -218,13 +317,38 @@ export default function TaskReviewPanel({ processId, onTaskCountChange }: TaskRe
         </div>
       )}
 
-      {/* Summary bar */}
-      <div className="flex items-center justify-between">
+      {/* Sync status + Summary bar */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <span className="text-sm text-text-tertiary">
             {pendingTasks.length} pending{exportedTasks.length > 0 ? `, ${exportedTasks.length} exported` : ""}
             <HelpTip text="Plan-Do-Check-Act: a continuous improvement cycle for organizing tasks." />
           </span>
+          {/* Sync status */}
+          {asanaProjectGid && (
+            <div className="flex items-center gap-1.5">
+              {lastSyncedAt && (
+                <span className="text-xs text-text-muted">
+                  Synced {formatSyncTime(lastSyncedAt)}
+                </span>
+              )}
+              <button
+                onClick={handleManualRefresh}
+                disabled={syncing || refreshCooldown}
+                className="text-text-muted hover:text-nia-grey-blue disabled:opacity-40 p-0.5 transition-colors"
+                title={syncing ? "Syncing..." : refreshCooldown ? "Please wait..." : "Refresh from Asana"}
+              >
+                <svg
+                  className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
+          )}
           <div className="flex gap-1.5">
             {COLUMNS.map((col) => {
               const count = pendingTasks.filter((t) => t.pdca_section === col).length;

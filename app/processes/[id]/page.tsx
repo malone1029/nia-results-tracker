@@ -1647,7 +1647,7 @@ function ProcessDetailContent() {
       {/* ═══ TASKS TAB ═══ */}
       {activeTab === "tasks" && (
         <div id="section-tasks">
-          <TaskReviewPanel processId={process.id} onTaskCountChange={setTaskCount} />
+          <TaskReviewPanel processId={process.id} asanaProjectGid={process.asana_project_gid} onTaskCountChange={setTaskCount} />
         </div>
       )}
 
