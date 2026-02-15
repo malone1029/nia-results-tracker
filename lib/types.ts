@@ -188,7 +188,8 @@ export interface MetricRequirement {
 export type PdcaSection = "plan" | "execute" | "evaluate" | "improve";
 export type AdliDimension = "approach" | "deployment" | "learning" | "integration";
 export type TaskSource = "ai_suggestion" | "ai_interview" | "user_created";
-export type TaskStatus = "pending" | "exported";
+export type TaskStatus = "pending" | "active" | "completed" | "exported";
+export type TaskOrigin = "asana" | "hub_ai" | "hub_manual";
 
 export interface ProcessTask {
   id: number;
@@ -200,6 +201,18 @@ export interface ProcessTask {
   source: TaskSource;
   source_detail: string | null;
   status: TaskStatus;
+  origin: TaskOrigin;
+  assignee_name: string | null;
+  assignee_email: string | null;
+  assignee_asana_gid: string | null;
+  due_date: string | null;
+  completed: boolean;
+  completed_at: string | null;
+  asana_section_name: string | null;
+  asana_section_gid: string | null;
+  parent_asana_gid: string | null;
+  is_subtask: boolean;
+  last_synced_at: string | null;
   asana_task_gid: string | null;
   asana_task_url: string | null;
   created_at: string;
