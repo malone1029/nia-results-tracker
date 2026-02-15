@@ -25,7 +25,7 @@ import TaskDetailPanel from "@/components/task-detail-panel";
 import TaskCreatePanel from "@/components/task-create-panel";
 import UnifiedTaskCard from "@/components/unified-task-card";
 import SortableTaskCard from "@/components/sortable-task-card";
-import type { PdcaSection, ProcessTask } from "@/lib/types";
+import type { PdcaSection, ProcessTask, TaskPriority } from "@/lib/types";
 
 // ── Constants ────────────────────────────────────────────────
 
@@ -178,6 +178,13 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
   const [createPdcaDefault, setCreatePdcaDefault] = useState<PdcaSection>("plan");
 
+  // Filter state
+  const [filterSearch, setFilterSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterPriority, setFilterPriority] = useState<TaskPriority | "all">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "completed" | "overdue">("all");
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // DnD state
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
 
@@ -238,6 +245,13 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   }, [asanaProjectGid, syncing, processId, fetchTasks]);
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  // Debounce search input
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => setDebouncedSearch(filterSearch), 300);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, [filterSearch]);
 
   useEffect(() => {
     if (!asanaProjectGid || syncTriggeredRef.current) return;
@@ -378,16 +392,22 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
     setSelectedTaskId(null);
 
     try {
-      const res = await fetch(`/api/tasks?id=${taskId}`, { method: "DELETE" });
+      const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
       if (!res.ok) {
-        throw new Error("Delete failed");
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 502) {
+          throw new Error(
+            data.message || "Couldn't delete from Asana. Try again or disconnect Asana first."
+          );
+        }
+        throw new Error(data.message || "Delete failed");
       }
       setToastState({ message: "Task deleted", type: "success" });
-    } catch {
+    } catch (err) {
       // Revert
       setTasks((prev) => [...prev, snapshot]);
       setToastState({
-        message: "Couldn't delete task. Please try again.",
+        message: (err as Error).message || "Couldn't delete task. Please try again.",
         type: "error",
         retry: () => handleDeleteTask(taskId),
       });
@@ -580,7 +600,7 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   async function handleDismiss(taskId: number) {
     setSaving(true);
     try {
-      const res = await fetch(`/api/tasks?id=${taskId}`, { method: "DELETE" });
+      const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
       if (res.ok) {
         const updated = tasks.filter((t) => t.id !== taskId);
         setTasks(updated);
@@ -628,8 +648,34 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   // ── Derived data ──
 
   const pendingSuggestions = tasks.filter((t) => t.origin === "hub_ai" && t.status === "pending");
-  const sections = buildSections(tasks);
-  const allSubtasks = tasks.filter((t) => t.is_subtask);
+
+  // ── Client-side filtering ──
+  const hasFilters = debouncedSearch !== "" || filterPriority !== "all" || filterStatus !== "all";
+  const filteredTasks = hasFilters
+    ? tasks.filter((t) => {
+        // Search filter (title + description)
+        if (debouncedSearch) {
+          const q = debouncedSearch.toLowerCase();
+          const matchTitle = t.title.toLowerCase().includes(q);
+          const matchDesc = t.description?.toLowerCase().includes(q);
+          if (!matchTitle && !matchDesc) return false;
+        }
+        // Priority filter
+        if (filterPriority !== "all" && (t.priority || "medium") !== filterPriority) return false;
+        // Status filter
+        if (filterStatus === "active" && (t.completed || t.status === "pending")) return false;
+        if (filterStatus === "completed" && !t.completed) return false;
+        if (filterStatus === "overdue") {
+          if (t.completed || !t.due_date) return false;
+          const today = new Date().toISOString().slice(0, 10);
+          if (t.due_date >= today) return false;
+        }
+        return true;
+      })
+    : tasks;
+
+  const sections = buildSections(filteredTasks);
+  const allSubtasks = filteredTasks.filter((t) => t.is_subtask);
   const pendingCount = pendingSuggestions.length;
   // Tasks that can be synced to Asana: active hub tasks without an Asana GID
   const unsyncedTasks = tasks.filter(
@@ -790,6 +836,76 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
           </button>
         </div>
       </div>
+
+      {/* ═══ FILTER BAR ═══ */}
+      {tasks.length > 3 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Search input */}
+          <div className="relative flex-1 min-w-[180px] max-w-sm">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={filterSearch}
+              onChange={(e) => setFilterSearch(e.target.value)}
+              placeholder="Search tasks..."
+              className="w-full text-xs bg-surface-hover border border-border-light rounded-lg pl-8 pr-3 py-1.5 text-foreground placeholder:text-text-muted focus:outline-none focus:border-nia-grey-blue"
+            />
+          </div>
+
+          {/* Priority chips */}
+          <div className="flex gap-1">
+            {(["all", "high", "medium", "low"] as const).map((p) => {
+              const isActive = filterPriority === p;
+              const chipStyles: Record<string, string> = {
+                all:    isActive ? "bg-nia-grey-blue/15 text-nia-grey-blue" : "text-text-muted",
+                high:   isActive ? "bg-red-500/15 text-red-600" : "text-text-muted",
+                medium: isActive ? "bg-nia-orange/15 text-nia-orange" : "text-text-muted",
+                low:    isActive ? "bg-surface-muted text-text-secondary" : "text-text-muted",
+              };
+              return (
+                <button
+                  key={p}
+                  onClick={() => setFilterPriority(p)}
+                  className={`text-[10px] font-medium px-2 py-1 rounded-md capitalize transition-colors hover:bg-surface-hover ${chipStyles[p]}`}
+                >
+                  {p === "all" ? "All" : p}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Status chips */}
+          <div className="flex gap-1">
+            {(["all", "active", "completed", "overdue"] as const).map((s) => {
+              const isActive = filterStatus === s;
+              const chipStyles: Record<string, string> = {
+                all:       isActive ? "bg-nia-grey-blue/15 text-nia-grey-blue" : "text-text-muted",
+                active:    isActive ? "bg-nia-grey-blue/15 text-nia-grey-blue" : "text-text-muted",
+                completed: isActive ? "bg-nia-green/15 text-nia-green" : "text-text-muted",
+                overdue:   isActive ? "bg-red-500/15 text-red-600" : "text-text-muted",
+              };
+              return (
+                <button
+                  key={s}
+                  onClick={() => setFilterStatus(s)}
+                  className={`text-[10px] font-medium px-2 py-1 rounded-md capitalize transition-colors hover:bg-surface-hover ${chipStyles[s]}`}
+                >
+                  {s === "all" ? "All" : s}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Result count when filtering */}
+          {hasFilters && (
+            <span className="text-[10px] text-text-muted ml-auto">
+              Showing {filteredTasks.filter((t) => t.status !== "pending").length} of {tasks.filter((t) => t.status !== "pending").length} tasks
+            </span>
+          )}
+        </div>
+      )}
 
       {/* ═══ AI SUGGESTIONS SECTION ═══ */}
       {pendingSuggestions.length > 0 && (

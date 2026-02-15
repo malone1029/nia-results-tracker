@@ -44,10 +44,33 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "processId is required" }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("process_tasks")
     .select("*")
-    .eq("process_id", Number(processId))
+    .eq("process_id", Number(processId));
+
+  // Optional filters
+  const priority = searchParams.get("priority");
+  if (priority && ["high", "medium", "low"].includes(priority)) {
+    query = query.eq("priority", priority);
+  }
+
+  const status = searchParams.get("status");
+  if (status && ["pending", "active", "completed", "exported"].includes(status)) {
+    query = query.eq("status", status);
+  }
+
+  const assignee = searchParams.get("assignee");
+  if (assignee) {
+    query = query.eq("assignee_email", assignee);
+  }
+
+  const search = searchParams.get("search");
+  if (search) {
+    query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+  }
+
+  const { data, error } = await query
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
 
@@ -143,6 +166,7 @@ export async function POST(request: Request) {
       assignee_email: task.assignee_email || null,
       assignee_asana_gid: task.assignee_asana_gid || null,
       due_date: task.due_date || null,
+      priority: task.priority || "medium",
     });
   }
 
@@ -350,28 +374,6 @@ export async function PATCH(request: Request) {
     .from("process_tasks")
     .update(updates)
     .eq("id", id);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ success: true });
-}
-
-// DELETE ?id=42 — delete a single task
-export async function DELETE(request: Request) {
-  const supabase = await createSupabaseServer();
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
-
-  if (!id) {
-    return NextResponse.json({ error: "id is required" }, { status: 400 });
-  }
-
-  const { error } = await supabase
-    .from("process_tasks")
-    .delete()
-    .eq("id", Number(id));
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -107,6 +107,17 @@ export async function PATCH(
     updates.asana_section_name = PDCA_SECTIONS[body.pdca_section as PdcaSection].label;
   }
 
+  // Priority (Hub-only — not synced to Asana)
+  if (body.priority !== undefined) {
+    if (!["high", "medium", "low"].includes(body.priority)) {
+      return NextResponse.json(
+        { error: "Invalid priority. Must be one of: high, medium, low" },
+        { status: 400 }
+      );
+    }
+    updates.priority = body.priority;
+  }
+
   // Auto-derive status and completed_at from completed boolean
   if (body.completed !== undefined) {
     updates.completed = body.completed;
@@ -211,6 +222,94 @@ export async function PATCH(
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
+
+/**
+ * DELETE /api/tasks/[id] — Delete a task with Asana cleanup.
+ *
+ * If the task has an asana_task_gid (any origin), deletes from Asana first.
+ * On Asana failure, returns 502 and does NOT delete from Supabase (strict sync).
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: idStr } = await params;
+  const id = Number(idStr);
+  if (!id || isNaN(id)) {
+    return NextResponse.json({ error: "Invalid task ID" }, { status: 400 });
+  }
+
+  const supabase = await createSupabaseServer();
+
+  // Authenticate
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Rate limit
+  if (!checkRateLimit(user.id)) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait a moment." },
+      { status: 429 }
+    );
+  }
+
+  // Fetch task to check for asana_task_gid
+  const { data: task, error: fetchError } = await supabase
+    .from("process_tasks")
+    .select("id, asana_task_gid")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !task) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
+
+  // If task has an Asana GID, delete from Asana first (strict sync)
+  if (task.asana_task_gid) {
+    const token = await getAsanaToken(user.id);
+    if (!token) {
+      return NextResponse.json(
+        {
+          error: "asana_not_connected",
+          message: "Asana not connected. Reconnect in Settings to delete this task.",
+        },
+        { status: 502 }
+      );
+    }
+
+    try {
+      await asanaFetch(token, `/tasks/${task.asana_task_gid}`, {
+        method: "DELETE",
+      });
+    } catch (err) {
+      return NextResponse.json(
+        {
+          error: "asana_delete_failed",
+          message:
+            (err as Error).message ||
+            "Couldn't delete from Asana. Try again or disconnect Asana first.",
+        },
+        { status: 502 }
+      );
+    }
+  }
+
+  // Delete from Supabase
+  const { error: deleteError } = await supabase
+    .from("process_tasks")
+    .delete()
+    .eq("id", id);
+
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
