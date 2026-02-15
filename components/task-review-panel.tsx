@@ -1,11 +1,26 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { PDCA_SECTIONS } from "@/lib/pdca";
 import HelpTip from "@/components/help-tip";
 import Toast from "@/components/toast";
 import TaskDetailPanel from "@/components/task-detail-panel";
 import TaskCreatePanel from "@/components/task-create-panel";
+import UnifiedTaskCard from "@/components/unified-task-card";
+import SortableTaskCard from "@/components/sortable-task-card";
 import type { PdcaSection, ProcessTask } from "@/lib/types";
 
 // ── Constants ────────────────────────────────────────────────
@@ -13,13 +28,6 @@ import type { PdcaSection, ProcessTask } from "@/lib/types";
 const PDCA_KEYS: PdcaSection[] = ["plan", "execute", "evaluate", "improve"];
 const SYNC_COOLDOWN_MS = 2 * 60 * 1000;
 const REFRESH_COOLDOWN_MS = 10 * 1000;
-
-// Origin badge colors
-const ORIGIN_BADGE: Record<string, { label: string; bg: string; text: string }> = {
-  asana:      { label: "Asana",         bg: "bg-nia-grey-blue/15", text: "text-nia-grey-blue" },
-  hub_ai:     { label: "AI Suggestion", bg: "bg-nia-orange/15",    text: "text-nia-orange" },
-  hub_manual: { label: "Manual",        bg: "bg-surface-muted",    text: "text-text-muted" },
-};
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -32,17 +40,6 @@ function formatSyncTime(iso: string): string {
   const hours = Math.floor(mins / 60);
   if (hours === 1) return "1 hour ago";
   return `${hours} hours ago`;
-}
-
-function formatDueDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function isOverdue(task: ProcessTask): boolean {
-  if (!task.due_date || task.completed) return false;
-  const today = new Date().toISOString().slice(0, 10);
-  return task.due_date < today;
 }
 
 /** Match Asana section name to a PDCA section (case-insensitive) */
@@ -176,6 +173,12 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   // Create task state
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
   const [createPdcaDefault, setCreatePdcaDefault] = useState<PdcaSection>("plan");
+
+  // DnD sensors: mouse needs 5px movement to start, touch needs 200ms hold
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  );
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -398,6 +401,76 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
       });
     } else {
       setToastState({ message: "Task created", type: "success" });
+    }
+  }
+
+  // ── Drag-and-drop reorder within a section ──
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeId = active.id as number;
+    const overId = over.id as number;
+
+    // Find the section that contains the active task
+    const activeTask = tasks.find((t) => t.id === activeId);
+    const overTask = tasks.find((t) => t.id === overId);
+    if (!activeTask || !overTask) return;
+
+    // Only handle within-section reordering in this PR
+    if (activeTask.pdca_section !== overTask.pdca_section) return;
+
+    // Get all non-subtask, non-pending tasks in this section, sorted by sort_order
+    const sectionTasks = tasks
+      .filter(
+        (t) =>
+          !t.is_subtask &&
+          t.status !== "pending" &&
+          t.pdca_section === activeTask.pdca_section
+      )
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+    const oldIndex = sectionTasks.findIndex((t) => t.id === activeId);
+    const newIndex = sectionTasks.findIndex((t) => t.id === overId);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Reorder: remove from old position, insert at new position
+    const reordered = [...sectionTasks];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+
+    // Assign new gap-based sort_order values (1000, 2000, 3000...)
+    const updates: { id: number; sort_order: number }[] = reordered.map(
+      (t, i) => ({ id: t.id, sort_order: (i + 1) * 1000 })
+    );
+
+    // Optimistic update
+    const snapshot = [...tasks];
+    setTasks((prev) => {
+      const next = [...prev];
+      for (const u of updates) {
+        const idx = next.findIndex((t) => t.id === u.id);
+        if (idx !== -1) next[idx] = { ...next[idx], sort_order: u.sort_order };
+      }
+      return next;
+    });
+
+    // Persist to API
+    try {
+      const res = await fetch("/api/tasks/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+      if (!res.ok) throw new Error("Reorder failed");
+    } catch {
+      // Revert on failure
+      setTasks(snapshot);
+      setToastState({
+        message: "Couldn't save new order. Please try again.",
+        type: "error",
+      });
     }
   }
 
@@ -738,198 +811,64 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
         );
       })()}
 
-      {/* ═══ TASK SECTIONS ═══ */}
-      {sections.map((section) => {
-        const pdca = section.pdcaMatch;
-        const borderColor = pdca ? PDCA_SECTIONS[pdca].color : "var(--border)";
+      {/* ═══ TASK SECTIONS (with drag-and-drop) ═══ */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        {sections.map((section) => {
+          const pdca = section.pdcaMatch;
+          const borderColor = pdca ? PDCA_SECTIONS[pdca].color : "var(--border)";
+          const taskIds = section.tasks.map((t) => t.id);
 
-        return (
-          <div key={section.key} className="bg-surface-hover rounded-xl overflow-visible">
-            {/* Section header */}
-            <div
-              className="px-4 py-3 flex items-center justify-between"
-              style={{ borderBottom: `3px solid ${borderColor}` }}
-            >
-              <h3 className="text-sm font-semibold" style={{ color: pdca ? PDCA_SECTIONS[pdca].color : undefined }}>
-                {section.label}
-                <span className="font-normal text-text-muted ml-2">
-                  {section.completedCount}/{section.totalCount} complete
-                </span>
-              </h3>
-              {pdca && (
-                <button
-                  onClick={() => { setCreatePdcaDefault(pdca); setCreatePanelOpen(true); }}
-                  className="text-xs text-text-muted hover:text-nia-grey-blue transition-colors"
-                >
-                  + Add task
-                </button>
-              )}
+          return (
+            <div key={section.key} className="bg-surface-hover rounded-xl overflow-visible">
+              {/* Section header */}
+              <div
+                className="px-4 py-3 flex items-center justify-between"
+                style={{ borderBottom: `3px solid ${borderColor}` }}
+              >
+                <h3 className="text-sm font-semibold" style={{ color: pdca ? PDCA_SECTIONS[pdca].color : undefined }}>
+                  {section.label}
+                  <span className="font-normal text-text-muted ml-2">
+                    {section.completedCount}/{section.totalCount} complete
+                  </span>
+                </h3>
+                {pdca && (
+                  <button
+                    onClick={() => { setCreatePdcaDefault(pdca); setCreatePanelOpen(true); }}
+                    className="text-xs text-text-muted hover:text-nia-grey-blue transition-colors"
+                  >
+                    + Add task
+                  </button>
+                )}
+              </div>
+
+              {/* Task cards (sortable within section) */}
+              <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+                <div className="p-3 space-y-2">
+                  {section.tasks.map((task) => {
+                    const subtasks = task.asana_task_gid
+                      ? sortTasks(allSubtasks.filter((s) => s.parent_asana_gid === task.asana_task_gid))
+                      : [];
+
+                    return (
+                      <SortableTaskCard
+                        key={task.id}
+                        task={task}
+                        subtasks={subtasks}
+                        onToggleComplete={handleToggleComplete}
+                        isToggling={togglingTaskIds.has(task.id)}
+                        onCardClick={(t) => setSelectedTaskId(t.id)}
+                        onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
+                      />
+                    );
+                  })}
+                </div>
+              </SortableContext>
             </div>
-
-            {/* Task cards */}
-            <div className="p-3 space-y-2">
-              {section.tasks.map((task) => {
-                // Find subtasks for this task
-                const subtasks = task.asana_task_gid
-                  ? allSubtasks.filter((s) => s.parent_asana_gid === task.asana_task_gid)
-                  : [];
-
-                return (
-                  <div key={task.id}>
-                    <UnifiedTaskCard
-                      task={task}
-                      onToggleComplete={handleToggleComplete}
-                      isToggling={togglingTaskIds.has(task.id)}
-                      onCardClick={(t) => setSelectedTaskId(t.id)}
-                      onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
-                    />
-                    {/* Subtasks indented */}
-                    {subtasks.length > 0 && (
-                      <div className="ml-6 mt-1 space-y-1">
-                        {sortTasks(subtasks).map((sub) => (
-                          <UnifiedTaskCard
-                            key={sub.id}
-                            task={sub}
-                            isSubtask
-                            onToggleComplete={handleToggleComplete}
-                            isToggling={togglingTaskIds.has(sub.id)}
-                            onCardClick={(t) => setSelectedTaskId(t.id)}
-                            onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </DndContext>
     </div>
   );
 }
 
 // ── Unified Task Card ────────────────────────────────────────
-
-function UnifiedTaskCard({
-  task,
-  isSubtask,
-  onToggleComplete,
-  isToggling,
-  onCardClick,
-  onDueDateChange,
-}: {
-  task: ProcessTask;
-  isSubtask?: boolean;
-  onToggleComplete?: (taskId: number, currentCompleted: boolean) => void;
-  isToggling?: boolean;
-  onCardClick?: (task: ProcessTask) => void;
-  onDueDateChange?: (taskId: number, date: string) => void;
-}) {
-  const overdue = isOverdue(task);
-  const badge = ORIGIN_BADGE[task.origin] || ORIGIN_BADGE.hub_manual;
-
-  return (
-    <div
-      onClick={() => onCardClick?.(task)}
-      className={`bg-card rounded-lg border border-border-light transition-colors cursor-pointer ${
-        task.completed ? "opacity-50" : "hover:border-border hover:shadow-sm"
-      } ${isSubtask ? "p-2" : "p-3"}`}
-    >
-      <div className="flex items-start gap-2">
-        {/* Completion toggle */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleComplete?.(task.id, task.completed);
-          }}
-          disabled={isToggling || task.status === "pending"}
-          className={`flex-shrink-0 mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-            task.completed
-              ? "border-nia-green bg-nia-green"
-              : "border-border hover:border-nia-green/50"
-          } ${task.status === "pending" ? "opacity-30 cursor-default" : "cursor-pointer"}`}
-          title={task.status === "pending" ? "Review this suggestion first" : task.completed ? "Mark incomplete" : "Mark complete"}
-          aria-label={task.completed ? `Mark "${task.title}" incomplete` : `Mark "${task.title}" complete`}
-        >
-          {isToggling ? (
-            <svg className="w-2.5 h-2.5 text-text-muted animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          ) : task.completed ? (
-            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          ) : null}
-        </button>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <p className={`font-medium leading-snug ${
-              isSubtask ? "text-xs" : "text-sm"
-            } ${task.completed ? "line-through text-text-tertiary" : "text-nia-dark"}`}>
-              {task.title}
-            </p>
-
-            {/* External link for Asana tasks */}
-            {task.asana_task_url && (
-              <a
-                href={task.asana_task_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="text-text-muted hover:text-nia-grey-blue flex-shrink-0 p-0.5"
-                title="Open in Asana"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            )}
-          </div>
-
-          {/* Meta row: assignee, due date, origin badge */}
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            {/* Assignee */}
-            <span className={`text-[10px] ${task.assignee_name ? "text-text-secondary" : "text-text-muted"}`}>
-              {task.assignee_name || "Unassigned"}
-            </span>
-
-            {/* Inline due date (click to edit) */}
-            <label
-              onClick={(e) => e.stopPropagation()}
-              className={`relative text-[10px] cursor-pointer hover:underline inline-flex items-center ${
-                overdue ? "text-red-600 font-medium" : task.due_date ? "text-text-muted" : "text-text-muted/50"
-              }`}
-            >
-              {task.due_date
-                ? `${overdue ? "Overdue: " : ""}${formatDueDate(task.due_date)}`
-                : "Add due date"}
-              <input
-                type="date"
-                value={task.due_date || ""}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  onDueDateChange?.(task.id, e.target.value);
-                }}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-                aria-label={`Due date for ${task.title}`}
-              />
-            </label>
-
-            {/* Origin badge */}
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>
-              {badge.label}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
