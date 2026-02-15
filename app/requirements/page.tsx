@@ -7,6 +7,7 @@ import { ListPageSkeleton } from "@/components/skeleton";
 import type { KeyRequirementWithStatus } from "@/lib/types";
 import Link from "next/link";
 import { Card, Badge, Button, Input } from "@/components/ui";
+import EmptyState from "@/components/empty-state";
 
 // The display order for stakeholder groups
 const GROUP_ORDER = [
@@ -397,6 +398,18 @@ export default function RequirementsPage() {
           </Card>
         ))}
       </div>
+
+      {/* Empty state when no requirements */}
+      {requirements.length === 0 && (
+        <Card>
+          <EmptyState
+            illustration="document"
+            title="No key requirements defined yet"
+            description="Key requirements capture what your stakeholders need. Add them to connect metrics and show Baldrige integration."
+            action={{ label: "Learn more", href: "/help" }}
+          />
+        </Card>
+      )}
 
       {/* Coverage Heatmap */}
       {(() => {

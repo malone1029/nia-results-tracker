@@ -374,6 +374,9 @@ export default function CriteriaMapPage() {
             <h1 className="text-2xl font-bold text-nia-dark">Baldrige Criteria Map</h1>
             <p className="text-text-tertiary mt-1">
               Map your processes to Baldrige criteria questions
+              <a href="/help" className="ml-2 text-xs text-text-muted hover:text-nia-orange transition-colors">
+                Need help? View FAQ &rarr;
+              </a>
             </p>
           </div>
           {/* Tier filter toggle */}

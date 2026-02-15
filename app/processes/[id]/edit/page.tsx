@@ -573,9 +573,12 @@ export default function EditProcessPage() {
         </CollapsibleSection>
 
         {/* Save / Cancel */}
-        <div className="flex gap-3 pt-2 pb-8">
+        <div className="flex items-center gap-3 pt-2 pb-8">
           <Button type="submit" loading={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
           <Button variant="ghost" onClick={() => router.push(`/processes/${id}`)}>Cancel</Button>
+          <a href="/help" className="ml-auto text-xs text-text-muted hover:text-nia-orange transition-colors">
+            Need help? View FAQ &rarr;
+          </a>
         </div>
       </form>
     </div>

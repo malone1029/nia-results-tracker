@@ -5,6 +5,7 @@ import { DashboardSkeleton } from "@/components/skeleton";
 import { Card, Badge, Button, Select } from "@/components/ui";
 import HealthRing from "@/components/health-ring";
 import HelpTip from "@/components/help-tip";
+import SectionIntro from "@/components/section-intro";
 import {
   getHealthLevel,
   type HealthResult,
@@ -394,6 +395,10 @@ export default function ReadinessPage() {
           )}
         </div>
       </div>
+
+      <SectionIntro storageKey="intro-readiness">
+        This dashboard shows your organization&apos;s Baldrige readiness. Scores are weighted averages — Key processes count 2x.
+      </SectionIntro>
 
       {/* ── Section A: Readiness Score ────────────────────────── */}
       <Card className="p-6">
