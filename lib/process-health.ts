@@ -1,6 +1,6 @@
 // Process Health Score Engine
 // Calculates a 0-100 health score across 5 dimensions:
-// Documentation (25), Maturity (25), Measurement (20), Operations (15), Freshness (15)
+// Documentation (25), Maturity (20), Measurement (20), Operations (20), Freshness (15)
 
 export interface HealthDimensionDetail {
   label: string;
@@ -69,6 +69,12 @@ export interface HealthMetricInput {
 export interface HealthTaskInput {
   pending_count: number;
   exported_count: number;
+  // Enhanced task execution fields (Batch 6)
+  total_active_tasks: number; // active + completed (excludes pending AI suggestions)
+  completed_count: number;
+  tasks_with_assignee: number;
+  tasks_with_due_date: number;
+  overdue_count: number;
 }
 
 export interface HealthImprovementInput {
@@ -135,14 +141,14 @@ export function calculateHealthScore(
 
   const docScore = docDetails.reduce((sum, d) => sum + d.earned, 0);
 
-  // ── Maturity (0-25) ───────────────────────────────────
+  // ── Maturity (0-20) ───────────────────────────────────
   const matDetails: HealthDimensionDetail[] = [];
   const overallScore = scores?.overall_score ?? null;
-  const matPts = overallScore !== null ? Math.round(overallScore * 0.25) : 0;
+  const matPts = overallScore !== null ? Math.round(overallScore * 0.20) : 0;
   matDetails.push({
     label: overallScore !== null ? `ADLI Score: ${overallScore}%` : "No ADLI assessment",
     earned: matPts,
-    possible: 25,
+    possible: 20,
   });
   const matScore = matPts;
 
@@ -162,18 +168,66 @@ export function calculateHealthScore(
 
   const measScore = measDetails.reduce((sum, d) => sum + d.earned, 0);
 
-  // ── Operations (0-15) ─────────────────────────────────
+  // ── Operations (0-20) ─────────────────────────────────
   const opsDetails: HealthDimensionDetail[] = [];
   const asanaLinked = !!process.asana_project_gid;
-  const adliExported = process.asana_adli_task_gids !== null &&
-    Object.keys(process.asana_adli_task_gids).length > 0;
-  const hasTasks = tasks.exported_count > 0 || tasks.pending_count > 0;
   const isApproved = process.status === "approved";
 
-  opsDetails.push({ label: "Linked to Asana", earned: asanaLinked ? 5 : 0, possible: 5 });
-  opsDetails.push({ label: "ADLI exported to Asana", earned: adliExported ? 4 : 0, possible: 4 });
-  opsDetails.push({ label: "Has improvement tasks", earned: hasTasks ? 3 : 0, possible: 3 });
-  opsDetails.push({ label: "Status: Approved", earned: isApproved ? 3 : 0, possible: 3 });
+  opsDetails.push({ label: "Linked to Asana", earned: asanaLinked ? 3 : 0, possible: 3 });
+  opsDetails.push({ label: "Status: Approved", earned: isApproved ? 2 : 0, possible: 2 });
+
+  // Task execution quality (only scored when tasks exist)
+  const totalActive = tasks.total_active_tasks;
+  if (totalActive > 0) {
+    // Tasks have assignees (0-4): proportion-based
+    const assigneeRate = tasks.tasks_with_assignee / totalActive;
+    const assigneePts = Math.round(assigneeRate * 4);
+    opsDetails.push({
+      label: `Tasks with assignees (${tasks.tasks_with_assignee}/${totalActive})`,
+      earned: assigneePts,
+      possible: 4,
+    });
+
+    // Tasks have due dates (0-4): proportion-based
+    const dueDateRate = tasks.tasks_with_due_date / totalActive;
+    const dueDatePts = Math.round(dueDateRate * 4);
+    opsDetails.push({
+      label: `Tasks with due dates (${tasks.tasks_with_due_date}/${totalActive})`,
+      earned: dueDatePts,
+      possible: 4,
+    });
+
+    // Completion rate (0-4): proportion-based
+    const completionRate = tasks.completed_count / totalActive;
+    const completionPts = Math.round(completionRate * 4);
+    opsDetails.push({
+      label: `Task completion (${tasks.completed_count}/${totalActive})`,
+      earned: completionPts,
+      possible: 4,
+    });
+
+    // No overdue tasks (0-3): full marks if zero overdue, partial if some
+    let overduePts = 0;
+    if (tasks.overdue_count === 0) {
+      overduePts = 3;
+    } else {
+      const overdueRate = tasks.overdue_count / totalActive;
+      overduePts = overdueRate < 0.25 ? 2 : overdueRate < 0.5 ? 1 : 0;
+    }
+    opsDetails.push({
+      label: tasks.overdue_count === 0
+        ? "No overdue tasks"
+        : `${tasks.overdue_count} overdue task${tasks.overdue_count !== 1 ? "s" : ""}`,
+      earned: overduePts,
+      possible: 3,
+    });
+  } else {
+    // No tasks yet — show what's possible
+    opsDetails.push({ label: "Tasks with assignees", earned: 0, possible: 4 });
+    opsDetails.push({ label: "Tasks with due dates", earned: 0, possible: 4 });
+    opsDetails.push({ label: "Task completion", earned: 0, possible: 4 });
+    opsDetails.push({ label: "No overdue tasks", earned: 0, possible: 3 });
+  }
 
   const opsScore = opsDetails.reduce((sum, d) => sum + d.earned, 0);
 
@@ -224,7 +278,7 @@ export function calculateHealthScore(
 
   // Maturity — link to process with AI chat prompt
   if (overallScore === null) {
-    actions.push({ label: "Run an AI assessment to get ADLI maturity scores", href: `/processes/${processId}?openAI=assessment`, points: 13 });
+    actions.push({ label: "Run an AI assessment to get ADLI maturity scores", href: `/processes/${processId}?openAI=assessment`, points: 10 });
   } else if (overallScore < 50) {
     actions.push({ label: "Improve ADLI maturity through an AI deep dive", href: `/processes/${processId}?openAI=deep_dive`, points: 5 });
   }
@@ -242,10 +296,20 @@ export function calculateHealthScore(
 
   // Operations
   if (!asanaLinked) {
-    actions.push({ label: "Link this process to an Asana project", href: `/processes/${processId}?openExport=true`, points: 5 });
+    actions.push({ label: "Link this process to an Asana project", href: `/processes/${processId}?openExport=true`, points: 3 });
   }
-  if (asanaLinked && !adliExported) {
-    actions.push({ label: "Export ADLI documentation to Asana", href: `/processes/${processId}?openExport=true`, points: 4 });
+  if (totalActive > 0) {
+    const unassigned = totalActive - tasks.tasks_with_assignee;
+    if (unassigned > 0) {
+      actions.push({ label: `Assign owners to ${unassigned} task${unassigned !== 1 ? "s" : ""}`, href: `/processes/${processId}`, points: 4 });
+    }
+    const noDueDate = totalActive - tasks.tasks_with_due_date;
+    if (noDueDate > 0) {
+      actions.push({ label: `Add due dates to ${noDueDate} task${noDueDate !== 1 ? "s" : ""}`, href: `/processes/${processId}`, points: 4 });
+    }
+    if (tasks.overdue_count > 0) {
+      actions.push({ label: `Review ${tasks.overdue_count} overdue task${tasks.overdue_count !== 1 ? "s" : ""}`, href: `/processes/${processId}`, points: 3 });
+    }
   }
 
   // Freshness — link to AI improvement cycle
@@ -262,9 +326,9 @@ export function calculateHealthScore(
     level: getHealthLevel(total),
     dimensions: {
       documentation: { score: docScore, max: 25, details: docDetails },
-      maturity: { score: matScore, max: 25, details: matDetails },
+      maturity: { score: matScore, max: 20, details: matDetails },
       measurement: { score: measScore, max: 20, details: measDetails },
-      operations: { score: opsScore, max: 15, details: opsDetails },
+      operations: { score: opsScore, max: 20, details: opsDetails },
       freshness: { score: freshScore, max: 15, details: freshDetails },
     },
     nextActions: topActions,

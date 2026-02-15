@@ -356,7 +356,7 @@ function ProcessDetailContent() {
       const [filesRes, { data: adliScores }, { data: taskRows }, { data: ebMappingRows }] = await Promise.all([
         fetch(`/api/ai/files?processId=${id}`),
         supabase.from("process_adli_scores").select("approach_score, deployment_score, learning_score, integration_score, overall_score, assessed_at").eq("process_id", id).maybeSingle(),
-        supabase.from("process_tasks").select("status").eq("process_id", id),
+        supabase.from("process_tasks").select("status, assignee_name, due_date, completed").eq("process_id", id),
         supabase.from("process_question_mappings").select("id, question_id, coverage, baldrige_questions!inner(question_code, area_label, question_text, tier, baldrige_items!inner(item_code, item_name, category_name))").eq("process_id", id),
       ]);
 
@@ -392,12 +392,28 @@ function ProcessDetailContent() {
         );
       }
 
-      // Calculate health score
+      // Calculate health score — build enhanced task input
+      const todayStr = new Date().toISOString().slice(0, 10);
       let pendingCount = 0;
       let exportedCount = 0;
+      let totalActive = 0;
+      let completedCount = 0;
+      let withAssignee = 0;
+      let withDueDate = 0;
+      let overdueCount = 0;
       for (const t of taskRows || []) {
-        if (t.status === "pending") pendingCount++;
-        else exportedCount++;
+        if (t.status === "pending") {
+          pendingCount++;
+        } else {
+          exportedCount++;
+          totalActive++;
+          if (t.completed) completedCount++;
+          if (t.assignee_name) withAssignee++;
+          if (t.due_date) {
+            withDueDate++;
+            if (!t.completed && t.due_date < todayStr) overdueCount++;
+          }
+        }
       }
 
       const latestJournalDate = journalData && journalData.length > 0 ? journalData[0].created_at : null;
@@ -419,7 +435,15 @@ function ProcessDetailContent() {
         },
         adliScores ? { overall_score: adliScores.overall_score } : null,
         healthMetrics,
-        { pending_count: pendingCount, exported_count: exportedCount },
+        {
+          pending_count: pendingCount,
+          exported_count: exportedCount,
+          total_active_tasks: totalActive,
+          completed_count: completedCount,
+          tasks_with_assignee: withAssignee,
+          tasks_with_due_date: withDueDate,
+          overdue_count: overdueCount,
+        },
         { latest_date: latestJournalDate },
       ));
 
