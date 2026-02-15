@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { PdcaSection, ProcessTask } from "@/lib/types";
+import type { PdcaSection, ProcessTask, TaskPriority } from "@/lib/types";
 import { PDCA_SECTIONS } from "@/lib/pdca";
 import AssigneePicker from "@/components/assignee-picker";
 
@@ -31,6 +31,7 @@ export default function TaskCreatePanel({
     email: string;
     gid: string;
   } | null>(null);
+  const [priority, setPriority] = useState<TaskPriority>("medium");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +71,7 @@ export default function TaskCreatePanel({
           assignee_name: assignee?.name || null,
           assignee_email: assignee?.email || null,
           assignee_asana_gid: assignee?.gid || null,
+          priority,
           origin: "hub_manual",
           source: "user_created",
         }),
@@ -162,6 +164,36 @@ export default function TaskCreatePanel({
                     }}
                   >
                     {section.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Priority */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">
+              Priority
+            </label>
+            <div className="flex gap-2">
+              {(["high", "medium", "low"] as TaskPriority[]).map((level) => {
+                const isSelected = priority === level;
+                const styles: Record<TaskPriority, { bg: string; text: string }> = {
+                  high:   { bg: "bg-red-500/15",    text: "text-red-600" },
+                  medium: { bg: "bg-nia-orange/15", text: "text-nia-orange" },
+                  low:    { bg: "bg-surface-muted", text: "text-text-muted" },
+                };
+                const s = styles[level];
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setPriority(level)}
+                    className={`text-xs font-medium px-3 py-1.5 rounded-lg capitalize transition-all ${s.bg} ${s.text} ${
+                      isSelected ? "ring-2 ring-offset-1" : "opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    {level}
                   </button>
                 );
               })}

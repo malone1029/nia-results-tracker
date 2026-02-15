@@ -190,6 +190,7 @@ export type AdliDimension = "approach" | "deployment" | "learning" | "integratio
 export type TaskSource = "ai_suggestion" | "ai_interview" | "user_created";
 export type TaskStatus = "pending" | "active" | "completed" | "exported";
 export type TaskOrigin = "asana" | "hub_ai" | "hub_manual";
+export type TaskPriority = "high" | "medium" | "low";
 
 export interface ProcessTask {
   id: number;
@@ -213,6 +214,7 @@ export interface ProcessTask {
   parent_asana_gid: string | null;
   is_subtask: boolean;
   last_synced_at: string | null;
+  priority: TaskPriority;
   asana_task_gid: string | null;
   asana_task_url: string | null;
   sort_order: number;

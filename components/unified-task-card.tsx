@@ -82,6 +82,9 @@ export default function UnifiedTaskCard({
             <p className={`font-medium leading-snug ${
               isSubtask ? "text-xs" : "text-sm"
             } ${task.completed ? "line-through text-text-tertiary" : "text-nia-dark"}`}>
+              {task.priority === "high" && !task.completed && (
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5 align-middle" />
+              )}
               {task.title}
             </p>
 

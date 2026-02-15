@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { ProcessTask } from "@/lib/types";
+import type { ProcessTask, TaskPriority } from "@/lib/types";
 import { PDCA_SECTIONS } from "@/lib/pdca";
 import AssigneePicker from "@/components/assignee-picker";
 
@@ -211,6 +211,34 @@ export default function TaskDetailPanel({
               </div>
             )}
 
+            {/* Priority */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-secondary">Priority</span>
+              <div className="flex gap-1">
+                {(["high", "medium", "low"] as TaskPriority[]).map((level) => {
+                  const isSelected = (task.priority || "medium") === level;
+                  const styles: Record<TaskPriority, { bg: string; text: string; ring: string }> = {
+                    high:   { bg: "bg-red-500/15",        text: "text-red-600",       ring: "ring-red-500" },
+                    medium: { bg: "bg-nia-orange/15",     text: "text-nia-orange",    ring: "ring-nia-orange" },
+                    low:    { bg: "bg-surface-muted",     text: "text-text-muted",    ring: "ring-border" },
+                  };
+                  const s = styles[level];
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => onUpdate(task.id, { priority: level } as Partial<ProcessTask>)}
+                      className={`text-[10px] font-medium px-2 py-0.5 rounded capitalize transition-all ${s.bg} ${s.text} ${
+                        isSelected ? `ring-2 ${s.ring} ring-offset-1` : "opacity-50 hover:opacity-100"
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Status */}
             <div className="flex items-center justify-between">
               <span className="text-sm text-text-secondary">Status</span>
@@ -279,56 +307,54 @@ export default function TaskDetailPanel({
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-border flex items-center justify-between">
-          {isAsana && task.asana_task_url ? (
-            <div className="flex items-center gap-3">
-              <a
-                href={task.asana_task_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium text-nia-grey-blue hover:text-nia-dark flex items-center gap-1.5 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                Open in Asana
-              </a>
-              <span className="text-[10px] text-text-muted">Delete in Asana to remove</span>
-            </div>
+          {/* Asana link (if applicable) */}
+          {task.asana_task_url ? (
+            <a
+              href={task.asana_task_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-nia-grey-blue hover:text-nia-dark flex items-center gap-1.5 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Open in Asana
+            </a>
           ) : (
             <div /> // Spacer
           )}
 
-          {/* Delete button — Hub tasks only (not Asana-origin) */}
-          {!isAsana && (
-            <>
-              {showDeleteConfirm ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-text-muted">Delete this task?</span>
-                  <button
-                    onClick={handleDelete}
-                    className="text-xs font-medium text-nia-red hover:text-red-700 transition-colors"
-                  >
-                    Yes, delete
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="text-xs font-medium text-text-muted hover:text-foreground transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="text-sm text-text-muted hover:text-nia-red flex items-center gap-1.5 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Delete
-                </button>
-              )}
-            </>
+          {/* Delete button — all tasks */}
+          {showDeleteConfirm ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-text-muted">
+                {task.asana_task_gid
+                  ? "Delete this task? This will also delete it from Asana."
+                  : "Delete this task?"}
+              </span>
+              <button
+                onClick={handleDelete}
+                className="text-xs font-medium text-nia-red hover:text-red-700 transition-colors"
+              >
+                Yes, delete
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="text-xs font-medium text-text-muted hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-sm text-text-muted hover:text-nia-red flex items-center gap-1.5 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete
+            </button>
           )}
         </div>
       </div>
