@@ -68,7 +68,7 @@ UPDATE process_tasks
 CREATE INDEX IF NOT EXISTS idx_process_tasks_process_origin
   ON process_tasks(process_id, origin);
 
--- Fast upsert lookups during Asana sync
-CREATE INDEX IF NOT EXISTS idx_process_tasks_asana_task_gid
+-- Unique constraint for upsert during Asana sync (ON CONFLICT requires UNIQUE)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_process_tasks_asana_task_gid
   ON process_tasks(asana_task_gid)
   WHERE asana_task_gid IS NOT NULL;
