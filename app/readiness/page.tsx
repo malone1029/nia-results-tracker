@@ -440,6 +440,7 @@ export default function ReadinessPage() {
         <div>
           <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider mb-3">
             Readiness Trend
+            <HelpTip text="Daily snapshots of your readiness score. Dashed line at 80% = Baldrige Ready target." />
           </h2>
           <Card className="p-5">
             <ResponsiveContainer width="100%" height={280}>
@@ -591,6 +592,7 @@ export default function ReadinessPage() {
       <div>
         <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider mb-3">
           Dimension Gap Analysis
+          <HelpTip text="Shows your weakest health dimensions. Expand any bar to see which processes need work." />
         </h2>
         <Card className="p-5">
           <div className="space-y-4">
@@ -680,6 +682,7 @@ export default function ReadinessPage() {
         <div>
           <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider mb-3">
             Top Actions to Improve Readiness
+            <HelpTip text="Estimated health score points you'd gain by completing each action." />
           </h2>
           <Card className="divide-y divide-border-light">
             {topActions.map((action, i) => (

@@ -10,6 +10,7 @@ import EmptyState from "@/components/empty-state";
 import { Card, CardHeader, CardBody, Badge, Button, Input } from "@/components/ui";
 import { useRole } from "@/lib/use-role";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
+import HelpTip from "@/components/help-tip";
 
 interface MetricRow extends Metric {
   process_names: string;
@@ -359,6 +360,7 @@ export default function DataHealthPage() {
           <h1 className="text-3xl font-bold text-nia-dark">Data Health</h1>
           <p className="text-text-tertiary mt-1">
             Metric review status, data coverage, and quick logging.
+            <HelpTip text="Cadence = how often a metric should be reviewed. Overdue = past its cadence deadline." />
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -518,6 +520,7 @@ export default function DataHealthPage() {
           <div>
             <div className="text-base font-semibold text-nia-dark">
               Data Health
+              <HelpTip text="Percentage of metrics with at least one data entry." />
             </div>
             <div className="text-sm text-text-muted mt-0.5">
               {displayMetrics.length - noData.length} of {displayMetrics.length} metrics
