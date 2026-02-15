@@ -143,12 +143,14 @@ export async function syncProcessTasks(
   // Batch-fetch assignee emails
   const emailMap = await fetchAssigneeEmails(token, assigneeGids);
 
-  // Get existing Asana-origin tasks for this process
+  // Get all tasks with an asana_task_gid for this process (any origin).
+  // Hub-created tasks that were exported to Asana also have a GID — we
+  // must match those too, otherwise sync creates duplicates.
   const { data: existingTasks } = await supabase
     .from("process_tasks")
     .select("id, asana_task_gid")
     .eq("process_id", processId)
-    .eq("origin", "asana");
+    .not("asana_task_gid", "is", null);
 
   const existingByGid = new Map<string, number>();
   for (const t of existingTasks || []) {
@@ -210,6 +212,7 @@ export async function syncProcessTasks(
           asana_section_name, asana_section_gid,
           parent_asana_gid, is_subtask, asana_task_url,
           last_synced_at,
+          origin: "asana",
         })
         .eq("id", existingId);
 
