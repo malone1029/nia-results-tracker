@@ -303,7 +303,10 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   const sections = buildSections(tasks);
   const allSubtasks = tasks.filter((t) => t.is_subtask);
   const pendingCount = pendingSuggestions.length;
-  const exportableTasks = tasks.filter((t) => t.status === "pending");
+  // Tasks that can be synced to Asana: active hub tasks without an Asana GID
+  const unsyncedTasks = tasks.filter(
+    (t) => ["active", "pending"].includes(t.status) && !t.asana_task_gid && t.origin !== "asana"
+  );
 
   // ── Loading state ──
 
@@ -351,7 +354,7 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-nia-dark">
-                Exported {exportResult.exported} task{exportResult.exported !== 1 ? "s" : ""} to Asana
+                Created {exportResult.exported} task{exportResult.exported !== 1 ? "s" : ""} in Asana
                 {exportResult.failed > 0 && ` (${exportResult.failed} failed)`}
               </p>
               <p className="text-xs text-text-secondary mt-0.5">
@@ -420,13 +423,13 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
             </div>
           )}
         </div>
-        {exportableTasks.length > 0 && (
+        {unsyncedTasks.length > 0 && (
           <button
             onClick={handleExportToAsana}
             disabled={exporting}
             className="bg-nia-green text-white rounded-lg py-2 px-4 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
-            {exporting ? "Exporting..." : `Export ${exportableTasks.length} to Asana`}
+            {exporting ? "Syncing..." : `Sync ${unsyncedTasks.length} to Asana`}
           </button>
         )}
       </div>
