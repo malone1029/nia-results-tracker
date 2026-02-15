@@ -1,7 +1,7 @@
 // PDCA (Plan-Do-Check-Act) constants and ADLI-to-PDCA mapping
 // Used across the app for task categorization, UI colors, and AI prompt generation.
 
-import type { PdcaSection, AdliDimension, TaskSource, TaskStatus } from "./types";
+import type { PdcaSection, AdliDimension, TaskSource, TaskStatus, TaskOrigin } from "./types";
 
 // ── Section metadata ──────────────────────────────────────────
 
@@ -74,7 +74,8 @@ export function getPdcaColor(section: PdcaSection): string {
 export const PDCA_SECTION_VALUES: PdcaSection[] = ["plan", "execute", "evaluate", "improve"];
 export const ADLI_DIMENSION_VALUES: AdliDimension[] = ["approach", "deployment", "learning", "integration"];
 export const TASK_SOURCE_VALUES: TaskSource[] = ["ai_suggestion", "ai_interview", "user_created"];
-export const TASK_STATUS_VALUES: TaskStatus[] = ["pending", "exported"];
+export const TASK_STATUS_VALUES: TaskStatus[] = ["pending", "active", "completed", "exported"];
+export const TASK_ORIGIN_VALUES: TaskOrigin[] = ["asana", "hub_ai", "hub_manual"];
 
 // ── AI Prompt Fragment ────────────────────────────────────────
 // Include this in the AI system prompt so it knows how to map tasks.

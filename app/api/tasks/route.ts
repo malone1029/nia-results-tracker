@@ -5,6 +5,7 @@ import {
   ADLI_DIMENSION_VALUES,
   TASK_SOURCE_VALUES,
   TASK_STATUS_VALUES,
+  TASK_ORIGIN_VALUES,
 } from "@/lib/pdca";
 
 // GET ?processId=5 → all tasks for a process (pending + exported), ordered by created_at
@@ -71,14 +72,19 @@ export async function POST(request: Request) {
       );
     }
 
+    // Derive origin from source if not explicitly set
+    const source = task.source || "ai_suggestion";
+    const origin = task.origin || (source === "user_created" ? "hub_manual" : "hub_ai");
+
     rows.push({
       process_id: task.process_id,
       title: task.title,
       description: task.description || null,
       pdca_section: task.pdca_section,
       adli_dimension: task.adli_dimension || null,
-      source: task.source || "ai_suggestion",
+      source,
       source_detail: task.source_detail || null,
+      origin,
     });
   }
 
@@ -130,8 +136,22 @@ export async function PATCH(request: Request) {
     }
     updates.status = body.status;
   }
+  if (body.origin !== undefined) {
+    if (!TASK_ORIGIN_VALUES.includes(body.origin)) {
+      return NextResponse.json(
+        { error: `Invalid origin: ${body.origin}. Must be one of: ${TASK_ORIGIN_VALUES.join(", ")}` },
+        { status: 400 }
+      );
+    }
+    updates.origin = body.origin;
+  }
   if (body.asana_task_gid !== undefined) updates.asana_task_gid = body.asana_task_gid;
   if (body.asana_task_url !== undefined) updates.asana_task_url = body.asana_task_url;
+  if (body.assignee_name !== undefined) updates.assignee_name = body.assignee_name;
+  if (body.assignee_email !== undefined) updates.assignee_email = body.assignee_email;
+  if (body.due_date !== undefined) updates.due_date = body.due_date;
+  if (body.completed !== undefined) updates.completed = body.completed;
+  if (body.completed_at !== undefined) updates.completed_at = body.completed_at;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
