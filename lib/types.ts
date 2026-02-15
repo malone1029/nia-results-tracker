@@ -221,6 +221,37 @@ export interface ProcessTask {
   created_at: string;
 }
 
+// ── Task comments & activity ─────────────────────────────────
+
+export interface TaskComment {
+  id: number;
+  task_id: number;
+  user_id: string;
+  user_name: string;
+  body: string;
+  created_at: string;
+}
+
+export type TaskActivityAction =
+  | "created"
+  | "completed"
+  | "uncompleted"
+  | "deleted"
+  | "reassigned"
+  | "priority_changed"
+  | "status_changed"
+  | "commented";
+
+export interface TaskActivity {
+  id: number;
+  task_id: number;
+  user_id: string;
+  user_name: string;
+  action: TaskActivityAction;
+  detail: Record<string, unknown> | null;
+  created_at: string;
+}
+
 // Extended types for UI (joins data from multiple tables)
 
 export interface KeyRequirementWithStatus extends KeyRequirement {

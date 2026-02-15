@@ -17,6 +17,7 @@ const navGroups = [
     label: "Overview",
     links: [
       { href: "/", label: "Dashboard", icon: "grid" },
+      { href: "/my-tasks", label: "My Tasks", icon: "check-circle" },
       { href: "/data-health", label: "Data Health", icon: "heart" },
       { href: "/requirements", label: "Requirements", icon: "clipboard" },
       { href: "/log", label: "Log Data", icon: "edit" },
@@ -64,6 +65,12 @@ function NavIcon({ icon, className }: { icon: string; className?: string }) {
       return (
         <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+      );
+    case "check-circle":
+      return (
+        <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       );
     case "heart":

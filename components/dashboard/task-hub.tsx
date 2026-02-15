@@ -182,6 +182,12 @@ export default function TaskHub({
         <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider">
           {isAllOwners ? "Tasks" : "My Tasks"}
         </h2>
+        <Link
+          href="/my-tasks"
+          className="text-xs text-nia-grey-blue hover:text-nia-orange transition-colors"
+        >
+          View all &rarr;
+        </Link>
       </div>
 
       {/* Mini stat chips */}
