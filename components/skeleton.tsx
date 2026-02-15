@@ -87,14 +87,38 @@ function FormFieldSkeleton() {
 
 // ─── Page-level skeleton compositions ───────────────────────────
 
-/** Dashboard page: stat cards + metric sections */
+/** Dashboard page: header + 5 stat cards + task hub + two-column + process list */
 export function DashboardSkeleton() {
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <PageHeaderSkeleton />
+      {/* 5 stat cards */}
       <StatCardsSkeleton count={5} />
-      <CardSkeleton lines={2} />
-      <CardSkeleton lines={4} />
-      <CardSkeleton lines={3} />
+      {/* Task hub placeholder */}
+      <div className="bg-card rounded-xl shadow p-5">
+        <Skeleton className="h-4 w-24 mb-4" />
+        <div className="flex gap-2 mb-4">
+          <Skeleton className="h-5 w-20 rounded-full" />
+          <Skeleton className="h-5 w-20 rounded-full" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 py-2">
+            <Skeleton className="h-5 w-5 rounded-full" />
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-3 w-24 ml-auto hidden sm:block" />
+            <Skeleton className="h-3 w-12" />
+          </div>
+        ))}
+      </div>
+      {/* Two-column: ADLI + Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CardSkeleton lines={4} />
+        <CardSkeleton lines={3} />
+      </div>
+      {/* Process list */}
+      <TableSkeleton rows={4} />
     </div>
   );
 }

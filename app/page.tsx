@@ -1,42 +1,26 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getReviewStatus } from "@/lib/review-status";
 import { getMaturityLevel } from "@/lib/colors";
 import { DashboardSkeleton } from "@/components/skeleton";
-import AdliRadar from "@/components/adli-radar";
-import { DimBar, MiniBar } from "@/components/adli-bars";
 import EmptyState from "@/components/empty-state";
-import { Card, CardHeader, Badge, Button, Select } from "@/components/ui";
-import HealthRing from "@/components/health-ring";
+import { Card, Select } from "@/components/ui";
 import { fetchHealthData, type ProcessWithCategory } from "@/lib/fetch-health-data";
 import { type HealthResult, type HealthNextAction } from "@/lib/process-health";
 import WelcomeOnboarding, { hasCompletedOnboarding } from "@/components/welcome-onboarding";
 import Link from "next/link";
 
-interface ScoreRow {
-  process_id: number;
-  approach_score: number;
-  deployment_score: number;
-  learning_score: number;
-  integration_score: number;
-  overall_score: number;
-  assessed_at: string;
-}
-
-interface ActionItem {
-  type: "overdue" | "due-soon";
-  label: string;
-  href: string;
-  metricId?: number;
-}
-
-const ACTION_BADGE: Record<string, { color: "red" | "orange"; label: string }> = {
-  overdue: { color: "red", label: "overdue" },
-  "due-soon": { color: "orange", label: "due soon" },
-};
+// Dashboard components
+import StatCardsRow from "@/components/dashboard/stat-cards";
+import TaskHub from "@/components/dashboard/task-hub";
+import AdliOverview from "@/components/dashboard/adli-overview";
+import { MetricActionItems, NextActions } from "@/components/dashboard/action-items";
+import { MomentumAndWins, RecentActivity } from "@/components/dashboard/activity-feed";
+import ProcessList from "@/components/dashboard/process-list";
+import type { ScoreRow, ActionItem, DashboardTaskData } from "@/components/dashboard/types";
 
 export default function ProcessOwnerDashboardPage() {
   return (
@@ -65,13 +49,28 @@ function ProcessOwnerDashboard() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [asanaConnected, setAsanaConnected] = useState(false);
   const [userId, setUserId] = useState("");
+  const [dashboardTasks, setDashboardTasks] = useState<DashboardTaskData | null>(null);
+
+  // Fetch task data (called on mount and when owner changes)
+  const fetchTaskData = useCallback(async (owner: string) => {
+    try {
+      const params = owner !== "__all__" ? `?owner=${encodeURIComponent(owner)}` : "";
+      const res = await fetch(`/api/tasks/dashboard${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDashboardTasks(data);
+      }
+    } catch {
+      // Task data is supplemental — don't block the dashboard
+    }
+  }, []);
 
   useEffect(() => {
     document.title = "Dashboard | NIA Excellence Hub";
 
     async function fetchAll() {
-      // Fetch health data + user + ADLI scores + metric data + improvements in parallel
-      const [healthData, userRes, scoresRes, metricsRes, metricProcessLinksRes, entriesRes, improvementsRes] = await Promise.all([
+      // Fetch health data + user + ADLI scores + metric data + improvements + tasks in parallel
+      const [healthData, userRes, scoresRes, metricsRes, metricProcessLinksRes, entriesRes, improvementsRes, tasksRes] = await Promise.all([
         fetchHealthData(),
         supabase.auth.getUser(),
         fetch("/api/ai/scores").then((r) => r.ok ? r.json() : []),
@@ -79,12 +78,16 @@ function ProcessOwnerDashboard() {
         supabase.from("metric_processes").select("metric_id, process_id"),
         supabase.from("entries").select("metric_id, date").order("date", { ascending: false }),
         supabase.from("improvement_journal").select("process_id, title, created_at, status").order("created_at", { ascending: false }).limit(20),
+        fetch("/api/tasks/dashboard").then((r) => r.ok ? r.json() : null),
       ]);
 
       const procs = healthData.processes;
       setProcesses(procs);
       setHealthScores(healthData.healthScores);
       setLastActivityMap(healthData.lastActivityMap);
+
+      // Task data
+      if (tasksRes) setDashboardTasks(tasksRes);
 
       // User
       const user = userRes.data?.user;
@@ -106,7 +109,14 @@ function ProcessOwnerDashboard() {
         const match = sortedOwners.find(
           (o) => o.toLowerCase() === fullName.toLowerCase()
         );
-        if (match) setSelectedOwner(match);
+        if (match) {
+          setSelectedOwner(match);
+          // Re-fetch tasks filtered to this owner
+          fetch(`/api/tasks/dashboard?owner=${encodeURIComponent(match)}`)
+            .then((r) => r.ok ? r.json() : null)
+            .then((data) => { if (data) setDashboardTasks(data); })
+            .catch(() => {});
+        }
       }
 
       // ADLI scores for radar
@@ -201,10 +211,8 @@ function ProcessOwnerDashboard() {
       }
       setMonthlyImprovedCount(monthlyProcs.size);
 
-      // Check if new user needs onboarding (never completed before)
-      // Also allow ?welcome=true to force-preview the onboarding (e.g. returning from Asana OAuth)
+      // Check if new user needs onboarding
       if (uid && (forceWelcome || !hasCompletedOnboarding(uid))) {
-        // Check Asana connection status — URL param is a fast path from OAuth callback
         const urlAsana = new URLSearchParams(window.location.search).get("asana_connected") === "true";
         let connected = urlAsana;
         if (!connected) {
@@ -223,7 +231,13 @@ function ProcessOwnerDashboard() {
       setLoading(false);
     }
     fetchAll();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-fetch tasks when owner filter changes (after initial load)
+  const handleOwnerChange = (newOwner: string) => {
+    setSelectedOwner(newOwner);
+    fetchTaskData(newOwner);
+  };
 
   if (loading) return <DashboardSkeleton />;
 
@@ -239,7 +253,7 @@ function ProcessOwnerDashboard() {
     );
   }
 
-  // Filter by selected owner + process type
+  // ── Derived data (filter-dependent) ──
   const isAll = selectedOwner === "__all__";
   const filteredProcesses = processes.filter((p) => {
     if (!isAll && p.owner !== selectedOwner) return false;
@@ -255,10 +269,10 @@ function ProcessOwnerDashboard() {
   const filteredDueSoon = isAll
     ? dueSoonMetrics
     : dueSoonMetrics.filter((m) => m.processOwner === selectedOwner);
-  // ── Health-based stat card data ──
+
   const processCount = filteredProcesses.length;
 
-  // My Readiness: avg health score across filtered processes
+  // Health averages
   let avgHealth = 0;
   let healthCount = 0;
   for (const proc of filteredProcesses) {
@@ -276,23 +290,21 @@ function ProcessOwnerDashboard() {
       : { label: "Getting Started", color: "#dc2626" })
     : { label: "--", color: "var(--text-muted)" };
 
-  // Baldrige Ready: count at 80+
   const baldrigeReadyCount = filteredProcesses.filter((p) => {
     const h = healthScores.get(p.id);
     return h && h.total >= 80;
   }).length;
 
-  // Needs Attention: health < 40 OR last activity > 60 days
   const now = Date.now();
   const needsAttentionCount = filteredProcesses.filter((p) => {
     const h = healthScores.get(p.id);
     const lastDate = lastActivityMap.get(p.id);
     const stale = lastDate ? (now - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24) > 60 : false;
-    const lowHealth = h ? h.total < 40 : true; // no score = needs attention
+    const lowHealth = h ? h.total < 40 : true;
     return lowHealth || stale;
   }).length;
 
-  // ADLI dimension averages (for radar)
+  // ADLI averages
   const avgAdli = filteredScores.length > 0
     ? Math.round(filteredScores.reduce((s, r) => s + r.overall_score, 0) / filteredScores.length)
     : 0;
@@ -306,13 +318,13 @@ function ProcessOwnerDashboard() {
     : null;
   const maturityLevel = getMaturityLevel(avgAdli);
 
-  // Score map for ADLI bars
+  // Score map for process list ADLI bars
   const scoreMap = new Map<number, ScoreRow>();
   for (const s of filteredScores) {
     scoreMap.set(s.process_id, s);
   }
 
-  // ── My Next Actions (aggregated from health scores) ──
+  // Next actions (aggregated from health scores)
   const allActions: (HealthNextAction & { processName: string })[] = [];
   for (const proc of filteredProcesses) {
     const h = healthScores.get(proc.id);
@@ -322,7 +334,6 @@ function ProcessOwnerDashboard() {
       }
     }
   }
-  // Deduplicate by normalized label, sum points
   const normalize = (s: string) => s.replace(/\bfor this process\b/gi, "").replace(/\bthis process\b/gi, "").replace(/\s+\(last updated \d+ days ago\)/i, "").trim().toLowerCase();
   const actionGroups = new Map<string, { label: string; points: number; count: number; href?: string }>();
   for (const a of allActions) {
@@ -331,7 +342,6 @@ function ProcessOwnerDashboard() {
     if (existing) {
       existing.points += a.points;
       existing.count++;
-      // When multiple processes need same action, link to process list instead
       if (existing.count > 1) existing.href = "/processes";
     } else {
       actionGroups.set(key, { label: a.label, points: a.points, count: 1, href: a.href });
@@ -341,7 +351,7 @@ function ProcessOwnerDashboard() {
     .sort((a, b) => b.points - a.points)
     .slice(0, 3);
 
-  // ── Recent Wins (milestones across filtered processes) ──
+  // Recent wins
   const recentWins: { emoji: string; text: string; health?: number; color?: string }[] = [];
   for (const proc of filteredProcesses) {
     const h = healthScores.get(proc.id);
@@ -354,10 +364,9 @@ function ProcessOwnerDashboard() {
       recentWins.push({ emoji: "\uD83D\uDCDD", text: `${name} — docs complete (25/25)` });
     }
   }
-  // Cap at 3, prioritize Baldrige Ready
   const topWins = recentWins.sort((a, b) => (b.health ?? 0) - (a.health ?? 0)).slice(0, 3);
 
-  // Action items (overdue + due-soon + drafts)
+  // Metric action items
   const actionItems: ActionItem[] = [
     ...filteredOverdue.map((m) => ({
       type: "overdue" as const,
@@ -373,19 +382,24 @@ function ProcessOwnerDashboard() {
     })),
   ];
 
+  // Personalized header
+  const firstName = userName ? userName.split(" ")[0] : "";
+
   return (
     <div className="space-y-6 content-appear">
-      {/* Header + owner selector */}
+      {/* ── Header + filter toolbar ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-nia-dark">
-            Process Owner Dashboard
+            {!isAll && firstName ? `Welcome back, ${firstName}` : "Excellence Hub"}
           </h1>
           <p className="text-text-tertiary mt-1">
-            {isAll ? "Organization-wide view" : `Showing ${selectedOwner}'s processes`}
+            {!isAll && userName
+              ? `${userName}'s Excellence Hub`
+              : "Organization-wide overview"}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 bg-surface-subtle rounded-xl p-2">
           <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
             {(["all", "key", "support"] as const).map((t) => (
               <button key={t} onClick={() => setTypeFilter(t)}
@@ -402,7 +416,7 @@ function ProcessOwnerDashboard() {
           <Select
             id="owner-select"
             value={selectedOwner}
-            onChange={(e) => setSelectedOwner(e.target.value)}
+            onChange={(e) => handleOwnerChange(e.target.value)}
             size="sm"
             className="w-auto"
           >
@@ -416,53 +430,21 @@ function ProcessOwnerDashboard() {
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Link href="/readiness" className="h-full">
-          <Card variant="elevated" padding="sm" className="p-4 h-full hover:shadow-md transition-shadow cursor-pointer">
-            <div className="flex items-center gap-3">
-              {healthCount > 0 ? (
-                <HealthRing score={avgHealth} color={healthLevel.color} size={48} strokeWidth={4} />
-              ) : (
-                <div className="text-2xl font-bold font-display number-pop text-text-muted">--</div>
-              )}
-              <div>
-                <div className="text-sm text-text-tertiary">My Readiness</div>
-                {healthCount > 0 && (
-                  <div className="text-xs font-medium" style={{ color: healthLevel.color }}>
-                    {healthLevel.label}
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card>
-        </Link>
-        <StatCard
-          label="Baldrige Ready"
-          value={baldrigeReadyCount}
-          color={baldrigeReadyCount > 0 ? "#b1bd37" : "var(--text-muted)"}
-          subtitle={processCount > 0 ? `of ${processCount} processes` : undefined}
-          href="/readiness"
-        />
-        <StatCard
-          label="Needs Attention"
-          value={needsAttentionCount}
-          color={needsAttentionCount > 0 ? "#f79935" : "#b1bd37"}
-          glow={needsAttentionCount > 0 ? "orange" : undefined}
-          href="/processes"
-        />
-        <StatCard
-          label="Overdue Metrics"
-          value={filteredOverdue.length}
-          color={filteredOverdue.length > 0 ? "#dc2626" : "#b1bd37"}
-          glow={filteredOverdue.length > 0 ? "red" : undefined}
-          href="/data-health"
-        />
-      </div>
+      {/* ── Stat cards (5-wide) ── */}
+      <StatCardsRow
+        avgHealth={avgHealth}
+        healthCount={healthCount}
+        healthLevel={healthLevel}
+        baldrigeReadyCount={baldrigeReadyCount}
+        processCount={processCount}
+        needsAttentionCount={needsAttentionCount}
+        overdueMetricCount={filteredOverdue.length}
+        overdueTaskCount={dashboardTasks?.stats.totalOverdue ?? 0}
+        taskStats={dashboardTasks?.stats ?? null}
+      />
 
       {processCount === 0 ? (
         !isAll ? (
-          /* Filtered to a specific owner who has no processes */
           <Card>
             <EmptyState
               illustration="document"
@@ -472,7 +454,6 @@ function ProcessOwnerDashboard() {
             />
           </Card>
         ) : (
-          /* No processes at all — rich getting-started card */
           <Card padding="lg">
             <div className="text-center mb-6">
               <h2 className="text-xl font-bold text-[#324a4d] mb-1">Get Started with Your First Process</h2>
@@ -532,324 +513,42 @@ function ProcessOwnerDashboard() {
           </Card>
         )
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left column: ADLI Overview + Status Breakdown */}
-          <div className="space-y-6">
-            {/* ADLI Overview */}
-            <Card padding="md">
-              <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider mb-4">
-                ADLI Overview
-              </h2>
-              {dimAvgs ? (
-                <>
-                  <div className="flex justify-center mb-4">
-                    <AdliRadar
-                      approach={dimAvgs.approach}
-                      deployment={dimAvgs.deployment}
-                      learning={dimAvgs.learning}
-                      integration={dimAvgs.integration}
-                      size={200}
-                    />
-                  </div>
-                  <div className="text-center mb-4">
-                    <span
-                      className="text-3xl font-bold font-display number-pop"
-                      style={{ color: maturityLevel.color }}
-                    >
-                      {avgAdli}%
-                    </span>
-                    <span
-                      className="text-sm font-medium ml-2"
-                      style={{ color: maturityLevel.color }}
-                    >
-                      {maturityLevel.label}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    <DimBar label="Approach" score={dimAvgs.approach} />
-                    <DimBar label="Deployment" score={dimAvgs.deployment} />
-                    <DimBar label="Learning" score={dimAvgs.learning} />
-                    <DimBar label="Integration" score={dimAvgs.integration} />
-                  </div>
-                </>
-              ) : (
-                <EmptyState
-                  illustration="radar"
-                  title="No ADLI scores yet"
-                  description="Run an AI analysis on any process to see maturity scores here."
-                  compact
-                />
-              )}
-            </Card>
+        <>
+          {/* ── Task Hub (full width, most prominent) ── */}
+          {dashboardTasks && (
+            <TaskHub
+              data={dashboardTasks}
+              isAllOwners={isAll}
+              onRefresh={() => fetchTaskData(selectedOwner)}
+            />
+          )}
 
+          {/* ── ADLI + Actions (two-column) ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <AdliOverview dimAvgs={dimAvgs} avgAdli={avgAdli} maturityLevel={maturityLevel} />
+            </div>
+            <div className="space-y-6">
+              <MetricActionItems items={actionItems} />
+              <NextActions actions={topNextActions} isAllOwners={isAll} />
+              <MomentumAndWins monthlyImprovedCount={monthlyImprovedCount} wins={topWins} />
+            </div>
           </div>
 
-          {/* Right column: Action Items + My Next Actions + My Processes */}
-          <div className="space-y-6">
-            {/* Action Items */}
-            <Card padding="md">
-              <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider mb-3">
-                Action Items
-              </h2>
-              {actionItems.length === 0 ? (
-                <EmptyState
-                  illustration="check"
-                  title="All caught up!"
-                  description="No overdue metrics or draft processes."
-                  compact
-                />
-              ) : (
-                <div className="space-y-1">
-                  {actionItems.slice(0, 8).map((item, i) => {
-                    const badgeInfo = ACTION_BADGE[item.type];
-                    return (
-                      <Link
-                        key={`${item.type}-${i}`}
-                        href={item.href}
-                        className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-surface-hover transition-colors group"
-                      >
-                        <div
-                          className={`w-2 h-2 rounded-full flex-shrink-0 ${item.type === "overdue" ? "overdue-pulse" : ""}`}
-                          style={{
-                            backgroundColor:
-                              item.type === "overdue"
-                                ? "#dc2626"
-                                : item.type === "due-soon"
-                                ? "#f79935"
-                                : "var(--text-muted)",
-                          }}
-                        />
-                        <span className="text-sm text-nia-dark group-hover:text-nia-orange transition-colors truncate">
-                          {item.label}
-                        </span>
-                        <Badge color={badgeInfo.color} size="xs" className="ml-auto flex-shrink-0">
-                          {badgeInfo.label}
-                        </Badge>
-                        {item.metricId && (
-                          <Link
-                            href={`/log?metricId=${item.metricId}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="ml-1.5 text-xs font-medium text-nia-grey-blue hover:text-nia-dark bg-surface-subtle hover:bg-surface-muted rounded px-2 py-0.5 transition-colors flex-shrink-0"
-                          >
-                            Log
-                          </Link>
-                        )}
-                      </Link>
-                    );
-                  })}
-                  {actionItems.length > 8 && (
-                    <p className="text-xs text-text-muted px-2 pt-1">
-                      +{actionItems.length - 8} more
-                    </p>
-                  )}
-                </div>
-              )}
-            </Card>
+          {/* ── Processes (full width) ── */}
+          <ProcessList
+            processes={filteredProcesses}
+            healthScores={healthScores}
+            scoreMap={scoreMap}
+            isAllOwners={isAll}
+          />
 
-            {/* My Next Actions (from health scores) */}
-            {topNextActions.length > 0 && (
-              <Card padding="md">
-                <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider mb-3">
-                  {isAll ? "Top Actions for Readiness" : "My Next Actions"}
-                </h2>
-                <div className="space-y-2">
-                  {topNextActions.map((action, i) => (
-                    <div key={i} className="flex items-start gap-2.5 py-1.5 px-2">
-                      <span className="text-nia-orange font-bold text-sm mt-px">{i + 1}.</span>
-                      <div className="flex-1 min-w-0">
-                        {action.href ? (
-                          <Link href={action.href} className="text-sm text-nia-dark hover:text-nia-orange transition-colors">
-                            {action.label}
-                          </Link>
-                        ) : (
-                          <span className="text-sm text-nia-dark">{action.label}</span>
-                        )}
-                        <div className="text-xs text-text-muted mt-0.5">
-                          +{action.points} pts{action.count > 1 ? ` across ${action.count} processes` : ""}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
-
-            {/* Progress Momentum + Recent Wins */}
-            {(monthlyImprovedCount > 0 || topWins.length > 0) && (
-              <Card padding="md">
-                {/* Progress Streak */}
-                {monthlyImprovedCount > 0 && (
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-full bg-nia-green/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm">{"\uD83D\uDD25"}</span>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-nia-dark">
-                        {monthlyImprovedCount} process{monthlyImprovedCount !== 1 ? "es" : ""} improved this month
-                      </div>
-                      <div className="text-xs text-text-muted">Keep the momentum going!</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Recent Wins */}
-                {topWins.length > 0 && (
-                  <>
-                    <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-                      Recent Wins
-                    </h3>
-                    <div className="space-y-1.5">
-                      {topWins.map((win, i) => (
-                        <div key={i} className="flex items-center gap-2 py-1">
-                          <span className="text-sm flex-shrink-0">{win.emoji}</span>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-xs text-nia-dark truncate block">{win.text}</span>
-                          </div>
-                          {win.health !== undefined && (
-                            <HealthRing score={win.health} color={win.color || "#b1bd37"} size={22} strokeWidth={2} className="text-[7px] flex-shrink-0" animate={false} />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </Card>
-            )}
-
-            {/* Team Activity */}
-            {isAll && recentImprovements.length > 0 && (
-              <Card padding="md">
-                <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider mb-3">
-                  Recent Activity
-                </h2>
-                <div className="space-y-1">
-                  {recentImprovements.slice(0, 5).map((imp, i) => {
-                    const daysAgo = Math.floor((Date.now() - new Date(imp.date).getTime()) / (1000 * 60 * 60 * 24));
-                    const timeLabel = daysAgo === 0 ? "today" : daysAgo === 1 ? "yesterday" : `${daysAgo}d ago`;
-                    return (
-                      <Link
-                        key={i}
-                        href={`/processes/${imp.processId}`}
-                        className="flex items-start gap-2 py-1.5 px-1 rounded hover:bg-surface-hover transition-colors group"
-                      >
-                        <div className="w-1.5 h-1.5 rounded-full bg-nia-green mt-1.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-xs text-nia-dark group-hover:text-nia-orange transition-colors">
-                            <span className="font-medium">{imp.processName}</span>
-                            {" \u2014 "}
-                            {imp.label}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-text-muted flex-shrink-0 mt-px">{timeLabel}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
-
-            {/* My Processes */}
-            <Card>
-              <CardHeader>
-                <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider">
-                  {isAll ? "All Processes" : "My Processes"}
-                </h2>
-              </CardHeader>
-              <div className="divide-y divide-border-light">
-                {filteredProcesses.map((proc) => {
-                  const score = scoreMap.get(proc.id);
-                  const health = healthScores.get(proc.id);
-                  return (
-                    <Link
-                      key={proc.id}
-                      href={`/processes/${proc.id}`}
-                      className="block px-5 py-3 hover:bg-surface-hover/80 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {health && (
-                            <HealthRing score={health.total} color={health.level.color} size={28} strokeWidth={2.5} className="text-[8px] flex-shrink-0" />
-                          )}
-                          <span className="text-sm font-medium text-nia-dark truncate">
-                            {proc.name}
-                          </span>
-                          {proc.process_type === "key" && (
-                            <Badge color="orange" size="xs" pill={false}>
-                              KEY
-                            </Badge>
-                          )}
-                          {proc.process_type === "support" && (
-                            <span className="text-[10px] text-text-muted">Support</span>
-                          )}
-                          {proc.asana_project_gid && (
-                            <svg
-                              className="w-3.5 h-3.5 text-text-muted flex-shrink-0"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              aria-label="Linked to Asana"
-                            >
-                              <circle cx="12" cy="6" r="4.5" />
-                              <circle cx="5" cy="18" r="4.5" />
-                              <circle cx="19" cy="18" r="4.5" />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-                      {score && (
-                        <div className="grid grid-cols-4 gap-2">
-                          <MiniBar label="A" score={score.approach_score} />
-                          <MiniBar label="D" score={score.deployment_score} />
-                          <MiniBar label="L" score={score.learning_score} />
-                          <MiniBar label="I" score={score.integration_score} />
-                        </div>
-                      )}
-                      <div className="text-[10px] text-text-muted mt-1">
-                        {proc.category_display_name}
-                        {proc.owner && ` \u00b7 ${proc.owner}`}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </Card>
-          </div>
-        </div>
+          {/* ── Recent Activity (full width, org-only) ── */}
+          {isAll && (
+            <RecentActivity improvements={recentImprovements} />
+          )}
+        </>
       )}
     </div>
   );
-}
-
-function StatCard({
-  label,
-  value,
-  color,
-  subtitle,
-  glow,
-  href,
-}: {
-  label: string;
-  value: number | string;
-  color: string;
-  subtitle?: string;
-  glow?: "red" | "orange" | "green" | "dark";
-  href?: string;
-}) {
-  const card = (
-    <Card variant="elevated" padding="sm" className={`p-4 h-full ${glow ? `glow-${glow}` : ""} ${href ? "hover:shadow-md transition-shadow cursor-pointer" : ""}`}>
-      <div className="text-2xl font-bold font-display number-pop" style={{ color }}>
-        {value}
-      </div>
-      <div className="text-sm text-text-tertiary mt-0.5">{label}</div>
-      {subtitle && (
-        <div className="text-xs mt-0.5" style={{ color }}>
-          {subtitle}
-        </div>
-      )}
-    </Card>
-  );
-
-  if (href) {
-    return <Link href={href} className="h-full">{card}</Link>;
-  }
-  return card;
 }
