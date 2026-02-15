@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ProcessTask } from "@/lib/types";
 import { PDCA_SECTIONS } from "@/lib/pdca";
+import AssigneePicker from "@/components/assignee-picker";
 
 // Origin badge styles (same as task-review-panel)
 const ORIGIN_BADGE: Record<string, { label: string; bg: string; text: string }> = {
@@ -222,12 +223,29 @@ export default function TaskDetailPanel({
               </span>
             </div>
 
-            {/* Assignee (read-only for now — PR 3 will add picker) */}
+            {/* Assignee */}
             <div className="flex items-center justify-between">
               <span className="text-sm text-text-secondary">Assignee</span>
-              <span className="text-sm text-foreground">
-                {task.assignee_name || "Unassigned"}
-              </span>
+              <AssigneePicker
+                currentAssigneeName={task.assignee_name}
+                currentAssigneeGid={task.assignee_asana_gid}
+                isSaving={savingField === "assignee_name"}
+                onSelect={(member) => {
+                  if (member) {
+                    onUpdate(task.id, {
+                      assignee_name: member.name,
+                      assignee_email: member.email,
+                      assignee_asana_gid: member.gid,
+                    } as Partial<ProcessTask>);
+                  } else {
+                    onUpdate(task.id, {
+                      assignee_name: null,
+                      assignee_email: null,
+                      assignee_asana_gid: null,
+                    } as Partial<ProcessTask>);
+                  }
+                }}
+              />
             </div>
           </div>
 
