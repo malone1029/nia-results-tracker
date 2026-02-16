@@ -14,6 +14,7 @@ export interface SuggestionTask {
   description: string;
   pdcaSection: "plan" | "execute" | "evaluate" | "improve";
   adliDimension: "approach" | "deployment" | "learning" | "integration";
+  priority?: "high" | "medium" | "low";
 }
 
 export interface CoachSuggestion {
