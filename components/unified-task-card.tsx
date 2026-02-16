@@ -31,6 +31,10 @@ export interface UnifiedTaskCardProps {
   attachmentCount?: number;
   /** Whether this card is part of a multi-selection */
   isSelected?: boolean;
+  /** Whether any task in the list is selected (keeps checkboxes visible) */
+  isAnySelected?: boolean;
+  /** Checkbox toggle handler (no modifier key needed) */
+  onToggleSelection?: (taskId: number) => void;
   /** Right-click handler for context menu */
   onContextMenu?: (task: ProcessTask, e: React.MouseEvent) => void;
 }
@@ -45,22 +49,52 @@ export default function UnifiedTaskCard({
   hasBlockers,
   attachmentCount,
   isSelected,
+  isAnySelected,
+  onToggleSelection,
   onContextMenu,
 }: UnifiedTaskCardProps) {
   const overdue = isOverdue(task);
   const badge = ORIGIN_BADGE[task.origin] || ORIGIN_BADGE.hub_manual;
+  const showCheckbox = onToggleSelection && !isSubtask;
 
   return (
     <div
       onClick={(e) => onCardClick?.(task, e)}
       onContextMenu={(e) => onContextMenu?.(task, e)}
-      className={`bg-card rounded-lg border transition-colors cursor-pointer ${
+      className={`group/task bg-card rounded-lg border transition-colors cursor-pointer ${
         isSelected
           ? "ring-2 ring-nia-grey-blue/60 bg-nia-grey-blue/5 border-nia-grey-blue/30"
           : `border-border-light ${task.completed ? "opacity-50" : "hover:border-border hover:shadow-sm"}`
       } ${isSubtask ? "p-2" : "p-3"}`}
     >
       <div className="flex items-start gap-2">
+        {/* Selection checkbox (square — distinct from circular completion toggle) */}
+        {showCheckbox && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelection(task.id);
+            }}
+            className={`flex-shrink-0 mt-0.5 w-4 h-4 rounded-sm border-2 flex items-center justify-center transition-all ${
+              isSelected
+                ? "border-nia-grey-blue bg-nia-grey-blue"
+                : "border-border hover:border-nia-grey-blue/50"
+            } ${
+              isAnySelected
+                ? "opacity-100"
+                : "opacity-0 group-hover/task:opacity-100"
+            }`}
+            aria-label={isSelected ? `Deselect "${task.title}"` : `Select "${task.title}"`}
+          >
+            {isSelected && (
+              <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
+        )}
+
         {/* Completion toggle */}
         <button
           type="button"

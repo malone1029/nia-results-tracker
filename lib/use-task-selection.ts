@@ -7,8 +7,12 @@ import type { ContextMenuPosition } from "@/components/task-context-menu";
 interface UseTaskSelectionReturn {
   /** Set of currently selected task IDs */
   selectedIds: Set<number>;
+  /** True when at least one task is selected (drives checkbox visibility) */
+  isAnySelected: boolean;
   /** Check if a specific task is selected */
   isSelected: (taskId: number) => boolean;
+  /** Toggle a single task's selection (for checkbox clicks — no modifier key needed) */
+  toggleId: (taskId: number) => void;
   /**
    * Handle a click on a task card/row.
    * - Plain click → clear selection, return true (caller should open detail panel)
@@ -33,10 +37,25 @@ export function useTaskSelection(): UseTaskSelectionReturn {
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
   const lastSelectedIdRef = useRef<number | null>(null);
 
+  const isAnySelected = selectedIds.size > 0;
+
   const isSelected = useCallback(
     (taskId: number) => selectedIds.has(taskId),
     [selectedIds]
   );
+
+  const toggleId = useCallback((taskId: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+    lastSelectedIdRef.current = taskId;
+  }, []);
 
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());
@@ -123,7 +142,9 @@ export function useTaskSelection(): UseTaskSelectionReturn {
 
   return {
     selectedIds,
+    isAnySelected,
     isSelected,
+    toggleId,
     handleTaskClick,
     handleContextMenu,
     contextMenu,
