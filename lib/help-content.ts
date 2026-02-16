@@ -81,7 +81,24 @@ export const helpSections: HelpSection[] = [
       },
       {
         question: "How do I use drag-and-drop in the task list?",
-        answer: "On any process's Tasks tab, you can drag tasks between PDCA sections (Plan, Do, Check, Act) to reclassify them. The new section auto-saves immediately. This helps you organize work as it moves through the improvement cycle.",
+        answer: "On any process's Tasks tab, you can drag tasks between PDCA sections (Plan, Execute, Evaluate, Improve) to reclassify them. The new section auto-saves immediately. This helps you organize work as it moves through the improvement cycle.",
+      },
+      {
+        question: "What is the My Tasks page?",
+        answer: "My Tasks (/my-tasks) shows all tasks assigned to you across every process, in one place. Tasks are grouped by process name and can be filtered by search, priority (high/medium/low), and status (active/completed/overdue). Click any task to open its detail panel.",
+        linkTo: "/my-tasks",
+      },
+      {
+        question: "How do task priorities work?",
+        answer: "Each task has a priority level: high (red dot), medium (default), or low. Set priority when creating a task or change it in the task detail panel. The AI coach also assigns priorities when generating tasks. Use the filter bar to focus on high-priority items.",
+      },
+      {
+        question: "What can I do in the task detail panel?",
+        answer: "Click any task to open a slide-out detail panel. From there you can edit the title, description, due date, priority, and assignee. You can also add comments, view the activity log, and delete the task. Changes save automatically.",
+      },
+      {
+        question: "How do task comments and the activity log work?",
+        answer: "In the task detail panel, scroll to the Comments section to leave notes for your team. The Activity Log below it automatically records all changes: creation, completion, priority changes, reassignment, and comments — with timestamps and who made each change.",
       },
     ],
   },
@@ -99,7 +116,7 @@ export const helpSections: HelpSection[] = [
       },
       {
         question: "Can the AI generate tasks for my process?",
-        answer: "Yes — during the Task Generation step, the AI analyzes your ADLI documentation and creates specific, actionable tasks organized by PDCA phase (Plan, Do, Check, Act). These tasks can then be exported to Asana.",
+        answer: "Yes — during the Task Generation step, the AI analyzes your ADLI documentation and creates specific, actionable tasks organized by PDCA phase (Plan, Execute, Evaluate, Improve) with priority levels. Tasks auto-sync to Asana when the process is linked.",
       },
       {
         question: "Why does the AI sometimes take a while to respond?",

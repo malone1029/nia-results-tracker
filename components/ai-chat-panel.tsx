@@ -480,7 +480,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
       } else {
         successMsg = `**Applied!** "${suggestion.title}" has been applied to the ${fieldLabel} section.`;
         if (data.tasksQueued > 0) {
-          successMsg += ` ${data.tasksQueued} task${data.tasksQueued !== 1 ? "s" : ""} queued for review — check the Tasks tab to review and export to Asana.`;
+          successMsg += ` ${data.tasksQueued} task${data.tasksQueued !== 1 ? "s" : ""} queued for review — check the Tasks tab.`;
         }
       }
 
@@ -521,6 +521,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
           description: task.description || null,
           pdca_section: task.pdcaSection,
           adli_dimension: task.adliDimension || null,
+          priority: task.priority || "medium",
           source: "ai_interview",
         }),
       });
@@ -544,6 +545,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
         description: t.description || null,
         pdca_section: t.pdcaSection,
         adli_dimension: t.adliDimension || null,
+        priority: t.priority || "medium",
         source: "ai_interview",
       }));
       const res = await fetch("/api/tasks", {
@@ -556,7 +558,7 @@ export default function AiChatPanel({ processId, processName, onProcessUpdated, 
         setProposedTasks([]);
         setMessages((prev) => [
           ...prev,
-          { role: "assistant" as const, content: `**Queued ${data.count} tasks!** Check the Tasks tab to review and export them to Asana.` },
+          { role: "assistant" as const, content: `**Queued ${data.count} tasks!** Check the Tasks tab to review them.` },
         ]);
         onProcessUpdated?.();
       }

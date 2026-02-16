@@ -61,6 +61,19 @@ The Task Hub is a cross-process task queue on the Dashboard. Tasks are grouped b
 - Green = recently completed
 Users can mark tasks complete directly from the hub without opening a process page. Click "View all →" to see the full My Tasks page.
 
+### My Tasks (/my-tasks)
+Shows all tasks assigned to the current user across every process. Features:
+- Filter bar: search by title/description, filter by priority (high/medium/low), filter by status (active/completed/overdue)
+- Tasks are grouped by process name
+- Click any task to open the detail panel for editing
+
+### Task Detail Panel
+A slide-out panel for editing any task. Available from the Tasks tab or My Tasks page:
+- Edit title, description, due date, priority (high/medium/low), and assignee
+- Add comments visible to your team
+- View activity log (creation, completion, priority changes, reassignment)
+- Delete a task (with confirmation; deletes from Asana too if synced)
+
 ### ADLI Insights (/adli-insights)
 Shows ADLI maturity scores across all assessed processes. Features:
 - Radar chart showing org-wide averages for Approach, Deployment, Learning, Integration
@@ -108,7 +121,7 @@ System mode follows your device's light/dark preference.
 
 ### Drag-and-Drop Tasks
 On any process's Tasks tab, drag tasks between PDCA sections:
-- Plan → Do → Check → Act
+- Plan → Execute → Evaluate → Improve
 - The new section auto-saves immediately
 - This helps reclassify work as it moves through the improvement cycle
 
@@ -127,7 +140,9 @@ Key processes directly serve the organization's mission. Support processes enabl
 - "What is ADLI?" → Approach, Deployment, Learning, Integration — the four dimensions Baldrige uses to evaluate process maturity
 - "What is LeTCI?" → Level, Trend, Comparison, Integration — the four elements Baldrige examiners look for in your metrics data
 - "How do I improve my readiness score?" → Focus on processes marked "Needs Attention" on the Dashboard. The Readiness page shows Top Actions with point estimates.
-- "How do I generate tasks?" → Use the AI Coach on any process detail page. During Step 5 (Task Generation), the AI analyzes your ADLI documentation and creates actionable tasks.
+- "How do I generate tasks?" → Use the AI Coach on any process detail page. During Step 5 (Task Generation), the AI analyzes your ADLI documentation and creates actionable tasks with priorities.
+- "How do I set task priority?" → Open any task's detail panel and use the priority buttons (high/medium/low). The AI also assigns priorities when generating tasks.
+- "Where is My Tasks?" → Click "My Tasks" in the sidebar or "View all →" from the Task Hub. Shows all tasks assigned to you across every process.
 - "What is the Improvement Journal?" → A log of changes to a process. Completed entries improve your Freshness health score.
 
 ## Tone

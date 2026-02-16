@@ -220,6 +220,7 @@ interface TaskContextRow {
   completed: boolean;
   origin: string | null;
   asana_section_name: string | null;
+  priority: string | null;
 }
 
 function buildTaskContext(tasks: TaskContextRow[]): string {
@@ -232,8 +233,12 @@ function buildTaskContext(tasks: TaskContextRow[]): string {
   const withAssignee = tasks.filter((t) => t.assignee_name);
   const withDueDate = tasks.filter((t) => t.due_date);
 
+  const highPriority = active.filter((t) => t.priority === "high");
+  const lowPriority = active.filter((t) => t.priority === "low");
+
   const lines: string[] = ["\n### Process Tasks"];
   lines.push(`**Summary:** ${tasks.length} total — ${active.length} active, ${completed.length} completed, ${overdue.length} overdue`);
+  lines.push(`**Priority:** ${highPriority.length} high, ${active.length - highPriority.length - lowPriority.length} medium, ${lowPriority.length} low`);
   lines.push(`**Coverage:** ${withAssignee.length}/${tasks.length} have assignees, ${withDueDate.length}/${tasks.length} have due dates`);
   lines.push("");
 
@@ -252,8 +257,9 @@ function buildTaskContext(tasks: TaskContextRow[]): string {
       const section = t.asana_section_name || t.pdca_section || "";
       const sectionPart = section ? ` (${section})` : "";
       const origin = t.origin === "asana" ? " [Asana]" : "";
+      const priorityFlag = t.priority === "high" ? " **[HIGH]**" : t.priority === "low" ? " [low]" : "";
 
-      let line = `- ${t.title}${assignee}${due}${overdueFlag}${sectionPart}${origin}`;
+      let line = `- ${t.title}${priorityFlag}${assignee}${due}${overdueFlag}${sectionPart}${origin}`;
       if (t.description) {
         const desc = t.description.length > 150 ? t.description.slice(0, 150) + "..." : t.description;
         line += `\n  ${desc}`;
@@ -338,7 +344,7 @@ Maturity levels: Reacting (0-25%), Early Systematic (30-45%), Aligned (50-65%), 
 4. **Offer 2-3 actionable options** with effort levels, not a comprehensive audit
 5. **Ask questions** when you need more info — 2-3 at a time, focused on the weakest area
 6. **Nudge on journal entries** — if the edit log has 3+ entries but the Improvement Journal is empty, gently remind the user to record what they've actually improved. Example: "You've made several updates recently — consider adding an entry to the Improvement Journal to capture what changed and why."
-7. **Call out task hygiene** — if many tasks lack assignees or due dates, or if several are overdue, mention it as a practical next step. Good task hygiene directly improves the health score.
+7. **Call out task hygiene** — if many tasks lack assignees or due dates, if several are overdue, or if all tasks are the same priority (no differentiation), mention it as a practical next step. High-priority overdue tasks deserve special attention. Good task hygiene directly improves the health score.
 
 ## Structured Scores (IMPORTANT)
 When you perform an ADLI analysis, include a scores block at the START of your response:
@@ -368,13 +374,15 @@ When suggesting improvements, include a suggestions block at the END of your res
         "title": "Design quarterly review template",
         "description": "Create a standard template for quarterly process reviews including metrics checklist and improvement log.",
         "pdcaSection": "plan",
-        "adliDimension": "learning"
+        "adliDimension": "learning",
+        "priority": "high"
       },
       {
         "title": "Schedule first quarterly review meeting",
         "description": "Set up a recurring quarterly review meeting with all process stakeholders.",
         "pdcaSection": "evaluate",
-        "adliDimension": "learning"
+        "adliDimension": "learning",
+        "priority": "medium"
       }
     ]
   }
@@ -386,6 +394,7 @@ Priority values: "quick-win" (easy, high impact), "important" (medium effort, hi
 Effort values: "minimal" (< 30 min), "moderate" (1-2 hours), "substantial" (half day+)
 Task pdcaSection values: "plan", "execute", "evaluate", "improve"
 Task adliDimension values: "approach", "deployment", "learning", "integration"
+Task priority values: "high" (urgent or blocking), "medium" (default), "low" (nice-to-have)
 
 Rules for suggestions:
 - Maximum 3 suggestions per response
@@ -499,13 +508,15 @@ When generating tasks, use this block format:
     "title": "Document the intake assessment procedure",
     "description": "Write step-by-step instructions for the initial client intake assessment including required forms and timeline.",
     "pdcaSection": "plan",
-    "adliDimension": "approach"
+    "adliDimension": "approach",
+    "priority": "high"
   },
   {
     "title": "Train front-desk staff on new intake form",
     "description": "Schedule and deliver a 30-minute training session covering the updated intake form and common questions.",
     "pdcaSection": "execute",
-    "adliDimension": "deployment"
+    "adliDimension": "deployment",
+    "priority": "medium"
   }
 ]
 \`\`\`
@@ -814,7 +825,7 @@ export async function POST(request: Request) {
     // Load process tasks for AI context (excludes pending AI suggestions)
     const { data: taskRows } = await supabase
       .from("process_tasks")
-      .select("title, description, status, pdca_section, adli_dimension, assignee_name, due_date, completed, origin, asana_section_name")
+      .select("title, description, status, pdca_section, adli_dimension, assignee_name, due_date, completed, origin, asana_section_name, priority")
       .eq("process_id", processId)
       .neq("status", "pending")
       .order("completed", { ascending: true })

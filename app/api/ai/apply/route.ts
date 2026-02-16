@@ -204,12 +204,13 @@ export async function POST(request: Request) {
     let tasksQueued = 0;
     if (Array.isArray(tasks) && tasks.length > 0) {
       try {
-        const taskRows = tasks.map((t: { title: string; description?: string; pdcaSection: string; adliDimension?: string }) => ({
+        const taskRows = tasks.map((t: { title: string; description?: string; pdcaSection: string; adliDimension?: string; priority?: string }) => ({
           process_id: processId,
           title: t.title,
           description: t.description || null,
           pdca_section: t.pdcaSection,
           adli_dimension: t.adliDimension || null,
+          priority: t.priority || "medium",
           source: "ai_suggestion",
           source_detail: suggestionTitle || null,
         }));
