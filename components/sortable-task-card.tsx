@@ -21,6 +21,8 @@ export default function SortableTaskCard({
   hasBlockers,
   attachmentCount,
   isSelected,
+  isAnySelected,
+  onToggleSelection,
   onContextMenu,
 }: SortableTaskCardProps) {
   const {
@@ -70,6 +72,8 @@ export default function SortableTaskCard({
             hasBlockers={hasBlockers}
             attachmentCount={attachmentCount}
             isSelected={isSelected}
+            isAnySelected={isAnySelected}
+            onToggleSelection={onToggleSelection}
             onContextMenu={onContextMenu}
           />
         </div>

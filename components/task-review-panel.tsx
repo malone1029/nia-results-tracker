@@ -192,7 +192,9 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   // Selection + context menu state
   const {
     selectedIds,
+    isAnySelected,
     isSelected,
+    toggleId,
     handleTaskClick: selectionHandleClick,
     handleContextMenu: selectionHandleContextMenu,
     contextMenu,
@@ -964,6 +966,11 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
             {pendingCount > 0 && ` (${pendingCount} to review)`}
             <HelpTip text="Tasks from Asana, AI suggestions, and manual entries — all in one view." />
           </span>
+          {isAnySelected && (
+            <span className="text-xs font-medium text-nia-grey-blue bg-nia-grey-blue/10 px-2 py-0.5 rounded-full">
+              {selectedIds.size} selected
+            </span>
+          )}
           {/* Sync status */}
           {asanaProjectGid && (
             <div className="flex items-center gap-1.5">
@@ -1202,15 +1209,54 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                 className="px-4 py-3 flex items-center justify-between"
                 style={{ borderBottom: `3px solid ${borderColor}` }}
               >
-                <h3 className="text-sm font-semibold" style={{ color: pdca ? PDCA_SECTIONS[pdca].color : undefined }}>
-                  {section.label}
-                  {pdca === "plan" && (
-                    <HelpTip text="Plan-Do-Check-Act — the continuous improvement cycle. Drag tasks between sections to reclassify." />
-                  )}
-                  <span className="font-normal text-text-muted ml-2">
-                    {section.completedCount}/{section.totalCount} complete
-                  </span>
-                </h3>
+                <div className="flex items-center gap-2">
+                  {/* Select All checkbox for this section */}
+                  {taskIds.length > 0 && (() => {
+                    const allSectionSelected = taskIds.every((id) => selectedIds.has(id));
+                    const someSectionSelected = taskIds.some((id) => selectedIds.has(id));
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (allSectionSelected) {
+                            taskIds.forEach((id) => {
+                              if (selectedIds.has(id)) toggleId(id);
+                            });
+                          } else {
+                            selectAll([...Array.from(selectedIds), ...taskIds]);
+                          }
+                        }}
+                        className={`flex-shrink-0 w-4 h-4 rounded-sm border-2 flex items-center justify-center transition-all ${
+                          allSectionSelected
+                            ? "border-nia-grey-blue bg-nia-grey-blue"
+                            : someSectionSelected
+                              ? "border-nia-grey-blue/50 bg-nia-grey-blue/20"
+                              : "border-border hover:border-nia-grey-blue/50"
+                        } ${isAnySelected ? "opacity-100" : "opacity-0 hover:opacity-100"}`}
+                        aria-label={allSectionSelected ? `Deselect all in ${section.label}` : `Select all in ${section.label}`}
+                      >
+                        {allSectionSelected && (
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                        {someSectionSelected && !allSectionSelected && (
+                          <span className="w-2 h-0.5 bg-nia-grey-blue rounded-full" />
+                        )}
+                      </button>
+                    );
+                  })()}
+                  <h3 className="text-sm font-semibold" style={{ color: pdca ? PDCA_SECTIONS[pdca].color : undefined }}>
+                    {section.label}
+                    {pdca === "plan" && (
+                      <HelpTip text="Plan-Do-Check-Act — the continuous improvement cycle. Drag tasks between sections to reclassify." />
+                    )}
+                    <span className="font-normal text-text-muted ml-2">
+                      {section.completedCount}/{section.totalCount} complete
+                    </span>
+                  </h3>
+                </div>
                 {pdca && (
                   <button
                     onClick={() => { setCreatePdcaDefault(pdca); setCreatePanelOpen(true); }}
@@ -1248,6 +1294,8 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                         }}
                         onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
                         isSelected={isSelected(task.id)}
+                        isAnySelected={isAnySelected}
+                        onToggleSelection={toggleId}
                         onContextMenu={selectionHandleContextMenu}
                       />
                     );

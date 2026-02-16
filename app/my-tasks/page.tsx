@@ -36,11 +36,14 @@ export default function MyTasksPage() {
   // Selection + context menu + bulk actions
   const {
     selectedIds,
+    isAnySelected,
     isSelected,
+    toggleId,
     handleTaskClick: selectionHandleClick,
     handleContextMenu: selectionHandleContextMenu,
     contextMenu,
     closeContextMenu,
+    selectAll,
     clearSelection,
   } = useTaskSelection();
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -309,7 +312,14 @@ export default function MyTasksPage() {
     <div className="space-y-6 content-appear">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-nia-dark">My Tasks</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-nia-dark">My Tasks</h1>
+          {isAnySelected && (
+            <span className="text-sm font-medium text-nia-grey-blue bg-nia-grey-blue/10 px-2.5 py-1 rounded-full">
+              {selectedIds.size} selected
+            </span>
+          )}
+        </div>
         <p className="text-text-tertiary mt-1">
           All tasks assigned to you across every process.
         </p>
@@ -402,101 +412,167 @@ export default function MyTasksPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {Array.from(grouped.entries()).map(([processName, processTasks]) => (
-            <Card key={processName} padding="md">
-              {/* Process header */}
-              <div className="flex items-center justify-between mb-3">
-                <Link
-                  href={`/processes/${processTasks[0].process_id}`}
-                  className="text-sm font-semibold text-nia-dark hover:text-nia-orange transition-colors"
-                >
-                  {processName}
-                </Link>
-                <span className="text-xs text-text-muted">
-                  {processTasks.filter((t) => !t.completed).length} active
-                </span>
-              </div>
+          {Array.from(grouped.entries()).map(([processName, processTasks]) => {
+            const groupIds = processTasks.map((t) => t.id);
+            const allGroupSelected = groupIds.length > 0 && groupIds.every((id) => selectedIds.has(id));
+            const someGroupSelected = groupIds.some((id) => selectedIds.has(id));
 
-              {/* Tasks */}
-              <div className="space-y-1">
-                {processTasks.map((task) => {
-                  const overdue = !task.completed && task.due_date && task.due_date < new Date().toISOString().slice(0, 10);
-                  const orderedIds = processTasks.map((t) => t.id);
-                  return (
+            return (
+              <Card key={processName} padding="md">
+                {/* Process header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    {/* Select All checkbox for this group */}
                     <button
-                      key={task.id}
                       type="button"
                       onClick={(e) => {
-                        if (selectionHandleClick(task, e, orderedIds)) {
-                          setSelectedTaskId(task.id);
+                        e.stopPropagation();
+                        if (allGroupSelected) {
+                          // Deselect all in this group
+                          groupIds.forEach((id) => {
+                            if (selectedIds.has(id)) toggleId(id);
+                          });
+                        } else {
+                          selectAll([...Array.from(selectedIds), ...groupIds]);
                         }
                       }}
-                      onContextMenu={(e) => selectionHandleContextMenu(task, e)}
-                      className={`w-full flex items-center gap-2.5 py-2 px-3 rounded-lg text-left group transition-colors ${
-                        isSelected(task.id)
-                          ? "ring-2 ring-nia-grey-blue/60 bg-nia-grey-blue/5"
-                          : "hover:bg-surface-hover"
-                      } ${task.completed ? "opacity-50" : ""}`}
+                      className={`flex-shrink-0 w-4 h-4 rounded-sm border-2 flex items-center justify-center transition-all ${
+                        allGroupSelected
+                          ? "border-nia-grey-blue bg-nia-grey-blue"
+                          : someGroupSelected
+                            ? "border-nia-grey-blue/50 bg-nia-grey-blue/20"
+                            : "border-border hover:border-nia-grey-blue/50"
+                      } ${isAnySelected ? "opacity-100" : "opacity-0 hover:opacity-100"}`}
+                      aria-label={allGroupSelected ? `Deselect all in ${processName}` : `Select all in ${processName}`}
                     >
-                      {/* Priority dot */}
-                      {task.priority === "high" && !task.completed && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                      {allGroupSelected && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
                       )}
-
-                      {/* Checkbox */}
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleComplete(task.id, task.completed);
-                        }}
-                        className={`flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer ${
-                          task.completed
-                            ? "border-nia-green bg-nia-green"
-                            : "border-border hover:border-nia-green/50"
-                        }`}
-                      >
-                        {task.completed && (
-                          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </span>
-
-                      {/* Title */}
-                      <span className={`text-sm flex-1 min-w-0 truncate ${
-                        task.completed ? "line-through text-text-muted" : "text-nia-dark"
-                      }`}>
-                        {task.title}
-                      </span>
-
-                      {/* Due date */}
-                      {task.due_date && (
-                        <span className={`text-xs flex-shrink-0 ${
-                          overdue ? "text-red-600 font-medium" : "text-text-muted"
-                        }`}>
-                          {new Date(task.due_date + "T00:00:00").toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </span>
-                      )}
-
-                      {/* Priority badge */}
-                      {(task.priority || "medium") !== "medium" && (
-                        <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded capitalize ${
-                          task.priority === "high"
-                            ? "bg-red-500/15 text-red-600"
-                            : "bg-surface-muted text-text-muted"
-                        }`}>
-                          {task.priority}
-                        </span>
+                      {someGroupSelected && !allGroupSelected && (
+                        <span className="w-2 h-0.5 bg-nia-grey-blue rounded-full" />
                       )}
                     </button>
-                  );
-                })}
-              </div>
-            </Card>
-          ))}
+                    <Link
+                      href={`/processes/${processTasks[0].process_id}`}
+                      className="text-sm font-semibold text-nia-dark hover:text-nia-orange transition-colors"
+                    >
+                      {processName}
+                    </Link>
+                  </div>
+                  <span className="text-xs text-text-muted">
+                    {processTasks.filter((t) => !t.completed).length} active
+                  </span>
+                </div>
+
+                {/* Tasks */}
+                <div className="space-y-1">
+                  {processTasks.map((task) => {
+                    const overdue = !task.completed && task.due_date && task.due_date < new Date().toISOString().slice(0, 10);
+                    const orderedIds = processTasks.map((t) => t.id);
+                    return (
+                      <button
+                        key={task.id}
+                        type="button"
+                        onClick={(e) => {
+                          if (selectionHandleClick(task, e, orderedIds)) {
+                            setSelectedTaskId(task.id);
+                          }
+                        }}
+                        onContextMenu={(e) => selectionHandleContextMenu(task, e)}
+                        className={`w-full flex items-center gap-2.5 py-2 px-3 rounded-lg text-left group/row transition-colors ${
+                          isSelected(task.id)
+                            ? "ring-2 ring-nia-grey-blue/60 bg-nia-grey-blue/5"
+                            : "hover:bg-surface-hover"
+                        } ${task.completed ? "opacity-50" : ""}`}
+                      >
+                        {/* Selection checkbox (square) */}
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleId(task.id);
+                          }}
+                          className={`flex-shrink-0 w-4 h-4 rounded-sm border-2 flex items-center justify-center transition-all cursor-pointer ${
+                            isSelected(task.id)
+                              ? "border-nia-grey-blue bg-nia-grey-blue"
+                              : "border-border hover:border-nia-grey-blue/50"
+                          } ${
+                            isAnySelected
+                              ? "opacity-100"
+                              : "opacity-0 group-hover/row:opacity-100"
+                          }`}
+                          role="checkbox"
+                          aria-checked={isSelected(task.id)}
+                          aria-label={isSelected(task.id) ? `Deselect "${task.title}"` : `Select "${task.title}"`}
+                        >
+                          {isSelected(task.id) && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </span>
+
+                        {/* Priority dot */}
+                        {task.priority === "high" && !task.completed && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                        )}
+
+                        {/* Completion toggle (circle) */}
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleComplete(task.id, task.completed);
+                          }}
+                          className={`flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer ${
+                            task.completed
+                              ? "border-nia-green bg-nia-green"
+                              : "border-border hover:border-nia-green/50"
+                          }`}
+                        >
+                          {task.completed && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </span>
+
+                        {/* Title */}
+                        <span className={`text-sm flex-1 min-w-0 truncate ${
+                          task.completed ? "line-through text-text-muted" : "text-nia-dark"
+                        }`}>
+                          {task.title}
+                        </span>
+
+                        {/* Due date */}
+                        {task.due_date && (
+                          <span className={`text-xs flex-shrink-0 ${
+                            overdue ? "text-red-600 font-medium" : "text-text-muted"
+                          }`}>
+                            {new Date(task.due_date + "T00:00:00").toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        )}
+
+                        {/* Priority badge */}
+                        {(task.priority || "medium") !== "medium" && (
+                          <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded capitalize ${
+                            task.priority === "high"
+                              ? "bg-red-500/15 text-red-600"
+                              : "bg-surface-muted text-text-muted"
+                          }`}>
+                            {task.priority}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
