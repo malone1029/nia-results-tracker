@@ -25,8 +25,14 @@ export interface UnifiedTaskCardProps {
   isSubtask?: boolean;
   onToggleComplete?: (taskId: number, currentCompleted: boolean) => void;
   isToggling?: boolean;
-  onCardClick?: (task: ProcessTask) => void;
+  onCardClick?: (task: ProcessTask, e?: React.MouseEvent) => void;
   onDueDateChange?: (taskId: number, date: string) => void;
+  hasBlockers?: boolean;
+  attachmentCount?: number;
+  /** Whether this card is part of a multi-selection */
+  isSelected?: boolean;
+  /** Right-click handler for context menu */
+  onContextMenu?: (task: ProcessTask, e: React.MouseEvent) => void;
 }
 
 export default function UnifiedTaskCard({
@@ -36,15 +42,22 @@ export default function UnifiedTaskCard({
   isToggling,
   onCardClick,
   onDueDateChange,
+  hasBlockers,
+  attachmentCount,
+  isSelected,
+  onContextMenu,
 }: UnifiedTaskCardProps) {
   const overdue = isOverdue(task);
   const badge = ORIGIN_BADGE[task.origin] || ORIGIN_BADGE.hub_manual;
 
   return (
     <div
-      onClick={() => onCardClick?.(task)}
-      className={`bg-card rounded-lg border border-border-light transition-colors cursor-pointer ${
-        task.completed ? "opacity-50" : "hover:border-border hover:shadow-sm"
+      onClick={(e) => onCardClick?.(task, e)}
+      onContextMenu={(e) => onContextMenu?.(task, e)}
+      className={`bg-card rounded-lg border transition-colors cursor-pointer ${
+        isSelected
+          ? "ring-2 ring-nia-grey-blue/60 bg-nia-grey-blue/5 border-nia-grey-blue/30"
+          : `border-border-light ${task.completed ? "opacity-50" : "hover:border-border hover:shadow-sm"}`
       } ${isSubtask ? "p-2" : "p-3"}`}
     >
       <div className="flex items-start gap-2">
@@ -135,6 +148,25 @@ export default function UnifiedTaskCard({
                 aria-label={`Due date for ${task.title}`}
               />
             </label>
+
+            {/* Attachment count */}
+            {(attachmentCount || 0) > 0 && (
+              <span className="text-text-muted flex items-center gap-0.5 text-[10px]" title={`${attachmentCount} attachment${attachmentCount !== 1 ? "s" : ""}`}>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                {attachmentCount}
+              </span>
+            )}
+
+            {/* Blocker icon */}
+            {hasBlockers && (
+              <span className="text-amber-500 flex items-center gap-0.5" title="Has incomplete blockers">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </span>
+            )}
 
             {/* Origin badge */}
             <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>

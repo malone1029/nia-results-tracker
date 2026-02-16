@@ -25,6 +25,10 @@ import TaskDetailPanel from "@/components/task-detail-panel";
 import TaskCreatePanel from "@/components/task-create-panel";
 import UnifiedTaskCard from "@/components/unified-task-card";
 import SortableTaskCard from "@/components/sortable-task-card";
+import TaskContextMenu, { getSingleTaskMenuItems, getBulkTaskMenuItems } from "@/components/task-context-menu";
+import BulkActionToolbar from "@/components/bulk-action-toolbar";
+import ConfirmDeleteModal from "@/components/confirm-delete-modal";
+import { useTaskSelection } from "@/lib/use-task-selection";
 import type { PdcaSection, ProcessTask, TaskPriority } from "@/lib/types";
 
 // ── Constants ────────────────────────────────────────────────
@@ -184,6 +188,20 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   const [filterPriority, setFilterPriority] = useState<TaskPriority | "all">("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "completed" | "overdue">("all");
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Selection + context menu state
+  const {
+    selectedIds,
+    isSelected,
+    handleTaskClick: selectionHandleClick,
+    handleContextMenu: selectionHandleContextMenu,
+    contextMenu,
+    closeContextMenu,
+    selectAll,
+    clearSelection,
+  } = useTaskSelection();
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   // DnD state
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
@@ -435,6 +453,7 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
 
   function handleDragStart(event: DragStartEvent) {
     setActiveDragId(event.active.id as number);
+    clearSelection(); // DnD clears multi-selection (multi-drag not supported in v1)
   }
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -642,6 +661,157 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
       setError("Export to Asana failed");
     } finally {
       setExporting(false);
+    }
+  }
+
+  // ── Bulk actions ──
+
+  async function handleBulkUpdate(fields: Record<string, unknown>) {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    // Optimistic update
+    const snapshot = [...tasks];
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (!selectedIds.has(t.id)) return t;
+        const updated = { ...t, ...fields };
+        if (fields.completed !== undefined) {
+          updated.completed = fields.completed as boolean;
+          updated.completed_at = fields.completed ? new Date().toISOString() : null;
+          updated.status = fields.completed ? "completed" as const : "active" as const;
+        }
+        return updated as ProcessTask;
+      })
+    );
+    clearSelection();
+
+    try {
+      const res = await fetch("/api/tasks/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskIds: ids, fields }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Bulk update failed");
+
+      const msg = data.failed > 0
+        ? `Updated ${data.updated} of ${ids.length} tasks. ${data.failed} failed.`
+        : `Updated ${data.updated} task${data.updated !== 1 ? "s" : ""}`;
+      setToastState({
+        message: data.asanaErrors?.length ? `${msg} ${data.asanaErrors[0]}` : msg,
+        type: data.failed > 0 ? "error" : "success",
+      });
+    } catch (err) {
+      setTasks(snapshot);
+      setToastState({
+        message: (err as Error).message || "Bulk update failed",
+        type: "error",
+      });
+    }
+  }
+
+  async function handleBulkDelete() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+
+    // Optimistic remove
+    const snapshot = [...tasks];
+    setTasks((prev) => prev.filter((t) => !selectedIds.has(t.id)));
+    clearSelection();
+    setShowBulkDeleteConfirm(false);
+
+    try {
+      const res = await fetch("/api/tasks/bulk", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskIds: ids }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Bulk delete failed");
+
+      const msg = data.failed > 0
+        ? `Deleted ${data.deleted} of ${ids.length} tasks. ${data.failed} failed.`
+        : `Deleted ${data.deleted} task${data.deleted !== 1 ? "s" : ""}`;
+      setToastState({ message: msg, type: data.failed > 0 ? "error" : "success" });
+    } catch (err) {
+      setTasks(snapshot);
+      setToastState({
+        message: (err as Error).message || "Bulk delete failed",
+        type: "error",
+      });
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
+  /** Dispatch context menu actions */
+  function handleContextMenuAction(actionId: string) {
+    closeContextMenu();
+    const taskId = contextMenu?.taskId;
+
+    // Single task actions
+    if (actionId === "complete" || actionId === "uncomplete") {
+      if (selectedIds.size > 1) {
+        handleBulkUpdate({ completed: actionId === "complete" });
+      } else if (taskId) {
+        const task = tasks.find((t) => t.id === taskId);
+        if (task) handleToggleComplete(taskId, task.completed);
+      }
+      return;
+    }
+
+    if (actionId.startsWith("priority-") || actionId.startsWith("bulk-priority-")) {
+      const priority = actionId.replace("bulk-priority-", "").replace("priority-", "") as TaskPriority;
+      if (selectedIds.size > 1) {
+        handleBulkUpdate({ priority });
+      } else if (taskId) {
+        handleUpdateTask(taskId, { priority } as Partial<ProcessTask>);
+      }
+      clearSelection();
+      return;
+    }
+
+    if (actionId === "assign" || actionId === "bulk-assign") {
+      // Assign is handled via toolbar — just open detail panel for single
+      if (selectedIds.size <= 1 && taskId) {
+        setSelectedTaskId(taskId);
+        clearSelection();
+      }
+      return;
+    }
+
+    if (actionId === "set-due-date" || actionId === "bulk-set-due-date") {
+      // Due date is handled via toolbar — just open detail panel for single
+      if (selectedIds.size <= 1 && taskId) {
+        setSelectedTaskId(taskId);
+        clearSelection();
+      }
+      return;
+    }
+
+    if (actionId === "open-in-asana" && taskId) {
+      const task = tasks.find((t) => t.id === taskId);
+      if (task?.asana_task_url) window.open(task.asana_task_url, "_blank");
+      clearSelection();
+      return;
+    }
+
+    if (actionId === "delete" || actionId === "bulk-delete") {
+      if (selectedIds.size > 1) {
+        setShowBulkDeleteConfirm(true);
+      } else if (taskId) {
+        handleDeleteTask(taskId);
+        clearSelection();
+      }
+      return;
+    }
+
+    // Bulk-specific actions
+    if (actionId === "bulk-complete") {
+      handleBulkUpdate({ completed: true });
+      return;
     }
   }
 
@@ -1059,6 +1229,9 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                       ? sortTasks(allSubtasks.filter((s) => s.parent_asana_gid === task.asana_task_gid))
                       : [];
 
+                    // Build ordered IDs for shift+click range selection
+                    const orderedIds = section.tasks.map((t) => t.id);
+
                     return (
                       <SortableTaskCard
                         key={task.id}
@@ -1066,8 +1239,16 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                         subtasks={subtasks}
                         onToggleComplete={handleToggleComplete}
                         isToggling={togglingTaskIds.has(task.id)}
-                        onCardClick={(t) => setSelectedTaskId(t.id)}
+                        onCardClick={(t, e) => {
+                          if (e && selectionHandleClick(t, e, orderedIds)) {
+                            setSelectedTaskId(t.id);
+                          } else if (!e) {
+                            setSelectedTaskId(t.id);
+                          }
+                        }}
                         onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
+                        isSelected={isSelected(task.id)}
+                        onContextMenu={selectionHandleContextMenu}
                       />
                     );
                   })}
@@ -1096,6 +1277,62 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
           })() : null}
         </DragOverlay>
       </DndContext>
+
+      {/* ═══ CONTEXT MENU ═══ */}
+      {contextMenu && (() => {
+        const ctxTask = tasks.find((t) => t.id === contextMenu.taskId);
+        if (!ctxTask) return null;
+        const items = selectedIds.size > 1
+          ? getBulkTaskMenuItems(selectedIds.size)
+          : getSingleTaskMenuItems(ctxTask);
+        return (
+          <TaskContextMenu
+            position={contextMenu}
+            items={items}
+            onAction={handleContextMenuAction}
+            onClose={closeContextMenu}
+          />
+        );
+      })()}
+
+      {/* ═══ BULK ACTION TOOLBAR ═══ */}
+      {selectedIds.size > 0 && !contextMenu && (
+        <BulkActionToolbar
+          selectedCount={selectedIds.size}
+          onBulkComplete={() => handleBulkUpdate({ completed: true })}
+          onBulkPriority={(p) => handleBulkUpdate({ priority: p })}
+          onBulkAssign={(member) => {
+            if (member) {
+              handleBulkUpdate({
+                assignee_name: member.name,
+                assignee_email: member.email,
+                assignee_asana_gid: member.gid,
+              });
+            } else {
+              handleBulkUpdate({
+                assignee_name: null,
+                assignee_email: null,
+                assignee_asana_gid: null,
+              });
+            }
+          }}
+          onBulkDueDate={(date) => handleBulkUpdate({ due_date: date })}
+          onBulkDelete={() => setShowBulkDeleteConfirm(true)}
+          onClearSelection={clearSelection}
+        />
+      )}
+
+      {/* ═══ BULK DELETE CONFIRMATION ═══ */}
+      {showBulkDeleteConfirm && (
+        <ConfirmDeleteModal
+          title={`Delete ${selectedIds.size} tasks?`}
+          description={`This will permanently delete ${selectedIds.size} task${selectedIds.size !== 1 ? "s" : ""}. Tasks synced with Asana will also be deleted there.`}
+          onConfirm={handleBulkDelete}
+          onCancel={() => setShowBulkDeleteConfirm(false)}
+          confirmLabel={`Delete ${selectedIds.size} tasks`}
+          loading={bulkDeleting}
+        />
+      )}
     </div>
   );
 }
