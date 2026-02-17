@@ -131,6 +131,106 @@ function BulkSyncCard() {
   );
 }
 
+interface NotifPref {
+  notify_on_assignment: boolean;
+  notify_on_due_approaching: boolean;
+  notify_on_completion: boolean;
+  notify_on_mention: boolean;
+  notify_weekly_digest: boolean;
+}
+
+const DEFAULT_PREFS: NotifPref = {
+  notify_on_assignment: true,
+  notify_on_due_approaching: true,
+  notify_on_completion: true,
+  notify_on_mention: true,
+  notify_weekly_digest: true,
+};
+
+const PREF_LABELS: { key: keyof NotifPref; label: string; description: string }[] = [
+  { key: "notify_on_assignment", label: "Assignment", description: "When someone assigns a task to you" },
+  { key: "notify_on_due_approaching", label: "Due date reminders", description: "When a task is due tomorrow" },
+  { key: "notify_on_completion", label: "Task completion", description: "When a task assigned to you is completed" },
+  { key: "notify_on_mention", label: "Mentions", description: "When someone @mentions you in a comment" },
+  { key: "notify_weekly_digest", label: "Weekly digest", description: "Monday summary of your tasks across all processes" },
+];
+
+function NotificationPrefsCard() {
+  const [prefs, setPrefs] = useState<NotifPref>(DEFAULT_PREFS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/notifications/preferences")
+      .then((r) => r.ok ? r.json() : DEFAULT_PREFS)
+      .then((data) => {
+        setPrefs({ ...DEFAULT_PREFS, ...data });
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  async function toggle(key: keyof NotifPref) {
+    const newValue = !prefs[key];
+    // Optimistic update
+    setPrefs((prev) => ({ ...prev, [key]: newValue }));
+
+    try {
+      const res = await fetch("/api/notifications/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: newValue }),
+      });
+      if (!res.ok) {
+        // Revert on error
+        setPrefs((prev) => ({ ...prev, [key]: !newValue }));
+      }
+    } catch {
+      setPrefs((prev) => ({ ...prev, [key]: !newValue }));
+    }
+  }
+
+  return (
+    <Card padding="md">
+      <h2 className="text-xl font-semibold text-nia-dark mb-2">
+        Email Notifications
+      </h2>
+      <p className="text-sm text-text-tertiary mb-4">
+        Choose which email notifications you&apos;d like to receive.
+      </p>
+
+      {loading ? (
+        <div className="text-sm text-text-muted py-4">Loading preferences...</div>
+      ) : (
+        <div className="space-y-3">
+          {PREF_LABELS.map(({ key, label, description }) => (
+            <div key={key} className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-sm font-medium text-nia-dark">{label}</p>
+                <p className="text-xs text-text-tertiary">{description}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={prefs[key]}
+                onClick={() => toggle(key)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  prefs[key] ? "bg-nia-green" : "bg-border"
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                    prefs[key] ? "translate-x-4.5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function SettingsContent() {
   const searchParams = useSearchParams();
   const { isAdmin, loading: roleLoading } = useRole();
@@ -344,6 +444,9 @@ function SettingsContent() {
           </div>
         </div>
       </Card>
+
+      {/* Notification Preferences — all users */}
+      <NotificationPrefsCard />
 
       {/* Bulk Asana Sync — admin only */}
       {!roleLoading && isAdmin && (
