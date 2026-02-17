@@ -212,6 +212,9 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   // Blocker tracking
   const [taskBlockerMap, setTaskBlockerMap] = useState<Map<number, boolean>>(new Map());
 
+  // Attachment count tracking
+  const [attachmentCounts, setAttachmentCounts] = useState<Map<number, number>>(new Map());
+
   // DnD state
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
 
@@ -300,6 +303,32 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
         if (r.hasBlockers) map.set(r.id, true);
       }
       setTaskBlockerMap(map);
+    });
+  }, [tasks]);
+
+  // Fetch attachment counts for all tasks
+  useEffect(() => {
+    if (tasks.length === 0) return;
+    const nonSubtasks = tasks.filter((t) => !t.is_subtask);
+    if (nonSubtasks.length === 0) return;
+
+    Promise.all(
+      nonSubtasks.map(async (t) => {
+        try {
+          const res = await fetch(`/api/tasks/${t.id}/attachments`);
+          if (!res.ok) return { id: t.id, count: 0 };
+          const data = await res.json();
+          return { id: t.id, count: Array.isArray(data) ? data.length : 0 };
+        } catch {
+          return { id: t.id, count: 0 };
+        }
+      })
+    ).then((results) => {
+      const map = new Map<number, number>();
+      for (const r of results) {
+        if (r.count > 0) map.set(r.id, r.count);
+      }
+      setAttachmentCounts(map);
     });
   }, [tasks]);
 
@@ -1381,6 +1410,7 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                         }}
                         onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
                         hasBlockers={taskBlockerMap.get(task.id) || false}
+                        attachmentCount={attachmentCounts.get(task.id) || 0}
                         isSelected={isSelected(task.id)}
                         isAnySelected={isAnySelected}
                         onToggleSelection={toggleId}

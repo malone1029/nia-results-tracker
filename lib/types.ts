@@ -219,7 +219,34 @@ export interface ProcessTask {
   asana_task_gid: string | null;
   asana_task_url: string | null;
   sort_order: number;
+  recurrence_rule: RecurrenceRule | null;
+  recurring_parent_id: number | null;
   created_at: string;
+}
+
+// ── Recurrence rules ────────────────────────────────────────
+
+export interface RecurrenceRule {
+  type: "daily" | "weekly" | "monthly";
+  interval: number;
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  endDate?: string;
+}
+
+// ── Task attachments ────────────────────────────────────────
+
+export interface TaskAttachment {
+  id: number;
+  task_id: number;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  storage_path: string;
+  uploaded_by: string;
+  uploaded_by_name: string;
+  created_at: string;
+  url?: string; // signed download URL (added by GET response)
 }
 
 // ── Task comments & activity ─────────────────────────────────
@@ -243,7 +270,10 @@ export type TaskActivityAction =
   | "status_changed"
   | "commented"
   | "dependency_added"
-  | "dependency_removed";
+  | "dependency_removed"
+  | "attachment_added"
+  | "attachment_removed"
+  | "recurrence_set";
 
 // ── Task dependencies ────────────────────────────────────────
 
