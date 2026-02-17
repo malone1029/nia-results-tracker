@@ -25,6 +25,7 @@ export default function TaskCreatePanel({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [pdcaSection, setPdcaSection] = useState<PdcaSection>(defaultPdcaSection);
+  const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [assignee, setAssignee] = useState<{
     name: string;
@@ -67,6 +68,7 @@ export default function TaskCreatePanel({
           title: trimmedTitle,
           description: description.trim() || null,
           pdca_section: pdcaSection,
+          start_date: startDate || null,
           due_date: dueDate || null,
           assignee_name: assignee?.name || null,
           assignee_email: assignee?.email || null,
@@ -90,7 +92,10 @@ export default function TaskCreatePanel({
     }
   }
 
-  const canCreate = title.trim().length > 0 && !creating;
+  const dateError = startDate && dueDate && startDate > dueDate
+    ? "Start date must be before due date"
+    : null;
+  const canCreate = title.trim().length > 0 && !creating && !dateError;
 
   return (
     <>
@@ -214,17 +219,34 @@ export default function TaskCreatePanel({
             />
           </div>
 
-          {/* Due Date */}
+          {/* Dates */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">
-              Due Date
+              Dates
             </label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="text-sm bg-surface-hover border border-border-light rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-nia-grey-blue"
-            />
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-[10px] text-text-muted mb-0.5 block">Start</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full text-sm bg-surface-hover border border-border-light rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-nia-grey-blue"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] text-text-muted mb-0.5 block">Due</label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full text-sm bg-surface-hover border border-border-light rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-nia-grey-blue"
+                />
+              </div>
+            </div>
+            {dateError && (
+              <p className="text-[10px] text-nia-red">{dateError}</p>
+            )}
           </div>
 
           {/* Assignee */}

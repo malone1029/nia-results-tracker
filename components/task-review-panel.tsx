@@ -29,6 +29,7 @@ import TaskContextMenu, { getSingleTaskMenuItems, getBulkTaskMenuItems } from "@
 import BulkActionToolbar from "@/components/bulk-action-toolbar";
 import ConfirmDeleteModal from "@/components/confirm-delete-modal";
 import { useTaskSelection } from "@/lib/use-task-selection";
+import TaskListView from "@/components/task-list-view";
 import type { PdcaSection, ProcessTask, TaskPriority } from "@/lib/types";
 
 // ── Constants ────────────────────────────────────────────────
@@ -205,6 +206,12 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
+  // View mode state
+  const [viewMode, setViewMode] = useState<"board" | "list">("board");
+
+  // Blocker tracking
+  const [taskBlockerMap, setTaskBlockerMap] = useState<Map<number, boolean>>(new Map());
+
   // DnD state
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
 
@@ -265,6 +272,36 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
   }, [asanaProjectGid, syncing, processId, fetchTasks]);
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  // Fetch blocker status for all tasks (lightweight — just checks for incomplete blockers)
+  useEffect(() => {
+    if (tasks.length === 0) return;
+    const activeTasks = tasks.filter((t) => !t.completed && !t.is_subtask);
+    if (activeTasks.length === 0) return;
+
+    // Batch fetch dependencies for tasks that have them
+    Promise.all(
+      activeTasks.map(async (t) => {
+        try {
+          const res = await fetch(`/api/tasks/${t.id}/dependencies`);
+          if (!res.ok) return { id: t.id, hasBlockers: false };
+          const data = await res.json();
+          const hasBlockers = (data.blockedBy || []).some(
+            (d: { completed: boolean }) => !d.completed
+          );
+          return { id: t.id, hasBlockers };
+        } catch {
+          return { id: t.id, hasBlockers: false };
+        }
+      })
+    ).then((results) => {
+      const map = new Map<number, boolean>();
+      for (const r of results) {
+        if (r.hasBlockers) map.set(r.id, true);
+      }
+      setTaskBlockerMap(map);
+    });
+  }, [tasks]);
 
   // Debounce search input
   useEffect(() => {
@@ -327,6 +364,16 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
         const data = await res.json();
         throw new Error(data.message || data.error || "Update failed");
       }
+
+      // Check for blocker warning
+      const data = await res.json().catch(() => ({}));
+      if (data.warning === "completed_with_blockers") {
+        setToastState({
+          message: `Completed with ${data.blockerCount} incomplete blocker${data.blockerCount > 1 ? "s" : ""}`,
+          type: "success",
+        });
+      }
+
       // Success — clear snapshot
       snapshotsRef.current.delete(taskId);
     } catch (err) {
@@ -993,6 +1040,34 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex bg-surface-muted rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode("board")}
+              className={`p-1.5 rounded-md transition-colors ${
+                viewMode === "board" ? "bg-card shadow-sm text-nia-dark" : "text-text-muted hover:text-foreground"
+              }`}
+              title="Board view"
+              aria-label="Board view"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-1.5 rounded-md transition-colors ${
+                viewMode === "list" ? "bg-card shadow-sm text-nia-dark" : "text-text-muted hover:text-foreground"
+              }`}
+              title="List view"
+              aria-label="List view"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+
           {unsyncedTasks.length > 0 && (
             <button
               onClick={handleExportToAsana}
@@ -1180,12 +1255,24 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
             onToggleComplete={handleToggleComplete}
             isToggling={togglingTaskIds.has(selectedTaskId)}
             savingField={savingField}
+            allTasks={tasks}
           />
         );
       })()}
 
-      {/* ═══ TASK SECTIONS (with drag-and-drop) ═══ */}
-      <DndContext
+      {/* ═══ LIST VIEW ═══ */}
+      {viewMode === "list" && (
+        <TaskListView
+          tasks={filteredTasks.filter((t) => t.status !== "pending" && !t.is_subtask)}
+          onToggleComplete={handleToggleComplete}
+          togglingTaskIds={togglingTaskIds}
+          onCardClick={(t) => setSelectedTaskId(t.id)}
+          onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
+        />
+      )}
+
+      {/* ═══ BOARD VIEW — TASK SECTIONS (with drag-and-drop) ═══ */}
+      {viewMode === "board" && <DndContext
         sensors={sensors}
         collisionDetection={rectIntersection}
         onDragStart={handleDragStart}
@@ -1293,6 +1380,7 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
                           }
                         }}
                         onDueDateChange={(id, date) => handleUpdateTask(id, { due_date: date || null } as Partial<ProcessTask>)}
+                        hasBlockers={taskBlockerMap.get(task.id) || false}
                         isSelected={isSelected(task.id)}
                         isAnySelected={isAnySelected}
                         onToggleSelection={toggleId}
@@ -1324,7 +1412,7 @@ export default function TaskReviewPanel({ processId, asanaProjectGid, onTaskCoun
             );
           })() : null}
         </DragOverlay>
-      </DndContext>
+      </DndContext>}
 
       {/* ═══ CONTEXT MENU ═══ */}
       {contextMenu && (() => {

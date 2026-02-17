@@ -152,21 +152,25 @@ export default function UnifiedTaskCard({
             )}
           </div>
 
-          {/* Meta row: assignee, due date, origin badge */}
+          {/* Meta row: assignee, due date, origin badge, blockers */}
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {/* Assignee */}
             <span className={`text-[10px] ${task.assignee_name ? "text-text-secondary" : "text-text-muted"}`}>
               {task.assignee_name || "Unassigned"}
             </span>
 
-            {/* Inline due date (click to edit) */}
+            {/* Inline due date / date range (click to edit) */}
             <label
               onClick={(e) => e.stopPropagation()}
               className={`relative text-[10px] cursor-pointer hover:underline inline-flex items-center ${
                 overdue ? "text-red-600 font-medium" : task.due_date ? "text-text-muted" : "text-text-muted/50"
               }`}
             >
-              {task.due_date
+              {task.start_date && task.due_date
+                ? `${overdue ? "Overdue: " : ""}${formatDueDate(task.start_date)} – ${formatDueDate(task.due_date)}`
+                : task.start_date && !task.due_date
+                ? `Starts ${formatDueDate(task.start_date)}`
+                : task.due_date
                 ? `${overdue ? "Overdue: " : ""}${formatDueDate(task.due_date)}`
                 : "Add due date"}
               <input

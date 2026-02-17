@@ -184,6 +184,7 @@ export async function syncProcessTasks(
       assignee_name: task.assignee || null,
       assignee_email: assigneeEmail,
       assignee_asana_gid: task.assignee_gid || null,
+      start_date: task.start_on || null,
       due_date: task.due_on || null,
       completed: task.completed,
       completed_at: task.completed_at || null,
@@ -199,7 +200,7 @@ export async function syncProcessTasks(
     if (existingByGid.has(gid)) {
       const existingId = existingByGid.get(gid)!;
       const { title, description, status, assignee_name, assignee_email: ae,
-        assignee_asana_gid, due_date, completed, completed_at,
+        assignee_asana_gid, start_date, due_date, completed, completed_at,
         asana_section_name, asana_section_gid, parent_asana_gid,
         is_subtask, asana_task_url, last_synced_at } = row;
 
@@ -208,7 +209,7 @@ export async function syncProcessTasks(
         .update({
           title, description, status, assignee_name,
           assignee_email: ae, assignee_asana_gid,
-          due_date, completed, completed_at,
+          start_date, due_date, completed, completed_at,
           asana_section_name, asana_section_gid,
           parent_asana_gid, is_subtask, asana_task_url,
           last_synced_at,
