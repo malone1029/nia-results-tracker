@@ -8,6 +8,7 @@ import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
 import FeedbackModal from "@/components/feedback-modal";
 import AiHelpPanel from "@/components/ai-help-panel";
+import ProxyBanner from "@/components/proxy-banner";
 import type { SidebarHealthData } from "@/components/sidebar-health-widget";
 import type { User } from "@supabase/supabase-js";
 
@@ -112,6 +113,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       />
 
       <div className="flex-1 flex flex-col lg:ml-60 min-w-0">
+        <ProxyBanner />
         <TopBar
           onMenuClick={() => setSidebarOpen(true)}
           user={user}

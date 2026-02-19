@@ -267,6 +267,7 @@ function SettingsContent() {
     name: string;
   } | null>(null);
   const [successMsg, setSuccessMsg] = useState<string>("");
+  const [proxyingFor, setProxyingFor] = useState<string | null>(null);
 
   const asanaConnected = searchParams.get("asana_connected");
   const asanaError = searchParams.get("asana_error");
@@ -370,6 +371,22 @@ function SettingsContent() {
     }
 
     setChangingRoleFor(null);
+  }
+
+  async function startProxy(authId: string, name: string) {
+    setProxyingFor(authId);
+    const res = await fetch("/api/admin/proxy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetAuthId: authId }),
+    });
+    if (res.ok) {
+      window.location.href = "/";
+    } else {
+      const err = await res.json();
+      setSuccessMsg(`Error: ${err.error}`);
+      setProxyingFor(null);
+    }
   }
 
   return (
@@ -541,6 +558,7 @@ function SettingsContent() {
                       <th className="pb-2 font-medium">Role</th>
                       <th className="pb-2 font-medium">Last Login</th>
                       <th className="pb-2 font-medium">Joined</th>
+                      <th className="pb-2 font-medium"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -596,6 +614,22 @@ function SettingsContent() {
                           </td>
                           <td className="py-3 text-text-tertiary">
                             {new Date(u.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-3">
+                            {!isCurrentUser && isSuperAdmin && u.role !== "super_admin" && (
+                              <button
+                                onClick={() => startProxy(u.auth_id, u.full_name || u.email)}
+                                disabled={proxyingFor === u.auth_id}
+                                className="text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                                title="View the app as this user"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                  <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                {proxyingFor === u.auth_id ? "Starting..." : "View as"}
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -659,6 +693,19 @@ function SettingsContent() {
                         Last login: {relativeTime(u.last_login_at)} · Joined{" "}
                         {new Date(u.created_at).toLocaleDateString()}
                       </p>
+                      {!isCurrentUser && isSuperAdmin && u.role !== "super_admin" && (
+                        <button
+                          onClick={() => startProxy(u.auth_id, u.full_name || u.email)}
+                          disabled={proxyingFor === u.auth_id}
+                          className="mt-2 text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                          {proxyingFor === u.auth_id ? "Starting..." : "View as"}
+                        </button>
+                      )}
                     </div>
                   );
                 })}
