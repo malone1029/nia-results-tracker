@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { isAdminRole } from "@/lib/auth-helpers";
 import { getAsanaToken } from "@/lib/asana";
 import { syncProcessTasks, type SyncResult } from "@/lib/asana-sync";
 
@@ -29,7 +30,7 @@ export async function POST() {
     .eq("auth_id", user.id)
     .single();
 
-  if (roleData?.role !== "admin") {
+  if (!isAdminRole(roleData?.role || "")) {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 

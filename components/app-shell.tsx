@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useRole } from "@/lib/use-role";
 import Sidebar from "@/components/sidebar";
@@ -11,13 +11,30 @@ import AiHelpPanel from "@/components/ai-help-panel";
 import type { SidebarHealthData } from "@/components/sidebar-health-widget";
 import type { User } from "@supabase/supabase-js";
 
+// Paths that members (non-admin users) are allowed to access
+const MEMBER_ALLOWED_PATHS = [
+  "/processes",
+  "/classifications",
+  "/categories",
+  "/settings",
+  "/help",
+  "/login",
+];
+
+function isMemberAllowed(pathname: string): boolean {
+  return MEMBER_ALLOWED_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const { isAdmin } = useRole();
+  const { role, isAdmin, loading: roleLoading } = useRole();
 
   // Sidebar health widget data
   const [healthData, setHealthData] = useState<SidebarHealthData | null>(null);
@@ -58,9 +75,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
+  // Redirect members away from pages they can't access
+  useEffect(() => {
+    if (!roleLoading && !isAdmin && !isMemberAllowed(pathname)) {
+      router.replace("/processes");
+    }
+  }, [roleLoading, isAdmin, pathname, router]);
+
   // Login page and public survey pages render without sidebar/topbar
   if (pathname === "/login" || pathname.startsWith("/survey/respond")) {
     return <>{children}</>;
+  }
+
+  // Block rendering on restricted pages while role is loading (prevents content flash)
+  if (roleLoading && !isMemberAllowed(pathname)) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="animate-pulse space-y-4 w-48">
+          <div className="h-8 bg-surface-muted rounded" />
+          <div className="h-4 bg-surface-muted rounded w-full" />
+          <div className="h-4 bg-surface-muted rounded w-3/4" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -68,7 +105,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        isAdmin={isAdmin}
+        role={role}
         onFeedbackClick={() => setFeedbackOpen(true)}
         healthData={healthData}
         healthLoading={healthLoading}
