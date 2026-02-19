@@ -22,7 +22,7 @@ See `CONTRIBUTING.md` for full setup instructions (clone, install, env vars, dev
 
 - **GitHub:** `thenia-org/nia-results-tracker`
 - **Vercel:** `thenia-org` team, auto-deploys on merge to `main`
-- **Supabase:** Shared project (same for all developers)
+- **Supabase:** Own dedicated project `nkrpahbykvzfnqbyceag` ("NIA Excellence Hub", West US). Split from shared "NIA Web Apps" project on 2026-02-19.
 
 ## Tech Stack
 
