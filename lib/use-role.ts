@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { AppRole } from "@/lib/auth-helpers";
 
 interface RoleState {
-  role: "admin" | "member";
+  role: AppRole;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   loading: boolean;
 }
 
@@ -12,6 +14,7 @@ export function useRole(): RoleState {
   const [state, setState] = useState<RoleState>({
     role: "member",
     isAdmin: false,
+    isSuperAdmin: false,
     loading: true,
   });
 
@@ -24,6 +27,7 @@ export function useRole(): RoleState {
           setState({
             role: data.role,
             isAdmin: data.isAdmin,
+            isSuperAdmin: data.isSuperAdmin,
             loading: false,
           });
         } else {

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { isAdminRole, isSuperAdminRole } from "@/lib/auth-helpers";
 
 /**
- * Helper: check if current user is admin and return their auth_id.
+ * Helper: get current user and their role. Returns null if not authenticated.
  */
-async function getAdminUser(supabase: Awaited<ReturnType<typeof createSupabaseServer>>) {
+async function getAuthenticatedUser(supabase: Awaited<ReturnType<typeof createSupabaseServer>>) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -16,19 +17,18 @@ async function getAdminUser(supabase: Awaited<ReturnType<typeof createSupabaseSe
     .eq("auth_id", user.id)
     .single();
 
-  if (data?.role !== "admin") return null;
-  return user;
+  return { user, role: data?.role || "member" };
 }
 
 /**
  * GET /api/admin/users
- * Returns all users from user_roles, ordered by last login. Admin only.
+ * Returns all users from user_roles, ordered by last login. Admin+ only.
  */
 export async function GET() {
   const supabase = await createSupabaseServer();
-  const adminUser = await getAdminUser(supabase);
+  const auth = await getAuthenticatedUser(supabase);
 
-  if (!adminUser) {
+  if (!auth || !isAdminRole(auth.role)) {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 
@@ -41,19 +41,23 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ users: data, currentUserId: adminUser.id });
+  return NextResponse.json({
+    users: data,
+    currentUserId: auth.user.id,
+    isSuperAdmin: isSuperAdminRole(auth.role),
+  });
 }
 
 /**
  * PATCH /api/admin/users
- * Update a user's role. Admin only. Cannot change own role.
+ * Update a user's role. Super admin only. Cannot change own role or super_admin's role.
  */
 export async function PATCH(request: Request) {
   const supabase = await createSupabaseServer();
-  const adminUser = await getAdminUser(supabase);
+  const auth = await getAuthenticatedUser(supabase);
 
-  if (!adminUser) {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  if (!auth || !isSuperAdminRole(auth.role)) {
+    return NextResponse.json({ error: "Super admin access required" }, { status: 403 });
   }
 
   const body = await request.json();
@@ -66,17 +70,31 @@ export async function PATCH(request: Request) {
     );
   }
 
-  if (!["admin", "member"].includes(role)) {
+  if (!["super_admin", "admin", "member"].includes(role)) {
     return NextResponse.json(
-      { error: "role must be 'admin' or 'member'" },
+      { error: "role must be 'member', 'admin', or 'super_admin'" },
       { status: 400 }
     );
   }
 
-  // Prevent self-demotion
-  if (authId === adminUser.id) {
+  // Prevent changing own role
+  if (authId === auth.user.id) {
     return NextResponse.json(
       { error: "Cannot change your own role" },
+      { status: 400 }
+    );
+  }
+
+  // Prevent changing another super_admin's role
+  const { data: targetUser } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("auth_id", authId)
+    .single();
+
+  if (targetUser?.role === "super_admin") {
+    return NextResponse.json(
+      { error: "Cannot modify another super admin's role" },
       { status: 400 }
     );
   }

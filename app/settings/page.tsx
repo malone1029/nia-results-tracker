@@ -231,14 +231,32 @@ function NotificationPrefsCard() {
   );
 }
 
+/** Human-friendly role labels */
+function roleLabel(role: string): string {
+  switch (role) {
+    case "super_admin": return "Super Admin";
+    case "admin": return "Admin";
+    default: return "User";
+  }
+}
+
+/** Role badge color styles */
+function roleBadgeClass(role: string): string {
+  switch (role) {
+    case "super_admin": return "bg-nia-orange/20 text-nia-orange";
+    case "admin": return "bg-nia-dark-solid text-white";
+    default: return "bg-border text-text-secondary";
+  }
+}
+
 function SettingsContent() {
   const searchParams = useSearchParams();
-  const { isAdmin, loading: roleLoading } = useRole();
+  const { isAdmin, isSuperAdmin, loading: roleLoading } = useRole();
   const [connection, setConnection] = useState<AsanaConnection | null>(null);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  // User management state (admin only)
+  // User management state (admin+ only)
   const [users, setUsers] = useState<UserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
@@ -342,9 +360,7 @@ function SettingsContent() {
               : u
           )
         );
-        const actionVerb =
-          confirmAction.newRole === "admin" ? "promoted to admin" : "changed to member";
-        setSuccessMsg(`${confirmAction.name} ${actionVerb}`);
+        setSuccessMsg(`${confirmAction.name} changed to ${roleLabel(confirmAction.newRole)}`);
       } else {
         const err = await res.json();
         setSuccessMsg(`Error: ${err.error}`);
@@ -480,14 +496,14 @@ function SettingsContent() {
           {confirmAction && (
             <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
               <p className="text-sm text-amber-800 font-medium">
-                {confirmAction.newRole === "admin"
-                  ? `Make ${confirmAction.name} an admin?`
-                  : `Remove admin access from ${confirmAction.name}?`}
+                Change {confirmAction.name} to {roleLabel(confirmAction.newRole)}?
               </p>
               <p className="text-xs text-amber-600 mt-1">
-                {confirmAction.newRole === "admin"
-                  ? "Admins can manage users, map Baldrige criteria, and access all admin features."
-                  : "This user will lose access to admin features like criteria mapping and user management."}
+                {confirmAction.newRole === "super_admin"
+                  ? "Super Admins have full access including role management."
+                  : confirmAction.newRole === "admin"
+                  ? "Admins can map Baldrige criteria, access analytics, and manage all features."
+                  : "Users can only view and edit Processes, Classifications, and Categories."}
               </p>
               <div className="flex gap-2 mt-3">
                 <Button
@@ -547,12 +563,16 @@ function SettingsContent() {
                           </td>
                           <td className="py-3 text-text-secondary">{u.email}</td>
                           <td className="py-3">
-                            {isCurrentUser ? (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-nia-dark-solid text-white">
-                                admin
+                            {isCurrentUser || !isSuperAdmin ? (
+                              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}>
+                                {roleLabel(u.role)}
                               </span>
                             ) : isChanging ? (
                               <span className="text-xs text-text-muted">Updating...</span>
+                            ) : u.role === "super_admin" ? (
+                              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}>
+                                {roleLabel(u.role)}
+                              </span>
                             ) : (
                               <select
                                 value={u.role}
@@ -565,8 +585,9 @@ function SettingsContent() {
                                 }
                                 className="text-xs border border-border rounded-md px-2 py-1 bg-card focus:outline-none focus:ring-2 focus:ring-nia-green/50"
                               >
-                                <option value="member">member</option>
-                                <option value="admin">admin</option>
+                                <option value="member">User</option>
+                                <option value="admin">Admin</option>
+                                <option value="super_admin">Super Admin</option>
                               </select>
                             )}
                           </td>
@@ -605,12 +626,16 @@ function SettingsContent() {
                             <span className="ml-1 text-xs text-text-muted">(you)</span>
                           )}
                         </span>
-                        {isCurrentUser ? (
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-nia-dark-solid text-white">
-                            admin
+                        {isCurrentUser || !isSuperAdmin ? (
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}>
+                            {roleLabel(u.role)}
                           </span>
                         ) : isChanging ? (
                           <span className="text-xs text-text-muted">Updating...</span>
+                        ) : u.role === "super_admin" ? (
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}>
+                            {roleLabel(u.role)}
+                          </span>
                         ) : (
                           <select
                             value={u.role}
@@ -623,8 +648,9 @@ function SettingsContent() {
                             }
                             className="text-xs border border-border rounded-md px-2 py-1 bg-card"
                           >
-                            <option value="member">member</option>
-                            <option value="admin">admin</option>
+                            <option value="member">User</option>
+                            <option value="admin">Admin</option>
+                            <option value="super_admin">Super Admin</option>
                           </select>
                         )}
                       </div>

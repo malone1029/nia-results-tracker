@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { isAdminRole } from "@/lib/auth-helpers";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 60;
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     .select("role")
     .eq("auth_id", user.id)
     .single();
-  if (roleData?.role !== "admin") {
+  if (!isAdminRole(roleData?.role || "")) {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 

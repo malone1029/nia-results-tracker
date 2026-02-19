@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { isAdminRole } from "@/lib/auth-helpers";
 
 /**
- * Helper: check if current user is admin.
+ * Helper: check if current user is admin (admin or super_admin).
  */
 async function isAdmin(supabase: Awaited<ReturnType<typeof createSupabaseServer>>) {
   const {
@@ -16,7 +17,7 @@ async function isAdmin(supabase: Awaited<ReturnType<typeof createSupabaseServer>
     .eq("auth_id", user.id)
     .single();
 
-  return data?.role === "admin";
+  return isAdminRole(data?.role || "");
 }
 
 /**

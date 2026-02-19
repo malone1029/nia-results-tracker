@@ -8,6 +8,7 @@ import { useSidebarGroups } from "@/lib/use-sidebar-groups";
 import SidebarHealthWidget, {
   type SidebarHealthData,
 } from "@/components/sidebar-health-widget";
+import type { AppRole } from "@/lib/auth-helpers";
 
 // ── Navigation structure ──────────────────────────────────
 // "Actions" group merged into "Overview". Admin group renamed.
@@ -52,6 +53,18 @@ const adminNavGroups = [
       { href: "/criteria/gaps", label: "Gap Analysis", icon: "alert-triangle" },
       { href: "/surveys", label: "Surveys", icon: "clipboard-list" },
       { href: "/feedback", label: "Feedback Inbox", icon: "inbox" },
+    ],
+  },
+];
+
+// Members only see the Processes group
+const memberNavGroups = [
+  {
+    label: "Processes",
+    links: [
+      { href: "/processes", label: "Processes", icon: "folder" },
+      { href: "/classifications", label: "Classifications", icon: "tag" },
+      { href: "/categories", label: "Categories", icon: "layers" },
     ],
   },
 ];
@@ -231,18 +244,19 @@ function findGroupForPath(
 export default function Sidebar({
   open,
   onClose,
-  isAdmin = false,
+  role = "member",
   onFeedbackClick,
   healthData,
   healthLoading,
 }: {
   open: boolean;
   onClose: () => void;
-  isAdmin?: boolean;
+  role?: AppRole;
   onFeedbackClick?: () => void;
   healthData?: SidebarHealthData | null;
   healthLoading?: boolean;
 }) {
+  const isAdmin = role === "admin" || role === "super_admin";
   const pathname = usePathname();
   const { expandedGroups, toggleGroup, expandGroup } = useSidebarGroups();
 
@@ -336,7 +350,9 @@ export default function Sidebar({
 
       {/* Nav groups */}
       <nav data-tour="sidebar-nav" className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
-        {navGroups.map((group) => renderGroup(group, false))}
+        {isAdmin
+          ? navGroups.map((group) => renderGroup(group, false))
+          : memberNavGroups.map((group) => renderGroup(group, false))}
         {isAdmin &&
           adminNavGroups.map((group) => renderGroup(group, true))}
       </nav>

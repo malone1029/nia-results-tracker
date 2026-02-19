@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { isAdminRole, isSuperAdminRole } from "@/lib/auth-helpers";
 
 export async function GET() {
   const supabase = await createSupabaseServer();
@@ -10,7 +11,7 @@ export async function GET() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ role: "member", isAdmin: false });
+    return NextResponse.json({ role: "member", isAdmin: false, isSuperAdmin: false });
   }
 
   // Look up role from user_roles table
@@ -22,5 +23,9 @@ export async function GET() {
 
   const role = data?.role || "member";
 
-  return NextResponse.json({ role, isAdmin: role === "admin" });
+  return NextResponse.json({
+    role,
+    isAdmin: isAdminRole(role),
+    isSuperAdmin: isSuperAdminRole(role),
+  });
 }
