@@ -7,6 +7,8 @@ interface RoleState {
   role: AppRole;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isProxying: boolean;
+  proxyTargetName: string | null;
   loading: boolean;
 }
 
@@ -15,6 +17,8 @@ export function useRole(): RoleState {
     role: "member",
     isAdmin: false,
     isSuperAdmin: false,
+    isProxying: false,
+    proxyTargetName: null,
     loading: true,
   });
 
@@ -28,6 +32,8 @@ export function useRole(): RoleState {
             role: data.role,
             isAdmin: data.isAdmin,
             isSuperAdmin: data.isSuperAdmin,
+            isProxying: data.isProxying ?? false,
+            proxyTargetName: data.proxyTargetName ?? null,
             loading: false,
           });
         } else {
