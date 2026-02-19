@@ -57,6 +57,16 @@ const adminNavGroups = [
   },
 ];
 
+// Visible only to super_admin — hidden from admin and member
+const superAdminNavGroups = [
+  {
+    label: "Intelligence",
+    links: [
+      { href: "/command-center", label: "Command Center", icon: "shield-check" },
+    ],
+  },
+];
+
 // Members only see the Processes group
 const memberNavGroups = [
   {
@@ -227,9 +237,10 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
 function findGroupForPath(
   path: string,
   groups: typeof navGroups,
-  adminGroups: typeof adminNavGroups
+  adminGroups: typeof adminNavGroups,
+  superAdminGroups: typeof superAdminNavGroups = []
 ): string | null {
-  for (const group of [...groups, ...adminGroups]) {
+  for (const group of [...groups, ...adminGroups, ...superAdminGroups]) {
     for (const link of group.links) {
       if (link.href === "/" ? path === "/" : path.startsWith(link.href)) {
         return group.label;
@@ -262,7 +273,7 @@ export default function Sidebar({
 
   // Auto-expand group containing the active page
   useEffect(() => {
-    const group = findGroupForPath(pathname, navGroups, adminNavGroups);
+    const group = findGroupForPath(pathname, navGroups, adminNavGroups, superAdminNavGroups);
     if (group) {
       expandGroup(group);
     }
@@ -355,6 +366,8 @@ export default function Sidebar({
           : memberNavGroups.map((group) => renderGroup(group, false))}
         {isAdmin &&
           adminNavGroups.map((group) => renderGroup(group, true))}
+        {role === "super_admin" &&
+          superAdminNavGroups.map((group) => renderGroup(group, true))}
       </nav>
 
       {/* Bottom — Help, Feedback, Settings */}
