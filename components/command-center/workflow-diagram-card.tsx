@@ -29,8 +29,8 @@ const PRIORITY_STYLES: Record<string, string> = {
 const CHAT_STARTERS = [
   "Why are some categories empty?",
   "What should I build first?",
-  "Explain the most critical gap",
-  "How does Category 6 connect to Operations?",
+  "Add a node for Workforce Recruitment",
+  "Connect the top gaps with arrows",
 ];
 
 export default function WorkflowDiagramCard() {
@@ -48,6 +48,7 @@ export default function WorkflowDiagramCard() {
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const [diagramEditedIndicator, setDiagramEditedIndicator] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -236,22 +237,65 @@ export default function WorkflowDiagramCard() {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let fullContent = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
+        fullContent += chunk;
         setChatMessages((prev) => {
           const updated = [...prev];
           const last = updated[updated.length - 1];
           if (last.role === "assistant") {
-            updated[updated.length - 1] = {
-              ...last,
-              content: last.content + chunk,
-            };
+            updated[updated.length - 1] = { ...last, content: fullContent };
           }
           return updated;
         });
+      }
+
+      // ── After stream: check for diagram update delimiter ──────────────
+      const DELIM = "---DIAGRAM---";
+      const delimIdx = fullContent.indexOf(DELIM);
+      if (delimIdx !== -1) {
+        const textPart = fullContent.slice(0, delimIdx).trim();
+        let newMermaid = fullContent.slice(delimIdx + DELIM.length).trim();
+        // Strip accidental markdown fences
+        newMermaid = newMermaid
+          .replace(/^```mermaid\s*/i, "")
+          .replace(/^```\s*/i, "")
+          .replace(/\s*```\s*$/, "")
+          .trim();
+
+        // Update chat bubble to show only the text portion + badge
+        setChatMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            role: "assistant",
+            content: textPart + "\n\n_✓ Diagram updated_",
+          };
+          return updated;
+        });
+
+        if (newMermaid) {
+          setMermaidCode(newMermaid);
+          setDiagramEditedIndicator(true);
+          setTimeout(() => setDiagramEditedIndicator(false), 4000);
+          // Auto-save the edited diagram
+          try {
+            await fetch("/api/admin/workflow-snapshots", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                mermaid: newMermaid,
+                gaps,
+                keyCount: meta?.keyCount ?? 0,
+              }),
+            });
+          } catch {
+            // Non-fatal
+          }
+        }
       }
     } catch {
       setChatMessages((prev) => {
@@ -330,6 +374,15 @@ export default function WorkflowDiagramCard() {
               Saved
             </span>
           )}
+
+          {diagramEditedIndicator && (
+            <span className="flex items-center gap-1 text-xs text-nia-green font-medium animate-pulse">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Diagram updated
+            </span>
+          )}
         </div>
 
         {errorMsg && (
@@ -363,15 +416,12 @@ export default function WorkflowDiagramCard() {
           </div>
         )}
 
-        {/* Inline diagram — vertical scroll only */}
+        {/* Inline diagram — full natural height, no clipping */}
         {status === "ready" && (
-          <div
-            className="mt-4 rounded-lg border border-border bg-white overflow-y-auto overflow-x-hidden"
-            style={{ maxHeight: "600px" }}
-          >
+          <div className="mt-4 rounded-lg border border-border bg-white overflow-x-hidden">
             <div
               ref={diagramRef}
-              className="p-4 w-full"
+              className="p-4 w-full flex justify-center"
             />
           </div>
         )}
@@ -521,7 +571,7 @@ export default function WorkflowDiagramCard() {
                         sendChat();
                       }
                     }}
-                    placeholder="Ask a question about the diagram..."
+                    placeholder="Ask a question or say 'Add a node for X'..."
                     disabled={chatLoading}
                     className="flex-1 text-sm px-3 py-2 rounded-lg border border-border bg-background text-nia-dark placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-nia-green/50 disabled:opacity-50"
                   />
@@ -568,7 +618,7 @@ export default function WorkflowDiagramCard() {
 
           {/* Scrollable diagram area */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white p-6">
-            <div ref={fullscreenRef} className="w-full" />
+            <div ref={fullscreenRef} className="w-full flex justify-center" />
           </div>
 
           {/* Legend bar */}
