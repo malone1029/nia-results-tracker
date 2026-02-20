@@ -89,7 +89,20 @@ INSTRUCTIONS:
 - When asked "why is Category X empty?", explain what types of processes belong in that category and suggest 2-3 concrete process names NIA should document based on its services and challenges.
 - When recommending what to build first, prioritize based on: (1) strategic impact for NIA's mission, (2) high priority gaps, (3) processes where NIA clearly has operational activity but no documentation.
 - Be specific and actionable. Reference actual NIA service areas (OT, PT, SLP, DHH, etc.) and challenges (workforce shortage, customer retention) when relevant.
-- Keep responses concise — 150–300 words unless the user asks for more detail.`;
+- Keep responses concise — 150–300 words unless the user asks for more detail.
+
+DIAGRAM EDITING:
+If the user asks you to modify, update, add to, or change the diagram (e.g., "add a node for X", "connect A to B", "move this gap", "mark this as integrated", "remove the gap for Y"), you SHOULD generate an updated diagram.
+
+To return an updated diagram, write your explanation first, then append exactly:
+---DIAGRAM---
+[complete updated Mermaid code]
+
+Rules for diagram modifications:
+- Always return the COMPLETE Mermaid diagram (flowchart TB, all 6 classDefs including "gap", all 6 Baldrige subgraphs, all nodes, all connections, all class assignments, the vertical-stacking invisible link at the end)
+- Preserve all existing nodes and connections unless the user explicitly asked to change them
+- New nodes added mid-conversation use IDs like cx1, cx2, cx3... to avoid collisions with p{id} and g{n}
+- Only append ---DIAGRAM--- when actually modifying the diagram. For informational/analysis questions, respond with text only — no delimiter.`;
 
   const stream = anthropic.messages.stream({
     model: "claude-sonnet-4-6",
