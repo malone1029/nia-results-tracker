@@ -122,6 +122,7 @@ export default function WorkflowDiagramCard() {
       setProcessList(data.processList || "");
       setMeta({ generatedAt: data.generatedAt, keyCount: data.keyCount });
       setStatus("ready");
+      setShowChat(true); // Auto-open chat so users discover it immediately
 
       // Auto-save to Supabase
       try {
