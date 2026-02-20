@@ -1,10 +1,28 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Card, Button } from "@/components/ui";
 import type { GapItem } from "@/app/api/admin/generate-workflow/route";
+import type { MissionFlowData } from "@/lib/flow-types";
 
-type Status = "idle" | "loading" | "ready" | "error";
+// Dynamically import the React Flow canvas so it only loads client-side
+// (avoids SSR issues with React Flow's browser-only APIs)
+const MissionFlowCanvas = dynamic(
+  () => import("@/components/flow/mission-flow-canvas"),
+  { ssr: false, loading: () => <CanvasLoader /> }
+);
+
+function CanvasLoader() {
+  return (
+    <div className="w-full h-[700px] rounded-lg bg-surface-hover border border-border flex flex-col items-center justify-center gap-3">
+      <div className="w-full max-w-sm h-40 skeleton-shimmer rounded-lg" />
+      <p className="text-sm text-text-muted">Loading diagram canvas...</p>
+    </div>
+  );
+}
+
+type Status = "idle" | "loading" | "ready" | "legacy" | "error";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -35,10 +53,8 @@ const CHAT_STARTERS = [
 
 export default function WorkflowDiagramCard() {
   const [status, setStatus] = useState<Status>("idle");
-  const [mermaidCode, setMermaidCode] = useState<string>("");
+  const [flowData, setFlowData] = useState<MissionFlowData | null>(null);
   const [gaps, setGaps] = useState<GapItem[]>([]);
-  const [showCode, setShowCode] = useState(false);
-  const [showFullscreen, setShowFullscreen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [meta, setMeta] = useState<{ generatedAt: string; keyCount: number } | null>(null);
   const [savedIndicator, setSavedIndicator] = useState(false);
@@ -52,10 +68,6 @@ export default function WorkflowDiagramCard() {
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const diagramRef = useRef<HTMLDivElement>(null);
-  const fullscreenRef = useRef<HTMLDivElement>(null);
-  const renderingRef = useRef(false);
-
   // ── Auto-load latest snapshot on mount ─────────────────────────────────
   useEffect(() => {
     async function loadLatest() {
@@ -64,13 +76,19 @@ export default function WorkflowDiagramCard() {
         if (!res.ok) return;
         const data = await res.json();
         if (data.snapshot) {
-          setMermaidCode(data.snapshot.mermaid_code);
-          setGaps(data.snapshot.gaps || []);
-          setMeta({
-            generatedAt: data.snapshot.generated_at,
-            keyCount: data.snapshot.key_count,
-          });
-          setStatus("ready");
+          if (data.snapshot.flow_data) {
+            // New format — use React Flow
+            setFlowData(data.snapshot.flow_data as MissionFlowData);
+            setGaps(data.snapshot.gaps || []);
+            setMeta({
+              generatedAt: data.snapshot.generated_at,
+              keyCount: data.snapshot.key_count,
+            });
+            setStatus("ready");
+          } else if (data.snapshot.mermaid_code) {
+            // Legacy snapshot — show amber banner prompting regeneration
+            setStatus("legacy");
+          }
         }
       } catch {
         // Silently fail — user can still manually generate
@@ -83,11 +101,10 @@ export default function WorkflowDiagramCard() {
   async function generate() {
     setStatus("loading");
     setErrorMsg(null);
-    setMermaidCode("");
+    setFlowData(null);
     setGaps([]);
     setMeta(null);
     setSavedIndicator(false);
-    setShowFullscreen(false);
     setChatMessages([]);
 
     try {
@@ -100,7 +117,7 @@ export default function WorkflowDiagramCard() {
         return;
       }
 
-      setMermaidCode(data.mermaid || "");
+      setFlowData(data.flowData || null);
       setGaps(data.gaps || []);
       setProcessList(data.processList || "");
       setMeta({ generatedAt: data.generatedAt, keyCount: data.keyCount });
@@ -112,7 +129,7 @@ export default function WorkflowDiagramCard() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            mermaid: data.mermaid,
+            flowData: data.flowData,
             gaps: data.gaps,
             keyCount: data.keyCount,
           }),
@@ -120,74 +137,13 @@ export default function WorkflowDiagramCard() {
         setSavedIndicator(true);
         setTimeout(() => setSavedIndicator(false), 3000);
       } catch {
-        // Non-fatal — diagram is visible even if save fails
+        // Non-fatal — diagram visible even if save fails
       }
     } catch {
       setErrorMsg("Network error — please try again.");
       setStatus("error");
     }
   }
-
-  // ── Mermaid render ──────────────────────────────────────────────────────
-  const renderMermaid = useCallback(async (target: HTMLDivElement, code: string) => {
-    try {
-      const mermaid = (await import("mermaid")).default;
-      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: isDark ? "dark" : "neutral",
-        flowchart: { useMaxWidth: false, htmlLabels: true },
-      });
-
-      const id = `workflow-${Math.random().toString(36).slice(2, 9)}`;
-      const { svg } = await mermaid.render(id, code);
-
-      // Remove Mermaid's injected max-width + force full-width SVG for vertical layout
-      const cleanSvg = svg.replace(/style="[^"]*max-width[^"]*"/g, "");
-      target.innerHTML = cleanSvg;
-
-      // Make SVG fill container width so it flows vertically
-      const svgEl = target.querySelector("svg");
-      if (svgEl) {
-        svgEl.style.width = "100%";
-        svgEl.style.height = "auto";
-        svgEl.removeAttribute("width");
-      }
-    } catch (err) {
-      console.error("Mermaid render error:", err);
-      target.innerHTML = `<p class="text-sm text-nia-red p-4">Diagram render failed — check the Mermaid code below.</p>`;
-      setShowCode(true);
-    }
-  }, []);
-
-  // Render inline when code changes
-  useEffect(() => {
-    if (!mermaidCode || !diagramRef.current || renderingRef.current) return;
-    renderingRef.current = true;
-    const timer = setTimeout(async () => {
-      if (diagramRef.current) await renderMermaid(diagramRef.current, mermaidCode);
-      renderingRef.current = false;
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [mermaidCode, renderMermaid]);
-
-  // Render into fullscreen div when it opens
-  useEffect(() => {
-    if (!showFullscreen || !mermaidCode || !fullscreenRef.current) return;
-    const timer = setTimeout(async () => {
-      if (fullscreenRef.current) await renderMermaid(fullscreenRef.current, mermaidCode);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [showFullscreen, mermaidCode, renderMermaid]);
-
-  // Close fullscreen on Escape
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setShowFullscreen(false);
-    }
-    if (showFullscreen) window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showFullscreen]);
 
   // Scroll chat to bottom when new messages arrive
   useEffect(() => {
@@ -197,7 +153,7 @@ export default function WorkflowDiagramCard() {
   }, [chatMessages, showChat]);
 
   // ── Chat send ───────────────────────────────────────────────────────────
-  async function sendChat(text?: string) {
+  const sendChat = useCallback(async (text?: string) => {
     const input = (text ?? chatInput).trim();
     if (!input || chatLoading) return;
 
@@ -216,7 +172,7 @@ export default function WorkflowDiagramCard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: nextMessages,
-          mermaid: mermaidCode,
+          flowData,
           gaps,
           processList,
         }),
@@ -259,15 +215,9 @@ export default function WorkflowDiagramCard() {
       const delimIdx = fullContent.indexOf(DELIM);
       if (delimIdx !== -1) {
         const textPart = fullContent.slice(0, delimIdx).trim();
-        let newMermaid = fullContent.slice(delimIdx + DELIM.length).trim();
-        // Strip accidental markdown fences
-        newMermaid = newMermaid
-          .replace(/^```mermaid\s*/i, "")
-          .replace(/^```\s*/i, "")
-          .replace(/\s*```\s*$/, "")
-          .trim();
+        const jsonPart = fullContent.slice(delimIdx + DELIM.length).trim();
 
-        // Update chat bubble to show only the text portion + badge
+        // Update chat bubble to show only the text portion
         setChatMessages((prev) => {
           const updated = [...prev];
           updated[updated.length - 1] = {
@@ -277,23 +227,28 @@ export default function WorkflowDiagramCard() {
           return updated;
         });
 
-        if (newMermaid) {
-          setMermaidCode(newMermaid);
-          setDiagramEditedIndicator(true);
-          setTimeout(() => setDiagramEditedIndicator(false), 4000);
-          // Auto-save the edited diagram
+        if (jsonPart) {
           try {
-            await fetch("/api/admin/workflow-snapshots", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                mermaid: newMermaid,
-                gaps,
-                keyCount: meta?.keyCount ?? 0,
-              }),
-            });
+            const newFlowData = JSON.parse(jsonPart) as MissionFlowData;
+            setFlowData(newFlowData);
+            setDiagramEditedIndicator(true);
+            setTimeout(() => setDiagramEditedIndicator(false), 4000);
+            // Auto-save the edited diagram
+            try {
+              await fetch("/api/admin/workflow-snapshots", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  flowData: newFlowData,
+                  gaps,
+                  keyCount: meta?.keyCount ?? 0,
+                }),
+              });
+            } catch {
+              // Non-fatal
+            }
           } catch {
-            // Non-fatal
+            console.warn("Failed to parse updated diagram JSON from chat");
           }
         }
       }
@@ -309,7 +264,7 @@ export default function WorkflowDiagramCard() {
     } finally {
       setChatLoading(false);
     }
-  }
+  }, [chatInput, chatLoading, chatMessages, flowData, gaps, processList, meta]);
 
   const highGaps = gaps.filter((g) => g.priority === "high");
   const otherGaps = gaps.filter((g) => g.priority !== "high");
@@ -327,7 +282,7 @@ export default function WorkflowDiagramCard() {
           <div>
             <h2 className="text-xl font-semibold text-nia-dark">Mission Workflow Diagram</h2>
             <p className="text-sm text-text-tertiary mt-0.5">
-              All 6 Baldrige categories — key processes color-coded by ADLI maturity, gap nodes shown in amber. Auto-saved between visits.
+              All 6 Baldrige categories — interactive pan/zoom, key processes color-coded by ADLI maturity, gap nodes in amber.
             </p>
           </div>
         </div>
@@ -342,29 +297,6 @@ export default function WorkflowDiagramCard() {
           >
             {status === "loading" ? "Generating..." : status === "ready" ? "Regenerate" : "Generate Diagram"}
           </Button>
-
-          {status === "ready" && (
-            <>
-              <button
-                onClick={() => setShowFullscreen(true)}
-                className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-nia-dark transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
-                Full Screen
-              </button>
-              <button
-                onClick={() => setShowCode((v) => !v)}
-                className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-nia-dark transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-                {showCode ? "Hide" : "View"} Code
-              </button>
-            </>
-          )}
 
           {savedIndicator && (
             <span className="flex items-center gap-1 text-xs text-nia-green font-medium">
@@ -391,12 +323,24 @@ export default function WorkflowDiagramCard() {
           </div>
         )}
 
+        {/* Legacy snapshot banner */}
+        {status === "legacy" && (
+          <div className="mt-4 rounded-lg p-3 text-sm bg-amber-50 border border-amber-200 text-amber-800 flex items-center gap-3">
+            <svg className="w-4 h-4 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>
+              <strong>Old format detected.</strong> Click <strong>Regenerate</strong> to upgrade to the interactive diagram.
+            </span>
+          </div>
+        )}
+
         {/* Loading skeleton */}
         {status === "loading" && (
           <div className="mt-4 rounded-lg bg-surface-hover border border-border p-8 flex flex-col items-center gap-3">
             <div className="w-full h-56 skeleton-shimmer rounded-lg" />
             <p className="text-sm text-text-muted">
-              AI is mapping all 6 Baldrige categories, placing gap nodes, and analyzing the workflow...
+              AI is mapping all 6 Baldrige categories and analyzing your workflow...
             </p>
           </div>
         )}
@@ -416,22 +360,10 @@ export default function WorkflowDiagramCard() {
           </div>
         )}
 
-        {/* Inline diagram — full natural height, no clipping */}
-        {status === "ready" && (
-          <div className="mt-4 rounded-lg border border-border bg-white overflow-x-hidden">
-            <div
-              ref={diagramRef}
-              className="p-4 w-full flex justify-center"
-            />
-          </div>
-        )}
-
-        {/* Mermaid code */}
-        {showCode && mermaidCode && (
-          <div className="mt-3">
-            <pre className="bg-surface-hover rounded-lg p-3 text-xs text-text-secondary overflow-x-auto whitespace-pre font-mono">
-              {mermaidCode}
-            </pre>
+        {/* React Flow canvas */}
+        {status === "ready" && flowData && (
+          <div className="mt-4">
+            <MissionFlowCanvas flowData={flowData} height={700} />
           </div>
         )}
 
@@ -590,51 +522,6 @@ export default function WorkflowDiagramCard() {
           </div>
         )}
       </Card>
-
-      {/* ── Fullscreen Modal ─────────────────────────────────────────────── */}
-      {showFullscreen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex flex-col"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowFullscreen(false); }}
-        >
-          {/* Toolbar */}
-          <div className="flex items-center justify-between px-4 py-3 bg-sidebar flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <span className="text-white font-medium text-sm">Mission Workflow Diagram</span>
-              {meta && (
-                <span className="text-white/50 text-xs">{meta.keyCount} key processes</span>
-              )}
-            </div>
-            <button
-              onClick={() => setShowFullscreen(false)}
-              className="text-white/70 hover:text-white transition-colors flex items-center gap-1.5 text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Close (Esc)
-            </button>
-          </div>
-
-          {/* Scrollable diagram area */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white p-6">
-            <div ref={fullscreenRef} className="w-full flex justify-center" />
-          </div>
-
-          {/* Legend bar */}
-          <div className="flex items-center gap-4 px-4 py-2 bg-sidebar flex-shrink-0 flex-wrap">
-            {LEGEND_ITEMS.map((item) => (
-              <div key={item.label} className="flex items-center gap-1.5">
-                <span
-                  className="w-3 h-3 rounded-sm flex-shrink-0 border"
-                  style={{ backgroundColor: item.color, borderColor: item.border ?? item.color }}
-                />
-                <span className="text-xs text-white/70">{item.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   );
 }

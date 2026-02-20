@@ -141,12 +141,20 @@ export async function POST(request: Request) {
       change_description: `AI updated ${fieldLabel} section (previous version saved)`,
     });
 
-    // Build the updated field value
+    // Build the updated field value.
+    // When field is "workflow" and content is a JSON object (ProcessMapFlowData),
+    // store it as flow_data. String content (old Mermaid) still goes to `content`.
     const existingData = (previousValue as Record<string, unknown>) || {};
-    const updatedData = {
-      ...existingData,
-      content: content,
-    };
+    const isFlowData =
+      field === "workflow" &&
+      typeof content === "object" &&
+      content !== null &&
+      !Array.isArray(content) &&
+      "nodes" in (content as Record<string, unknown>);
+
+    const updatedData = isFlowData
+      ? { ...existingData, flow_data: content }
+      : { ...existingData, content: content };
 
     // Auto-advance guided_step based on which field was updated
     const stepAdvance: Record<string, string> = {

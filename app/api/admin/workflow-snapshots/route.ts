@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { isSuperAdminRole } from "@/lib/auth-helpers";
 import type { GapItem } from "@/app/api/admin/generate-workflow/route";
+import type { MissionFlowData } from "@/lib/flow-types";
 
 // ── GET /api/admin/workflow-snapshots ──────────────────────────────────────
 // Returns the most recently saved workflow snapshot, or null if none exist.
@@ -25,7 +26,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("workflow_snapshots")
-    .select("id, mermaid_code, gaps, key_count, generated_at")
+    .select("id, mermaid_code, flow_data, gaps, key_count, generated_at")
     .order("generated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -59,15 +60,18 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json() as {
-    mermaid: string;
+    flowData: MissionFlowData;
     gaps: GapItem[];
     keyCount: number;
+    // Legacy field — still accepted for backwards compat but no longer required
+    mermaid?: string;
   };
 
   const { data, error } = await supabase
     .from("workflow_snapshots")
     .insert({
-      mermaid_code: body.mermaid,
+      flow_data: body.flowData ?? null,
+      mermaid_code: body.mermaid ?? null,
       gaps: body.gaps,
       key_count: body.keyCount,
       created_by: user.id,

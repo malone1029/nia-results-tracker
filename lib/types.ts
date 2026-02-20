@@ -63,6 +63,7 @@ export interface AdliIntegration {
 
 export interface Workflow {
   content?: string;
+  flow_data?: import("./flow-types").ProcessMapFlowData;
   inputs?: string[];
   steps?: {
     responsible: string;
