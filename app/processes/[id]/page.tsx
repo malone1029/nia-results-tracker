@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense, useCallback } from "react";
+import type { ProcessMapFlowData } from "@/lib/flow-types";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { DetailSkeleton } from "@/components/skeleton";
@@ -194,6 +195,15 @@ function ProcessDetailContent() {
   const deepLinkFiredRef = useRef(false);
   const [processMapMounted, setProcessMapMounted] = useState(false);
 
+  // ── Process Map inline chat ────────────────────────────────────────────
+  const [localFlowData, setLocalFlowData] = useState<ProcessMapFlowData | null>(null);
+  const [showMapChat, setShowMapChat] = useState(false);
+  const [mapChatMessages, setMapChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [mapChatInput, setMapChatInput] = useState("");
+  const [mapChatLoading, setMapChatLoading] = useState(false);
+  const [mapDiagramUpdatedIndicator, setMapDiagramUpdatedIndicator] = useState(false);
+  const mapChatEndRef = useRef<HTMLDivElement>(null);
+
   // Maps scroll target IDs to the tab they live on
   function getTabForScrollTarget(target: string): "overview" | "documentation" | "process-map" | "tasks" | "improvements" {
     if (target === "section-tasks") return "tasks";
@@ -202,6 +212,126 @@ function ProcessDetailContent() {
     if (target === "section-metrics" || target === "section-surveys") return "overview";
     return "overview";
   }
+
+  // ── Sync localFlowData when process is (re)fetched ────────────────────
+  useEffect(() => {
+    if (process?.workflow?.flow_data) {
+      setLocalFlowData(process.workflow.flow_data as ProcessMapFlowData);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [process?.workflow?.flow_data]);
+
+  // ── Scroll map chat to bottom on new messages ─────────────────────────
+  useEffect(() => {
+    if (showMapChat) {
+      mapChatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [mapChatMessages, showMapChat]);
+
+  // ── Send message to /api/ai/map-chat ──────────────────────────────────
+  const sendMapChat = useCallback(async (text?: string) => {
+    if (!process) return;
+    const input = (text ?? mapChatInput).trim();
+    if (!input || mapChatLoading) return;
+
+    const userMsg = { role: "user" as const, content: input };
+    const nextMessages = [...mapChatMessages, userMsg];
+    setMapChatMessages(nextMessages);
+    setMapChatInput("");
+    setMapChatLoading(true);
+    setMapChatMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+
+    try {
+      const res = await fetch("/api/ai/map-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: nextMessages,
+          flowData: localFlowData,
+          processId: process.id,
+          processName: process.name,
+          charter: process.charter,
+        }),
+      });
+
+      if (!res.ok || !res.body) {
+        setMapChatMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: "Sorry, couldn't get a response. Please try again." };
+          return updated;
+        });
+        setMapChatLoading(false);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullContent += chunk;
+        setMapChatMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last.role === "assistant") {
+            updated[updated.length - 1] = { ...last, content: fullContent };
+          }
+          return updated;
+        });
+      }
+
+      // ── Parse ---DIAGRAM--- delimiter ────────────────────────────────
+      const DELIM = "---DIAGRAM---";
+      const delimIdx = fullContent.indexOf(DELIM);
+      if (delimIdx !== -1) {
+        const textPart = fullContent.slice(0, delimIdx).trim();
+        const jsonPart = fullContent.slice(delimIdx + DELIM.length).trim();
+
+        setMapChatMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            role: "assistant",
+            content: textPart + "\n\n_✓ Diagram updated_",
+          };
+          return updated;
+        });
+
+        if (jsonPart) {
+          try {
+            const newFlowData = JSON.parse(jsonPart) as ProcessMapFlowData;
+            // Update canvas immediately (no page reload)
+            setLocalFlowData(newFlowData);
+            setMapDiagramUpdatedIndicator(true);
+            setTimeout(() => setMapDiagramUpdatedIndicator(false), 4000);
+            // Persist to database via apply route
+            fetch("/api/ai/apply", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                processId: process.id,
+                field: "workflow",
+                content: newFlowData,
+                suggestionTitle: "Map chat edit",
+              }),
+            }).catch(() => {/* non-fatal */});
+          } catch {
+            console.warn("Failed to parse updated diagram JSON from map chat");
+          }
+        }
+      }
+    } catch {
+      setMapChatMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: "assistant", content: "Network error — please try again." };
+        return updated;
+      });
+    } finally {
+      setMapChatLoading(false);
+    }
+  }, [mapChatInput, mapChatLoading, mapChatMessages, localFlowData, process]);
 
   async function fetchProcess() {
       // Fetch process with category name
@@ -1655,25 +1785,121 @@ function ProcessDetailContent() {
       {/* ═══ PROCESS MAP TAB — mounted once viewed, kept alive via CSS hidden ═══ */}
       {processMapMounted && (
         <div id="section-workflow" className={activeTab !== "process-map" ? "hidden" : ""}>
-          {process.workflow?.flow_data ? (
+          {localFlowData ? (
             /* New React Flow interactive diagram */
             <div>
-              <ProcessFlowCanvas flowData={process.workflow.flow_data} height={520} />
-              <div className="mt-3 pt-3 border-t border-border-light flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => setPendingPrompt("The current process map needs adjustments. Here's what I'd like to change:")}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-nia-grey-blue bg-nia-grey-blue/8 hover:bg-nia-grey-blue/15 px-3 py-1.5 rounded-full transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  Refine Map
-                </button>
-                <button
-                  onClick={() => setPendingPrompt("Regenerate the process map from scratch based on the current charter and ADLI content.")}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-nia-grey-blue bg-nia-grey-blue/8 hover:bg-nia-grey-blue/15 px-3 py-1.5 rounded-full transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                  Regenerate
-                </button>
+              <ProcessFlowCanvas flowData={localFlowData} height={520} />
+
+              {/* ── Inline Map Chat ──────────────────────────────────────── */}
+              <div className="mt-4 border-t border-border pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <button
+                    onClick={() => setShowMapChat((v) => !v)}
+                    className="flex items-center gap-2 text-sm font-medium text-nia-dark hover:text-nia-green transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-nia-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                    Chat to edit this map
+                    <svg className={`w-3.5 h-3.5 text-text-muted transition-transform ${showMapChat ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {mapDiagramUpdatedIndicator && (
+                      <span className="flex items-center gap-1 text-xs text-nia-green font-medium animate-pulse">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Map updated
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setPendingPrompt("Regenerate the process map from scratch based on the current charter and ADLI content.")}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                      Regenerate
+                    </button>
+                  </div>
+                </div>
+
+                {showMapChat && (
+                  <div className="rounded-lg border border-border bg-surface-hover overflow-hidden">
+                    {/* Message list */}
+                    <div className="p-3 space-y-3 max-h-72 overflow-y-auto">
+                      {mapChatMessages.length === 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-xs text-text-muted">Ask the AI to explain or change this diagram — it will update the canvas live.</p>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              "Add a step for supervisor review",
+                              "Add a decision after step 1",
+                              "Who is responsible for each step?",
+                              "Simplify this — remove any redundant steps",
+                            ].map((starter) => (
+                              <button
+                                key={starter}
+                                onClick={() => sendMapChat(starter)}
+                                disabled={mapChatLoading}
+                                className="text-xs px-2.5 py-1.5 rounded-full border border-border bg-card text-text-secondary hover:text-nia-dark hover:border-nia-green/50 transition-colors"
+                              >
+                                {starter}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        mapChatMessages.map((msg, i) => (
+                          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                            <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+                              msg.role === "user"
+                                ? "bg-nia-dark text-white"
+                                : "bg-card border border-border text-nia-dark"
+                            }`}>
+                              {msg.content || (
+                                <span className="flex gap-1 items-center text-text-muted">
+                                  <span className="animate-pulse">●</span>
+                                  <span className="animate-pulse" style={{ animationDelay: "0.2s" }}>●</span>
+                                  <span className="animate-pulse" style={{ animationDelay: "0.4s" }}>●</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      <div ref={mapChatEndRef} />
+                    </div>
+
+                    {/* Input row */}
+                    <div className="flex items-center gap-2 p-2 border-t border-border bg-card">
+                      <input
+                        type="text"
+                        value={mapChatInput}
+                        onChange={(e) => setMapChatInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            sendMapChat();
+                          }
+                        }}
+                        placeholder="Say 'Add a step for X' or ask a question..."
+                        disabled={mapChatLoading}
+                        className="flex-1 text-sm px-3 py-2 rounded-lg border border-border bg-background text-nia-dark placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-nia-green/50 disabled:opacity-50"
+                      />
+                      <button
+                        onClick={() => sendMapChat()}
+                        disabled={!mapChatInput.trim() || mapChatLoading}
+                        className="flex items-center justify-center w-8 h-8 rounded-lg bg-nia-green text-white hover:bg-nia-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : process.workflow?.content ? (
