@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const systemPrompt = buildHelpSystemPrompt(pageUrl || "/", isAdmin);
 
   const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-5-20250929",
+    model: "claude-sonnet-4-6",
     max_tokens: 1024,
     system: systemPrompt,
     messages: messages.map((m: { role: string; content: string }) => ({

@@ -183,7 +183,7 @@ export async function POST(request: Request) {
       async start(controller) {
         try {
           const stream = anthropic.messages.stream({
-            model: "claude-sonnet-4-5-20250929",
+            model: "claude-sonnet-4-6",
             max_tokens: 4096,
             system: SYSTEM_PROMPT,
             messages: messages.map((m: { role: string; content: string }) => ({
