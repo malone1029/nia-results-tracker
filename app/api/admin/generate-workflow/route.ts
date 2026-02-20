@@ -13,7 +13,7 @@ const anthropic = new Anthropic({
 
 // ── NIA Org Profile context ────────────────────────────────────────────────
 // Extracted from "2024-06-05 NIA Organization Profile (For Submission).pdf"
-const NIA_ORG_PROFILE = `
+export const NIA_ORG_PROFILE = `
 NIA ORGANIZATIONAL PROFILE — Northwestern Illinois Association (June 2024)
 
 MISSION: Partnering with School Districts to Serve Students with Unique Needs
@@ -54,9 +54,21 @@ KEY TECHNOLOGIES: Laserfiche (electronic workflow), Happeo (intranet/communicati
 KEY PARTNERS/COLLABORATORS: Universities (staff pipeline), Clinical/Medical Providers (specialized equipment), Hawthorne LLC (Illinois Medicaid reporting), Studer Education (leadership development, customer/stakeholder surveys), Staffing Agencies (flexible workforce), Software/IT Consultants (digital infrastructure)
 `.trim();
 
+// All 7 Baldrige categories for context (exported so workflow-chat can reuse)
+export const BALDRIGE_CATEGORIES = [
+  { number: 1, name: "Leadership", description: "How senior leaders guide the organization" },
+  { number: 2, name: "Strategy", description: "How strategic objectives and action plans are developed" },
+  { number: 3, name: "Customers", description: "How customer and market needs are addressed" },
+  { number: 4, name: "Measurement", description: "How data drives decisions and knowledge management" },
+  { number: 5, name: "Workforce", description: "How workforce capability and engagement are built" },
+  { number: 6, name: "Operations", description: "How key work processes are designed, managed, improved" },
+  { number: 7, name: "Results", description: "Performance and outcomes (not shown in workflow)" },
+] as const;
+
 export interface GapItem {
   name: string;
   baldrigeItem: string;
+  baldrigeCategory: number; // 1–6 — which category subgraph to place the gap node in
   priority: "high" | "medium" | "low";
   rationale: string;
 }
@@ -64,9 +76,8 @@ export interface GapItem {
 /**
  * POST /api/admin/generate-workflow
  * Generates a Mermaid flowchart of KEY processes only, mapped to the Baldrige
- * Systems Model, color-coded by ADLI maturity. Also returns gap analysis —
- * key processes implied by NIA's org profile or required by Baldrige that
- * don't exist yet.
+ * Systems Model, color-coded by ADLI maturity. All 6 categories appear as
+ * subgraphs even if empty. Gap nodes are placed inside the correct subgraph.
  * Super admin only.
  */
 export async function POST() {
@@ -147,32 +158,35 @@ export async function POST() {
 
 ${NIA_ORG_PROFILE}
 
-BALDRIGE SYSTEMS MODEL structure:
+BALDRIGE SYSTEMS MODEL — all 6 workflow categories:
 - Category 1 (Leadership): How senior leaders guide the organization
 - Category 2 (Strategy): How strategic objectives and action plans are developed
 - Category 3 (Customers): How customer and market needs are addressed
 - Category 4 (Measurement): How data drives decisions and knowledge management
 - Category 5 (Workforce): How workforce capability and engagement are built
 - Category 6 (Operations): How key work processes are designed, managed, improved
-- Category 7 (Results): Performance and outcomes
+(Category 7 Results is not shown in the workflow diagram)
 
-ADLI MATURITY classDef names to use in Mermaid:
+ADLI MATURITY classDef names (for existing process nodes):
 - "integrated" = overall score 70–100% — fill:#324a4d,color:#fff,stroke:#2a3d40
 - "aligned" = overall score 50–69% — fill:#b1bd37,color:#000,stroke:#9aab2c
 - "early" = overall score 30–49% — fill:#f79935,color:#000,stroke:#e08820
 - "reacting" = overall score 0–29% — fill:#dc2626,color:#fff,stroke:#b91c1c
 - "unscored" = no ADLI data — fill:#9ca3af,color:#fff,stroke:#6b7280
+- "gap" = gap/missing process — fill:#fff7ed,color:#92400e,stroke:#f59e0b,stroke-width:2,stroke-dasharray:5 3
 
 MERMAID RULES (follow strictly):
 1. Start with: flowchart TB
-2. Define all 5 classDefs immediately after the direction line
-3. Use subgraph for each Baldrige category that contains at least one process
-4. Node ID = p{id} (e.g., p5 for process ID 5)
+2. Define ALL 6 classDefs immediately after the direction line (integrated, aligned, early, reacting, unscored, gap)
+3. Include ALL 6 Baldrige categories as subgraphs — even if a category has no existing processes yet. Use a clear subgraph title like: subgraph CAT1["1. Leadership"]
+4. Node ID for existing processes = p{id} (e.g., p5 for process ID 5)
 5. Node label = short name (max 22 chars) — abbreviate freely, put score in parens: "Svc Delivery (71%)"
-6. Arrows: max 2–3 per process — only the most meaningful connections
-7. After all subgraphs and arrows, assign a class to every node: class p5 integrated
-8. Do NOT use style statements — only classDef + class assignments
-9. Wrap any label containing special characters in double quotes`;
+6. Gap process nodes use ID = g{n} (g1, g2, g3...) with label format: "⚠ Short Name\\n(GAP)" — place each gap node INSIDE the correct category subgraph based on its baldrigeCategory
+7. Arrows: max 2–3 per process — only the most meaningful connections between existing processes
+8. After ALL subgraphs and arrows, assign a class to every node: class p5 integrated
+9. CRITICAL — Force vertical stacking: after all class assignments, add one line of invisible links connecting the first node (or subgraph label anchor) of each category in order. Use the ~~~ invisible link syntax: e.g. "p5 ~~~ p12" where p5 is any node in Cat1 and p12 is any node in Cat2. Chain them: nodeInCat1 ~~~ nodeInCat2 ~~~ nodeInCat3 ~~~ nodeInCat4 ~~~ nodeInCat5 ~~~ nodeInCat6. If a category is empty (only gap nodes), use the gap node ID.
+10. Do NOT use style statements — only classDef + class assignments
+11. Wrap any label containing special characters in double quotes`;
 
   const userPrompt = `Here are NIA's current KEY processes:
 
@@ -181,15 +195,22 @@ ${processList}
 Generate TWO things:
 
 ---MERMAID---
-The complete Mermaid flowchart (raw code only, no fences) showing these key processes organized into Baldrige System Model subgraphs, with arrows for the most meaningful connections, and class assignments for maturity coloring.
+The complete Mermaid flowchart (raw code only, no fences) showing:
+- All 6 Baldrige categories as subgraphs (even empty ones)
+- Existing key processes as p{id} nodes inside the correct subgraph, color-coded by ADLI maturity
+- Gap nodes (from the gaps analysis below) as g{n} nodes with class "gap", placed inside the correct category subgraph
+- Meaningful arrows between existing processes only
+- Invisible vertical-stacking link at the end
 
 ---GAPS---
-A JSON array of key processes that are MISSING from NIA's Hub — processes implied by NIA's organizational profile (services, regulatory environment, strategic challenges) or required by Baldrige Category 6.1 (key work processes) that don't appear in the list above. Be specific and actionable.
+A JSON array of key processes MISSING from NIA's Hub — implied by NIA's organizational profile (services, regulatory environment, strategic challenges) or required by Baldrige Category 6.1 that don't appear in the list above. Limit to the 6 most important gaps. Be specific and actionable.
 
 Format for each gap item:
-{"name": "Process Name", "baldrigeItem": "6.1", "priority": "high", "rationale": "One clear sentence explaining why this process is needed based on NIA's org profile."}
+{"name": "Process Name", "baldrigeItem": "6.1", "baldrigeCategory": 6, "priority": "high", "rationale": "One clear sentence explaining why this process is needed based on NIA's org profile."}
 
-Priority guide: "high" = NIA clearly delivers this service or faces this challenge but has no documented process; "medium" = implied by Baldrige best practice for this org type; "low" = aspirational/growth.
+Rules:
+- "baldrigeCategory" must be 1–6 (the category number where this gap belongs)
+- Priority: "high" = NIA clearly delivers this service or faces this challenge but has no documented process; "medium" = implied by Baldrige best practice; "low" = aspirational/growth.
 
 Return ONLY the two sections with their headers. No other text.`;
 

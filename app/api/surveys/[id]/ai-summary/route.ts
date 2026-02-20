@@ -197,7 +197,7 @@ export async function POST(
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-6",
       max_tokens: 2048,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: `Analyze these survey results:\n\n${resultsSummary}` }],
