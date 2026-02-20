@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { isSuperAdminRole } from "@/lib/auth-helpers";
+import type { MissionFlowData } from "@/lib/flow-types";
 
 export const maxDuration = 120;
 
@@ -167,52 +168,66 @@ BALDRIGE SYSTEMS MODEL — all 6 workflow categories:
 - Category 6 (Operations): How key work processes are designed, managed, improved
 (Category 7 Results is not shown in the workflow diagram)
 
-ADLI MATURITY classDef names (for existing process nodes):
-- "integrated" = overall score 70–100% — fill:#324a4d,color:#fff,stroke:#2a3d40
-- "aligned" = overall score 50–69% — fill:#b1bd37,color:#000,stroke:#9aab2c
-- "early" = overall score 30–49% — fill:#f79935,color:#000,stroke:#e08820
-- "reacting" = overall score 0–29% — fill:#dc2626,color:#fff,stroke:#b91c1c
-- "unscored" = no ADLI data — fill:#9ca3af,color:#fff,stroke:#6b7280
-- "gap" = gap/missing process — fill:#fff7ed,color:#92400e,stroke:#f59e0b,stroke-width:2,stroke-dasharray:5 3
-
-MERMAID RULES (follow strictly):
-1. Start with: flowchart TB
-2. Define ALL 6 classDefs immediately after the direction line (integrated, aligned, early, reacting, unscored, gap)
-3. Include ALL 6 Baldrige categories as subgraphs — even if a category has no existing processes yet. Use a clear subgraph title like: subgraph CAT1["1. Leadership"]
-4. Node ID for existing processes = p{id} (e.g., p5 for process ID 5)
-5. Node label = short name (max 22 chars) — abbreviate freely, put score in parens: "Svc Delivery (71%)"
-6. Gap process nodes use ID = g{n} (g1, g2, g3...) with label format: "⚠ Short Name\\n(GAP)" — place each gap node INSIDE the correct category subgraph based on its baldrigeCategory
-7. Arrows: max 2–3 per process — only the most meaningful connections between existing processes
-8. After ALL subgraphs and arrows, assign a class to every node: class p5 integrated
-9. CRITICAL — Force vertical stacking: after all class assignments, add one line of invisible links connecting the first node (or subgraph label anchor) of each category in order. Use the ~~~ invisible link syntax: e.g. "p5 ~~~ p12" where p5 is any node in Cat1 and p12 is any node in Cat2. Chain them: nodeInCat1 ~~~ nodeInCat2 ~~~ nodeInCat3 ~~~ nodeInCat4 ~~~ nodeInCat5 ~~~ nodeInCat6. If a category is empty (only gap nodes), use the gap node ID.
-10. Do NOT use style statements — only classDef + class assignments
-11. Wrap any label containing special characters in double quotes`;
+ADLI MATURITY classes for existing process nodes:
+- "integrated" = overall score 70–100%
+- "aligned" = overall score 50–69%
+- "early" = overall score 30–49%
+- "reacting" = overall score 0–29%
+- "unscored" = no ADLI data
+- "gap" = gap/missing process`;
 
   const userPrompt = `Here are NIA's current KEY processes:
 
 ${processList}
 
-Generate TWO things:
+Generate TWO sections:
 
----MERMAID---
-The complete Mermaid flowchart (raw code only, no fences) showing:
-- All 6 Baldrige categories as subgraphs (even empty ones)
-- Existing key processes as p{id} nodes inside the correct subgraph, color-coded by ADLI maturity
-- Gap nodes (from the gaps analysis below) as g{n} nodes with class "gap", placed inside the correct category subgraph
-- Meaningful arrows between existing processes only
-- Invisible vertical-stacking link at the end
+---FLOW---
+A JSON object with "nodes" and "edges" arrays representing NIA's Mission Workflow:
 
----GAPS---
-A JSON array of key processes MISSING from NIA's Hub — implied by NIA's organizational profile (services, regulatory environment, strategic challenges) or required by Baldrige Category 6.1 that don't appear in the list above. Limit to the 6 most important gaps. Be specific and actionable.
+Node format:
+{
+  "id": "p5",
+  "label": "Svc Delivery (71%)",
+  "adliClass": "integrated",
+  "adliScore": 71,
+  "baldrigeCategory": 6,
+  "isGap": false
+}
 
-Format for each gap item:
-{"name": "Process Name", "baldrigeItem": "6.1", "baldrigeCategory": 6, "priority": "high", "rationale": "One clear sentence explaining why this process is needed based on NIA's org profile."}
+Gap node format:
+{
+  "id": "g1",
+  "label": "Workforce Recruitment",
+  "adliClass": "gap",
+  "baldrigeCategory": 5,
+  "isGap": true,
+  "priority": "high"
+}
+
+Edge format:
+{"id": "e1", "source": "p5", "target": "p12"}
 
 Rules:
-- "baldrigeCategory" must be 1–6 (the category number where this gap belongs)
-- Priority: "high" = NIA clearly delivers this service or faces this challenge but has no documented process; "medium" = implied by Baldrige best practice; "low" = aspirational/growth.
+- Include ALL existing key processes (id = "p{processId}", e.g. "p5" for process ID 5)
+- Include gap nodes from the analysis below (id = "g1", "g2", etc.)
+- "baldrigeCategory" must be 1–6 — determines which category section the node appears in
+- "label" max 22 characters — abbreviate freely, include score like "(71%)" if available
+- "adliClass" must be one of: integrated, aligned, early, reacting, unscored, gap
+- Edges: max 2–3 per process, only the most meaningful workflow connections
+- Return valid minified JSON, no markdown fences
 
-Return ONLY the two sections with their headers. No other text.`;
+---GAPS---
+A JSON array of key processes MISSING from NIA's Hub — implied by NIA's organizational profile (services, regulatory environment, strategic challenges) or required by Baldrige 6.1. Limit to the 6 most important gaps.
+
+Format:
+{"name": "Process Name", "baldrigeItem": "6.1", "baldrigeCategory": 6, "priority": "high", "rationale": "One clear sentence why this is needed."}
+
+Rules:
+- "baldrigeCategory" must be 1–6
+- Priority: "high" = NIA clearly operates this but hasn't documented it; "medium" = Baldrige best practice; "low" = aspirational
+
+Return ONLY the two sections with their delimiters. No other text.`;
 
   try {
     const response = await anthropic.messages.create({
@@ -226,18 +241,25 @@ Return ONLY the two sections with their headers. No other text.`;
       response.content[0].type === "text" ? response.content[0].text.trim() : "";
 
     // Parse the two delimited sections
-    const mermaidMatch = text.match(/---MERMAID---\s*([\s\S]*?)(?=---GAPS---|$)/);
+    const flowMatch = text.match(/---FLOW---\s*([\s\S]*?)(?=---GAPS---|$)/);
     const gapsMatch = text.match(/---GAPS---\s*([\s\S]*?)$/);
 
-    let mermaid = mermaidMatch ? mermaidMatch[1].trim() : "";
+    let flowData: MissionFlowData | null = null;
     let gaps: GapItem[] = [];
 
-    // Strip any accidental markdown fences around the mermaid block
-    mermaid = mermaid
-      .replace(/^```mermaid\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```\s*$/, "")
-      .trim();
+    if (flowMatch) {
+      try {
+        // Strip any accidental markdown fences
+        const raw = flowMatch[1]
+          .replace(/^```json\s*/i, "")
+          .replace(/^```\s*/i, "")
+          .replace(/\s*```\s*$/, "")
+          .trim();
+        flowData = JSON.parse(raw) as MissionFlowData;
+      } catch {
+        console.warn("Failed to parse flow JSON");
+      }
+    }
 
     if (gapsMatch) {
       try {
@@ -250,12 +272,12 @@ Return ONLY the two sections with their headers. No other text.`;
       }
     }
 
-    if (!mermaid) {
+    if (!flowData) {
       return NextResponse.json({ error: "AI did not return a valid diagram" }, { status: 500 });
     }
 
     return NextResponse.json({
-      mermaid,
+      flowData,
       gaps,
       generatedAt: new Date().toISOString(),
       keyCount: keyProcesses.length,

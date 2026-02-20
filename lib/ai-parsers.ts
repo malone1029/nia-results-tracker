@@ -2,6 +2,8 @@
 // These parse fenced code blocks (```adli-scores, ```coach-suggestions, etc.)
 // from streaming AI responses and extract structured data.
 
+import type { ProcessMapFlowData } from "./flow-types";
+
 export interface AdliScores {
   approach: number;
   deployment: number;
@@ -25,7 +27,10 @@ export interface CoachSuggestion {
   title: string;
   whyMatters: string;
   preview: string;
-  content: string | Record<string, string>; // string for normal, object for charter_cleanup
+  // string → normal ADLI/charter markdown content
+  // Record<string, string> → charter_cleanup multi-field update
+  // ProcessMapFlowData → new React Flow process map (field = "workflow")
+  content: string | Record<string, string> | ProcessMapFlowData;
   tasks?: SuggestionTask[];
 }
 

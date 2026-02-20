@@ -25,6 +25,17 @@ import { STEPS, getPrimaryAction, type StepActionDef } from "@/lib/step-actions"
 import { useRole } from "@/lib/use-role";
 import ProcessHealthCard from "@/components/process-health-card";
 import HelpTip from "@/components/help-tip";
+import dynamic from "next/dynamic";
+
+// Dynamically import the React Flow canvas so it only loads client-side
+const ProcessFlowCanvas = dynamic(
+  () => import("@/components/flow/process-flow-canvas"),
+  { ssr: false, loading: () => (
+    <div className="w-full h-[520px] rounded-lg bg-surface-hover border border-border flex items-center justify-center">
+      <p className="text-sm text-text-muted">Loading process map...</p>
+    </div>
+  ) }
+);
 import ContextualTip from "@/components/contextual-tip";
 import MilestoneToast from "@/components/milestone-toast";
 import ConfirmDeleteModal from "@/components/confirm-delete-modal";
@@ -1644,12 +1655,34 @@ function ProcessDetailContent() {
       {/* ═══ PROCESS MAP TAB — mounted once viewed, kept alive via CSS hidden ═══ */}
       {processMapMounted && (
         <div id="section-workflow" className={activeTab !== "process-map" ? "hidden" : ""}>
-          {process.workflow?.content ? (
+          {process.workflow?.flow_data ? (
+            /* New React Flow interactive diagram */
+            <div>
+              <ProcessFlowCanvas flowData={process.workflow.flow_data} height={520} />
+              <div className="mt-3 pt-3 border-t border-border-light flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setPendingPrompt("The current process map needs adjustments. Here's what I'd like to change:")}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-nia-grey-blue bg-nia-grey-blue/8 hover:bg-nia-grey-blue/15 px-3 py-1.5 rounded-full transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  Refine Map
+                </button>
+                <button
+                  onClick={() => setPendingPrompt("Regenerate the process map from scratch based on the current charter and ADLI content.")}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-nia-grey-blue bg-nia-grey-blue/8 hover:bg-nia-grey-blue/15 px-3 py-1.5 rounded-full transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  Regenerate
+                </button>
+              </div>
+            </div>
+          ) : process.workflow?.content ? (
+            /* Legacy Mermaid diagram — show as-is until regenerated */
             <ProcessMapView
               content={process.workflow.content}
               processName={process.name}
               onRefine={() => setPendingPrompt("The current process map needs adjustments. Here's what I'd like to change:")}
-              onRegenerate={() => setPendingPrompt("Regenerate the process map from scratch based on the current charter and ADLI content. Create a fresh Mermaid flowchart.")}
+              onRegenerate={() => setPendingPrompt("Regenerate the process map from scratch based on the current charter and ADLI content.")}
             />
           ) : (
             <div className="text-center py-12">
@@ -1658,11 +1691,11 @@ function ProcessDetailContent() {
               </svg>
               <p className="text-sm font-medium text-nia-dark mb-1">No process map yet</p>
               <p className="text-xs text-text-muted mb-4 max-w-xs mx-auto">
-                AI generates a Mermaid diagram. You can refine it, edit the code, and download as SVG or PNG.
-                <HelpTip text="AI generates a Mermaid diagram. You can refine it, edit the code, and download as SVG or PNG." />
+                Ask the AI Coach to generate an interactive process map based on this process&apos;s charter and ADLI documentation.
+                <HelpTip text="The AI generates an interactive React Flow diagram with pan, zoom, and step-by-step visualization." />
               </p>
               <button
-                onClick={() => setPendingPrompt("Generate a process map for this process. Create a Mermaid flowchart that shows the key steps, decision points, responsible parties, and outputs based on the charter and ADLI content.")}
+                onClick={() => setPendingPrompt("Generate a process map for this process. Create an interactive flowchart that shows the key steps, decision points, responsible parties, and outputs based on the charter and ADLI content.")}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-nia-dark-solid hover:bg-nia-grey-blue px-4 py-2 rounded-lg transition-all duration-150 shadow-sm hover:shadow"
               >
                 <svg className="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>

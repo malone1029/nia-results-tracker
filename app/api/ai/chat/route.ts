@@ -409,12 +409,12 @@ Rules for suggestions:
 
 Only include this block when you are proposing specific improvements. Do NOT include it for general questions or task-building interviews.
 
-## Process Map Generation (Mermaid Flowcharts)
+## Process Map Generation (React Flow JSON)
 
 When the user asks you to generate a process map, create a visual process diagram, or you determine one would be valuable:
 
-1. Generate a Mermaid flowchart based on the charter, ADLI sections, and any existing workflow data
-2. Output it as a coach-suggestion with \`"field": "workflow"\` — the content MUST be a markdown code block wrapping the Mermaid:
+1. Generate a React Flow node/edge structure based on the charter, ADLI sections, and any existing workflow data
+2. Output it as a coach-suggestion with \`"field": "workflow"\` — the content MUST be a JSON **object** (not a string):
 
 \`\`\`coach-suggestions
 [
@@ -425,25 +425,38 @@ When the user asks you to generate a process map, create a visual process diagra
     "effort": "minimal",
     "title": "Process Map",
     "whyMatters": "A visual flowchart makes the process easier to understand and share with stakeholders.",
-    "preview": "Visual flowchart showing the key steps, decision points, and responsible parties.",
-    "content": "\`\`\`mermaid\\nflowchart TD\\n    A[Step 1] --> B{Decision}\\n    B -->|Yes| C[Step 2]\\n    B -->|No| D[Step 3]\\n\`\`\`",
+    "preview": "Interactive flowchart showing the key steps, decision points, and responsible parties.",
+    "content": {
+      "nodes": [
+        {"id": "start", "type": "start", "label": "Start"},
+        {"id": "s1", "type": "step", "label": "Receive Referral", "responsible": "Coordinator"},
+        {"id": "d1", "type": "decision", "label": "Eligible?"},
+        {"id": "s2", "type": "step", "label": "Schedule Service", "responsible": "Scheduler"},
+        {"id": "end", "type": "end", "label": "End"}
+      ],
+      "edges": [
+        {"id": "e1", "source": "start", "target": "s1"},
+        {"id": "e2", "source": "s1", "target": "d1"},
+        {"id": "e3", "source": "d1", "target": "s2", "label": "Yes"},
+        {"id": "e4", "source": "d1", "target": "end", "label": "No"},
+        {"id": "e5", "source": "s2", "target": "end"}
+      ]
+    },
     "tasks": []
   }
 ]
 \`\`\`
 
 Rules for process maps:
-- Use \`flowchart TD\` (top-down) for most process flows
-- Use descriptive node labels from the actual process (not generic "Step 1")
-- Include decision diamonds \`{Decision?}\` for branching logic
-- Use subgraphs to group steps by responsible party or phase when helpful
-- Keep it readable — aim for 5-15 nodes. Split complex processes into overview + detail
-- **CRITICAL: The "content" field must use \\n for newlines (valid JSON escaping), NOT literal line breaks.** The entire mermaid block must be on a single JSON line. Example: "\`\`\`mermaid\\nflowchart TD\\n    A --> B\\n\`\`\`"
-- The "content" field must be valid markdown with a mermaid code fence inside it
-- If workflow.content already has a Mermaid diagram, use it as the starting point and modify based on user feedback
+- Must have exactly one \`"type": "start"\` node and at least one \`"type": "end"\` node
+- Node types: \`"start"\`, \`"end"\`, \`"step"\`, \`"decision"\`, \`"input"\`, \`"output"\`
+- Use descriptive labels from the actual process (not generic "Step 1") — max 40 chars
+- Include \`"responsible"\` on step nodes where relevant (e.g., "Coordinator", "Admin")
+- Decision node edges should have \`"label": "Yes"\` or \`"label": "No"\`
+- Aim for 6–15 nodes — focus on key milestones, not every micro-step
+- If workflow.flow_data already exists, use it as the starting point and modify based on user feedback
+- The "content" field must be a valid JSON **object** with "nodes" and "edges" arrays
 - Tasks array can be empty for process map suggestions
-- When refining an existing map, preserve the overall structure and only change what the user requested
-- In Mermaid node labels, avoid special characters that break parsing: use single quotes or parentheses for text with apostrophes. Avoid bare quotes inside brackets.
 
 ${ADLI_TO_PDCA_PROMPT}
 

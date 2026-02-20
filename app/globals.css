@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@import "@xyflow/react/dist/style.css";
 
 :root {
   --background: #fafaf8;
