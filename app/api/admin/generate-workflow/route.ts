@@ -233,7 +233,8 @@ Return ONLY the two sections with their delimiters. No other text.`;
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 4096,
-      system: systemPrompt,
+      // NIA_ORG_PROFILE + Baldrige definitions = ~1,100 static tokens — cache them.
+      system: [{ type: "text" as const, text: systemPrompt, cache_control: { type: "ephemeral" as const } }],
       messages: [{ role: "user", content: userPrompt }],
     });
 
