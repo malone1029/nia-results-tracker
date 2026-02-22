@@ -33,12 +33,12 @@ export async function POST(request: Request) {
     .single();
   const isAdmin = roleRow?.role === "admin";
 
-  const systemPrompt = buildHelpSystemPrompt(pageUrl || "/", isAdmin);
+  const systemBlocks = buildHelpSystemPrompt(pageUrl || "/", isAdmin);
 
   const stream = anthropic.messages.stream({
     model: "claude-sonnet-4-6",
     max_tokens: 1024,
-    system: systemPrompt,
+    system: systemBlocks,
     messages: messages.map((m: { role: string; content: string }) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
