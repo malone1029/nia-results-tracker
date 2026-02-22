@@ -175,13 +175,14 @@ ON CONFLICT DO NOTHING;
 
 -- ============================================================
 -- TABLE 3: Item Means by Survey Administration (20 items x 3 admin)
+-- Verbatim question text from Studer Education EE Survey
 -- ============================================================
 
--- Q1: Good Processes & Resources
+-- Q1: I feel supported with good processes and the appropriate resources to do my job.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q1 Mean: Good Processes & Resources', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q1 Mean: I feel supported with good processes and the appropriate resources to do my job.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q1 Mean: Good Processes & Resources';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q1 Mean: I feel supported with good processes and the appropriate resources to do my job.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.62, '2024-11-01', 'Fall 2024'),
@@ -189,11 +190,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.62, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q2: Strengths Feedback
+-- Q2: I receive feedback on my strengths as an employee.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q2 Mean: Strengths Feedback', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q2 Mean: I receive feedback on my strengths as an employee.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q2 Mean: Strengths Feedback';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q2 Mean: I receive feedback on my strengths as an employee.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.55, '2024-11-01', 'Fall 2024'),
@@ -201,11 +202,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.62, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q3: Work-Life Balance Support
+-- Q3: I feel supported in balancing my work responsibilities.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q3 Mean: Work-Life Balance Support', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q3 Mean: I feel supported in balancing my work responsibilities.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q3 Mean: Work-Life Balance Support';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q3 Mean: I feel supported in balancing my work responsibilities.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.51, '2024-11-01', 'Fall 2024'),
@@ -213,11 +214,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.52, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q4: Recognition
+-- Q4: I receive appropriate recognition when I do good work.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q4 Mean: Recognition', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q4 Mean: I receive appropriate recognition when I do good work.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q4 Mean: Recognition';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q4 Mean: I receive appropriate recognition when I do good work.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.54, '2024-11-01', 'Fall 2024'),
@@ -225,11 +226,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.60, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q5: Leader Concern for Welfare
+-- Q5: I believe that leaders in my immediate work environment are genuinely concerned for my welfare.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q5 Mean: Leader Concern for Welfare', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q5 Mean: I believe that leaders in my immediate work environment are genuinely concerned for my welfare.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q5 Mean: Leader Concern for Welfare';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q5 Mean: I believe that leaders in my immediate work environment are genuinely concerned for my welfare.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.67, '2024-11-01', 'Fall 2024'),
@@ -237,11 +238,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.75, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q6: Resource Allocation (Local)
+-- Q6: I feel that resources in my immediate work environment are allocated to maximize effectiveness.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q6 Mean: Resource Allocation (Local)', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q6 Mean: I feel that resources in my immediate work environment are allocated to maximize effectiveness.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q6 Mean: Resource Allocation (Local)';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q6 Mean: I feel that resources in my immediate work environment are allocated to maximize effectiveness.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.53, '2024-11-01', 'Fall 2024'),
@@ -249,11 +250,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.48, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q7: Input on Decisions
+-- Q7: I have the opportunity to provide input on decisions that affect my job.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q7 Mean: Input on Decisions', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q7 Mean: I have the opportunity to provide input on decisions that affect my job.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q7 Mean: Input on Decisions';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q7 Mean: I have the opportunity to provide input on decisions that affect my job.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.49, '2024-11-01', 'Fall 2024'),
@@ -261,11 +262,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.54, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q8: Clear Expectations
+-- Q8: I have a clear understanding of my expectations as an employee.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q8 Mean: Clear Expectations', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q8 Mean: I have a clear understanding of my expectations as an employee.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q8 Mean: Clear Expectations';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q8 Mean: I have a clear understanding of my expectations as an employee.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.72, '2024-11-01', 'Fall 2024'),
@@ -273,11 +274,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.66, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q9: Leadership Support
+-- Q9: I have the support needed from leadership in my immediate work environment to accomplish my work objectives.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q9 Mean: Leadership Support', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q9 Mean: I have the support needed from leadership in my immediate work environment to accomplish my work objectives.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q9 Mean: Leadership Support';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q9 Mean: I have the support needed from leadership in my immediate work environment to accomplish my work objectives.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.62, '2024-11-01', 'Fall 2024'),
@@ -285,11 +286,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.60, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q10: Performance Feedback
+-- Q10: I receive feedback concerning areas for improving my performance.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q10 Mean: Performance Feedback', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q10 Mean: I receive feedback concerning areas for improving my performance.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q10 Mean: Performance Feedback';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q10 Mean: I receive feedback concerning areas for improving my performance.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.59, '2024-11-01', 'Fall 2024'),
@@ -297,11 +298,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.52, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q11: Resource Allocation (Org)
+-- Q11: I feel that organization-level resources are allocated to maximize effectiveness across the organization.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q11 Mean: Resource Allocation (Org)', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q11 Mean: I feel that organization-level resources are allocated to maximize effectiveness across the organization.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q11 Mean: Resource Allocation (Org)';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q11 Mean: I feel that organization-level resources are allocated to maximize effectiveness across the organization.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.54, '2024-11-01', 'Fall 2024'),
@@ -309,11 +310,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.50, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q12: Timely Communication (Org)
+-- Q12: I believe organization-level information is communicated in a timely manner across the organization.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q12 Mean: Timely Communication (Org)', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q12 Mean: I believe organization-level information is communicated in a timely manner across the organization.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q12 Mean: Timely Communication (Org)';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q12 Mean: I believe organization-level information is communicated in a timely manner across the organization.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.65, '2024-11-01', 'Fall 2024'),
@@ -321,11 +322,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.56, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q13: Culture of Success
+-- Q13: I see progress being made to create a culture of success for employees across the organization and for those we serve.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q13 Mean: Culture of Success', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q13 Mean: I see progress being made to create a culture of success for employees across the organization and for those we serve.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q13 Mean: Culture of Success';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q13 Mean: I see progress being made to create a culture of success for employees across the organization and for those we serve.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.54, '2024-11-01', 'Fall 2024'),
@@ -333,11 +334,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.60, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q14: Parent Recommendation
+-- Q14: I would recommend that parents select my organization to serve their child.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q14 Mean: Parent Recommendation', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q14 Mean: I would recommend that parents select my organization to serve their child.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q14 Mean: Parent Recommendation';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q14 Mean: I would recommend that parents select my organization to serve their child.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.71, '2024-11-01', 'Fall 2024'),
@@ -345,11 +346,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.71, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q15: Honest Communication
+-- Q15: I feel that others in my organization connect with me in honest two-way communication.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q15 Mean: Honest Communication', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q15 Mean: I feel that others in my organization connect with me in honest two-way communication.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q15 Mean: Honest Communication';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q15 Mean: I feel that others in my organization connect with me in honest two-way communication.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.59, '2024-11-01', 'Fall 2024'),
@@ -357,11 +358,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.61, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q16: Share & Exchange Ideas
+-- Q16: I work in an organization where employees regularly share and exchange ideas.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q16 Mean: Share & Exchange Ideas', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q16 Mean: I work in an organization where employees regularly share and exchange ideas.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q16 Mean: Share & Exchange Ideas';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q16 Mean: I work in an organization where employees regularly share and exchange ideas.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.69, '2024-11-01', 'Fall 2024'),
@@ -369,11 +370,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.67, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q17: Open Communication Culture
+-- Q17: I feel that organizational culture supports open and honest communication.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q17 Mean: Open Communication Culture', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q17 Mean: I feel that organizational culture supports open and honest communication.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q17 Mean: Open Communication Culture';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q17 Mean: I feel that organizational culture supports open and honest communication.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.60, '2024-11-01', 'Fall 2024'),
@@ -381,11 +382,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.59, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q18: Mission & Goals Understanding
+-- Q18: I have a clear understanding of the mission and goals of my organization.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q18 Mean: Mission & Goals Understanding', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q18 Mean: I have a clear understanding of the mission and goals of my organization.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q18 Mean: Mission & Goals Understanding';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q18 Mean: I have a clear understanding of the mission and goals of my organization.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.73, '2024-11-01', 'Fall 2024'),
@@ -393,11 +394,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.67, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q19: Work Positively Impacts
+-- Q19: I believe my work positively impacts those we serve.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q19 Mean: Work Positively Impacts', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q19 Mean: I believe my work positively impacts those we serve.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q19 Mean: Work Positively Impacts';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q19 Mean: I believe my work positively impacts those we serve.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.80, '2024-11-01', 'Fall 2024'),
@@ -405,11 +406,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.77, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q20: Pride in Organization
+-- Q20: I feel a sense of pride when I tell people where I work.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q20 Mean: Pride in Organization', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q20 Mean: I feel a sense of pride when I tell people where I work.', 'mean', 'semi-annual', 4.50, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q20 Mean: Pride in Organization';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q20 Mean: I feel a sense of pride when I tell people where I work.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 4.68, '2024-11-01', 'Fall 2024'),
@@ -421,11 +422,11 @@ ON CONFLICT DO NOTHING;
 -- TABLE 4: Item Top Box % by Survey Administration (20 items x 3 admin)
 -- ============================================================
 
--- Q1 Top Box: Good Processes & Resources
+-- Q1 Top Box: I feel supported with good processes and the appropriate resources to do my job.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q1 Top Box: Good Processes & Resources', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q1 Top Box: I feel supported with good processes and the appropriate resources to do my job.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q1 Top Box: Good Processes & Resources';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q1 Top Box: I feel supported with good processes and the appropriate resources to do my job.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 67.76, '2024-11-01', 'Fall 2024'),
@@ -433,11 +434,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 72.25, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q2 Top Box: Strengths Feedback
+-- Q2 Top Box: I receive feedback on my strengths as an employee.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q2 Top Box: Strengths Feedback', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q2 Top Box: I receive feedback on my strengths as an employee.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q2 Top Box: Strengths Feedback';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q2 Top Box: I receive feedback on my strengths as an employee.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 65.74, '2024-11-01', 'Fall 2024'),
@@ -445,11 +446,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 72.69, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q3 Top Box: Work-Life Balance Support
+-- Q3 Top Box: I feel supported in balancing my work responsibilities.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q3 Top Box: Work-Life Balance Support', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q3 Top Box: I feel supported in balancing my work responsibilities.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q3 Top Box: Work-Life Balance Support';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q3 Top Box: I feel supported in balancing my work responsibilities.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 62.96, '2024-11-01', 'Fall 2024'),
@@ -457,11 +458,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 66.52, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q4 Top Box: Recognition
+-- Q4 Top Box: I receive appropriate recognition when I do good work.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q4 Top Box: Recognition', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q4 Top Box: I receive appropriate recognition when I do good work.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q4 Top Box: Recognition';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q4 Top Box: I receive appropriate recognition when I do good work.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 68.37, '2024-11-01', 'Fall 2024'),
@@ -469,11 +470,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 69.78, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q5 Top Box: Leader Concern for Welfare
+-- Q5 Top Box: I believe that leaders in my immediate work environment are genuinely concerned for my welfare.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q5 Top Box: Leader Concern for Welfare', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q5 Top Box: I believe that leaders in my immediate work environment are genuinely concerned for my welfare.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q5 Top Box: Leader Concern for Welfare';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q5 Top Box: I believe that leaders in my immediate work environment are genuinely concerned for my welfare.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 75.00, '2024-11-01', 'Fall 2024'),
@@ -481,11 +482,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 83.70, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q6 Top Box: Resource Allocation (Local)
+-- Q6 Top Box: I feel that resources in my immediate work environment are allocated to maximize effectiveness.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q6 Top Box: Resource Allocation (Local)', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q6 Top Box: I feel that resources in my immediate work environment are allocated to maximize effectiveness.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q6 Top Box: Resource Allocation (Local)';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q6 Top Box: I feel that resources in my immediate work environment are allocated to maximize effectiveness.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 61.11, '2024-11-01', 'Fall 2024'),
@@ -493,11 +494,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 61.95, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q7 Top Box: Input on Decisions
+-- Q7 Top Box: I have the opportunity to provide input on decisions that affect my job.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q7 Top Box: Input on Decisions', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q7 Top Box: I have the opportunity to provide input on decisions that affect my job.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q7 Top Box: Input on Decisions';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q7 Top Box: I have the opportunity to provide input on decisions that affect my job.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 62.96, '2024-11-01', 'Fall 2024'),
@@ -505,11 +506,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 66.37, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q8 Top Box: Clear Expectations
+-- Q8 Top Box: I have a clear understanding of my expectations as an employee.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q8 Top Box: Clear Expectations', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q8 Top Box: I have a clear understanding of my expectations as an employee.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q8 Top Box: Clear Expectations';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q8 Top Box: I have a clear understanding of my expectations as an employee.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 73.95, '2024-11-01', 'Fall 2024'),
@@ -517,11 +518,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 74.89, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q9 Top Box: Leadership Support
+-- Q9 Top Box: I have the support needed from leadership in my immediate work environment to accomplish my work objectives.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q9 Top Box: Leadership Support', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q9 Top Box: I have the support needed from leadership in my immediate work environment to accomplish my work objectives.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q9 Top Box: Leadership Support';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q9 Top Box: I have the support needed from leadership in my immediate work environment to accomplish my work objectives.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 71.03, '2024-11-01', 'Fall 2024'),
@@ -529,11 +530,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 72.69, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q10 Top Box: Performance Feedback
+-- Q10 Top Box: I receive feedback concerning areas for improving my performance.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q10 Top Box: Performance Feedback', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q10 Top Box: I receive feedback concerning areas for improving my performance.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q10 Top Box: Performance Feedback';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q10 Top Box: I receive feedback concerning areas for improving my performance.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 67.76, '2024-11-01', 'Fall 2024'),
@@ -541,11 +542,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 66.52, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q11 Top Box: Resource Allocation (Org)
+-- Q11 Top Box: I feel that organization-level resources are allocated to maximize effectiveness across the organization.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q11 Top Box: Resource Allocation (Org)', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q11 Top Box: I feel that organization-level resources are allocated to maximize effectiveness across the organization.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q11 Top Box: Resource Allocation (Org)';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q11 Top Box: I feel that organization-level resources are allocated to maximize effectiveness across the organization.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 62.86, '2024-11-01', 'Fall 2024'),
@@ -553,11 +554,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 62.50, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q12 Top Box: Timely Communication (Org)
+-- Q12 Top Box: I believe organization-level information is communicated in a timely manner across the organization.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q12 Top Box: Timely Communication (Org)', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q12 Top Box: I believe organization-level information is communicated in a timely manner across the organization.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q12 Top Box: Timely Communication (Org)';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q12 Top Box: I believe organization-level information is communicated in a timely manner across the organization.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 71.96, '2024-11-01', 'Fall 2024'),
@@ -565,11 +566,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 67.84, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q13 Top Box: Culture of Success
+-- Q13 Top Box: I see progress being made to create a culture of success for employees across the organization and for those we serve.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q13 Top Box: Culture of Success', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q13 Top Box: I see progress being made to create a culture of success for employees across the organization and for those we serve.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q13 Top Box: Culture of Success';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q13 Top Box: I see progress being made to create a culture of success for employees across the organization and for those we serve.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 65.58, '2024-11-01', 'Fall 2024'),
@@ -577,11 +578,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 70.48, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q14 Top Box: Parent Recommendation
+-- Q14 Top Box: I would recommend that parents select my organization to serve their child.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q14 Top Box: Parent Recommendation', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q14 Top Box: I would recommend that parents select my organization to serve their child.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q14 Top Box: Parent Recommendation';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q14 Top Box: I would recommend that parents select my organization to serve their child.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 76.74, '2024-11-01', 'Fall 2024'),
@@ -589,11 +590,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 79.65, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q15 Top Box: Honest Communication
+-- Q15 Top Box: I feel that others in my organization connect with me in honest two-way communication.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q15 Top Box: Honest Communication', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q15 Top Box: I feel that others in my organization connect with me in honest two-way communication.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q15 Top Box: Honest Communication';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q15 Top Box: I feel that others in my organization connect with me in honest two-way communication.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 67.13, '2024-11-01', 'Fall 2024'),
@@ -601,11 +602,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 71.37, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q16 Top Box: Share & Exchange Ideas
+-- Q16 Top Box: I work in an organization where employees regularly share and exchange ideas.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q16 Top Box: Share & Exchange Ideas', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q16 Top Box: I work in an organization where employees regularly share and exchange ideas.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q16 Top Box: Share & Exchange Ideas';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q16 Top Box: I work in an organization where employees regularly share and exchange ideas.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 73.95, '2024-11-01', 'Fall 2024'),
@@ -613,11 +614,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 75.66, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q17 Top Box: Open Communication Culture
+-- Q17 Top Box: I feel that organizational culture supports open and honest communication.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q17 Top Box: Open Communication Culture', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q17 Top Box: I feel that organizational culture supports open and honest communication.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q17 Top Box: Open Communication Culture';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q17 Top Box: I feel that organizational culture supports open and honest communication.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 67.91, '2024-11-01', 'Fall 2024'),
@@ -625,11 +626,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 70.48, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q18 Top Box: Mission & Goals Understanding
+-- Q18 Top Box: I have a clear understanding of the mission and goals of my organization.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q18 Top Box: Mission & Goals Understanding', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q18 Top Box: I have a clear understanding of the mission and goals of my organization.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q18 Top Box: Mission & Goals Understanding';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q18 Top Box: I have a clear understanding of the mission and goals of my organization.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 76.85, '2024-11-01', 'Fall 2024'),
@@ -637,11 +638,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 74.89, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q19 Top Box: Work Positively Impacts
+-- Q19 Top Box: I believe my work positively impacts those we serve.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q19 Top Box: Work Positively Impacts', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q19 Top Box: I believe my work positively impacts those we serve.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q19 Top Box: Work Positively Impacts';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q19 Top Box: I believe my work positively impacts those we serve.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 81.40, '2024-11-01', 'Fall 2024'),
@@ -649,11 +650,11 @@ INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 84.00, '2025-11-01', 'Fall 2025')
 ON CONFLICT DO NOTHING;
 
--- Q20 Top Box: Pride in Organization
+-- Q20 Top Box: I feel a sense of pride when I tell people where I work.
 INSERT INTO metrics (name, unit, cadence, target_value, is_higher_better, data_source, collection_method)
-VALUES ('EE Q20 Top Box: Pride in Organization', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
+VALUES ('EE Q20 Top Box: I feel a sense of pride when I tell people where I work.', 'percentage', 'semi-annual', 75.00, true, 'EE Survey', 'Semi-annual survey')
 ON CONFLICT (name) DO NOTHING;
-SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q20 Top Box: Pride in Organization';
+SELECT id INTO v_metric_id FROM metrics WHERE name = 'EE Q20 Top Box: I feel a sense of pride when I tell people where I work.';
 INSERT INTO metric_processes (metric_id, process_id) VALUES (v_metric_id, v_process_id) ON CONFLICT DO NOTHING;
 INSERT INTO entries (metric_id, value, date, note_analysis) VALUES
   (v_metric_id, 74.77, '2024-11-01', 'Fall 2024'),
