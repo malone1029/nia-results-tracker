@@ -22,7 +22,6 @@ import AdliOverview from "@/components/dashboard/adli-overview";
 import { MetricActionItems, NextActions } from "@/components/dashboard/action-items";
 import { MomentumAndWins, RecentActivity } from "@/components/dashboard/activity-feed";
 import ProcessList from "@/components/dashboard/process-list";
-import SupportServicesCard from "@/components/dashboard/support-services-card";
 import type { ScoreRow, ActionItem, DashboardTaskData } from "@/components/dashboard/types";
 
 export default function ProcessOwnerDashboardPage() {
@@ -546,7 +545,6 @@ function ProcessOwnerDashboard() {
               <MetricActionItems items={actionItems} />
               <NextActions actions={topNextActions} isAllOwners={isAll} />
               <MomentumAndWins monthlyImprovedCount={monthlyImprovedCount} wins={topWins} />
-              <SupportServicesCard />
             </div>
           </div>
 
