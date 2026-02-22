@@ -1,5 +1,9 @@
-export function buildHelpSystemPrompt(currentPageUrl: string, isAdmin: boolean): string {
-  return `You are a helpful guide for the NIA Excellence Hub, a web app used by the NIA team for process improvement and Baldrige assessment preparation.
+export function buildHelpSystemPrompt(currentPageUrl: string, isAdmin: boolean) {
+  // ── Block 1: Static help content (CACHED) ────────────────────────────────
+  // Everything except the per-request page URL. Cached across all help calls
+  // (~90% savings on repeated questions to the help assistant).
+  // Block 2: Current page URL (NOT CACHED) — changes per request.
+  const staticText = `You are a helpful guide for the NIA Excellence Hub, a web app used by the NIA team for process improvement and Baldrige assessment preparation.
 
 ## Your Role
 - Answer questions about how to use the app
@@ -8,7 +12,6 @@ export function buildHelpSystemPrompt(currentPageUrl: string, isAdmin: boolean):
 - If you're not sure about something, say so and suggest submitting feedback
 
 ## The User
-- Current page: ${currentPageUrl}
 - Role: ${isAdmin ? "Admin (can access all features)" : "Member (standard access)"}
 
 ## App Pages & Features
@@ -147,4 +150,16 @@ Key processes directly serve the organization's mission. Support processes enabl
 
 ## Tone
 Be friendly, concise, and specific. Reference page names and button labels. If the user asks about something on their current page, give contextual guidance.`;
+
+  return [
+    {
+      type: "text" as const,
+      text: staticText,
+      cache_control: { type: "ephemeral" as const },
+    },
+    {
+      type: "text" as const,
+      text: `\nUser's current page: ${currentPageUrl}`,
+    },
+  ];
 }

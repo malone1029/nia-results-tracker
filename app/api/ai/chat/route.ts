@@ -1061,9 +1061,20 @@ export async function POST(request: Request) {
     const availableMetricsContext = buildAvailableMetricsContext(availableMetrics);
     const requirementsContext = buildRequirementsContext(requirements);
 
-    const fullSystemPrompt = `${SYSTEM_PROMPT}
-
----
+    // ── Block 1: Static coaching instructions (CACHED) ──────────────────────
+    // SYSTEM_PROMPT is ~6K tokens of unchanging coaching rules. Marking with
+    // cache_control tells Anthropic to store this prefix. Subsequent calls
+    // within 5 minutes pay only 10% of normal input token cost (~90% savings).
+    // Block 2: Per-process context (NOT CACHED) — changes every call.
+    const systemBlocks = [
+      {
+        type: "text" as const,
+        text: SYSTEM_PROMPT,
+        cache_control: { type: "ephemeral" as const },
+      },
+      {
+        type: "text" as const,
+        text: `---
 
 ## Current Process Data
 
@@ -1076,7 +1087,9 @@ ${improvementsContext}
 ${taskContext}
 ${asanaContext}
 ${snapshotContext}
-${filesContext}`;
+${filesContext}`,
+      },
+    ];
 
     // Stream the response from Claude word-by-word
     const encoder = new TextEncoder();
@@ -1109,7 +1122,7 @@ ${filesContext}`;
           const stream = anthropic.messages.stream({
             model: "claude-sonnet-4-6",
             max_tokens: 4096,
-            system: fullSystemPrompt,
+            system: systemBlocks,
             messages: builtMessages,
           });
 
