@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { isAdminRole } from "@/lib/auth-helpers";
 import { computeCompliance } from "@/lib/compliance";
+import { getReviewStatus } from "@/lib/review-status";
 
 export async function GET(
   _req: NextRequest,
@@ -104,6 +105,17 @@ export async function GET(
     }
   }
 
+  // Fetch metrics stewarded by this user (data_steward_email)
+  const { data: stewardedMetrics } = await supabase
+    .from("metrics")
+    .select(`
+      id, name, cadence, data_source, unit, next_entry_expected,
+      entries (value, date)
+    `)
+    .eq("data_steward_email", ownerEmail)
+    .order("name")
+    .order("date", { referencedTable: "entries", ascending: false });
+
   // Fetch completed tasks for these processes in rolling 90 days
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -201,6 +213,17 @@ export async function GET(
       totalTasks,
       completedTasks: completedTasksTotal,
     },
+    stewardedMetrics: (stewardedMetrics || []).map((m) => ({
+      id: m.id,
+      name: m.name,
+      cadence: m.cadence,
+      data_source: m.data_source,
+      review_status: getReviewStatus(
+        m.cadence,
+        (m.entries as { value: number; date: string }[])?.[0]?.date ?? null,
+        m.next_entry_expected
+      ),
+    })),
   });
 }
 
