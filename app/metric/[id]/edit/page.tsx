@@ -124,9 +124,15 @@ export default function EditMetricPage() {
       setEntryCount(count || 0);
 
       // Fetch Asana workspace members for data steward dropdown
-      const membersRes = await fetch("/api/asana/workspace-members");
-      const membersData = await membersRes.json();
-      setMembers(membersData.members || []);
+      try {
+        const membersRes = await fetch("/api/asana/workspace-members");
+        if (membersRes.ok) {
+          const membersData = await membersRes.json();
+          setMembers(membersData.members || []);
+        }
+      } catch {
+        // Asana unavailable — steward dropdown shows empty
+      }
 
       setLoading(false);
     }
@@ -299,22 +305,19 @@ export default function EditMetricPage() {
           <Input label="Comparison Source" value={comparisonSource} onChange={(e) => setComparisonSource(e.target.value)} placeholder="e.g., National average, Studer benchmark" />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">Data Steward</label>
-          <p className="text-xs text-text-muted mb-2">Person responsible for collecting and entering this metric&apos;s data.</p>
-          <select
-            value={dataStewardEmail}
-            onChange={(e) => setDataStewardEmail(e.target.value)}
-            className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-nia-dark-solid/30"
-          >
-            <option value="">— No steward assigned —</option>
-            {members.map((m) => (
-              <option key={m.gid} value={m.email}>
-                {m.name} ({m.email})
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          label="Data Steward"
+          hint="Person responsible for collecting and entering this metric's data."
+          value={dataStewardEmail}
+          onChange={(e) => setDataStewardEmail(e.target.value)}
+        >
+          <option value="">— No steward assigned —</option>
+          {members.map((m) => (
+            <option key={m.gid} value={m.email}>
+              {m.name} ({m.email})
+            </option>
+          ))}
+        </Select>
 
         <div className="grid grid-cols-2 gap-4">
           <Input label="Data Source" value={dataSource} onChange={(e) => setDataSource(e.target.value)} placeholder="e.g., Studer EE Survey" />
