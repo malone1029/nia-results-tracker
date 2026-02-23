@@ -13,7 +13,7 @@ interface MetricOption extends Metric {
   process_name: string;
   category_display_name: string;
   last_entry_date: string | null;
-  review_status: "current" | "due-soon" | "overdue" | "no-data";
+  review_status: "current" | "due-soon" | "overdue" | "no-data" | "scheduled";
 }
 
 export default function LogDataPage() {
@@ -40,6 +40,7 @@ function LogDataContent() {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [noteAnalysis, setNoteAnalysis] = useState("");
   const [noteCourseCorrection, setNoteCourseCorrection] = useState("");
+  const [nextExpected, setNextExpected] = useState("");
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -97,7 +98,7 @@ function LogDataContent() {
         process_name: proc?.name || "Unlinked",
         category_display_name: proc?.category_display_name || "—",
         last_entry_date: lastDate,
-        review_status: getReviewStatus(m.cadence as string, lastDate),
+        review_status: getReviewStatus(m.cadence as string, lastDate, m.next_entry_expected as string | null),
       };
     });
 
@@ -111,6 +112,11 @@ function LogDataContent() {
   }, []);
 
   const selectedMetric = metrics.find((m) => m.id === selectedMetricId) || null;
+
+  // Pre-fill nextExpected when metric selection changes
+  useEffect(() => {
+    setNextExpected(selectedMetric?.next_entry_expected ?? "");
+  }, [selectedMetricId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter metrics for the picker
   const filtered = metrics.filter((m) => {
@@ -146,6 +152,13 @@ function LogDataContent() {
     if (error) {
       alert("Failed to save: " + error.message);
     } else {
+      // If next_entry_expected changed, persist it on the metric
+      if (nextExpected !== (selectedMetric?.next_entry_expected ?? "")) {
+        await supabase
+          .from("metrics")
+          .update({ next_entry_expected: nextExpected || null })
+          .eq("id", selectedMetricId);
+      }
       const metricName = selectedMetric?.name || "metric";
       setSuccessMessage(`Logged ${value} for ${metricName}`);
       // Reset form but keep the date
@@ -153,6 +166,8 @@ function LogDataContent() {
       setValue("");
       setNoteAnalysis("");
       setNoteCourseCorrection("");
+      setNextExpected("");
+      await fetchMetrics();
       setTimeout(() => setSuccessMessage(""), 4000);
     }
     setSaving(false);
@@ -481,6 +496,15 @@ function LogDataContent() {
                   value={noteCourseCorrection}
                   onChange={(e) => setNoteCourseCorrection(e.target.value)}
                   placeholder="e.g., Added re-training for repeat offenders"
+                />
+
+                {/* Next Expected Date — for survey-driven metrics (MDS, BSS) */}
+                <Input
+                  label="Next Expected Date"
+                  hint="When is the next survey result expected? Prevents false overdue alerts."
+                  type="date"
+                  value={nextExpected}
+                  onChange={(e) => setNextExpected(e.target.value)}
                 />
 
                 {/* Submit */}

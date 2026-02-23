@@ -1,7 +1,7 @@
 // US-008: Review cadence logic
 // Determines if a metric is current, due soon, overdue, or has no data
 
-export type ReviewStatus = "current" | "due-soon" | "overdue" | "no-data";
+export type ReviewStatus = "current" | "due-soon" | "overdue" | "no-data" | "scheduled";
 
 const CADENCE_DAYS: Record<string, number> = {
   monthly: 30,
@@ -14,8 +14,15 @@ const DUE_SOON_BUFFER_DAYS = 7;
 
 export function getReviewStatus(
   cadence: string,
-  lastEntryDate: string | null
+  lastEntryDate: string | null,
+  nextEntryExpected?: string | null
 ): ReviewStatus {
+  // If a future expected date is set, metric is on a known schedule — not overdue
+  if (nextEntryExpected) {
+    const nextDate = new Date(nextEntryExpected + "T00:00:00");
+    if (nextDate > new Date()) return "scheduled";
+  }
+
   if (!lastEntryDate) return "no-data";
 
   const now = new Date();
@@ -47,6 +54,8 @@ export function getStatusColor(status: ReviewStatus): string {
       return "#dc2626";
     case "no-data":
       return "#dc2626";
+    case "scheduled":
+      return "#6366f1";
   }
 }
 
@@ -60,6 +69,8 @@ export function getStatusLabel(status: ReviewStatus): string {
       return "Overdue";
     case "no-data":
       return "No Data";
+    case "scheduled":
+      return "Scheduled";
   }
 }
 

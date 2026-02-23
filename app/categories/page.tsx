@@ -18,7 +18,7 @@ interface MetricRow extends Metric {
   category_sort_order: number;
   last_entry_date: string | null;
   last_entry_value: number | null;
-  review_status: "current" | "due-soon" | "overdue" | "no-data";
+  review_status: "current" | "due-soon" | "overdue" | "no-data" | "scheduled";
 }
 
 interface ProcessGroup {
@@ -84,7 +84,7 @@ function groupByCategory(rows: MetricRow[]): CategoryGroup[] {
   for (const cat of sorted) {
     cat.processes.sort((a, b) => a.name.localeCompare(b.name));
     for (const proc of cat.processes) {
-      const statusOrder = { overdue: 0, "no-data": 1, "due-soon": 2, current: 3 };
+      const statusOrder = { overdue: 0, "no-data": 1, "due-soon": 2, current: 3, scheduled: 4 };
       proc.metrics.sort(
         (a, b) => statusOrder[a.review_status] - statusOrder[b.review_status]
       );
@@ -177,7 +177,7 @@ export default function CategoriesPage() {
             category_sort_order: proc.category_sort_order,
             last_entry_date: latest?.date || null,
             last_entry_value: latest?.value || null,
-            review_status: getReviewStatus(m.cadence as string, latest?.date || null),
+            review_status: getReviewStatus(m.cadence as string, latest?.date || null, m.next_entry_expected as string | null),
           });
         }
       }

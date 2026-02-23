@@ -19,7 +19,7 @@ interface MetricRow extends Metric {
   category_display_names: string;
   last_entry_date: string | null;
   last_entry_value: number | null;
-  review_status: "current" | "due-soon" | "overdue" | "no-data";
+  review_status: "current" | "due-soon" | "overdue" | "no-data" | "scheduled";
 }
 
 interface KeyProcessSummary {
@@ -158,12 +158,13 @@ export default function DataHealthPage() {
         last_entry_value: latest?.value || null,
         review_status: getReviewStatus(
           m.cadence as string,
-          latest?.date || null
+          latest?.date || null,
+          m.next_entry_expected as string | null
         ),
       };
     });
 
-    const statusOrder = { overdue: 0, "due-soon": 1, "no-data": 2, current: 3 };
+    const statusOrder = { overdue: 0, "due-soon": 1, "no-data": 2, current: 3, scheduled: 4 };
     rows.sort(
       (a, b) => statusOrder[a.review_status] - statusOrder[b.review_status]
     );
@@ -350,6 +351,7 @@ export default function DataHealthPage() {
   const dueSoon = displayMetrics.filter((m) => m.review_status === "due-soon");
   const noData = displayMetrics.filter((m) => m.review_status === "no-data");
   const current = displayMetrics.filter((m) => m.review_status === "current");
+  const scheduled = displayMetrics.filter((m) => m.review_status === "scheduled");
   const needsTargets = displayMetrics.filter((m) => m.target_value === null);
 
   if (loading) return <DashboardSkeleton />;
@@ -400,7 +402,7 @@ export default function DataHealthPage() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               <span className="text-sm font-medium text-nia-dark whitespace-nowrap">Select by status:</span>
-              {(["overdue", "due-soon", "no-data", "current"] as const).map((status) => {
+              {(["overdue", "due-soon", "no-data", "current", "scheduled"] as const).map((status) => {
                 const count = displayMetrics.filter((m) => m.review_status === status).length;
                 if (count === 0) return null;
                 const statusIds = displayMetrics.filter((m) => m.review_status === status).map((m) => m.id);
@@ -708,7 +710,7 @@ export default function DataHealthPage() {
       )}
 
       {/* All caught up empty state */}
-      {overdue.length === 0 && dueSoon.length === 0 && (
+      {overdue.length === 0 && dueSoon.length === 0 && scheduled.length === 0 && (
         <div className="bg-card rounded-xl shadow-sm border border-nia-green/30">
           <EmptyState
             illustration="check"
@@ -745,6 +747,22 @@ export default function DataHealthPage() {
           defaultOpen={false}
           onLogClick={openLogForm}
           accentColor="#b1bd37"
+          editMode={editMode}
+          selected={selected}
+          onToggleSelect={toggleSelect}
+        />
+      )}
+
+      {/* Scheduled section — for survey-driven metrics with a known next date */}
+      {scheduled.length > 0 && (
+        <MetricSection
+          title="Scheduled"
+          subtitle="Survey results expected on a known future date"
+          metrics={scheduled}
+          sparklineData={sparklineData}
+          defaultOpen={false}
+          onLogClick={openLogForm}
+          accentColor="#6366f1"
           editMode={editMode}
           selected={selected}
           onToggleSelect={toggleSelect}
@@ -880,6 +898,7 @@ function MetricSection({
     "#f79935": "orange" as const,
     "#b1bd37": "green" as const,
     "#55787c": "dark" as const,
+    "#6366f1": "dark" as const,
   };
 
   return (
@@ -958,7 +977,8 @@ function MetricSection({
                   color={
                     metric.review_status === "overdue" ? "red" :
                     metric.review_status === "due-soon" ? "orange" :
-                    metric.review_status === "current" ? "green" : "gray"
+                    metric.review_status === "current" ? "green" :
+                    metric.review_status === "scheduled" ? "blue" : "gray"
                   }
                   size="xs"
                 >
