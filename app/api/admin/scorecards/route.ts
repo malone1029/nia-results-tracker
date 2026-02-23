@@ -29,7 +29,7 @@ export async function GET() {
 
   const { data: allProcesses } = await supabase
     .from("processes")
-    .select("id, name, status, updated_at, owner");
+    .select("id, name, status, updated_at, owner, owner_email");
 
   const processIds = (allProcesses ?? []).map((p) => p.id);
 
@@ -75,7 +75,12 @@ export async function GET() {
 
   const scorecards = users.map((u) => {
     const ownerName = u.full_name ?? u.email;
-    const userProcesses = (allProcesses ?? []).filter((p) => p.owner === ownerName);
+    const userEmail = u.email?.toLowerCase();
+    const userProcesses = (allProcesses ?? []).filter((p) =>
+      userEmail && p.owner_email
+        ? p.owner_email === userEmail
+        : p.owner_email === null && p.owner === ownerName
+    );
     const userProcessIds = new Set(userProcesses.map((p) => p.id));
 
     const processesForCompliance = userProcesses.map((p) => {
