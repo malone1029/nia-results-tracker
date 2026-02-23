@@ -50,7 +50,7 @@ export default function EditMetricPage() {
   const [members, setMembers] = useState<{ gid: string; name: string; email: string }[]>([]);
 
   useEffect(() => {
-    async function fetch() {
+    async function loadData() {
       // Fetch processes for dropdown
       const { data: processData } = await supabase
         .from("processes")
@@ -130,7 +130,7 @@ export default function EditMetricPage() {
 
       setLoading(false);
     }
-    fetch();
+    loadData();
   }, [metricId]);
 
   async function handleSave(e: React.FormEvent) {
