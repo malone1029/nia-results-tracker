@@ -158,6 +158,7 @@ export interface Metric {
   unit: string;
   is_higher_better: boolean;
   next_entry_expected: string | null;
+  data_steward_email: string | null;
 }
 
 export interface Entry {
