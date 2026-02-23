@@ -210,8 +210,10 @@ function LogDataContent() {
       setSuccessMessage(`Logged ${entries.length} value${entries.length !== 1 ? "s" : ""}`);
 
       // Save steward + next_expected changes in parallel
+      // Only process metrics where a value was actually entered
+      const enteredMetricIds = new Set(entries.map((e) => e.metric_id));
       const metricUpdates: Promise<unknown>[] = [];
-      for (const metric of dueMetrics) {
+      for (const metric of dueMetrics.filter((m) => enteredMetricIds.has(m.id))) {
         const updates: Record<string, unknown> = {};
         const steward = bulkStewards.get(metric.id);
         const nextExp = bulkNextExpected.get(metric.id);
@@ -428,8 +430,9 @@ function LogDataContent() {
                                 <option key={m.gid} value={m.email}>{m.name}</option>
                               ))}
                             </Select>
-                            <input
+                            <Input
                               type="date"
+                              size="sm"
                               value={
                                 bulkNextExpected.has(metric.id)
                                   ? bulkNextExpected.get(metric.id)!
@@ -440,23 +443,23 @@ function LogDataContent() {
                                 next.set(metric.id, e.target.value);
                                 setBulkNextExpected(next);
                               }}
-                              className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-nia-grey-blue/40"
                               title="Next expected date"
                             />
                           </div>
                         </div>
                         {/* Value input */}
                         <div className="flex items-center gap-2 shrink-0 mt-0.5">
-                          <input
+                          <Input
                             type="number"
                             step="any"
+                            size="sm"
+                            className="w-24"
                             value={bulkValues.get(metric.id) || ""}
                             onChange={(e) => {
                               const next = new Map(bulkValues);
                               next.set(metric.id, e.target.value);
                               setBulkValues(next);
                             }}
-                            className="w-24 border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
                             placeholder="Value"
                           />
                           <span className="text-xs text-text-muted w-6">{metric.unit}</span>
