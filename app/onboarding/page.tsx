@@ -67,7 +67,7 @@ const CHAPTERS = [
       },
       {
         heading: "The Cadence",
-        body: "Think of your Hub work in three rhythms: monthly (log data for monthly metrics), quarterly (update ADLI, complete a task, review your health score), and annually (full readiness review aligned to the IIASA application cycle).",
+        body: "Think of your Hub work in three rhythms: monthly (log data for monthly metrics), quarterly (update ADLI, complete a task, review your health score), and annually (full readiness review of your processes and where NIA stands as an organization).",
       },
     ],
   },
