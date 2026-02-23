@@ -46,6 +46,8 @@ export default function EditMetricPage() {
   const [isHigherBetter, setIsHigherBetter] = useState(true);
   const [allRequirements, setAllRequirements] = useState<RequirementOption[]>([]);
   const [selectedReqIds, setSelectedReqIds] = useState<Set<number>>(new Set());
+  const [dataStewardEmail, setDataStewardEmail] = useState<string>("");
+  const [members, setMembers] = useState<{ gid: string; name: string; email: string }[]>([]);
 
   useEffect(() => {
     async function fetch() {
@@ -86,6 +88,7 @@ export default function EditMetricPage() {
         setCollectionMethod(metric.collection_method || "");
         setUnit(metric.unit || "%");
         setIsHigherBetter(metric.is_higher_better);
+        setDataStewardEmail(metric.data_steward_email || "");
       }
 
       // Fetch current process links from junction table
@@ -120,6 +123,11 @@ export default function EditMetricPage() {
         .eq("metric_id", metricId);
       setEntryCount(count || 0);
 
+      // Fetch Asana workspace members for data steward dropdown
+      const membersRes = await fetch("/api/asana/workspace-members");
+      const membersData = await membersRes.json();
+      setMembers(membersData.members || []);
+
       setLoading(false);
     }
     fetch();
@@ -142,6 +150,7 @@ export default function EditMetricPage() {
         collection_method: collectionMethod || null,
         unit,
         is_higher_better: isHigherBetter,
+        data_steward_email: dataStewardEmail || null,
       })
       .eq("id", metricId);
 
@@ -288,6 +297,23 @@ export default function EditMetricPage() {
         <div className="grid grid-cols-2 gap-4">
           <Input label="Comparison Value" hint="for LeTCI Comparisons" type="number" step="any" value={comparisonValue} onChange={(e) => setComparisonValue(e.target.value)} placeholder="Benchmark or peer value" />
           <Input label="Comparison Source" value={comparisonSource} onChange={(e) => setComparisonSource(e.target.value)} placeholder="e.g., National average, Studer benchmark" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-1">Data Steward</label>
+          <p className="text-xs text-text-muted mb-2">Person responsible for collecting and entering this metric&apos;s data.</p>
+          <select
+            value={dataStewardEmail}
+            onChange={(e) => setDataStewardEmail(e.target.value)}
+            className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-nia-dark-solid/30"
+          >
+            <option value="">— No steward assigned —</option>
+            {members.map((m) => (
+              <option key={m.gid} value={m.email}>
+                {m.name} ({m.email})
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

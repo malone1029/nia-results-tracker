@@ -338,6 +338,16 @@ export default function MetricDetailPage() {
           </div>
         </div>
 
+        {/* Data Steward */}
+        {metric.data_steward_email && (
+          <div className="mt-4 pt-4 border-t border-border-light">
+            <div>
+              <span className="text-xs text-text-muted uppercase tracking-wide">Data Steward</span>
+              <p className="text-sm font-medium text-nia-dark mt-0.5">{metric.data_steward_email}</p>
+            </div>
+          </div>
+        )}
+
         {/* Target nudge */}
         {metric.target_value === null && (
           <div className="mt-4 bg-nia-orange/10 border border-nia-orange/30 rounded-lg px-4 py-3 text-sm text-nia-dark flex items-center justify-between">
