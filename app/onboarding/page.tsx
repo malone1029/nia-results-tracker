@@ -12,12 +12,12 @@ const CHAPTERS = [
     subtitle: "Chapter 1 of 4",
     content: [
       {
-        heading: "NIA's Baldrige Journey",
-        body: "Northwestern Illinois Association is pursuing recognition through the IIASA Continuous Improvement Program — a Baldrige-based framework for organizational excellence. The Excellence Hub is the platform that makes that pursuit systematic and visible.",
+        heading: "How NIA Thinks About Excellence",
+        body: "Northwestern Illinois Association uses the Baldrige Excellence Framework as a lens for how we run our organization — how we design our processes, measure our performance, and improve over time. The Excellence Hub is the platform that makes that work systematic and visible.",
       },
       {
         heading: "What the Hub Is",
-        body: "The Hub is where NIA documents its processes, tracks its performance metrics, manages improvement actions, and measures its readiness for Baldrige recognition. Every process you own in this system is a contribution to NIA's overall excellence.",
+        body: "The Hub is where NIA documents its processes, tracks its performance metrics, and manages improvement actions. Every process you own in this system is a contribution to NIA's overall quality — and to the people and districts we serve.",
       },
       {
         heading: "Why Your Role Matters",
