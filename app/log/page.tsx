@@ -453,6 +453,11 @@ function LogDataContent() {
                       Source: {selectedMetric.data_source}
                     </div>
                   )}
+                  {selectedMetric?.data_steward_email && (
+                    <p className="text-xs text-text-muted mt-1">
+                      Data steward: <span className="font-medium">{selectedMetric.data_steward_email}</span>
+                    </p>
+                  )}
                 </div>
 
                 {/* Value and Date */}
