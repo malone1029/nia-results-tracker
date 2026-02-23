@@ -212,7 +212,7 @@ function LogDataContent() {
       // Save steward + next_expected changes in parallel
       // Only process metrics where a value was actually entered
       const enteredMetricIds = new Set(entries.map((e) => e.metric_id));
-      const metricUpdates: Promise<unknown>[] = [];
+      const metricUpdates: PromiseLike<unknown>[] = [];
       for (const metric of dueMetrics.filter((m) => enteredMetricIds.has(m.id))) {
         const updates: Record<string, unknown> = {};
         const steward = bulkStewards.get(metric.id);
