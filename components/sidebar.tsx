@@ -19,6 +19,7 @@ const navGroups = [
     links: [
       { href: "/", label: "Dashboard", icon: "grid" },
       { href: "/my-tasks", label: "My Tasks", icon: "check-circle" },
+      { href: "/my-scorecard", label: "My Scorecard", icon: "award" },
       { href: "/data-health", label: "Data Health", icon: "heart" },
       { href: "/requirements", label: "Requirements", icon: "clipboard" },
       { href: "/log", label: "Log Data", icon: "edit" },
@@ -53,6 +54,7 @@ const adminNavGroups = [
       { href: "/criteria/gaps", label: "Gap Analysis", icon: "alert-triangle" },
       { href: "/surveys", label: "Surveys", icon: "clipboard-list" },
       { href: "/feedback", label: "Feedback Inbox", icon: "inbox" },
+      { href: "/admin/scorecards", label: "Scorecards", icon: "users" },
     ],
   },
 ];
@@ -67,8 +69,15 @@ const superAdminNavGroups = [
   },
 ];
 
-// Members only see the Processes group
+// Members only see the Processes group + their scorecard
 const memberNavGroups = [
+  {
+    label: "Overview",
+    links: [
+      { href: "/my-tasks", label: "My Tasks", icon: "check-circle" },
+      { href: "/my-scorecard", label: "My Scorecard", icon: "award" },
+    ],
+  },
   {
     label: "Processes",
     links: [
@@ -209,6 +218,18 @@ function NavIcon({ icon, className }: { icon: string; className?: string }) {
       return (
         <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0M2.25 12c0 4.556 4.03 8.25 9 8.25a9.764 9.764 0 002.555-.337A5.972 5.972 0 0015.75 21a5.969 5.969 0 004.282-1.8A8.224 8.224 0 0021.75 12c0-4.556-4.03-8.25-9-8.25S2.25 7.444 2.25 12z" />
+        </svg>
+      );
+    case "award":
+      return (
+        <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+        </svg>
+      );
+    case "users":
+      return (
+        <svg className={cn} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
       );
     default:
