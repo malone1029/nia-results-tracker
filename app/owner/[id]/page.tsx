@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useRole } from "@/lib/use-role";
-import { Card } from "@/components/ui";
+import { Card, Badge } from "@/components/ui";
+import { getStatusLabel } from "@/lib/review-status";
+import type { ReviewStatus } from "@/lib/review-status";
 import Link from "next/link";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -43,7 +45,26 @@ interface ScorecardData {
     totalTasks: number;
     completedTasks: number;
   };
+  stewardedMetrics: {
+    id: number;
+    name: string;
+    cadence: string;
+    data_source: string | null;
+    review_status: ReviewStatus;
+  }[];
 }
+// ── Helpers ───────────────────────────────────────────────────
+
+function reviewStatusColor(status: ReviewStatus): "green" | "orange" | "red" | "gray" | "blue" {
+  switch (status) {
+    case "current":   return "green";
+    case "due-soon":  return "orange";
+    case "overdue":   return "red";
+    case "no-data":   return "gray";
+    case "scheduled": return "blue";
+  }
+}
+
 // ── Sub-components ────────────────────────────────────────────
 
 function CheckRow({ label, passing, detail }: { label: string; passing: boolean; detail: string }) {
@@ -277,6 +298,40 @@ export default function OwnerScorecardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Data Responsibilities */}
+      {data.stewardedMetrics.length > 0 && (
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-1">Data Responsibilities</h2>
+          <p className="text-xs text-text-muted mb-4">Metrics where you&apos;re responsible for data entry</p>
+          <div className="space-y-2">
+            {data.stewardedMetrics.map((m) => (
+              <Link
+                key={m.id}
+                href={`/metric/${m.id}`}
+                className="flex items-center justify-between p-3 rounded-lg hover:bg-surface-subtle transition-colors group"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground group-hover:text-nia-dark transition-colors">
+                    {m.name}
+                  </p>
+                  {m.data_source && (
+                    <p className="text-xs text-text-muted">{m.data_source}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                  <Badge color="gray" size="xs">
+                    {m.cadence}
+                  </Badge>
+                  <Badge color={reviewStatusColor(m.review_status)} size="xs" dot>
+                    {getStatusLabel(m.review_status)}
+                  </Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Admin-only: back to scorecards */}
       {isAdmin && (

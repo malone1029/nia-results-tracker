@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { isAdminRole } from "@/lib/auth-helpers";
 import { computeCompliance } from "@/lib/compliance";
+import { getReviewStatus } from "@/lib/review-status";
 
 export async function GET(
   _req: NextRequest,
@@ -104,6 +105,18 @@ export async function GET(
     }
   }
 
+  // Fetch metrics stewarded by this user (data_steward_email)
+  const { data: stewardedMetrics } = ownerEmail
+    ? await supabase
+        .from("metrics")
+        .select(`
+          id, name, cadence, data_source, unit, next_entry_expected,
+          entries (value, date)
+        `)
+        .eq("data_steward_email", ownerEmail)
+        .order("name")
+    : { data: [] };
+
   // Fetch completed tasks for these processes in rolling 90 days
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -201,6 +214,21 @@ export async function GET(
       totalTasks,
       completedTasks: completedTasksTotal,
     },
+    stewardedMetrics: (stewardedMetrics || []).map((m) => {
+      const entries = (m.entries as { value: number; date: string }[] | null) ?? [];
+      const latestEntry = entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+      return {
+        id: m.id,
+        name: m.name,
+        cadence: m.cadence,
+        data_source: m.data_source,
+        review_status: getReviewStatus(
+          m.cadence,
+          latestEntry?.date ?? null,
+          m.next_entry_expected
+        ),
+      };
+    }),
   });
 }
 

@@ -7,7 +7,7 @@ import { DashboardSkeleton } from "@/components/skeleton";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
 import EmptyState from "@/components/empty-state";
-import { Card, CardHeader, CardBody, Badge, Button, Input } from "@/components/ui";
+import { Card, CardHeader, CardBody, Badge, Button, Input, Select } from "@/components/ui";
 import { useRole } from "@/lib/use-role";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import HelpTip from "@/components/help-tip";
@@ -61,6 +61,7 @@ export default function DataHealthPage() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support">("all");
+  const [stewardFilter, setStewardFilter] = useState<string>("all");
   const [keyMetricIds, setKeyMetricIds] = useState<Set<number>>(new Set());
   const [supportMetricIds, setSupportMetricIds] = useState<Set<number>>(new Set());
   const logFormRef = useRef<HTMLDivElement>(null);
@@ -339,13 +340,18 @@ export default function DataHealthPage() {
     setUpdating(false);
   }
 
+  const stewards = Array.from(
+    new Set(metrics.map((m) => m.data_steward_email).filter(Boolean))
+  ) as string[];
+
   const displayMetricsAll = typeFilter === "key"
     ? metrics.filter((m) => keyMetricIds.has(m.id))
     : typeFilter === "support"
     ? metrics.filter((m) => supportMetricIds.has(m.id))
     : metrics;
 
-  const displayMetrics = displayMetricsAll;
+  const displayMetrics = displayMetricsAll
+    .filter((m) => stewardFilter === "all" || m.data_steward_email === stewardFilter);
 
   const overdue = displayMetrics.filter((m) => m.review_status === "overdue");
   const dueSoon = displayMetrics.filter((m) => m.review_status === "due-soon");
@@ -378,6 +384,18 @@ export default function DataHealthPage() {
               </button>
             ))}
           </div>
+          {stewards.length > 0 && (
+            <Select
+              value={stewardFilter}
+              onChange={(e) => setStewardFilter(e.target.value)}
+              size="sm"
+            >
+              <option value="all">All Stewards</option>
+              {stewards.map((email) => (
+                <option key={email} value={email}>{email.split("@")[0]}</option>
+              ))}
+            </Select>
+          )}
           <Button
             variant={editMode ? "accent" : "secondary"}
             size="sm"
@@ -956,6 +974,11 @@ function MetricSection({
                     {metric.category_display_names} &middot; {metric.process_names}{" "}
                     &middot; {metric.cadence}
                   </div>
+                  {metric.data_steward_email && (
+                    <span className="text-xs text-text-muted">
+                      Steward: {metric.data_steward_email.split("@")[0]}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4">
