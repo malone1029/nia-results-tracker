@@ -48,6 +48,11 @@ function LogDataContent() {
   const [bulkDate, setBulkDate] = useState(new Date().toISOString().split("T")[0]);
   const [bulkValues, setBulkValues] = useState<Map<number, string>>(new Map());
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Set<number>>(new Set());
+  const [bulkStewards, setBulkStewards] = useState<Map<number, string>>(new Map());
+  const [bulkNextExpected, setBulkNextExpected] = useState<Map<number, string>>(new Map());
+  const [bulkAssignSteward, setBulkAssignSteward] = useState<string>("");
+  const [members, setMembers] = useState<{ gid: string; name: string; email: string }[]>([]);
 
   // Search/filter
   const [search, setSearch] = useState("");
@@ -109,6 +114,15 @@ function LogDataContent() {
   useEffect(() => {
     document.title = "Log Data | NIA Excellence Hub";
     fetchMetrics();
+    (async () => {
+      try {
+        const res = await fetch("/api/asana/workspace-members");
+        if (res.ok) {
+          const data = await res.json();
+          setMembers(data.members || []);
+        }
+      } catch { /* silent fail */ }
+    })();
   }, []);
 
   const selectedMetric = metrics.find((m) => m.id === selectedMetricId) || null;
@@ -194,11 +208,45 @@ function LogDataContent() {
       alert("Failed to save: " + error.message);
     } else {
       setSuccessMessage(`Logged ${entries.length} value${entries.length !== 1 ? "s" : ""}`);
+
+      // Save steward + next_expected changes in parallel
+      const metricUpdates: Promise<unknown>[] = [];
+      for (const metric of dueMetrics) {
+        const updates: Record<string, unknown> = {};
+        const steward = bulkStewards.get(metric.id);
+        const nextExp = bulkNextExpected.get(metric.id);
+        if (steward !== undefined) updates.data_steward_email = steward || null;
+        if (nextExp !== undefined) updates.next_entry_expected = nextExp || null;
+        if (Object.keys(updates).length > 0) {
+          metricUpdates.push(supabase.from("metrics").update(updates).eq("id", metric.id));
+        }
+      }
+      if (metricUpdates.length > 0) await Promise.all(metricUpdates);
+
+      // Clear all bulk state
       setBulkValues(new Map());
+      setBulkStewards(new Map());
+      setBulkNextExpected(new Map());
+      setBulkSelected(new Set());
+
       await fetchMetrics();
       setTimeout(() => setSuccessMessage(""), 4000);
     }
     setBulkSaving(false);
+  }
+
+  async function handleBulkAssignSteward() {
+    if (!bulkAssignSteward || bulkSelected.size === 0) return;
+    const ids = Array.from(bulkSelected);
+    await supabase
+      .from("metrics")
+      .update({ data_steward_email: bulkAssignSteward || null })
+      .in("id", ids);
+    const next = new Map(bulkStewards);
+    for (const id of ids) next.set(id, bulkAssignSteward);
+    setBulkStewards(next);
+    setBulkAssignSteward("");
+    setBulkSelected(new Set());
   }
 
   // Metrics that need review (for bulk mode)
@@ -282,44 +330,137 @@ function LogDataContent() {
                   Enter values for the metrics you want to log. Leave blank to skip.
                 </p>
 
+                {/* Select all + bulk assign toolbar */}
+                <div className="flex items-center gap-3 py-2 border-b border-border mb-3 flex-wrap">
+                  <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={bulkSelected.size === dueMetrics.length && dueMetrics.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) setBulkSelected(new Set(dueMetrics.map((m) => m.id)));
+                        else setBulkSelected(new Set());
+                      }}
+                      className="rounded"
+                    />
+                    {bulkSelected.size === 0 ? "Select all" : `${bulkSelected.size} selected`}
+                  </label>
+                  {bulkSelected.size > 0 && (
+                    <>
+                      <Select
+                        size="sm"
+                        value={bulkAssignSteward}
+                        onChange={(e) => setBulkAssignSteward(e.target.value)}
+                      >
+                        <option value="">Assign steward…</option>
+                        {members.map((m) => (
+                          <option key={m.gid} value={m.email}>{m.name}</option>
+                        ))}
+                      </Select>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleBulkAssignSteward}
+                        disabled={!bulkAssignSteward}
+                      >
+                        Apply to selected
+                      </Button>
+                      <button
+                        onClick={() => setBulkSelected(new Set())}
+                        className="text-xs text-text-muted hover:text-nia-dark transition-colors"
+                      >
+                        Clear
+                      </button>
+                    </>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   {dueMetrics.map((metric) => (
-                    <div
-                      key={metric.id}
-                      className="flex items-center gap-4 py-2 border-b border-border-light last:border-b-0"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <Link
-                          href={`/metric/${metric.id}`}
-                          className="text-sm font-medium text-nia-dark hover:text-nia-orange transition-colors"
-                        >
-                          {metric.name}
-                        </Link>
-                        <div className="text-xs text-text-muted">
-                          {metric.category_display_name} &middot; {metric.process_name} &middot;{" "}
-                          <span className="capitalize">{metric.cadence}</span>
-                          {metric.target_value !== null && (
-                            <> &middot; Target: {formatValue(metric.target_value, metric.unit)}</>
-                          )}
-                          {metric.last_entry_date && (
-                            <> &middot; Last: {formatDate(metric.last_entry_date)}</>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                    <div key={metric.id} className="py-3 border-b border-border-light last:border-b-0">
+                      <div className="flex items-start gap-3">
+                        {/* Checkbox */}
                         <input
-                          type="number"
-                          step="any"
-                          value={bulkValues.get(metric.id) || ""}
+                          type="checkbox"
+                          checked={bulkSelected.has(metric.id)}
                           onChange={(e) => {
-                            const next = new Map(bulkValues);
-                            next.set(metric.id, e.target.value);
-                            setBulkValues(next);
+                            const next = new Set(bulkSelected);
+                            if (e.target.checked) next.add(metric.id);
+                            else next.delete(metric.id);
+                            setBulkSelected(next);
                           }}
-                          className="w-24 border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
-                          placeholder="Value"
+                          className="mt-1 rounded"
                         />
-                        <span className="text-xs text-text-muted w-6">{metric.unit}</span>
+                        {/* Metric info + steward/date row */}
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/metric/${metric.id}`}
+                            className="text-sm font-medium text-nia-dark hover:text-nia-orange transition-colors"
+                          >
+                            {metric.name}
+                          </Link>
+                          <div className="text-xs text-text-muted mt-0.5">
+                            {metric.category_display_name} &middot; {metric.process_name} &middot;{" "}
+                            <span className="capitalize">{metric.cadence}</span>
+                            {metric.target_value !== null && (
+                              <> &middot; Target: {formatValue(metric.target_value, metric.unit)}</>
+                            )}
+                            {metric.last_entry_date && (
+                              <> &middot; Last: {formatDate(metric.last_entry_date)}</>
+                            )}
+                          </div>
+                          {/* Steward + next expected */}
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            <Select
+                              size="sm"
+                              value={
+                                bulkStewards.has(metric.id)
+                                  ? bulkStewards.get(metric.id)!
+                                  : metric.data_steward_email || ""
+                              }
+                              onChange={(e) => {
+                                const next = new Map(bulkStewards);
+                                next.set(metric.id, e.target.value);
+                                setBulkStewards(next);
+                              }}
+                            >
+                              <option value="">— No steward —</option>
+                              {members.map((m) => (
+                                <option key={m.gid} value={m.email}>{m.name}</option>
+                              ))}
+                            </Select>
+                            <input
+                              type="date"
+                              value={
+                                bulkNextExpected.has(metric.id)
+                                  ? bulkNextExpected.get(metric.id)!
+                                  : metric.next_entry_expected || ""
+                              }
+                              onChange={(e) => {
+                                const next = new Map(bulkNextExpected);
+                                next.set(metric.id, e.target.value);
+                                setBulkNextExpected(next);
+                              }}
+                              className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-nia-grey-blue/40"
+                              title="Next expected date"
+                            />
+                          </div>
+                        </div>
+                        {/* Value input */}
+                        <div className="flex items-center gap-2 shrink-0 mt-0.5">
+                          <input
+                            type="number"
+                            step="any"
+                            value={bulkValues.get(metric.id) || ""}
+                            onChange={(e) => {
+                              const next = new Map(bulkValues);
+                              next.set(metric.id, e.target.value);
+                              setBulkValues(next);
+                            }}
+                            className="w-24 border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
+                            placeholder="Value"
+                          />
+                          <span className="text-xs text-text-muted w-6">{metric.unit}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
