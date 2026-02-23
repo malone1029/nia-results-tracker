@@ -38,16 +38,37 @@ export async function GET(
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Fetch processes owned by this user (match on full_name)
+  // Fetch processes owned by this user — match on owner_email (reliable) with
+  // fallback to display name match for any processes not yet migrated
+  const ownerEmail = owner.email?.toLowerCase();
   const ownerName = owner.full_name ?? owner.email;
-  const { data: processes } = await supabase
+  const { data: byEmail } = ownerEmail
+    ? await supabase
+        .from("processes")
+        .select(`
+          id, name, status, updated_at, process_type,
+          adli_approach, adli_deployment, adli_learning, adli_integration,
+          charter, workflow
+        `)
+        .eq("owner_email", ownerEmail)
+    : { data: [] };
+
+  const { data: byName } = await supabase
     .from("processes")
     .select(`
       id, name, status, updated_at, process_type,
       adli_approach, adli_deployment, adli_learning, adli_integration,
       charter, workflow
     `)
-    .eq("owner", ownerName);
+    .eq("owner", ownerName)
+    .is("owner_email", null);
+
+  // Merge: email-matched processes take precedence, add any name-only fallbacks
+  const emailIds = new Set((byEmail ?? []).map((p) => p.id));
+  const processes = [
+    ...(byEmail ?? []),
+    ...(byName ?? []).filter((p) => !emailIds.has(p.id)),
+  ];
 
   const processIds = (processes ?? []).map((p) => p.id);
 
