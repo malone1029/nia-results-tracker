@@ -49,15 +49,18 @@ interface ScorecardData {
 function CheckRow({ label, passing, detail }: { label: string; passing: boolean; detail: string }) {
   return (
     <div className="flex items-start gap-3 py-3 border-b border-border last:border-0">
-      <div className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-        passing ? "bg-nia-green/20 text-nia-green" : "bg-red-100 text-red-600"
-      }`}>
+      <div
+        aria-label={passing ? "Passing" : "Failing"}
+        className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+          passing ? "bg-nia-green/20 text-nia-green" : "bg-red-100 text-red-600"
+        }`}
+      >
         {passing ? (
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <svg aria-hidden="true" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         ) : (
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <svg aria-hidden="true" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         )}
@@ -87,11 +90,13 @@ export default function OwnerScorecardPage() {
   const { role, loading: roleLoading } = useRole();
   const [data, setData] = useState<ScorecardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) setCurrentUserId(user.id);
+      setAuthLoading(false);
     });
   }, []);
 
@@ -106,7 +111,7 @@ export default function OwnerScorecardPage() {
       .catch(() => setLoading(false));
   }, [targetId, roleLoading]);
 
-  if (loading || roleLoading) {
+  if (loading || roleLoading || authLoading) {
     return (
       <div className="max-w-4xl mx-auto space-y-4">
         <div className="h-8 w-48 bg-surface-subtle rounded animate-pulse" />
@@ -175,7 +180,7 @@ export default function OwnerScorecardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-nia-dark">{pageTitle}</h1>
+          <h1 className="text-3xl font-bold text-foreground">{pageTitle}</h1>
           <p className="text-text-muted mt-1">
             {data.processes.length} process{data.processes.length !== 1 ? "es" : ""} owned
             {data.owner.last_login_at && (
