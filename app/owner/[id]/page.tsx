@@ -55,13 +55,13 @@ interface ScorecardData {
 }
 // ── Helpers ───────────────────────────────────────────────────
 
-function reviewStatusColor(status: ReviewStatus): "green" | "orange" | "red" | "gray" | "purple" {
+function reviewStatusColor(status: ReviewStatus): "green" | "orange" | "red" | "gray" | "blue" {
   switch (status) {
     case "current":   return "green";
     case "due-soon":  return "orange";
     case "overdue":   return "red";
     case "no-data":   return "gray";
-    case "scheduled": return "purple";
+    case "scheduled": return "blue";
   }
 }
 
