@@ -106,15 +106,16 @@ export async function GET(
   }
 
   // Fetch metrics stewarded by this user (data_steward_email)
-  const { data: stewardedMetrics } = await supabase
-    .from("metrics")
-    .select(`
-      id, name, cadence, data_source, unit, next_entry_expected,
-      entries (value, date)
-    `)
-    .eq("data_steward_email", ownerEmail)
-    .order("name")
-    .order("date", { referencedTable: "entries", ascending: false });
+  const { data: stewardedMetrics } = ownerEmail
+    ? await supabase
+        .from("metrics")
+        .select(`
+          id, name, cadence, data_source, unit, next_entry_expected,
+          entries (value, date)
+        `)
+        .eq("data_steward_email", ownerEmail)
+        .order("name")
+    : { data: [] };
 
   // Fetch completed tasks for these processes in rolling 90 days
   const ninetyDaysAgo = new Date();
@@ -213,17 +214,21 @@ export async function GET(
       totalTasks,
       completedTasks: completedTasksTotal,
     },
-    stewardedMetrics: (stewardedMetrics || []).map((m) => ({
-      id: m.id,
-      name: m.name,
-      cadence: m.cadence,
-      data_source: m.data_source,
-      review_status: getReviewStatus(
-        m.cadence,
-        (m.entries as { value: number; date: string }[])?.[0]?.date ?? null,
-        m.next_entry_expected
-      ),
-    })),
+    stewardedMetrics: (stewardedMetrics || []).map((m) => {
+      const entries = (m.entries as { value: number; date: string }[] | null) ?? [];
+      const latestEntry = entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+      return {
+        id: m.id,
+        name: m.name,
+        cadence: m.cadence,
+        data_source: m.data_source,
+        review_status: getReviewStatus(
+          m.cadence,
+          latestEntry?.date ?? null,
+          m.next_entry_expected
+        ),
+      };
+    }),
   });
 }
 
