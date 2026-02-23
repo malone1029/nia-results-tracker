@@ -61,7 +61,10 @@ export async function GET(
 
   // Fetch latest entry date per metric
   const metricIds = (metricLinks ?? [])
-    .flatMap((ml) => (ml.metrics ? (ml.metrics as { id: number }[]) : []))
+    .flatMap((ml) => {
+      if (!ml.metrics) return [];
+      return Array.isArray(ml.metrics) ? (ml.metrics as { id: number }[]) : [(ml.metrics as { id: number })];
+    })
     .map((m) => m.id);
 
   const { data: latestEntries } = metricIds.length > 0
@@ -124,7 +127,11 @@ export async function GET(
   const processesForCompliance = (processes ?? []).map((p) => {
     const pMetrics = (metricLinks ?? [])
       .filter((ml) => ml.process_id === p.id)
-      .flatMap((ml) => (ml.metrics ? (ml.metrics as { id: number; name: string; cadence: string }[]) : []));
+      .flatMap((ml) => {
+        if (!ml.metrics) return [];
+        const arr = Array.isArray(ml.metrics) ? ml.metrics : [ml.metrics];
+        return arr as { id: number; name: string; cadence: string }[];
+      });
 
     return {
       updated_at: p.updated_at,
@@ -206,7 +213,7 @@ export async function POST(
     .update({ onboarding_completed_at: new Date().toISOString() })
     .eq("auth_id", targetAuthId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to update onboarding status" }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }
