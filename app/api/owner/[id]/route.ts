@@ -76,7 +76,7 @@ export async function GET(
   const { data: metricLinks } = processIds.length > 0
     ? await supabase
         .from("metric_processes")
-        .select("process_id, metrics(id, name, cadence)")
+        .select("process_id, metrics(id, name, cadence, next_entry_expected)")
         .in("process_id", processIds)
     : { data: [] };
 
@@ -151,7 +151,7 @@ export async function GET(
       .flatMap((ml) => {
         if (!ml.metrics) return [];
         const arr = Array.isArray(ml.metrics) ? ml.metrics : [ml.metrics];
-        return arr as { id: number; name: string; cadence: string }[];
+        return arr as { id: number; name: string; cadence: string; next_entry_expected: string | null }[];
       });
 
     return {
@@ -160,6 +160,7 @@ export async function GET(
       metrics: pMetrics.map((m) => ({
         cadence: m.cadence,
         lastEntryDate: latestByMetric.get(m.id) ?? null,
+        nextEntryExpected: m.next_entry_expected ?? null,
       })),
       tasksCompletedDates: (completedTasks ?? [])
         .filter((t) => t.process_id === p.id && t.completed_at)

@@ -20,6 +20,7 @@ const CADENCE_GRACE: Record<string, number> = {
 export interface MetricComplianceInput {
   cadence: string;
   lastEntryDate: string | null;
+  nextEntryExpected: string | null;
 }
 
 export interface ComplianceInput {
@@ -56,11 +57,16 @@ export function computeCompliance(input: ComplianceInput): ComplianceResult {
   const onboardingComplete = !!input.onboardingCompletedAt;
 
   // Check 2: Metrics all current (cadence-aware with grace buffer)
-  // A user with no processes or no metrics passes this check
+  // A user with no processes or no metrics passes this check.
+  // Metrics with a future nextEntryExpected are on a known schedule — not overdue.
   const allMetrics = input.processes.flatMap((p) => p.metrics);
   const metricsAllCurrent =
     allMetrics.length === 0 ||
     allMetrics.every((m) => {
+      if (m.nextEntryExpected) {
+        const nextDate = new Date(m.nextEntryExpected + "T00:00:00");
+        if (nextDate > now) return true; // scheduled — treat as current
+      }
       if (!m.lastEntryDate) return false; // no data = not current
       const grace = CADENCE_GRACE[m.cadence] ?? 438;
       return daysBetween(m.lastEntryDate, now) <= grace;

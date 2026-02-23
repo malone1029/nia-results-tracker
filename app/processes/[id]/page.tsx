@@ -78,7 +78,7 @@ interface LinkedMetric {
   cadence: string;
   target_value: number | null;
   is_higher_better: boolean;
-  review_status: "current" | "due-soon" | "overdue" | "no-data";
+  review_status: "current" | "due-soon" | "overdue" | "no-data" | "scheduled";
   on_target: boolean | null;
   sparkline: number[];
 }
@@ -366,9 +366,9 @@ function ProcessDetailContent() {
       const { data: metricsData } = metricIds.length > 0
         ? await supabase
             .from("metrics")
-            .select("id, name, unit, cadence, target_value, is_higher_better")
+            .select("id, name, unit, cadence, target_value, is_higher_better, next_entry_expected")
             .in("id", metricIds)
-        : { data: [] as { id: number; name: string; unit: string; cadence: string; target_value: number | null; is_higher_better: boolean }[] };
+        : { data: [] as { id: number; name: string; unit: string; cadence: string; target_value: number | null; is_higher_better: boolean; next_entry_expected: string | null }[] };
 
       let healthMetrics: HealthMetricInput[] = [];
 
@@ -417,7 +417,7 @@ function ProcessDetailContent() {
               cadence: m.cadence,
               target_value: m.target_value,
               is_higher_better: m.is_higher_better,
-              review_status: getReviewStatus(m.cadence, latest?.date || null),
+              review_status: getReviewStatus(m.cadence, latest?.date || null, m.next_entry_expected ?? null),
               on_target: onTarget,
               sparkline: sparklinesByMetric.get(m.id) || [],
             };

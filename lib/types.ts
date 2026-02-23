@@ -157,6 +157,7 @@ export interface Metric {
   collection_method: string | null;
   unit: string;
   is_higher_better: boolean;
+  next_entry_expected: string | null;
 }
 
 export interface Entry {
@@ -344,7 +345,7 @@ export interface MetricWithStatus extends Metric {
   last_entry_date: string | null;
   last_entry_value: number | null;
   entry_count: number;
-  review_status: "current" | "due-soon" | "overdue" | "no-data";
+  review_status: "current" | "due-soon" | "overdue" | "no-data" | "scheduled";
 }
 
 export interface ProcessWithMetrics extends Process {
