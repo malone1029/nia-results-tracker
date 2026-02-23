@@ -7,7 +7,7 @@ import { DashboardSkeleton } from "@/components/skeleton";
 import type { Metric, Entry } from "@/lib/types";
 import Link from "next/link";
 import EmptyState from "@/components/empty-state";
-import { Card, CardHeader, CardBody, Badge, Button, Input } from "@/components/ui";
+import { Card, CardHeader, CardBody, Badge, Button, Input, Select } from "@/components/ui";
 import { useRole } from "@/lib/use-role";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import HelpTip from "@/components/help-tip";
@@ -385,16 +385,16 @@ export default function DataHealthPage() {
             ))}
           </div>
           {stewards.length > 0 && (
-            <select
+            <Select
               value={stewardFilter}
               onChange={(e) => setStewardFilter(e.target.value)}
-              className="text-xs border border-border rounded-md px-2 py-1 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-nia-dark-solid/30"
+              size="sm"
             >
               <option value="all">All Stewards</option>
               {stewards.map((email) => (
                 <option key={email} value={email}>{email.split("@")[0]}</option>
               ))}
-            </select>
+            </Select>
           )}
           <Button
             variant={editMode ? "accent" : "secondary"}
@@ -976,7 +976,7 @@ function MetricSection({
                   </div>
                   {metric.data_steward_email && (
                     <span className="text-xs text-text-muted">
-                      {metric.data_steward_email.split("@")[0]}
+                      Steward: {metric.data_steward_email.split("@")[0]}
                     </span>
                   )}
                 </div>
