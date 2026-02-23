@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 interface Scorecard {
-  auth_id: string;
+  auth_id: string | null;
   email: string;
   full_name: string | null;
   role: string;
@@ -83,7 +83,7 @@ export default function ScorecardsPage() {
           <tbody>
             {scorecards.map((s) => (
               <tr
-                key={s.auth_id}
+                key={s.auth_id ?? s.email}
                 className="border-b border-border last:border-0 hover:bg-surface-subtle transition-colors"
               >
                 <td className="px-4 py-3">
@@ -110,12 +110,16 @@ export default function ScorecardsPage() {
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{relativeTime(s.last_login_at)}</td>
                 <td className="px-4 py-3 text-right">
-                  <Link
-                    href={`/owner/${s.auth_id}`}
-                    className="text-xs text-nia-dark hover:underline font-medium"
-                  >
-                    View →
-                  </Link>
+                  {s.auth_id ? (
+                    <Link
+                      href={`/owner/${s.auth_id}`}
+                      className="text-xs text-nia-dark hover:underline font-medium"
+                    >
+                      View →
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-text-muted italic">Pending login</span>
+                  )}
                 </td>
               </tr>
             ))}
