@@ -109,14 +109,18 @@ function ProcessOwnerDashboard() {
       setUserRole(role);
       const isAdmin = role === "admin" || role === "super_admin";
 
-      // Compute org-wide average health (all processes, no filter)
-      let orgAvgHealthTotal = 0;
-      let orgHealthCount = 0;
+      // Compute org-wide average health (all processes, no filter), weighted: key 2x
+      let orgWeightedSum = 0;
+      let orgTotalWeight = 0;
       for (const proc of procs) {
         const h = healthData.healthScores.get(proc.id);
-        if (h) { orgAvgHealthTotal += h.total; orgHealthCount++; }
+        if (h) {
+          const w = proc.process_type === "key" ? 2 : 1;
+          orgWeightedSum += h.total * w;
+          orgTotalWeight += w;
+        }
       }
-      const computedOrgAvgHealth = orgHealthCount > 0 ? Math.round(orgAvgHealthTotal / orgHealthCount) : 0;
+      const computedOrgAvgHealth = orgTotalWeight > 0 ? Math.round(orgWeightedSum / orgTotalWeight) : 0;
       setOrgAvgHealth(computedOrgAvgHealth);
 
       // Owners (deduplicated, sorted)
@@ -300,11 +304,10 @@ function ProcessOwnerDashboard() {
 
   const processCount = filteredProcesses.length;
 
-  // Health averages — uses ALL processes (not owner-filtered), weighted: key 2x.
-  // Matches the sidebar widget which also ignores the owner filter.
+  // My Readiness — user's own processes only (respects owner filter), weighted: key 2x
   let weightedHealthSum = 0;
   let totalHealthWeight = 0;
-  for (const proc of processes) {
+  for (const proc of filteredProcesses) {
     const h = healthScores.get(proc.id);
     if (h) {
       const weight = proc.process_type === "key" ? 2 : 1;
@@ -313,7 +316,7 @@ function ProcessOwnerDashboard() {
     }
   }
   const avgHealth = totalHealthWeight > 0 ? Math.round(weightedHealthSum / totalHealthWeight) : 0;
-  const healthCount = processes.filter((p) => healthScores.has(p.id)).length;
+  const healthCount = filteredProcesses.filter((p) => healthScores.has(p.id)).length;
   const healthLevel = healthCount > 0
     ? (avgHealth >= 80 ? { label: "Excellence Ready", color: "#b1bd37" }
       : avgHealth >= 60 ? { label: "On Track", color: "#55787c" }
