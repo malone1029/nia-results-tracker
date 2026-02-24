@@ -34,9 +34,8 @@ interface ScorecardData {
     checks: {
       onboardingComplete: boolean;
       metricsAllCurrent: boolean;
-      processRecentlyUpdated: boolean;
-      taskCompletedThisQuarter: boolean;
-      processStatusAcceptable: boolean;
+      healthScoreGrowing: boolean;
+      adliImproving: boolean;
     };
   };
   growth: {
@@ -161,39 +160,24 @@ export default function OwnerScorecardPage() {
   const checks = data.compliance.checks;
   const checkItems = [
     {
+      key: "onboardingComplete" as const,
       label: "Onboarding complete",
-      passing: checks.onboardingComplete,
-      detail: checks.onboardingComplete
-        ? "Orientation program finished"
-        : "Complete the onboarding program to get started",
+      detail: "You’ve completed the orientation walkthrough.",
     },
     {
-      label: "Metrics current",
-      passing: checks.metricsAllCurrent,
-      detail: checks.metricsAllCurrent
-        ? "All linked metrics logged within their cadence window"
-        : "One or more metrics are overdue — visit Data Health to review",
+      key: "metricsAllCurrent" as const,
+      label: "Metrics are current",
+      detail: "All linked metrics have been logged within their cadence window.",
     },
     {
-      label: "Process recently updated",
-      passing: checks.processRecentlyUpdated,
-      detail: checks.processRecentlyUpdated
-        ? "Documentation updated within the last 90 days"
-        : "No process documentation has been updated in 90+ days",
+      key: "healthScoreGrowing" as const,
+      label: "Health score is on track",
+      detail: "At least one process has a health score of 60 or above.",
     },
     {
-      label: "Task completed this quarter",
-      passing: checks.taskCompletedThisQuarter,
-      detail: checks.taskCompletedThisQuarter
-        ? "At least one task completed in the last 90 days"
-        : "No tasks completed in the last 90 days — check the Tasks tab on your processes",
-    },
-    {
-      label: "Process status acceptable",
-      passing: checks.processStatusAcceptable,
-      detail: checks.processStatusAcceptable
-        ? "At least one process is Ready for Review or Approved"
-        : "All processes are still in Draft — advance at least one to Ready for Review",
+      key: "adliImproving" as const,
+      label: "ADLI maturity is improving",
+      detail: "Your ADLI scores are rising, or you’ve reached maturity (4+) across all dimensions.",
     },
   ];
   return (
@@ -238,11 +222,11 @@ export default function OwnerScorecardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Compliance Panel */}
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-1">Activity Compliance</h2>
-          <p className="text-xs text-text-muted mb-4">All checks must pass to be considered compliant</p>
+          <h2 className="text-lg font-semibold text-foreground mb-1">Growth Signals</h2>
+          <p className="text-xs text-text-muted mb-4">These signals measure whether your processes are actively growing.</p>
           <div>
             {checkItems.map((item) => (
-              <CheckRow key={item.label} {...item} />
+              <CheckRow key={item.key} label={item.label} passing={checks[item.key]} detail={item.detail} />
             ))}
           </div>
         </Card>

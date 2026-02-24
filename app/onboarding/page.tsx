@@ -90,7 +90,7 @@ const CHAPTERS = [
       },
       {
         heading: "Step 4: Check Your Scorecard",
-        body: "Visit your personal scorecard (My Scorecard in the sidebar) to see which compliance checks are passing and which need attention. Use this as your regular home base in the Hub.",
+        body: "Visit your personal scorecard (My Scorecard in the sidebar) to see which growth signals are green and which need attention. Use this as your regular home base in the Hub.",
       },
     ],
   },
