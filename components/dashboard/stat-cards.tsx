@@ -143,7 +143,7 @@ export default function StatCardsRow({
       {isMember ? (
         <StatCard
           label="NIA Average"
-          value={orgAvgHealth > 0 ? orgAvgHealth : "--"}
+          value={orgAvgHealth != null && orgAvgHealth > 0 ? orgAvgHealth : "--"}
           color={
             orgAvgHealth > 0 && avgHealth > 0
               ? avgHealth >= orgAvgHealth
