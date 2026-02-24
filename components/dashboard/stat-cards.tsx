@@ -101,22 +101,26 @@ export default function StatCardsRow({
   avgHealth,
   healthCount,
   healthLevel,
-  baldrigeReadyCount,
+  excellenceReadyCount,
   processCount,
   needsAttentionCount,
   overdueMetricCount,
   overdueTaskCount,
   taskStats,
+  orgAvgHealth,
+  isMember,
 }: {
   avgHealth: number;
   healthCount: number;
   healthLevel: { label: string; color: string };
-  baldrigeReadyCount: number;
+  excellenceReadyCount: number;
   processCount: number;
   needsAttentionCount: number;
   overdueMetricCount: number;
   overdueTaskCount: number;
   taskStats: DashboardTaskStats | null;
+  orgAvgHealth?: number;
+  isMember?: boolean;
 }) {
   const totalOverdue = overdueMetricCount + overdueTaskCount;
 
@@ -136,14 +140,36 @@ export default function StatCardsRow({
         healthCount={healthCount}
         healthLevel={healthLevel}
       />
-      <StatCard
-        label="Baldrige Ready"
-        value={baldrigeReadyCount}
-        color={baldrigeReadyCount > 0 ? "#b1bd37" : "var(--text-muted)"}
-        subtitle={processCount > 0 ? `of ${processCount} processes` : undefined}
-        href="/readiness"
-        helpText="Processes scoring 80+ on health assessment."
-      />
+      {isMember ? (
+        <StatCard
+          label="NIA Average"
+          value={orgAvgHealth > 0 ? orgAvgHealth : "--"}
+          color={
+            orgAvgHealth > 0 && avgHealth > 0
+              ? avgHealth >= orgAvgHealth
+                ? "#b1bd37"
+                : "#f79935"
+              : "var(--text-muted)"
+          }
+          subtitle={
+            orgAvgHealth > 0 && avgHealth > 0
+              ? avgHealth >= orgAvgHealth
+                ? "You're above average"
+                : "Below NIA average"
+              : undefined
+          }
+          helpText="NIA's average process health score across all process owners."
+        />
+      ) : (
+        <StatCard
+          label="Excellence Ready"
+          value={excellenceReadyCount}
+          color={excellenceReadyCount > 0 ? "#b1bd37" : "var(--text-muted)"}
+          subtitle={processCount > 0 ? `of ${processCount} processes` : undefined}
+          href="/readiness"
+          helpText="Processes scoring 80+ on health assessment."
+        />
+      )}
       <StatCard
         label="Needs Attention"
         value={needsAttentionCount}

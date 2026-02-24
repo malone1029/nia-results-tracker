@@ -52,6 +52,8 @@ function ProcessOwnerDashboard() {
   const [asanaConnected, setAsanaConnected] = useState(false);
   const [userId, setUserId] = useState("");
   const [dashboardTasks, setDashboardTasks] = useState<DashboardTaskData | null>(null);
+  const [userRole, setUserRole] = useState<string>("member");
+  const [orgAvgHealth, setOrgAvgHealth] = useState(0);
 
   // Fetch task data (called on mount and when owner changes)
   const fetchTaskData = useCallback(async (owner: string) => {
@@ -68,7 +70,7 @@ function ProcessOwnerDashboard() {
   }, []);
 
   useEffect(() => {
-    document.title = "Dashboard | NIA Excellence Hub";
+    document.title = "Home | NIA Excellence Hub";
 
     async function fetchAll() {
       // Fetch health data + user + ADLI scores + metric data + improvements + tasks in parallel
@@ -95,8 +97,27 @@ function ProcessOwnerDashboard() {
       const user = userRes.data?.user;
       const fullName = user?.user_metadata?.full_name || "";
       setUserName(fullName);
-      const uid = user?.id || "";
+      const uid = user?.id ?? "";
       setUserId(uid);
+
+      // Fetch role for this user
+      let role = "member";
+      if (uid) {
+        const roleRes = await supabase.from("user_roles").select("role").eq("auth_id", uid).single();
+        role = roleRes.data?.role ?? "member";
+      }
+      setUserRole(role);
+      const isAdmin = role === "admin" || role === "super_admin";
+
+      // Compute org-wide average health (all processes, no filter)
+      let orgAvgHealthTotal = 0;
+      let orgHealthCount = 0;
+      for (const proc of procs) {
+        const h = healthData.healthScores.get(proc.id);
+        if (h) { orgAvgHealthTotal += h.total; orgHealthCount++; }
+      }
+      const computedOrgAvgHealth = orgHealthCount > 0 ? Math.round(orgAvgHealthTotal / orgHealthCount) : 0;
+      setOrgAvgHealth(computedOrgAvgHealth);
 
       // Owners (deduplicated, sorted)
       const ownerSet = new Set<string>();
@@ -118,6 +139,8 @@ function ProcessOwnerDashboard() {
             .then((r) => r.ok ? r.json() : null)
             .then((data) => { if (data) setDashboardTasks(data); })
             .catch(() => {});
+        } else if (!isAdmin) {
+          // Member with no matching processes — keep __all__ so empty state renders correctly
         }
       }
 
@@ -255,6 +278,9 @@ function ProcessOwnerDashboard() {
     );
   }
 
+  // ── Role helpers (derived from state) ──
+  const isAdmin = userRole === "admin" || userRole === "super_admin";
+
   // ── Derived data (filter-dependent) ──
   const isAll = selectedOwner === "__all__";
   const filteredProcesses = processes.filter((p) => {
@@ -286,13 +312,13 @@ function ProcessOwnerDashboard() {
   }
   avgHealth = healthCount > 0 ? Math.round(avgHealth / healthCount) : 0;
   const healthLevel = healthCount > 0
-    ? (avgHealth >= 80 ? { label: "Baldrige Ready", color: "#b1bd37" }
+    ? (avgHealth >= 80 ? { label: "Excellence Ready", color: "#b1bd37" }
       : avgHealth >= 60 ? { label: "On Track", color: "#55787c" }
       : avgHealth >= 40 ? { label: "Developing", color: "#f79935" }
       : { label: "Getting Started", color: "#dc2626" })
     : { label: "--", color: "var(--text-muted)" };
 
-  const baldrigeReadyCount = filteredProcesses.filter((p) => {
+  const excellenceReadyCount = filteredProcesses.filter((p) => {
     const h = healthScores.get(p.id);
     return h && h.total >= 80;
   }).length;
@@ -360,7 +386,7 @@ function ProcessOwnerDashboard() {
     if (!h) continue;
     const name = proc.name.length > 25 ? proc.name.slice(0, 25) + "..." : proc.name;
     if (h.total >= 80) {
-      recentWins.push({ emoji: "\uD83C\uDFC6", text: `${name} is Baldrige Ready`, health: h.total, color: h.level.color });
+      recentWins.push({ emoji: "\uD83C\uDFC6", text: `${name} is Excellence Ready`, health: h.total, color: h.level.color });
     }
     if (h.dimensions.documentation.score === 25) {
       recentWins.push({ emoji: "\uD83D\uDCDD", text: `${name} — docs complete (25/25)` });
@@ -401,35 +427,37 @@ function ProcessOwnerDashboard() {
               : "Organization-wide overview"}
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-surface-subtle rounded-xl p-2">
-          <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
-            {(["all", "key", "support"] as const).map((t) => (
-              <button key={t} onClick={() => setTypeFilter(t)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                  typeFilter === t ? "bg-card text-nia-dark shadow-sm" : "text-text-tertiary hover:text-text-secondary"
-                }`}>
-                {t === "all" ? "All" : t === "key" ? "\u2605 Key" : "Support"}
-              </button>
-            ))}
+        {isAdmin && (
+          <div className="flex items-center gap-2 bg-surface-subtle rounded-xl p-2">
+            <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
+              {(["all", "key", "support"] as const).map((t) => (
+                <button key={t} onClick={() => setTypeFilter(t)}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                    typeFilter === t ? "bg-card text-nia-dark shadow-sm" : "text-text-tertiary hover:text-text-secondary"
+                  }`}>
+                  {t === "all" ? "All" : t === "key" ? "\u2605 Key" : "Support"}
+                </button>
+              ))}
+            </div>
+            <label htmlFor="owner-select" className="text-sm text-text-tertiary">
+              Owner:
+            </label>
+            <Select
+              id="owner-select"
+              value={selectedOwner}
+              onChange={(e) => handleOwnerChange(e.target.value)}
+              size="sm"
+              className="w-auto"
+            >
+              <option value="__all__">All Owners</option>
+              {owners.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </Select>
           </div>
-          <label htmlFor="owner-select" className="text-sm text-text-tertiary">
-            Owner:
-          </label>
-          <Select
-            id="owner-select"
-            value={selectedOwner}
-            onChange={(e) => handleOwnerChange(e.target.value)}
-            size="sm"
-            className="w-auto"
-          >
-            <option value="__all__">All Owners</option>
-            {owners.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </Select>
-        </div>
+        )}
       </div>
 
       <PageTour />
@@ -440,12 +468,14 @@ function ProcessOwnerDashboard() {
         avgHealth={avgHealth}
         healthCount={healthCount}
         healthLevel={healthLevel}
-        baldrigeReadyCount={baldrigeReadyCount}
+        excellenceReadyCount={excellenceReadyCount}
         processCount={processCount}
         needsAttentionCount={needsAttentionCount}
         overdueMetricCount={filteredOverdue.length}
         overdueTaskCount={dashboardTasks?.stats.totalOverdue ?? 0}
         taskStats={dashboardTasks?.stats ?? null}
+        orgAvgHealth={orgAvgHealth}
+        isMember={!isAdmin}
       />
       </div>
 
