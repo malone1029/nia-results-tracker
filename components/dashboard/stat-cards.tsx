@@ -140,36 +140,25 @@ export default function StatCardsRow({
         healthCount={healthCount}
         healthLevel={healthLevel}
       />
-      {isMember ? (
-        <StatCard
-          label="NIA Average"
-          value={orgAvgHealth != null && orgAvgHealth > 0 ? orgAvgHealth : "--"}
-          color={
-            orgAvgHealth != null && orgAvgHealth > 0 && avgHealth > 0
-              ? avgHealth >= orgAvgHealth
-                ? "#b1bd37"
-                : "#f79935"
-              : "var(--text-muted)"
-          }
-          subtitle={
-            orgAvgHealth != null && orgAvgHealth > 0 && avgHealth > 0
-              ? avgHealth >= orgAvgHealth
-                ? "You're above average"
-                : "Below NIA average"
-              : undefined
-          }
-          helpText="NIA's average process health score across all process owners."
-        />
-      ) : (
-        <StatCard
-          label="Excellence Ready"
-          value={excellenceReadyCount}
-          color={excellenceReadyCount > 0 ? "#b1bd37" : "var(--text-muted)"}
-          subtitle={processCount > 0 ? `of ${processCount} processes` : undefined}
-          href="/readiness"
-          helpText="Processes scoring 80+ on health assessment."
-        />
-      )}
+      <StatCard
+        label="NIA Average"
+        value={orgAvgHealth != null && orgAvgHealth > 0 ? orgAvgHealth : "--"}
+        color={
+          orgAvgHealth != null && orgAvgHealth > 0 && avgHealth > 0
+            ? avgHealth >= orgAvgHealth
+              ? "#b1bd37"
+              : "#f79935"
+            : "var(--text-muted)"
+        }
+        subtitle={
+          orgAvgHealth != null && orgAvgHealth > 0 && avgHealth > 0
+            ? avgHealth >= orgAvgHealth
+              ? "You're above average"
+              : "Below NIA average"
+            : undefined
+        }
+        helpText="NIA's average process health score across all process owners."
+      />
       <StatCard
         label="Needs Attention"
         value={needsAttentionCount}
