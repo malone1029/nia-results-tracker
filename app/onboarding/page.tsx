@@ -50,24 +50,24 @@ const CHAPTERS = [
   },
   {
     id: "expectations",
-    title: "Your Responsibilities",
+    title: "How We Know You're Growing",
     subtitle: "Chapter 3 of 4",
     content: [
       {
-        heading: "The Standard",
-        body: "NIA's expectation is simple: progress is acceptable, failure to use the Hub is not. You don't need to have a perfect score — you need to be actively working your processes.",
+        heading: "Growth, Not Compliance",
+        body: "NIA doesn't measure success by whether you followed a checklist. We measure it by whether your processes are getting better over time. The Hub tracks three signals that tell that story honestly.",
       },
       {
-        heading: "What 'Active' Means",
-        body: "You are considered compliant when you: (1) have completed this onboarding program, (2) keep all linked metrics entered within their cadence window, (3) update your process documentation at least once every 90 days, (4) complete at least one improvement task per quarter, and (5) have at least one process at Ready for Review or Approved status.",
+        heading: "Signal 1: Your Metrics Are Current",
+        body: "Data that's never entered can't tell you anything. Keeping your linked metrics logged within their cadence window is the foundation — it means your processes are actually being watched, not just documented.",
       },
       {
-        heading: "Your Scorecard",
-        body: "You have a personal scorecard page that shows your compliance status and growth metrics. You can view it anytime from the sidebar. Jon and NIA leadership can also view it. The scorecard is not punitive — it's a tool to help you self-monitor and prioritize.",
+        heading: "Signal 2: Your Health Score Is On Track",
+        body: "The Hub calculates a health score for each of your processes based on the quality and depth of your documentation and ADLI maturity. A score of 60 or above means you're on track. You don't need a perfect score — you need to be in the game.",
       },
       {
-        heading: "The Cadence",
-        body: "Think of your Hub work in three rhythms: monthly (log data for monthly metrics), quarterly (update ADLI, complete a task, review your health score), and annually (full readiness review of your processes and where NIA stands as an organization).",
+        heading: "Signal 3: Your ADLI Maturity Is Improving",
+        body: "ADLI scores measure how systematically your approach, deployment, learning, and integration are working. Use the AI coach to score your ADLI and identify what to improve next. Rising scores over time — or reaching maturity on all four dimensions — is the signal we're looking for.",
       },
     ],
   },
