@@ -18,7 +18,34 @@ interface GroupedResults {
   requirements: SearchResult[];
 }
 
-export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: { mobile?: boolean; onNavigate?: () => void; variant?: "dark" | "light" }) {
+type FilterKey = "all" | "process" | "metric" | "requirement";
+
+const INITIAL_SHOW = 3;
+
+function highlightMatch(text: string, query: string) {
+  if (!query || query.length < 2) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span className="font-semibold text-nia-orange">
+        {text.slice(idx, idx + query.length)}
+      </span>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
+export default function GlobalSearch({
+  mobile,
+  onNavigate,
+  variant = "dark",
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+  variant?: "dark" | "light";
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GroupedResults>({
@@ -29,15 +56,16 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Flatten results for keyboard navigation
-  const flatResults = [
-    ...results.processes,
-    ...results.metrics,
-    ...results.requirements,
-  ];
+  // Reset filter + expanded when query changes
+  useEffect(() => {
+    setExpandedGroups(new Set());
+    setActiveFilter("all");
+  }, [query]);
 
   // Debounced search
   useEffect(() => {
@@ -78,7 +106,8 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
       const processes: SearchResult[] = (procRes.data ?? []).map((p) => ({
         id: p.id,
         title: p.name,
-        subtitle: [p.owner, p.baldrige_item].filter(Boolean).join(" · ") || "Process",
+        subtitle:
+          [p.owner, p.baldrige_item].filter(Boolean).join(" · ") || "Process",
         href: `/processes/${p.id}`,
         type: "process",
       }));
@@ -144,10 +173,42 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
     [router, onNavigate]
   );
 
+  // Apply active filter
+  const filtered: GroupedResults =
+    activeFilter === "process"
+      ? { processes: results.processes, metrics: [], requirements: [] }
+      : activeFilter === "metric"
+      ? { processes: [], metrics: results.metrics, requirements: [] }
+      : activeFilter === "requirement"
+      ? { processes: [], metrics: [], requirements: results.requirements }
+      : results;
+
+  // Visible slices (respecting expand state)
+  const visibleProcesses = expandedGroups.has("processes")
+    ? filtered.processes
+    : filtered.processes.slice(0, INITIAL_SHOW);
+  const visibleMetrics = expandedGroups.has("metrics")
+    ? filtered.metrics
+    : filtered.metrics.slice(0, INITIAL_SHOW);
+  const visibleRequirements = expandedGroups.has("requirements")
+    ? filtered.requirements
+    : filtered.requirements.slice(0, INITIAL_SHOW);
+
+  // Flat list for keyboard navigation (only visible items)
+  const flatResults = [
+    ...visibleProcesses,
+    ...visibleMetrics,
+    ...visibleRequirements,
+  ];
+
+  const hasResults = flatResults.length > 0;
+  const noResults =
+    query.length >= 2 && !loading && filtered.processes.length === 0 &&
+    filtered.metrics.length === 0 && filtered.requirements.length === 0;
+
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (!open || flatResults.length === 0) {
+    if (!open) {
       if (e.key === "Escape") {
-        setOpen(false);
         inputRef.current?.blur();
       }
       return;
@@ -179,28 +240,50 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
     }
   }
 
-  const hasResults = flatResults.length > 0;
-  const noResults = query.length >= 2 && !loading && !hasResults;
+  // Filter tab config — only show tabs that have results (except All)
+  const filterTabs: { key: FilterKey; label: string; count: number }[] = [
+    {
+      key: "all",
+      label: "All",
+      count:
+        results.processes.length +
+        results.metrics.length +
+        results.requirements.length,
+    },
+    { key: "process", label: "Processes", count: results.processes.length },
+    { key: "metric", label: "Metrics", count: results.metrics.length },
+    {
+      key: "requirement",
+      label: "Requirements",
+      count: results.requirements.length,
+    },
+  ].filter((t) => t.key === "all" || t.count > 0);
 
-  // Track cumulative index for highlight matching
+  // Mutable index tracker for keyboard highlight alignment
   let globalIndex = 0;
 
-  function renderGroup(label: string, items: SearchResult[]) {
-    if (items.length === 0) return null;
+  function renderGroup(
+    label: string,
+    allItems: SearchResult[],
+    visibleItems: SearchResult[],
+    key: string
+  ) {
+    if (allItems.length === 0) return null;
     const startIndex = globalIndex;
-    globalIndex += items.length;
+    globalIndex += visibleItems.length;
+    const hiddenCount = allItems.length - visibleItems.length;
 
     return (
       <div key={label}>
-        <div className="px-3 py-1.5 text-xs font-semibold text-text-muted uppercase tracking-wide">
+        <div className="px-3 py-1.5 text-xs font-semibold text-text-muted uppercase tracking-wide border-t border-border">
           {label}
         </div>
-        {items.map((item, i) => {
+        {visibleItems.map((item, i) => {
           const idx = startIndex + i;
           return (
             <button
               key={`${item.type}-${item.id}`}
-              className={`w-full text-left px-3 py-2 flex flex-col transition-colors ${
+              className={`w-full text-left px-3 py-2.5 flex flex-col transition-colors ${
                 idx === highlightIndex
                   ? "bg-nia-grey-blue/20"
                   : "hover:bg-surface-hover"
@@ -208,27 +291,37 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
               onMouseEnter={() => setHighlightIndex(idx)}
               onClick={() => navigate(item.href)}
             >
-                      <span className="text-sm font-medium text-foreground whitespace-normal leading-snug">
-                {item.title}
+              <span className="text-sm font-medium text-foreground whitespace-normal leading-snug">
+                {highlightMatch(item.title, query)}
               </span>
-              <span className="text-xs text-text-muted">
+              <span className="text-xs text-text-muted mt-0.5">
                 {item.subtitle}
               </span>
             </button>
           );
         })}
+        {hiddenCount > 0 && (
+          <button
+            className="w-full text-left px-3 py-1.5 text-xs text-nia-orange hover:underline transition-colors"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() =>
+              setExpandedGroups((prev) => new Set([...prev, key]))
+            }
+          >
+            Show {hiddenCount} more {label.toLowerCase()}
+          </button>
+        )}
       </div>
     );
   }
 
-  // Reset globalIndex before each render of the dropdown
   function renderDropdown() {
     globalIndex = 0;
     return (
       <>
-        {renderGroup("Processes", results.processes)}
-        {renderGroup("Metrics", results.metrics)}
-        {renderGroup("Requirements", results.requirements)}
+        {renderGroup("Processes", filtered.processes, visibleProcesses, "processes")}
+        {renderGroup("Metrics", filtered.metrics, visibleMetrics, "metrics")}
+        {renderGroup("Requirements", filtered.requirements, visibleRequirements, "requirements")}
       </>
     );
   }
@@ -237,7 +330,6 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
     <div ref={containerRef} className={`relative ${mobile ? "w-full" : "w-64"}`}>
       {/* Search input */}
       <div className="relative">
-        {/* Magnifying glass icon */}
         <svg
           className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${
             variant === "light" ? "text-text-muted" : "text-white/50"
@@ -260,31 +352,81 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => {
-            if (query.length >= 2 && flatResults.length > 0) setOpen(true);
+            if (query.length >= 2 && hasResults) setOpen(true);
           }}
           placeholder="Search… ⌘K"
-          className={`w-full text-sm rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 transition-colors ${
+          className={`w-full text-sm rounded-lg pl-8 py-1.5 focus:outline-none focus:ring-2 transition-colors ${
+            query ? "pr-7" : "pr-3"
+          } ${
             variant === "light"
               ? "bg-surface-subtle text-foreground placeholder-text-muted focus:ring-nia-grey-blue/30 focus:bg-surface-hover"
               : "bg-white/15 text-white placeholder-white/50 focus:ring-nia-orange/50 focus:bg-white/25"
           }`}
         />
+        {query && (
+          <button
+            className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors ${
+              variant === "light"
+                ? "text-text-muted hover:text-foreground"
+                : "text-white/50 hover:text-white/80"
+            }`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setQuery("");
+              setOpen(false);
+              inputRef.current?.focus();
+            }}
+            tabIndex={-1}
+            aria-label="Clear search"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Results dropdown */}
       {open && (
-        <div className="absolute top-full mt-1 left-0 w-[580px] bg-card rounded-lg shadow-lg border border-border max-h-[480px] overflow-y-auto z-[60]">
-          {loading && (
-            <div className="px-3 py-4 text-sm text-text-muted text-center">
-              Searching…
+        <div className="absolute top-full mt-1 left-0 w-[580px] bg-card rounded-lg shadow-lg border border-border z-[60] overflow-hidden flex flex-col">
+          {/* Filter tabs */}
+          {!loading && (hasResults || noResults) && filterTabs.length > 1 && (
+            <div className="flex gap-1.5 px-3 py-2 border-b border-border flex-wrap">
+              {filterTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setActiveFilter(tab.key);
+                    setHighlightIndex(-1);
+                  }}
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                    activeFilter === tab.key
+                      ? "bg-nia-orange text-white"
+                      : "bg-surface-subtle text-text-muted hover:bg-surface-hover hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                  {tab.key !== "all" ? ` (${tab.count})` : ""}
+                </button>
+              ))}
             </div>
           )}
-          {!loading && hasResults && renderDropdown()}
-          {noResults && (
-            <div className="px-3 py-4 text-sm text-text-muted text-center">
-              No results found
-            </div>
-          )}
+
+          {/* Results list */}
+          <div className="max-h-[420px] overflow-y-auto">
+            {loading && (
+              <div className="px-3 py-4 text-sm text-text-muted text-center">
+                Searching…
+              </div>
+            )}
+            {!loading && (hasResults || !noResults) && renderDropdown()}
+            {noResults && (
+              <div className="px-3 py-4 text-sm text-text-muted text-center">
+                No results found
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
