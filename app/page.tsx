@@ -300,10 +300,11 @@ function ProcessOwnerDashboard() {
 
   const processCount = filteredProcesses.length;
 
-  // Health averages — weighted: key processes count 2x (matches sidebar)
+  // Health averages — uses ALL processes (not owner-filtered), weighted: key 2x.
+  // Matches the sidebar widget which also ignores the owner filter.
   let weightedHealthSum = 0;
   let totalHealthWeight = 0;
-  for (const proc of filteredProcesses) {
+  for (const proc of processes) {
     const h = healthScores.get(proc.id);
     if (h) {
       const weight = proc.process_type === "key" ? 2 : 1;
@@ -312,7 +313,7 @@ function ProcessOwnerDashboard() {
     }
   }
   const avgHealth = totalHealthWeight > 0 ? Math.round(weightedHealthSum / totalHealthWeight) : 0;
-  const healthCount = filteredProcesses.filter((p) => healthScores.has(p.id)).length;
+  const healthCount = processes.filter((p) => healthScores.has(p.id)).length;
   const healthLevel = healthCount > 0
     ? (avgHealth >= 80 ? { label: "Excellence Ready", color: "#b1bd37" }
       : avgHealth >= 60 ? { label: "On Track", color: "#55787c" }
