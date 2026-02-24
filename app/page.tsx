@@ -300,17 +300,19 @@ function ProcessOwnerDashboard() {
 
   const processCount = filteredProcesses.length;
 
-  // Health averages
-  let avgHealth = 0;
-  let healthCount = 0;
+  // Health averages — weighted: key processes count 2x (matches sidebar)
+  let weightedHealthSum = 0;
+  let totalHealthWeight = 0;
   for (const proc of filteredProcesses) {
     const h = healthScores.get(proc.id);
     if (h) {
-      avgHealth += h.total;
-      healthCount++;
+      const weight = proc.process_type === "key" ? 2 : 1;
+      weightedHealthSum += h.total * weight;
+      totalHealthWeight += weight;
     }
   }
-  avgHealth = healthCount > 0 ? Math.round(avgHealth / healthCount) : 0;
+  const avgHealth = totalHealthWeight > 0 ? Math.round(weightedHealthSum / totalHealthWeight) : 0;
+  const healthCount = filteredProcesses.filter((p) => healthScores.has(p.id)).length;
   const healthLevel = healthCount > 0
     ? (avgHealth >= 80 ? { label: "Excellence Ready", color: "#b1bd37" }
       : avgHealth >= 60 ? { label: "On Track", color: "#55787c" }
