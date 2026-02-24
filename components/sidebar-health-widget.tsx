@@ -56,6 +56,9 @@ export default function SidebarHealthWidget({
           className="flex-shrink-0 [&_span]:!text-sm [&_span]:!font-bold"
         />
         <div className="min-w-0">
+          <div className="text-white/50 text-[10px] uppercase tracking-wide leading-none mb-0.5">
+            NIA Average
+          </div>
           <div className="text-white text-lg font-bold leading-tight">
             {score}
           </div>
