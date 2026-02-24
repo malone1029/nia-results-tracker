@@ -2,14 +2,12 @@
 // Pure compliance engine — takes pre-fetched data, returns pass/fail per check.
 // "I'll accept progress. I won't accept a failure to use." — Jon Malone
 //
-// Compliance thresholds (adjust here if expectations change):
-const PROCESS_UPDATE_WINDOW_DAYS = 90;     // must update process docs within 90 days
-const TASK_COMPLETION_WINDOW_DAYS = 90;    // must complete at least 1 task per 90 days
-const MIN_ACCEPTABLE_STATUS = ["ready_for_review", "approved"]; // at least one process must be here
+// Growth signal thresholds (adjust here if expectations change):
+const HEALTH_SCORE_HEALTHY_THRESHOLD = 60; // "On Track" level
+const ADLI_MATURE_THRESHOLD = 4;           // all dims ≥ 4 → considered mature
+const ADLI_LOOKBACK_DAYS = 90;             // compare ADLI over rolling 90-day window
 
-// Metric cadence windows match lib/review-status.ts CADENCE_DAYS
-// monthly=30, quarterly=90, semi-annual=182, annual=365
-// We add a 20% grace buffer to avoid penalizing near-due metrics
+// Metric cadence windows (unchanged)
 const CADENCE_GRACE: Record<string, number> = {
   monthly: 36,
   quarterly: 108,
@@ -23,22 +21,31 @@ export interface MetricComplianceInput {
   nextEntryExpected: string | null;
 }
 
+export interface AdliScorePoint {
+  score: number;
+  scoredAt: string;
+}
+
 export interface ComplianceInput {
   onboardingCompletedAt: string | null;
+  avgHealthScore: number | null; // avg health score across owned processes (0–100)
   processes: {
-    updated_at: string;
-    status: string;
     metrics: MetricComplianceInput[];
-    tasksCompletedDates: string[]; // completed_at values for tasks completed in system
+    adliHistory: AdliScorePoint[];     // all ADLI scores for this process, newest first
+    adliDimensions: {                  // latest ADLI dimension scores (null if never scored)
+      approach: number;
+      deployment: number;
+      learning: number;
+      integration: number;
+    } | null;
   }[];
 }
 
 export interface ComplianceChecks {
-  onboardingComplete: boolean;     // has completed onboarding program
-  metricsAllCurrent: boolean;      // all linked metrics within cadence window (with grace)
-  processRecentlyUpdated: boolean; // at least one process updated within 90 days
-  taskCompletedThisQuarter: boolean; // at least one task completed in rolling 90 days
-  processStatusAcceptable: boolean;  // at least one process at ready_for_review or approved
+  onboardingComplete: boolean;
+  metricsAllCurrent: boolean;
+  healthScoreGrowing: boolean;
+  adliImproving: boolean;
 }
 
 export interface ComplianceResult {
@@ -53,54 +60,71 @@ function daysBetween(dateStr: string, now = new Date()): number {
 export function computeCompliance(input: ComplianceInput): ComplianceResult {
   const now = new Date();
 
-  // Check 1: Onboarding
+  // Check 1: Onboarding complete
   const onboardingComplete = !!input.onboardingCompletedAt;
 
-  // Check 2: Metrics all current (cadence-aware with grace buffer)
-  // A user with no processes or no metrics passes this check.
-  // Metrics with a future nextEntryExpected are on a known schedule — not overdue.
+  // Check 2: All metrics current (cadence-aware with grace buffer, unchanged)
   const allMetrics = input.processes.flatMap((p) => p.metrics);
   const metricsAllCurrent =
     allMetrics.length === 0 ||
     allMetrics.every((m) => {
       if (m.nextEntryExpected) {
         const nextDate = new Date(m.nextEntryExpected + "T00:00:00");
-        if (nextDate > now) return true; // scheduled — treat as current
+        if (nextDate > now) return true;
       }
-      if (!m.lastEntryDate) return false; // no data = not current
+      if (!m.lastEntryDate) return false;
       const grace = CADENCE_GRACE[m.cadence] ?? 438;
       return daysBetween(m.lastEntryDate, now) <= grace;
     });
 
-  // Check 3: At least one process updated within 90 days
-  const processRecentlyUpdated =
-    input.processes.length === 0
-      ? false
-      : input.processes.some(
-          (p) => daysBetween(p.updated_at, now) <= PROCESS_UPDATE_WINDOW_DAYS
-        );
+  // Check 3: Health score at or above healthy threshold (≥60 = On Track)
+  // Owners with no processes pass automatically.
+  const healthScoreGrowing =
+    input.processes.length === 0 ||
+    (input.avgHealthScore !== null && input.avgHealthScore >= HEALTH_SCORE_HEALTHY_THRESHOLD);
 
-  // Check 4: At least one task completed in rolling 90 days
-  const allCompletedDates = input.processes.flatMap((p) => p.tasksCompletedDates);
-  const taskCompletedThisQuarter = allCompletedDates.some(
-    (d) => daysBetween(d, now) <= TASK_COMPLETION_WINDOW_DAYS
-  );
-
-  // Check 5: At least one process at acceptable status
-  const processStatusAcceptable =
+  // Check 4: ADLI maturity improving over time
+  // Passes if ANY process meets one of:
+  //   a) All 4 ADLI dimensions ≥ 4 (mature)
+  //   b) Latest ADLI score > a score from ≥90 days ago (actively improving)
+  //   c) Has a recent ADLI score within 90 days but no older comparison yet (first-time grace)
+  // Fails entirely if no processes have any ADLI scores (not engaged with AI coach).
+  const hasAnyAdliScore = input.processes.some((p) => p.adliHistory.length > 0);
+  const adliImproving =
     input.processes.length === 0
+      ? true
+      : !hasAnyAdliScore
       ? false
-      : input.processes.some((p) => MIN_ACCEPTABLE_STATUS.includes(p.status));
+      : input.processes.some((p) => {
+          // (a) All dimensions mature
+          if (p.adliDimensions) {
+            const { approach, deployment, learning, integration } = p.adliDimensions;
+            if (
+              approach >= ADLI_MATURE_THRESHOLD &&
+              deployment >= ADLI_MATURE_THRESHOLD &&
+              learning >= ADLI_MATURE_THRESHOLD &&
+              integration >= ADLI_MATURE_THRESHOLD
+            )
+              return true;
+          }
+          const latest = p.adliHistory[0];
+          if (!latest) return false;
+          // (b) Improvement over older score
+          const olderScore = p.adliHistory.find(
+            (s) => daysBetween(s.scoredAt, now) >= ADLI_LOOKBACK_DAYS
+          );
+          if (olderScore) return latest.score > olderScore.score;
+          // (c) First-time scorer grace: scored recently, no older comparison yet
+          return daysBetween(latest.scoredAt, now) <= ADLI_LOOKBACK_DAYS;
+        });
 
   const checks: ComplianceChecks = {
     onboardingComplete,
     metricsAllCurrent,
-    processRecentlyUpdated,
-    taskCompletedThisQuarter,
-    processStatusAcceptable,
+    healthScoreGrowing,
+    adliImproving,
   };
 
   const isCompliant = Object.values(checks).every(Boolean);
-
   return { isCompliant, checks };
 }

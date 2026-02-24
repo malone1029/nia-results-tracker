@@ -61,17 +61,35 @@ export async function GET() {
     if (!latestByMetric.has(e.metric_id)) latestByMetric.set(e.metric_id, e.date);
   }
 
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
-  const { data: completedTasks } = processIds.length > 0
+  // Fetch ADLI scores for all processes (needed for health proxy + compliance)
+  const { data: adliScores } = processIds.length > 0
     ? await supabase
-        .from("process_tasks")
-        .select("process_id, completed_at")
+        .from("process_adli_scores")
+        .select("process_id, overall_score, approach_score, deployment_score, learning_score, integration_score, scored_at")
         .in("process_id", processIds)
-        .eq("completed", true)
-        .gte("completed_at", ninetyDaysAgo.toISOString())
+        .order("scored_at", { ascending: false })
     : { data: [] };
+
+  // Build ADLI maps (newest first per process)
+  const latestAdliByProcess = new Map<number, number>();
+  const adliHistoryByProcess = new Map<number, { score: number; scoredAt: string }[]>();
+  const adliDimensionsByProcess = new Map<number, {
+    approach: number; deployment: number; learning: number; integration: number;
+  }>();
+
+  for (const s of adliScores ?? []) {
+    if (!latestAdliByProcess.has(s.process_id)) {
+      latestAdliByProcess.set(s.process_id, s.overall_score);
+      adliDimensionsByProcess.set(s.process_id, {
+        approach: s.approach_score ?? 0,
+        deployment: s.deployment_score ?? 0,
+        learning: s.learning_score ?? 0,
+        integration: s.integration_score ?? 0,
+      });
+    }
+    if (!adliHistoryByProcess.has(s.process_id)) adliHistoryByProcess.set(s.process_id, []);
+    adliHistoryByProcess.get(s.process_id)!.push({ score: s.overall_score, scoredAt: s.scored_at });
+  }
 
   const scorecards = users.map((u) => {
     const ownerName = u.full_name ?? u.email;
@@ -81,7 +99,18 @@ export async function GET() {
         ? p.owner_email === userEmail
         : p.owner_email === null && p.owner === ownerName
     );
-    const userProcessIds = new Set(userProcesses.map((p) => p.id));
+
+    // avgHealthScore: map ADLI (1-5) → health proxy (20-100)
+    const userProcIds = userProcesses.map((p) => p.id);
+    const procsWithAdli = userProcIds.filter((id) => latestAdliByProcess.has(id));
+    const avgHealthScore: number | null = procsWithAdli.length > 0
+      ? Math.round(
+          procsWithAdli.reduce((sum, id) => {
+            const adli = latestAdliByProcess.get(id) ?? 1;
+            return sum + ((adli - 1) / 4) * 80 + 20;
+          }, 0) / procsWithAdli.length
+        )
+      : null;
 
     const processesForCompliance = userProcesses.map((p) => {
       const pMetrics = (metricLinks ?? [])
@@ -93,21 +122,19 @@ export async function GET() {
         });
 
       return {
-        updated_at: p.updated_at,
-        status: p.status,
         metrics: pMetrics.map((m) => ({
           cadence: m.cadence,
           lastEntryDate: latestByMetric.get(m.id) ?? null,
           nextEntryExpected: m.next_entry_expected ?? null,
         })),
-        tasksCompletedDates: (completedTasks ?? [])
-          .filter((t) => userProcessIds.has(t.process_id) && t.completed_at)
-          .map((t) => t.completed_at as string),
+        adliHistory: adliHistoryByProcess.get(p.id) ?? [],
+        adliDimensions: adliDimensionsByProcess.get(p.id) ?? null,
       };
     });
 
     const compliance = computeCompliance({
       onboardingCompletedAt: u.onboarding_completed_at,
+      avgHealthScore,
       processes: processesForCompliance,
     });
 

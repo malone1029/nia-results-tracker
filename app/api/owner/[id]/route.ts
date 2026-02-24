@@ -117,35 +117,54 @@ export async function GET(
         .order("name")
     : { data: [] };
 
-  // Fetch completed tasks for these processes in rolling 90 days
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
-  const { data: completedTasks } = processIds.length > 0
-    ? await supabase
-        .from("process_tasks")
-        .select("process_id, completed_at")
-        .in("process_id", processIds)
-        .eq("completed", true)
-        .gte("completed_at", ninetyDaysAgo.toISOString())
-    : { data: [] };
-
   // Fetch ADLI scores per process
   const { data: adliScores } = processIds.length > 0
     ? await supabase
         .from("process_adli_scores")
-        .select("process_id, overall_score, scored_at")
+        .select("process_id, overall_score, approach_score, deployment_score, learning_score, integration_score, scored_at")
         .in("process_id", processIds)
         .order("scored_at", { ascending: false })
     : { data: [] };
 
-  // Latest ADLI score per process
+  // Latest ADLI score per process (for processes list in response)
   const latestAdliByProcess = new Map<number, number>();
+  // Full ADLI history per process (newest first, for compliance)
+  const adliHistoryByProcess = new Map<number, { score: number; scoredAt: string }[]>();
+  // Latest dimension scores per process (for compliance)
+  const adliDimensionsByProcess = new Map<number, {
+    approach: number; deployment: number; learning: number; integration: number;
+  }>();
+
   for (const s of adliScores ?? []) {
     if (!latestAdliByProcess.has(s.process_id)) {
       latestAdliByProcess.set(s.process_id, s.overall_score);
+      adliDimensionsByProcess.set(s.process_id, {
+        approach: s.approach_score ?? 0,
+        deployment: s.deployment_score ?? 0,
+        learning: s.learning_score ?? 0,
+        integration: s.integration_score ?? 0,
+      });
     }
+    if (!adliHistoryByProcess.has(s.process_id)) {
+      adliHistoryByProcess.set(s.process_id, []);
+    }
+    adliHistoryByProcess.get(s.process_id)!.push({
+      score: s.overall_score,
+      scoredAt: s.scored_at,
+    });
   }
+
+  // avgHealthScore: map ADLI (1-5) to health proxy (20-100)
+  // Formula: ((adli - 1) / 4) * 80 + 20  → adli=1→20, adli=3→60, adli=5→100
+  const processesWithAdli = processIds.filter((id) => latestAdliByProcess.has(id));
+  const avgHealthScore: number | null = processesWithAdli.length > 0
+    ? Math.round(
+        processesWithAdli.reduce((sum, id) => {
+          const adli = latestAdliByProcess.get(id) ?? 1;
+          return sum + ((adli - 1) / 4) * 80 + 20;
+        }, 0) / processesWithAdli.length
+      )
+    : null;
 
   // Fetch improvement journal count this calendar year
   const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
@@ -168,21 +187,19 @@ export async function GET(
       });
 
     return {
-      updated_at: p.updated_at,
-      status: p.status,
       metrics: pMetrics.map((m) => ({
         cadence: m.cadence,
         lastEntryDate: latestByMetric.get(m.id) ?? null,
         nextEntryExpected: m.next_entry_expected ?? null,
       })),
-      tasksCompletedDates: (completedTasks ?? [])
-        .filter((t) => t.process_id === p.id && t.completed_at)
-        .map((t) => t.completed_at as string),
+      adliHistory: adliHistoryByProcess.get(p.id) ?? [],
+      adliDimensions: adliDimensionsByProcess.get(p.id) ?? null,
     };
   });
 
   const compliance = computeCompliance({
     onboardingCompletedAt: owner.onboarding_completed_at,
+    avgHealthScore,
     processes: processesForCompliance,
   });
 
