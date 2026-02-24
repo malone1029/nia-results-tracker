@@ -111,7 +111,7 @@ export function computeCompliance(input: ComplianceInput): ComplianceResult {
           if (!latest) return false;
           // (b) Improvement over older score
           const olderScore = p.adliHistory.find(
-            (s) => daysBetween(s.scoredAt, now) >= ADLI_LOOKBACK_DAYS
+            (s) => daysBetween(s.scoredAt, now) > ADLI_LOOKBACK_DAYS
           );
           if (olderScore) return latest.score > olderScore.score;
           // (c) First-time scorer grace: scored recently, no older comparison yet
