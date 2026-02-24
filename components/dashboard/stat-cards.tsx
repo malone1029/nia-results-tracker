@@ -145,14 +145,14 @@ export default function StatCardsRow({
           label="NIA Average"
           value={orgAvgHealth != null && orgAvgHealth > 0 ? orgAvgHealth : "--"}
           color={
-            orgAvgHealth > 0 && avgHealth > 0
+            orgAvgHealth != null && orgAvgHealth > 0 && avgHealth > 0
               ? avgHealth >= orgAvgHealth
                 ? "#b1bd37"
                 : "#f79935"
               : "var(--text-muted)"
           }
           subtitle={
-            orgAvgHealth > 0 && avgHealth > 0
+            orgAvgHealth != null && orgAvgHealth > 0 && avgHealth > 0
               ? avgHealth >= orgAvgHealth
                 ? "You're above average"
                 : "Below NIA average"
