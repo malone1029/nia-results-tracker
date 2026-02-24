@@ -78,7 +78,7 @@ function ProcessOwnerDashboard() {
         fetchHealthData(),
         supabase.auth.getUser(),
         fetch("/api/ai/scores").then((r) => r.ok ? r.json() : []),
-        supabase.from("metrics").select("id, name, cadence"),
+        supabase.from("metrics").select("id, name, cadence, next_entry_expected"),
         supabase.from("metric_processes").select("metric_id, process_id"),
         supabase.from("entries").select("metric_id, date").order("date", { ascending: false }),
         supabase.from("improvement_journal").select("process_id, title, created_at, status").order("created_at", { ascending: false }).limit(20),
@@ -157,7 +157,7 @@ function ProcessOwnerDashboard() {
       setScores(scoreRows);
 
       // Metric review status for action items
-      const metricsData = (metricsRes.data || []) as { id: number; name: string; cadence: string }[];
+      const metricsData = (metricsRes.data || []) as { id: number; name: string; cadence: string; next_entry_expected: string | null }[];
       const metricProcessLinks = (metricProcessLinksRes.data || []) as { metric_id: number; process_id: number }[];
       const entriesData = (entriesRes.data || []) as { metric_id: number; date: string }[];
 
@@ -188,7 +188,7 @@ function ProcessOwnerDashboard() {
       const overdue: typeof overdueMetrics = [];
       const dueSoon: typeof dueSoonMetrics = [];
       for (const m of metricsData) {
-        const status = getReviewStatus(m.cadence, latestDates.get(m.id) || null);
+        const status = getReviewStatus(m.cadence, latestDates.get(m.id) || null, m.next_entry_expected);
         const owners = metricOwners.get(m.id);
         if (status === "overdue") {
           if (owners && owners.size > 0) {
