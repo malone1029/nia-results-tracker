@@ -241,7 +241,7 @@ export default function GlobalSearch({
   }
 
   // Filter tab config — only show tabs that have results (except All)
-  const filterTabs: { key: FilterKey; label: string; count: number }[] = [
+  const allFilterTabs: { key: FilterKey; label: string; count: number }[] = [
     {
       key: "all",
       label: "All",
@@ -257,7 +257,8 @@ export default function GlobalSearch({
       label: "Requirements",
       count: results.requirements.length,
     },
-  ].filter((t) => t.key === "all" || t.count > 0);
+  ];
+  const filterTabs = allFilterTabs.filter((t) => t.key === "all" || t.count > 0);
 
   // Mutable index tracker for keyboard highlight alignment
   let globalIndex = 0;
