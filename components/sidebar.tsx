@@ -17,7 +17,7 @@ const navGroups = [
   {
     label: "Overview",
     links: [
-      { href: "/", label: "Dashboard", icon: "grid" },
+      { href: "/", label: "Home", icon: "grid" },
       { href: "/my-tasks", label: "My Tasks", icon: "check-circle" },
       { href: "/my-scorecard", label: "My Scorecard", icon: "award" },
       { href: "/data-health", label: "Data Health", icon: "heart" },
@@ -30,8 +30,6 @@ const navGroups = [
     label: "Processes",
     links: [
       { href: "/processes", label: "Processes", icon: "folder" },
-      { href: "/classifications", label: "Classifications", icon: "tag" },
-      { href: "/categories", label: "Categories", icon: "layers" },
     ],
   },
   {
@@ -49,6 +47,8 @@ const adminNavGroups = [
   {
     label: "Admin",
     links: [
+      { href: "/classifications", label: "Classifications", icon: "tag" },
+      { href: "/categories", label: "Categories", icon: "layers" },
       { href: "/application", label: "Application Drafts", icon: "file-text" },
       { href: "/criteria", label: "Criteria Map", icon: "book-open" },
       { href: "/criteria/gaps", label: "Gap Analysis", icon: "alert-triangle" },
@@ -70,21 +70,31 @@ const superAdminNavGroups = [
   },
 ];
 
-// Members only see the Processes group + their scorecard
+// Members only see curated groups
 const memberNavGroups = [
   {
-    label: "Overview",
+    label: "My Hub",
     links: [
+      { href: "/", label: "Home", icon: "grid" },
       { href: "/my-tasks", label: "My Tasks", icon: "check-circle" },
       { href: "/my-scorecard", label: "My Scorecard", icon: "award" },
+      { href: "/data-health", label: "Data Health", icon: "heart" },
+      { href: "/log", label: "Log Data", icon: "edit" },
     ],
   },
   {
     label: "Processes",
     links: [
       { href: "/processes", label: "Processes", icon: "folder" },
-      { href: "/classifications", label: "Classifications", icon: "tag" },
-      { href: "/categories", label: "Categories", icon: "layers" },
+    ],
+  },
+  {
+    label: "Results",
+    links: [
+      { href: "/readiness", label: "Readiness", icon: "shield-check" },
+      { href: "/adli-insights", label: "ADLI Insights", icon: "radar" },
+      { href: "/letci", label: "LeTCI", icon: "bar-chart" },
+      { href: "/schedule", label: "Schedule", icon: "calendar" },
     ],
   },
 ];
@@ -262,11 +272,13 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
 
 // ── Find which group a path belongs to ──────────────────────
 
+type NavGroup = { label: string; links: { href: string; label: string; icon: string }[] };
+
 function findGroupForPath(
   path: string,
-  groups: typeof navGroups,
-  adminGroups: typeof adminNavGroups,
-  superAdminGroups: typeof superAdminNavGroups = []
+  groups: NavGroup[],
+  adminGroups: NavGroup[],
+  superAdminGroups: NavGroup[] = []
 ): string | null {
   for (const group of [...groups, ...adminGroups, ...superAdminGroups]) {
     for (const link of group.links) {
@@ -301,11 +313,14 @@ export default function Sidebar({
 
   // Auto-expand group containing the active page
   useEffect(() => {
-    const group = findGroupForPath(pathname, navGroups, adminNavGroups, superAdminNavGroups);
+    const primaryGroups = isAdmin ? navGroups : memberNavGroups;
+    const secondary = isAdmin ? adminNavGroups : [];
+    const tertiary = (isAdmin && role === "super_admin") ? superAdminNavGroups : [];
+    const group = findGroupForPath(pathname, primaryGroups, secondary, tertiary);
     if (group) {
       expandGroup(group);
     }
-  }, [pathname, expandGroup]);
+  }, [pathname, expandGroup, isAdmin, role]);
 
   function isActive(href: string) {
     return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -375,7 +390,7 @@ export default function Sidebar({
             NIA Excellence Hub
           </div>
           <div className="text-white/50 text-[11px]">
-            Baldrige Framework
+            Excellence Framework
           </div>
         </div>
       </div>
