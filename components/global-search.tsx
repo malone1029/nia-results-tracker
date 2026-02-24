@@ -58,21 +58,21 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
           .or(
             `name.ilike.${pattern},description.ilike.${pattern},owner.ilike.${pattern},baldrige_item.ilike.${pattern}`
           )
-          .limit(5),
+          .limit(8),
         supabase
           .from("metrics")
           .select("id, name, description, data_source")
           .or(
             `name.ilike.${pattern},description.ilike.${pattern},data_source.ilike.${pattern}`
           )
-          .limit(5),
+          .limit(8),
         supabase
           .from("key_requirements")
           .select("id, requirement, description, stakeholder_group")
           .or(
             `requirement.ilike.${pattern},description.ilike.${pattern},stakeholder_group.ilike.${pattern}`
           )
-          .limit(5),
+          .limit(8),
       ]);
 
       const processes: SearchResult[] = (procRes.data ?? []).map((p) => ({
@@ -208,10 +208,10 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
               onMouseEnter={() => setHighlightIndex(idx)}
               onClick={() => navigate(item.href)}
             >
-              <span className="text-sm font-medium text-foreground truncate">
+                      <span className="text-sm font-medium text-foreground whitespace-normal leading-snug">
                 {item.title}
               </span>
-              <span className="text-xs text-text-muted truncate">
+              <span className="text-xs text-text-muted">
                 {item.subtitle}
               </span>
             </button>
@@ -273,7 +273,7 @@ export default function GlobalSearch({ mobile, onNavigate, variant = "dark" }: {
 
       {/* Results dropdown */}
       {open && (
-        <div className="absolute top-full mt-1 left-0 right-0 bg-card rounded-lg shadow-lg border border-border max-h-80 overflow-y-auto z-[60]">
+        <div className="absolute top-full mt-1 left-0 w-[580px] bg-card rounded-lg shadow-lg border border-border max-h-[480px] overflow-y-auto z-[60]">
           {loading && (
             <div className="px-3 py-4 text-sm text-text-muted text-center">
               Searching…
