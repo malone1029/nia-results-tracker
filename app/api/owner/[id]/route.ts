@@ -4,6 +4,7 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { isAdminRole } from "@/lib/auth-helpers";
 import { computeCompliance } from "@/lib/compliance";
 import { getReviewStatus } from "@/lib/review-status";
+import { calculateHealthScore, type HealthProcessInput, type HealthMetricInput, type HealthTaskInput } from "@/lib/process-health";
 
 export async function GET(
   _req: NextRequest,
@@ -77,7 +78,7 @@ export async function GET(
   const { data: metricLinks } = processIds.length > 0
     ? await supabase
         .from("metric_processes")
-        .select("process_id, metrics(id, name, cadence, next_entry_expected)")
+        .select("process_id, metrics(id, name, cadence, next_entry_expected, comparison_value)")
         .in("process_id", processIds)
     : { data: [] };
 
@@ -97,12 +98,65 @@ export async function GET(
         .order("date", { ascending: false })
     : { data: [] };
 
-  // Build a map: metric_id -> latest date
+  // Build a map: metric_id -> latest date (and entry count for health scoring)
   const latestByMetric = new Map<number, string>();
+  const entryCountByMetric = new Map<number, number>();
   for (const e of latestEntries ?? []) {
     if (!latestByMetric.has(e.metric_id)) {
       latestByMetric.set(e.metric_id, e.date);
     }
+    entryCountByMetric.set(e.metric_id, (entryCountByMetric.get(e.metric_id) ?? 0) + 1);
+  }
+
+  // Fetch tasks, improvement journal, and Baldrige mappings for real health score computation
+  const [
+    { data: taskRows },
+    { data: improvementRows },
+    { data: baldrigeMappingRows },
+  ] = await Promise.all([
+    processIds.length > 0
+      ? supabase.from("process_tasks").select("process_id, status, assignee_name, due_date, completed").in("process_id", processIds)
+      : { data: [] as { process_id: number; status: string; assignee_name: string | null; due_date: string | null; completed: boolean }[] },
+    processIds.length > 0
+      ? supabase.from("improvement_journal").select("process_id, created_at").in("process_id", processIds).order("created_at", { ascending: false })
+      : { data: [] as { process_id: number; created_at: string }[] },
+    processIds.length > 0
+      ? supabase.from("process_question_mappings").select("process_id").in("process_id", processIds)
+      : { data: [] as { process_id: number }[] },
+  ]);
+
+  // Build task health inputs per process
+  const tasksByProcess = new Map<number, HealthTaskInput>();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  for (const t of taskRows ?? []) {
+    const existing = tasksByProcess.get(t.process_id) ?? { pending_count: 0, exported_count: 0, total_active_tasks: 0, completed_count: 0, tasks_with_assignee: 0, tasks_with_due_date: 0, overdue_count: 0 };
+    if (t.status === "pending") {
+      existing.pending_count++;
+    } else {
+      existing.exported_count++;
+      existing.total_active_tasks++;
+      if (t.completed) existing.completed_count++;
+      if (t.assignee_name) existing.tasks_with_assignee++;
+      if (t.due_date) {
+        existing.tasks_with_due_date++;
+        if (!t.completed && t.due_date < todayStr) existing.overdue_count++;
+      }
+    }
+    tasksByProcess.set(t.process_id, existing);
+  }
+
+  // Build latest improvement journal date per process
+  const latestImprovementByProcess = new Map<number, string>();
+  for (const imp of improvementRows ?? []) {
+    if (!latestImprovementByProcess.has(imp.process_id)) {
+      latestImprovementByProcess.set(imp.process_id, imp.created_at);
+    }
+  }
+
+  // Build Baldrige mapping counts per process
+  const baldrigeMappingCounts = new Map<number, number>();
+  for (const m of baldrigeMappingRows ?? []) {
+    baldrigeMappingCounts.set(m.process_id, (baldrigeMappingCounts.get(m.process_id) ?? 0) + 1);
   }
 
   // Fetch metrics stewarded by this user (data_steward_email)
@@ -117,13 +171,13 @@ export async function GET(
         .order("name")
     : { data: [] };
 
-  // Fetch ADLI scores per process
+  // Fetch ADLI scores per process (ordered newest first; column is assessed_at)
   const { data: adliScores } = processIds.length > 0
     ? await supabase
         .from("process_adli_scores")
-        .select("process_id, overall_score, approach_score, deployment_score, learning_score, integration_score, scored_at")
+        .select("process_id, overall_score, approach_score, deployment_score, learning_score, integration_score, assessed_at")
         .in("process_id", processIds)
-        .order("scored_at", { ascending: false })
+        .order("assessed_at", { ascending: false })
     : { data: [] };
 
   // Latest ADLI score per process (for processes list in response)
@@ -150,21 +204,68 @@ export async function GET(
     }
     adliHistoryByProcess.get(s.process_id)!.push({
       score: s.overall_score,
-      scoredAt: s.scored_at,
+      scoredAt: s.assessed_at,
     });
   }
 
-  // avgHealthScore: map ADLI (1-5) to health proxy (20-100)
-  // Formula: ((adli - 1) / 4) * 80 + 20  → adli=1→20, adli=3→60, adli=5→100
-  const processesWithAdli = processIds.filter((id) => latestAdliByProcess.has(id));
-  const avgHealthScore: number | null = processesWithAdli.length > 0
-    ? Math.round(
-        processesWithAdli.reduce((sum, id) => {
-          const adli = latestAdliByProcess.get(id) ?? 1;
-          return sum + ((adli - 1) / 4) * 80 + 20;
-        }, 0) / processesWithAdli.length
-      )
-    : null;
+  // Compute real health scores for each owned process using calculateHealthScore()
+  // These are the same scores shown in the UI (5-dimension formula: doc/maturity/measurement/ops/freshness).
+  const processHealthScores: number[] = (processes ?? []).map((p) => {
+    const scoreInput = latestAdliByProcess.has(p.id)
+      ? { overall_score: latestAdliByProcess.get(p.id)! }
+      : null;
+
+    const pMetricLinks = (metricLinks ?? [])
+      .filter((ml) => ml.process_id === p.id)
+      .flatMap((ml) => {
+        if (!ml.metrics) return [];
+        return Array.isArray(ml.metrics) ? ml.metrics : [ml.metrics];
+      }) as { id: number; cadence: string; comparison_value: number | null }[];
+
+    const healthMetricInputs: HealthMetricInput[] = pMetricLinks.map((m) => {
+      const latestDate = latestByMetric.get(m.id) ?? null;
+      const entryCount = entryCountByMetric.get(m.id) ?? 0;
+      let letci = 0;
+      if (entryCount >= 1) letci++;
+      if (entryCount >= 3) letci++;
+      if (m.comparison_value !== null && m.comparison_value !== undefined) letci++;
+      letci++; // integration = linked to process
+      return {
+        has_recent_data: latestDate ? getReviewStatus(m.cadence, latestDate) === "current" : false,
+        has_comparison: m.comparison_value !== null && m.comparison_value !== undefined,
+        letci_score: letci,
+        entry_count: entryCount,
+      };
+    });
+
+    const taskInput: HealthTaskInput = tasksByProcess.get(p.id) ?? {
+      pending_count: 0, exported_count: 0, total_active_tasks: 0,
+      completed_count: 0, tasks_with_assignee: 0, tasks_with_due_date: 0, overdue_count: 0,
+    };
+
+    const processInput: HealthProcessInput = {
+      id: p.id,
+      charter: p.charter as Record<string, unknown> | null,
+      adli_approach: p.adli_approach as Record<string, unknown> | null,
+      adli_deployment: p.adli_deployment as Record<string, unknown> | null,
+      adli_learning: p.adli_learning as Record<string, unknown> | null,
+      adli_integration: p.adli_integration as Record<string, unknown> | null,
+      workflow: p.workflow as Record<string, unknown> | null,
+      baldrige_mapping_count: baldrigeMappingCounts.get(p.id) ?? 0,
+      status: p.status,
+      asana_project_gid: p.asana_project_gid ?? null,
+      asana_adli_task_gids: p.asana_adli_task_gids as Record<string, string> | null,
+      updated_at: p.updated_at,
+    };
+
+    return calculateHealthScore(
+      processInput,
+      scoreInput,
+      healthMetricInputs,
+      taskInput,
+      { latest_date: latestImprovementByProcess.get(p.id) ?? null },
+    ).total;
+  });
 
   // Fetch improvement journal count this calendar year
   const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
@@ -199,7 +300,7 @@ export async function GET(
 
   const compliance = computeCompliance({
     onboardingCompletedAt: owner.onboarding_completed_at,
-    avgHealthScore,
+    processHealthScores,
     processes: processesForCompliance,
   });
 
