@@ -4,8 +4,7 @@
 //
 // Growth signal thresholds (adjust here if expectations change):
 const HEALTH_SCORE_HEALTHY_THRESHOLD = 60; // "On Track" level
-const ADLI_MATURE_THRESHOLD = 4;           // all dims ≥ 4 → considered mature
-const ADLI_LOOKBACK_DAYS = 90;             // compare ADLI over rolling 90-day window
+const ADLI_AVG_SCORE_THRESHOLD = 25;       // avg ADLI across ALL owned processes (0–100, unassessed = 0)
 
 // Metric cadence windows (unchanged)
 const CADENCE_GRACE: Record<string, number> = {
@@ -21,23 +20,12 @@ export interface MetricComplianceInput {
   nextEntryExpected: string | null;
 }
 
-export interface AdliScorePoint {
-  score: number;
-  scoredAt: string;
-}
-
 export interface ComplianceInput {
   onboardingCompletedAt: string | null;
   processHealthScores: number[]; // actual health scores per owned process (0–100)
+  avgAdliScore: number;          // average ADLI overall score across ALL owned processes (unassessed = 0)
   processes: {
     metrics: MetricComplianceInput[];
-    adliHistory: AdliScorePoint[];     // all ADLI scores for this process, newest first
-    adliDimensions: {                  // latest ADLI dimension scores (null if never scored)
-      approach: number;
-      deployment: number;
-      learning: number;
-      integration: number;
-    } | null;
   }[];
 }
 
@@ -53,7 +41,7 @@ export interface ComplianceResult {
   checks: ComplianceChecks;
 }
 
-function daysBetween(dateStr: string, now = new Date()): number {
+function daysBetween(dateStr: string, now: Date): number {
   return Math.floor((now.getTime() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
 }
 
@@ -84,40 +72,14 @@ export function computeCompliance(input: ComplianceInput): ComplianceResult {
     input.processes.length === 0 ||
     input.processHealthScores.some((s) => s >= HEALTH_SCORE_HEALTHY_THRESHOLD);
 
-  // Check 4: ADLI maturity improving over time
-  // Passes if ANY process meets one of:
-  //   a) All 4 ADLI dimensions ≥ 4 (mature)
-  //   b) Latest ADLI score > a score from ≥90 days ago (actively improving)
-  //   c) Has a recent ADLI score within 90 days but no older comparison yet (first-time grace)
-  // Fails entirely if no processes have any ADLI scores (not engaged with AI coach).
-  const hasAnyAdliScore = input.processes.some((p) => p.adliHistory.length > 0);
+  // Check 4: Average ADLI maturity score meets threshold
+  // Computed across ALL owned processes — unassessed processes count as 0.
+  // This creates a natural incentive to run AI assessments across the full portfolio,
+  // not just cherry-pick one strong process.
+  // Owners with no processes pass automatically.
   const adliImproving =
-    input.processes.length === 0
-      ? true
-      : !hasAnyAdliScore
-      ? false
-      : input.processes.some((p) => {
-          // (a) All dimensions mature
-          if (p.adliDimensions) {
-            const { approach, deployment, learning, integration } = p.adliDimensions;
-            if (
-              approach >= ADLI_MATURE_THRESHOLD &&
-              deployment >= ADLI_MATURE_THRESHOLD &&
-              learning >= ADLI_MATURE_THRESHOLD &&
-              integration >= ADLI_MATURE_THRESHOLD
-            )
-              return true;
-          }
-          const latest = p.adliHistory[0];
-          if (!latest) return false;
-          // (b) Improvement over older score
-          const olderScore = p.adliHistory.find(
-            (s) => daysBetween(s.scoredAt, now) > ADLI_LOOKBACK_DAYS
-          );
-          if (olderScore) return latest.score > olderScore.score;
-          // (c) First-time scorer grace: scored recently, no older comparison yet
-          return daysBetween(latest.scoredAt, now) <= ADLI_LOOKBACK_DAYS;
-        });
+    input.processes.length === 0 ||
+    input.avgAdliScore >= ADLI_AVG_SCORE_THRESHOLD;
 
   const checks: ComplianceChecks = {
     onboardingComplete,
