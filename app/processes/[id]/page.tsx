@@ -366,9 +366,9 @@ function ProcessDetailContent() {
       const { data: metricsData } = metricIds.length > 0
         ? await supabase
             .from("metrics")
-            .select("id, name, unit, cadence, target_value, is_higher_better, next_entry_expected")
+            .select("id, name, unit, cadence, target_value, is_higher_better, next_entry_expected, comparison_value")
             .in("id", metricIds)
-        : { data: [] as { id: number; name: string; unit: string; cadence: string; target_value: number | null; is_higher_better: boolean; next_entry_expected: string | null }[] };
+        : { data: [] as { id: number; name: string; unit: string; cadence: string; target_value: number | null; is_higher_better: boolean; next_entry_expected: string | null; comparison_value: number | null }[] };
 
       let healthMetrics: HealthMetricInput[] = [];
 
@@ -431,11 +431,11 @@ function ProcessDetailContent() {
           let letci = 0;
           if (entryCount >= 1) letci++;
           if (entryCount >= 3) letci++;
-          if (m.target_value !== null) letci++;
+          if (m.comparison_value !== null && m.comparison_value !== undefined) letci++;
           letci++; // integration = linked to process
           return {
             has_recent_data: latest ? getReviewStatus(m.cadence, latest.date) === "current" : false,
-            has_comparison: m.target_value !== null,
+            has_comparison: m.comparison_value !== null && m.comparison_value !== undefined,
             letci_score: letci,
             entry_count: entryCount,
           };

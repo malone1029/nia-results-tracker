@@ -28,7 +28,7 @@ export interface AdliScorePoint {
 
 export interface ComplianceInput {
   onboardingCompletedAt: string | null;
-  avgHealthScore: number | null; // avg health score across owned processes (0–100)
+  processHealthScores: number[]; // actual health scores per owned process (0–100)
   processes: {
     metrics: MetricComplianceInput[];
     adliHistory: AdliScorePoint[];     // all ADLI scores for this process, newest first
@@ -78,10 +78,11 @@ export function computeCompliance(input: ComplianceInput): ComplianceResult {
     });
 
   // Check 3: Health score at or above healthy threshold (≥60 = On Track)
+  // Passes if at least one owned process has a real health score ≥ threshold.
   // Owners with no processes pass automatically.
   const healthScoreGrowing =
     input.processes.length === 0 ||
-    (input.avgHealthScore !== null && input.avgHealthScore >= HEALTH_SCORE_HEALTHY_THRESHOLD);
+    input.processHealthScores.some((s) => s >= HEALTH_SCORE_HEALTHY_THRESHOLD);
 
   // Check 4: ADLI maturity improving over time
   // Passes if ANY process meets one of:
