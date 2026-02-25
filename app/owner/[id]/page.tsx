@@ -176,8 +176,8 @@ export default function OwnerScorecardPage() {
     },
     {
       key: "adliImproving" as const,
-      label: "ADLI maturity is improving",
-      detail: "Your ADLI scores are rising, or you’ve reached maturity (4+) across all dimensions.",
+      label: "ADLI maturity is on track",
+      detail: "Your average ADLI score across all owned processes is 25 or above. Unassessed processes count as 0 — run AI assessments to raise your average.",
     },
   ];
   return (

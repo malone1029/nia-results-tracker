@@ -277,6 +277,14 @@ export async function GET(
         .gte("committed_date", yearStart)
     : { count: 0 };
 
+  // Average ADLI score across ALL owned processes — unassessed processes count as 0.
+  // This is the Option B roll-up: owners must assess their full portfolio, not just one process.
+  const avgAdliScore = processIds.length > 0
+    ? Math.round(
+        processIds.reduce((sum, id) => sum + (latestAdliByProcess.get(id) ?? 0), 0) / processIds.length
+      )
+    : 0;
+
   // Build compliance input
   const processesForCompliance = (processes ?? []).map((p) => {
     const pMetrics = (metricLinks ?? [])
@@ -293,14 +301,13 @@ export async function GET(
         lastEntryDate: latestByMetric.get(m.id) ?? null,
         nextEntryExpected: m.next_entry_expected ?? null,
       })),
-      adliHistory: adliHistoryByProcess.get(p.id) ?? [],
-      adliDimensions: adliDimensionsByProcess.get(p.id) ?? null,
     };
   });
 
   const compliance = computeCompliance({
     onboardingCompletedAt: owner.onboarding_completed_at,
     processHealthScores,
+    avgAdliScore,
     processes: processesForCompliance,
   });
 
