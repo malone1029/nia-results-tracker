@@ -50,7 +50,7 @@ export async function GET(
         .select(`
           id, name, status, updated_at, process_type,
           adli_approach, adli_deployment, adli_learning, adli_integration,
-          charter, workflow
+          charter, workflow, asana_project_gid, asana_adli_task_gids
         `)
         .eq("owner_email", ownerEmail)
     : { data: [] };
@@ -60,7 +60,7 @@ export async function GET(
     .select(`
       id, name, status, updated_at, process_type,
       adli_approach, adli_deployment, adli_learning, adli_integration,
-      charter, workflow
+      charter, workflow, asana_project_gid, asana_adli_task_gids
     `)
     .eq("owner", ownerName)
     .is("owner_email", null);
