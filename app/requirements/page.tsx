@@ -14,7 +14,10 @@ const GROUP_ORDER = [
   "Member & Partner Districts",
   "Workforce",
   "NIA Executive Board",
-  "ISBE & Regulatory Bodies",
+  "ISBE",
+  "USDOE",
+  "HHS / OCR",
+  "Illinois Dept of Labor",
 ];
 
 interface AllMetric {

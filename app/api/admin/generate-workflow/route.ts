@@ -45,7 +45,10 @@ PURCHASING CUSTOMERS: Member & Partner Districts — high-quality services, cost
 KEY STAKEHOLDERS:
   - Workforce: competitive compensation/benefits, meaningful work, clear communication, input and engagement, responsive leadership
   - NIA Executive Board (Governance): fiscal stewardship, policy compliance, strategic goal achievement, transparent reporting, customer satisfaction monitoring, employee engagement monitoring
-  - ISBE & Regulatory Bodies: IDEA compliance, FERPA/SOPPA compliance, HIPAA compliance, ISBE reporting accuracy and timeliness
+  - ISBE (Illinois State Board of Education): ISBE reporting, SOPPA compliance, ISRA compliance (Illinois Student Records Act), Part 226 / state licensure for all service providers
+  - USDOE (U.S. Dept of Education — OSEP/FPCO): IDEA federal compliance (OSEP oversight), FERPA student records (FPCO enforcement)
+  - HHS / OCR (Dept of Health & Human Services, Office for Civil Rights): HIPAA compliance for employee PHI and applicable student health records
+  - Illinois Dept of Labor: wage & hour compliance, workers' compensation, employment classification
 
 NOTE ON BENEFICIARIES: Students and parents are the ultimate beneficiaries of NIA's services, delivered through member districts. Their needs matter, but their requirements flow through purchasing customers (districts), not directly to NIA. They are not managed as direct stakeholder groups in NIA's key requirement framework.
 
