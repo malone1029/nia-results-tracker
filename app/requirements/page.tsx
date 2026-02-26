@@ -11,11 +11,13 @@ import EmptyState from "@/components/empty-state";
 
 // The display order for stakeholder groups
 const GROUP_ORDER = [
-  "Member Districts",
-  "Non-Member Entities",
+  "Member & Partner Districts",
   "Workforce",
-  "Students",
-  "Parents",
+  "NIA Executive Board",
+  "ISBE",
+  "USDOE",
+  "HHS / OCR",
+  "Illinois Dept of Labor",
 ];
 
 interface AllMetric {
