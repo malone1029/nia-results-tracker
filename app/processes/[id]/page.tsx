@@ -194,6 +194,8 @@ function ProcessDetailContent() {
   const [surveyClosing, setSurveyClosing] = useState<number | null>(null);
   const deepLinkFiredRef = useRef(false);
   const [processMapMounted, setProcessMapMounted] = useState(false);
+  const [allObjectives, setAllObjectives] = useState<{ id: number; title: string; bsc_perspective: string }[]>([]);
+  const [linkedObjectiveIds, setLinkedObjectiveIds] = useState<Set<number>>(new Set());
 
   // ── Process Map inline chat ────────────────────────────────────────────
   const [localFlowData, setLocalFlowData] = useState<ProcessMapFlowData | null>(null);
@@ -493,6 +495,14 @@ function ProcessDetailContent() {
         .eq("process_id", id)
         .order("created_at", { ascending: false });
       if (journalData) setJournalEntries(journalData);
+
+      // Fetch strategic objectives for this process
+      const [{ data: allObjsData }, { data: linkedObjsData }] = await Promise.all([
+        supabase.from("strategic_objectives").select("id, title, bsc_perspective").order("sort_order"),
+        supabase.from("process_objectives").select("objective_id").eq("process_id", id),
+      ]);
+      if (allObjsData) setAllObjectives(allObjsData);
+      if (linkedObjsData) setLinkedObjectiveIds(new Set(linkedObjsData.map((l) => l.objective_id)));
 
       // Fetch attached files + health score data + EB mappings in parallel
       const [filesRes, { data: adliScores }, { data: taskRows }, { data: ebMappingRows }] = await Promise.all([
@@ -1751,6 +1761,57 @@ function ProcessDetailContent() {
               )}
             </div>
           </Card>
+
+          {/* Strategic Objectives */}
+          {allObjectives.length > 0 && (
+            <Card accent="orange">
+              <div className="px-4 py-3 border-b border-border-light">
+                <h2 className="text-lg font-semibold text-nia-dark">Strategic Objectives</h2>
+              </div>
+              <div className="px-4 py-3 space-y-1">
+                {allObjectives.map((obj) => {
+                  const isLinked = linkedObjectiveIds.has(obj.id);
+                  return (
+                    <label
+                      key={obj.id}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-hover cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isLinked}
+                        onChange={async () => {
+                          if (isLinked) {
+                            await fetch(`/api/strategy/${obj.id}/processes`, {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ process_id: Number(id) }),
+                            });
+                            setLinkedObjectiveIds((prev) => {
+                              const next = new Set(prev);
+                              next.delete(obj.id);
+                              return next;
+                            });
+                          } else {
+                            await fetch(`/api/strategy/${obj.id}/processes`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ process_id: Number(id) }),
+                            });
+                            setLinkedObjectiveIds((prev) => new Set([...prev, obj.id]));
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-border accent-nia-dark-solid"
+                      />
+                      <span className="text-sm text-foreground flex-1">{obj.title}</span>
+                      <span className="text-xs text-text-muted capitalize ml-auto">
+                        {obj.bsc_perspective.replace(/_/g, " ")}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
 
           {attachedFiles.length > 0 && (
             <Card accent="orange">
