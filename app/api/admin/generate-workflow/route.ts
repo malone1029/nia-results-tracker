@@ -40,8 +40,14 @@ School Services (90% of revenue):
 School Program (10% of revenue):
   - D/HH School Program: Pre-K through Age 21 for students who are Deaf/Hard-of-Hearing
 
-CUSTOMERS: Member Districts (priority — high-quality, cost-effective), Non-Member Entities (high-quality, cost-effective)
-STAKEHOLDERS: Parents (high-quality, good communication), Students (high-quality, engaging delivery), Workforce (competitive compensation, clear communication, meaningful work)
+PURCHASING CUSTOMERS: Member & Partner Districts — high-quality services, cost-effective delivery, prioritized access, good customer service. (Member districts are formal cooperative members; partner districts purchase services without membership. Both groups are the primary external customers NIA is accountable to.)
+
+KEY STAKEHOLDERS:
+  - Workforce: competitive compensation/benefits, meaningful work, clear communication, input and engagement, responsive leadership
+  - NIA Executive Board (Governance): fiscal stewardship, policy compliance, strategic goal achievement, transparent reporting, customer satisfaction monitoring, employee engagement monitoring
+  - ISBE & Regulatory Bodies: IDEA compliance, FERPA/SOPPA compliance, HIPAA compliance, ISBE reporting accuracy and timeliness
+
+NOTE ON BENEFICIARIES: Students and parents are the ultimate beneficiaries of NIA's services, delivered through member districts. Their needs matter, but their requirements flow through purchasing customers (districts), not directly to NIA. They are not managed as direct stakeholder groups in NIA's key requirement framework.
 
 REGULATORY ENVIRONMENT: Highly regulated — Illinois School Code (ILSC), Part 226 Illinois Administrative Code, IDEA (federal). All service providers require strict licensure and certification from ISBE, IL Dept of Financial and Professional Regulation, and specialty boards. NIA must also comply with district partner policies.
 
