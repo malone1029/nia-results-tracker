@@ -302,6 +302,27 @@ function buildRequirementsContext(requirements: Record<string, unknown>[]): stri
   return lines.join("\n") + "\n";
 }
 
+function buildStrategicObjectivesContext(objectives: { title: string; bsc_perspective: string; target_value: number | null; target_unit: string | null; target_year: number | null }[]): string {
+  if (objectives.length === 0) return "\n### Linked Strategic Objectives\nThis process has not been linked to any FY26 strategic objectives yet.\n";
+
+  const perspectiveLabel: Record<string, string> = {
+    financial: "Financial Stability",
+    org_capacity: "Organizational Capacity",
+    internal_process: "Internal Processes",
+    customer: "Customer Satisfaction",
+  };
+
+  const lines = ["\n### Linked Strategic Objectives"];
+  for (const o of objectives) {
+    const perspective = perspectiveLabel[o.bsc_perspective] ?? o.bsc_perspective;
+    const target = o.target_value !== null
+      ? ` — Target: ${o.target_value}${o.target_unit ? ` ${o.target_unit}` : ""}${o.target_year ? ` by FY${String(o.target_year).slice(2)}` : ""}`
+      : "";
+    lines.push(`- **${o.title}** (${perspective})${target}`);
+  }
+  return lines.join("\n") + "\n";
+}
+
 const SYSTEM_PROMPT = `You are a process improvement coach for NIA (a healthcare organization) that uses the Malcolm Baldrige Excellence Framework. You're a supportive coach, not an auditor — you focus on the most impactful next step, not everything that could be better.
 
 ## Your Coaching Style
@@ -726,6 +747,22 @@ export async function POST(request: Request) {
       return { requirement: req.requirement, stakeholder_group: req.stakeholder_group };
     });
 
+    // Load linked strategic objectives
+    const { data: objLinks } = await supabase
+      .from("process_objectives")
+      .select(`objective_id, strategic_objectives!inner ( title, bsc_perspective, target_value, target_unit, target_year )`)
+      .eq("process_id", processId);
+
+    const strategicObjectives = (objLinks || []).map((link) => {
+      return link.strategic_objectives as unknown as {
+        title: string;
+        bsc_perspective: string;
+        target_value: number | null;
+        target_unit: string | null;
+        target_year: number | null;
+      };
+    });
+
     // Load available (unlinked) metrics for AI recommendation context
     const { data: allMetricsData } = await supabase
       .from("metrics")
@@ -1060,6 +1097,7 @@ export async function POST(request: Request) {
     const metricsContext = buildMetricsContext(metricsWithValues);
     const availableMetricsContext = buildAvailableMetricsContext(availableMetrics);
     const requirementsContext = buildRequirementsContext(requirements);
+    const strategicObjectivesContext = buildStrategicObjectivesContext(strategicObjectives);
 
     // ── Block 1: Static coaching instructions (CACHED) ──────────────────────
     // SYSTEM_PROMPT is ~6K tokens of unchanging coaching rules. Marking with
@@ -1082,6 +1120,7 @@ ${processContext}
 ${metricsContext}
 ${availableMetricsContext}
 ${requirementsContext}
+${strategicObjectivesContext}
 ${surveyContext}
 ${improvementsContext}
 ${taskContext}
