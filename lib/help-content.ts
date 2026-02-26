@@ -60,8 +60,7 @@ export const helpSections: HelpSection[] = [
       },
       {
         question: "What's the difference between Key and Support processes?",
-        answer: "Key processes directly serve your organization's mission — they're what you exist to do. Support processes enable Key ones to work (like IT, HR, or facilities). Key processes count 2x in the readiness score because they get extra scrutiny from Baldrige examiners.",
-        linkTo: "/classifications",
+        answer: "Key processes directly deliver value to NIA's primary customers — member school districts. Support processes keep the organization running internally but don't directly serve districts. See the 'Key vs. Support Processes' section in Help for a full breakdown with NIA examples.",
       },
       {
         question: "What are the tabs on a process detail page?",
@@ -99,6 +98,41 @@ export const helpSections: HelpSection[] = [
       {
         question: "How do task comments and the activity log work?",
         answer: "In the task detail panel, scroll to the Comments section to leave notes for your team. The Activity Log below it automatically records all changes: creation, completion, priority changes, reassignment, and comments — with timestamps and who made each change.",
+      },
+    ],
+  },
+  {
+    title: "Key vs. Support Processes",
+    icon: "book-open",
+    questions: [
+      {
+        question: "What is a Key process according to Baldrige?",
+        answer: "A Key process is one that directly creates value for your primary external customers — for NIA, that means the member school districts you serve. Baldrige defines Key processes as the work processes most critical to your organization delivering on its mission. If a district asked 'what does NIA do for us?', every honest answer would name a Key process. Examples at NIA: Special Education Cooperative Services, Professional Development, Technology Support, Fiscal Services for Districts.",
+      },
+      {
+        question: "What is a Support process according to Baldrige?",
+        answer: "A Support process is necessary for daily operations but doesn't directly deliver value to external customers. It enables Key processes to function. Support processes serve internal customers — NIA staff, leadership, or the organization itself. Examples at NIA: HR & Hiring, IT Infrastructure, Policy Management, Budget & Finance (internal), Facilities Management, Process Design & Improvement, Performance Measurement & Analysis. Notice that last two: even the Excellence Hub's own internal processes are Support, because they serve NIA's staff — not member districts directly.",
+      },
+      {
+        question: "How do I decide if a process is Key or Support?",
+        answer: "Ask yourself this single question: 'If this process stopped working tomorrow, would a member school district notice or be harmed?' If yes — it's Key. If only NIA staff would notice — it's Support. A second check: Key processes usually appear in your service catalog or contract with member districts. Support processes rarely do. When in doubt, lean toward Support. It's better to under-classify and upgrade later than to dilute your Key process pool with processes that don't get Baldrige-level scrutiny.",
+      },
+      {
+        question: "Can a process be both Key and Support depending on context?",
+        answer: "Yes — context matters. A process can be Key for one category of customer and Support for another. For example, NIA's Payroll process is Support (it serves internal staff), but a district's payroll processing service that NIA administers on their behalf would be Key (it directly serves districts). The test is always: who is the primary beneficiary, and are they an external customer? When a process genuinely serves both, classify it based on its primary purpose and largest stakeholder impact.",
+      },
+      {
+        question: "Why does the classification affect our Baldrige score?",
+        answer: "Key processes count 2x in the Hub's readiness score — meaning a Key process with a low health score hurts your org average much more than a low-scoring Support process. More importantly, Baldrige examiners focus their scoring energy on Key processes. They expect: (1) thorough ADLI documentation across all 4 dimensions, (2) metrics with targets and LeTCI data, (3) strong Category 7 results that trace back to the Key process. A Support process without strong results won't hurt you much. A Key process without them will.",
+      },
+      {
+        question: "What are NIA's Key processes?",
+        answer: "NIA's Key processes are those in Baldrige Categories 6.1 and 6.2 that directly deliver cooperative services to member districts. They typically live in categories like Special Education (SPED), Professional Learning, Technology Services, and Fiscal/Business Services. If a process has a signed service agreement or purchase of service with member districts, it's almost certainly Key. The Command Center's Key Process Classifier tool uses AI to suggest classifications based on your process charter — a good starting point when you're unsure.",
+        linkTo: "/command-center",
+      },
+      {
+        question: "Can a process change classification over time?",
+        answer: "Yes, and it should be revisited annually. A process that starts as internal infrastructure (Support) can become Key if NIA begins offering it as a service to districts. The reverse can also happen — a Key process might be retired from the service catalog and become an internal coordination function. Review classifications during your annual Baldrige readiness cycle and whenever NIA's service offerings change significantly. Update the Hub accordingly so your readiness score reflects the current reality.",
       },
     ],
   },
@@ -223,7 +257,7 @@ export const helpSections: HelpSection[] = [
       },
       {
         question: "What does 'Key vs Support' classification mean for Baldrige?",
-        answer: "Baldrige examiners give extra scrutiny to Key processes. Correctly classifying processes ensures the right ones get thorough documentation and strong results data. The AI can suggest classifications with rationale.",
+        answer: "Baldrige examiners give extra scrutiny to Key processes — they expect thorough ADLI documentation, linked metrics with targets, and strong Category 7 results tied back to them. Misclassifying a process as Key when it's really Support inflates your process count and dilutes examiner focus. See the 'Key vs. Support Processes' section in Help for the full decision framework.",
       },
     ],
   },
