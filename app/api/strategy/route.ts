@@ -22,13 +22,15 @@ export async function GET() {
     .order("sort_order");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Fetch linked process counts
+  // Fetch linked process counts (process_id also needed for adoption rate computation)
   const { data: procLinks } = await supabase
     .from("process_objectives")
-    .select("objective_id");
+    .select("objective_id, process_id");
   const procCountByObjective = new Map<number, number>();
+  const linkedProcessIds = new Set<number>();
   for (const link of procLinks ?? []) {
     procCountByObjective.set(link.objective_id, (procCountByObjective.get(link.objective_id) ?? 0) + 1);
+    linkedProcessIds.add(link.process_id);
   }
 
   // For metric-type objectives: fetch all entries (ascending by date for trend)
@@ -99,6 +101,59 @@ export async function GET() {
       trend_direction,
     };
   });
+
+  // ── Auto-log adoption rate metric (once per month) ───────────────────────
+  // Computes: distinct processes with any objective linked ÷ total processes.
+  // Runs async in the same request — non-fatal if it fails.
+  try {
+    // Find the adoption rate metric by name
+    const { data: adoptionMetric } = await supabase
+      .from("metrics")
+      .select("id")
+      .eq("name", "Strategic Plan Adoption Rate")
+      .single();
+
+    if (adoptionMetric) {
+      // Check if we already logged this month
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      const monthStartStr = monthStart.toISOString().slice(0, 10);
+
+      const { count: existingCount } = await supabase
+        .from("entries")
+        .select("id", { count: "exact", head: true })
+        .eq("metric_id", adoptionMetric.id)
+        .gte("date", monthStartStr);
+
+      if (!existingCount || existingCount === 0) {
+        // Count all active processes
+        const { count: totalProcesses } = await supabase
+          .from("processes")
+          .select("id", { count: "exact", head: true });
+
+        if (totalProcesses && totalProcesses > 0) {
+          const rate = Math.round((linkedProcessIds.size / totalProcesses) * 1000) / 10; // 1 decimal
+          const today = new Date().toISOString().slice(0, 10);
+
+          await supabase.from("entries").insert({
+            metric_id: adoptionMetric.id,
+            value: rate,
+            date: today,
+          });
+
+          // Advance next_entry_expected to first of next month
+          const nextMonth = new Date();
+          nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+          await supabase
+            .from("metrics")
+            .update({ next_entry_expected: nextMonth.toISOString().slice(0, 10) })
+            .eq("id", adoptionMetric.id);
+        }
+      }
+    }
+  } catch {
+    // Non-fatal — adoption rate logging never blocks the main response
+  }
 
   return NextResponse.json(enriched);
 }
