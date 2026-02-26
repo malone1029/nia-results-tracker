@@ -267,15 +267,11 @@ export async function GET(
     ).total;
   });
 
-  // Fetch improvement journal count this calendar year
+  // Count improvement journal entries this calendar year (from already-fetched improvementRows)
   const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
-  const { count: improvementCount } = processIds.length > 0
-    ? await supabase
-        .from("process_improvements")
-        .select("*", { count: "exact", head: true })
-        .in("process_id", processIds)
-        .gte("committed_date", yearStart)
-    : { count: 0 };
+  const improvementCount = (improvementRows ?? []).filter(
+    (r) => r.created_at >= yearStart
+  ).length;
 
   // Average ADLI score across ALL owned processes — unassessed processes count as 0.
   // This is the Option B roll-up: owners must assess their full portfolio, not just one process.
