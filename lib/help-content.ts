@@ -312,4 +312,32 @@ export const helpSections: HelpSection[] = [
       },
     ],
   },
+  {
+    title: "Strategic Plan & Balanced Scorecard",
+    icon: "shield-check",
+    questions: [
+      {
+        question: "What is the Strategic Plan page?",
+        answer: "The Strategic Plan page shows NIA's FY26 Balanced Scorecard — 10 strategic objectives organized into four perspectives: Financial Stability, Organizational Capacity, Internal Processes, and Customer Satisfaction. It tracks live progress using existing Hub metrics and auto-computed data.",
+        linkTo: "/strategy",
+      },
+      {
+        question: "How is progress tracked for each objective?",
+        answer: "Objectives use one of three methods: (1) Metric — pulls the latest value from a linked Hub metric automatically (e.g. Studer satisfaction scores update when survey data is entered); (2) ADLI Threshold — auto-counts processes that have achieved an ADLI score of 70 or higher; (3) Manual — an admin enters progress directly for goals without a linked metric (e.g. budget surplus).",
+      },
+      {
+        question: "What do the green, yellow, and red dots mean?",
+        answer: "Green means the objective is at or above its target. Yellow means it's within 10% below target — close but not there yet. Red means it's more than 10% below target and needs attention. Gray means no data is available yet.",
+      },
+      {
+        question: "How do I link my process to a strategic objective?",
+        answer: "On any process detail page, scroll to the Strategic Objectives section in the Overview tab. Check the box next to each objective your process supports. This helps NIA see which processes are driving strategic goals and shows coverage gaps.",
+        linkTo: "/processes",
+      },
+      {
+        question: "What is the ADLI ≥ 70 objective?",
+        answer: "One of NIA's FY26 strategic goals is to have 20 or more processes achieve an ADLI overall score of 70 or higher by June 2026. This score is auto-computed — every time an AI assessment runs on a process, the count updates automatically. A score of 70 means a process has a systematic approach that is well-deployed and shows evidence of learning cycles.",
+      },
+    ],
+  },
 ];
