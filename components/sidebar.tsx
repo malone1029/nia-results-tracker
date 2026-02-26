@@ -21,9 +21,15 @@ const navGroups = [
       { href: "/my-tasks", label: "My Tasks", icon: "check-circle" },
       { href: "/my-scorecard", label: "My Scorecard", icon: "award" },
       { href: "/data-health", label: "Data Health", icon: "heart" },
-      { href: "/requirements", label: "Requirements", icon: "clipboard" },
       { href: "/log", label: "Log Data", icon: "edit" },
       { href: "/metric/new", label: "New Metric", icon: "plus" },
+    ],
+  },
+  {
+    label: "Strategy",
+    links: [
+      { href: "/strategy", label: "Strategic Plan", icon: "bar-chart" },
+      { href: "/requirements", label: "Requirements", icon: "clipboard" },
     ],
   },
   {
@@ -80,6 +86,13 @@ const memberNavGroups = [
       { href: "/my-scorecard", label: "My Scorecard", icon: "award" },
       { href: "/data-health", label: "Data Health", icon: "heart" },
       { href: "/log", label: "Log Data", icon: "edit" },
+    ],
+  },
+  {
+    label: "Strategy",
+    links: [
+      { href: "/strategy", label: "Strategic Plan", icon: "bar-chart" },
+      { href: "/requirements", label: "Requirements", icon: "clipboard" },
     ],
   },
   {

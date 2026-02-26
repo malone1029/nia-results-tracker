@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useRole } from "@/lib/use-role";
 import { getTrendDirection } from "@/lib/review-status";
 import { ListPageSkeleton } from "@/components/skeleton";
 import type { KeyRequirementWithStatus } from "@/lib/types";
@@ -38,6 +39,8 @@ interface EnrichedRequirement extends KeyRequirementWithStatus {
 }
 
 export default function RequirementsPage() {
+  const { role } = useRole();
+  const isSuperAdmin = role === "super_admin";
   const [requirements, setRequirements] = useState<EnrichedRequirement[]>([]);
   const [allMetrics, setAllMetrics] = useState<AllMetric[]>([]);
   const [allCategories, setAllCategories] = useState<{ display_name: string; sort_order: number }[]>([]);
@@ -377,13 +380,15 @@ export default function RequirementsPage() {
           Source: NIA Organizational Profile, Figure P-6
         </p>
         </div>
-        <Button
-          variant={editMode ? "primary" : "ghost"}
-          size="sm"
-          onClick={() => { setEditMode(!editMode); setEditingReq(null); setDeleteConfirm(null); setAddingToGroup(null); }}
-        >
-          {editMode ? "Done Editing" : "Edit Requirements"}
-        </Button>
+        {isSuperAdmin && (
+          <Button
+            variant={editMode ? "primary" : "ghost"}
+            size="sm"
+            onClick={() => { setEditMode(!editMode); setEditingReq(null); setDeleteConfirm(null); setAddingToGroup(null); }}
+          >
+            {editMode ? "Done Editing" : "Edit Requirements"}
+          </Button>
+        )}
       </div>
 
       {/* Summary cards */}
