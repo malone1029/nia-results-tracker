@@ -242,9 +242,9 @@ export default function OwnerScorecardPage() {
                 sub={`${data.growth.completedTasks} of ${data.growth.totalTasks} tasks`}
               />
               <StatPill
-                label="Improvements This Year"
+                label="Journal Entries This Year"
                 value={data.growth.improvementCount}
-                sub="journal entries logged"
+                sub="improvement entries logged"
               />
             </div>
           </Card>
