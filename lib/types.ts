@@ -359,3 +359,31 @@ export interface ProcessWithMetrics extends Process {
 export interface CategoryWithProcesses extends Category {
   processes: ProcessWithMetrics[];
 }
+
+// ── Strategic Objectives ──────────────────────────────────────
+
+export type BscPerspective = 'financial' | 'org_capacity' | 'internal_process' | 'customer';
+export type ObjectiveComputeType = 'metric' | 'adli_threshold' | 'manual';
+export type ObjectiveStatus = 'green' | 'yellow' | 'red' | 'no-data';
+
+export interface StrategicObjective {
+  id: number;
+  title: string;
+  description: string | null;
+  bsc_perspective: BscPerspective;
+  target_value: number | null;
+  target_unit: string | null;
+  target_year: number | null;
+  compute_type: ObjectiveComputeType;
+  linked_metric_id: number | null;
+  current_value: number | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface StrategicObjectiveWithStatus extends StrategicObjective {
+  computed_value: number | null;
+  status: ObjectiveStatus;
+  linked_process_count: number;
+  trend_direction: 'improving' | 'declining' | 'flat' | 'no-data';
+}
