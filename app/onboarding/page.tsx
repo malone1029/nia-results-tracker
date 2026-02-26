@@ -43,6 +43,10 @@ const CHAPTERS = [
         body: "Processes are linked to performance metrics with defined review cadences (monthly, quarterly, semi-annual, annual). Your job is to make sure data gets entered on time. The Data Health page shows you which metrics are current, due soon, or overdue.",
       },
       {
+        heading: "Key vs. Support Processes",
+        body: "Every process in the Hub is classified as either Key or Support. Key processes directly deliver services to member school districts — they're what NIA exists to do. Support processes keep NIA running internally but don't directly serve districts. The simplest test: if your process stopped tomorrow, would a district notice? If yes, it's Key. Key processes carry twice the weight in NIA's readiness score because Baldrige examiners scrutinize them most closely.",
+      },
+      {
         heading: "Tasks and Improvements",
         body: "The AI coach generates improvement tasks for each process. These sync to Asana so nothing falls through the cracks. Completing tasks is one of the signals the Hub uses to measure your engagement.",
       },
