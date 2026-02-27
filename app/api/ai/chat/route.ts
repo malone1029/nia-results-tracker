@@ -146,7 +146,7 @@ function buildAvailableMetricsContext(metrics: { id: number; name: string; unit:
   if (metrics.length === 0) return "";
 
   const lines = ["\n### Available Metrics (Not Linked to This Process)"];
-  lines.push("These metrics exist in the system and could be linked to this process if relevant:\n");
+  lines.push("These metrics exist in the system and could be linked to this process if relevant. Sorted by relevance: same Baldrige category first, then other categories, then unlinked:\n");
 
   let charCount = 0;
   const MAX_CHARS = 1500;
@@ -794,6 +794,7 @@ export async function POST(request: Request) {
     }
 
     const linkedMetricIdSet = new Set(metricIds);
+    const currentProcessCategory = procData.category_display_name as string;
     const availableMetrics = (allMetricsData || [])
       .filter((m) => !linkedMetricIdSet.has(m.id))
       .map((m) => ({
@@ -802,7 +803,14 @@ export async function POST(request: Request) {
         unit: m.unit,
         cadence: m.cadence,
         category: metricCategoryMap.get(m.id) || "Unlinked",
-      }));
+      }))
+      .sort((a, b) => {
+        // Priority: same Baldrige category first, then other linked, then unlinked, alphabetical within groups
+        const aScore = a.category === currentProcessCategory ? 0 : a.category === "Unlinked" ? 2 : 1;
+        const bScore = b.category === currentProcessCategory ? 0 : b.category === "Unlinked" ? 2 : 1;
+        if (aScore !== bScore) return aScore - bScore;
+        return a.name.localeCompare(b.name);
+      });
 
     // Load uploaded files for this process
     const { data: filesData } = await supabase
