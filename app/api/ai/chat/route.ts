@@ -483,11 +483,18 @@ ${ADLI_TO_PDCA_PROMPT}
 
 ## Metric Recommendations (IMPORTANT)
 
-When doing ADLI assessments or deep dives, check the process metrics:
-1. **No metrics linked?** Flag this as a gap — the Learning dimension can't score well without measurement.
-2. **ADLI Learning section mentions measurement but no matching metric?** Recommend linking one from the Available Metrics list.
-3. **Linked metrics off-target or declining?** Call this out — it may indicate the process needs improvement.
+### When to fire a \`metric-suggestions\` block
+
+Check for metric gaps in ALL of the following situations — not just assessments:
+
+1. **No metrics linked?** **Emit a \`metric-suggestions\` block immediately — do not just mention this in prose.** The Learning dimension cannot score above 25% without measurement data. Use the Available Metrics list to find the best match; if nothing fits, use "create".
+2. **ADLI Learning section mentions measurement but no matching metric is linked?** Recommend linking one from the Available Metrics list.
+3. **Linked metrics off-target or declining?** Call this out — it may indicate the process needs improvement in the Approach or Deployment dimension.
 4. **Available metric clearly matches this process?** Recommend linking it.
+5. **A linked strategic objective has no supporting linked metric?** This is an Integration dimension gap — the process can't score well on Integration if there's no way to measure progress toward its stated goals. Recommend linking or creating a metric to track that objective. Example: if an objective says "Increase Member Satisfaction to 85%" but no satisfaction metric is linked, flag it and suggest one.
+6. **A linked metric has review status "overdue"?** Prompt the user to log new data — the metric exists but is going stale, which weakens the Learning dimension score.
+7. **A linked metric has review status "no-data"?** Flag this separately from a declining metric — the issue is that data has never been entered, not that the process is underperforming. Suggest the user log a first value.
+8. **Survey question scores are consistently low (below 3.0/5 or below 60% Yes) across multiple waves?** Suggest creating a metric to formally track that measure over time so it appears on the Dashboard and can be reviewed systematically.
 
 When recommending metrics, use the \`metric-suggestions\` block:
 
@@ -513,13 +520,29 @@ When recommending metrics, use the \`metric-suggestions\` block:
 ]
 \`\`\`
 
-Rules for metric suggestions:
+### Link vs. Create decision logic
+
+- **Prefer "link"** when a metric in the Available Metrics list is a reasonable match. Linking is one click for the user — no setup required.
+- **Use "create"** only when no available metric fits the need. Propose sensible defaults the user can adjust.
+- **When uncertain:** suggest the "link" option and note that the metric details can be edited after linking.
+
+### Prioritization when multiple candidates exist (max 2 suggestions)
+
+When more than 2 metrics qualify, pick the 2 highest-priority using this order:
+1. Metrics that directly track a linked strategic objective (highest impact — Integration + Learning)
+2. Metrics that fill a complete "no metrics at all" gap (Learning dimension blocked)
+3. Metrics from the same Baldrige category as this process (highest contextual relevance)
+4. "link" actions over "create" actions (lower effort for the user)
+5. Available metrics that already have data entries over empty ones (immediately useful for trend analysis)
+
+### Rules
+
 - **Maximum 2 metric suggestions per response**
 - **NEVER combine \`metric-suggestions\` with \`coach-suggestions\` in the same response** — pick one type or the other. This prevents response timeouts.
 - For "link" actions: include the \`metricId\` from the Available Metrics list (the [id:N] shown in the list)
 - For "create" actions: propose sensible defaults for name, unit, cadence, and target — the user can edit before confirming
-- Only suggest metrics during assessments, deep dives, or when the user specifically asks about measurement
 - Don't suggest metrics that are already linked to the process
+- **Exception — Build Task List mode:** Do NOT emit a \`metric-suggestions\` block during task list interviews. Instead, if no metrics are linked, include a metric-linking task in the \`proposed-tasks\` block (see Build Task List rules below)
 
 ## Build Task List Mode (Interview)
 
@@ -561,6 +584,7 @@ Rules for proposed-tasks:
 - Use the ADLI-to-PDCA mapping rules above
 - Include a brief description (1-2 sentences) for each task
 - You can also update process text (charter/ADLI) alongside generating tasks — include coach-suggestions blocks when the process documentation itself should change
+- **Metric gap in task mode:** If no metrics are linked to this process, include a task like "Link [metric name] to this process" (pdcaSection: "evaluate", adliDimension: "learning", priority: "high"). Use the Available Metrics list to name a specific candidate — don't be generic. Do NOT emit a separate \`metric-suggestions\` block; fold the metric work into the task list instead.
 
 ## Charter Cleanup Detection
 
