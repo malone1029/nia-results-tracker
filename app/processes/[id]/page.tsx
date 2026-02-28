@@ -116,10 +116,13 @@ interface JournalEntry {
   process_id: number;
   title: string;
   description: string | null;
-  status: "in_progress" | "completed";
+  status: "suggested" | "in_progress" | "completed";
   asana_task_url: string | null;
   created_at: string;
   completed_at: string | null;
+  source_ticket_id: string | null;
+  source_ticket_number: number | null;
+  submitted_by: string | null;
 }
 
 interface AdliScoreData {
@@ -1446,10 +1449,17 @@ function ProcessDetailContent() {
                   <div className="space-y-2">
                     {journalEntries.slice(0, 3).map((j) => (
                       <div key={j.id} className="flex items-center gap-2 py-1">
-                        <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${j.status === "completed" ? "bg-nia-green" : "bg-nia-orange"}`} />
+                        <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${
+                          j.status === "completed" ? "bg-nia-green" :
+                          j.status === "suggested" ? "bg-amber-400" : "bg-nia-orange"
+                        }`} />
                         <span className="text-sm text-nia-dark truncate flex-1">{j.title}</span>
-                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${j.status === "completed" ? "bg-nia-green/10 text-nia-green" : "bg-nia-orange/10 text-nia-orange"}`}>
-                          {j.status === "completed" ? "Done" : "In Progress"}
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                          j.status === "completed" ? "bg-nia-green/10 text-nia-green" :
+                          j.status === "suggested" ? "bg-amber-400/10 text-amber-600" :
+                          "bg-nia-orange/10 text-nia-orange"
+                        }`}>
+                          {j.status === "completed" ? "Done" : j.status === "suggested" ? "Suggested" : "In Progress"}
                         </span>
                       </div>
                     ))}
