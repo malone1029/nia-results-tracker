@@ -2503,9 +2503,11 @@ function JournalEntryCard({
         {!editing && (
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-              isCompleted ? "bg-nia-green/10 text-nia-green" : "bg-nia-orange/10 text-nia-orange"
+              entry.status === "completed" ? "bg-nia-green/10 text-nia-green" :
+              entry.status === "suggested" ? "bg-amber-400/10 text-amber-600" :
+              "bg-nia-orange/10 text-nia-orange"
             }`}>
-              {isCompleted ? "Completed" : "In Progress"}
+              {entry.status === "completed" ? "Completed" : entry.status === "suggested" ? "Suggested" : "In Progress"}
             </span>
             {entry.asana_task_url && (
               <a href={entry.asana_task_url} target="_blank" rel="noopener noreferrer" className="text-nia-grey-blue hover:text-nia-dark transition-colors" title="View Asana task">
@@ -2523,17 +2525,33 @@ function JournalEntryCard({
             {entry.completed_at && (
               <> &middot; Completed {new Date(entry.completed_at).toLocaleDateString()}</>
             )}
+            {entry.source_ticket_number && (
+              <> &middot; from Resolve #{entry.source_ticket_number}</>
+            )}
           </span>
           <div className="flex items-center gap-2">
-            <button onClick={() => onUpdate({ status: isCompleted ? "in_progress" : "completed" })} className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors">
-              {isCompleted ? "Reopen" : "Mark Complete"}
-            </button>
-            <button onClick={() => setEditing(true)} className="text-xs text-text-muted hover:text-nia-dark transition-colors">Edit</button>
-            <button onClick={() => setConfirmDelete(true)} className="text-xs text-text-muted hover:text-nia-red transition-colors" title="Delete entry">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+            {entry.status === "suggested" ? (
+              <>
+                <button onClick={() => onUpdate({ status: "in_progress" })} className="text-xs font-medium text-nia-green hover:text-nia-green/80 transition-colors">
+                  Accept
+                </button>
+                <button onClick={() => onDelete()} className="text-xs font-medium text-text-muted hover:text-nia-red transition-colors">
+                  Dismiss
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => onUpdate({ status: isCompleted ? "in_progress" : "completed" })} className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors">
+                  {isCompleted ? "Reopen" : "Mark Complete"}
+                </button>
+                <button onClick={() => setEditing(true)} className="text-xs text-text-muted hover:text-nia-dark transition-colors">Edit</button>
+                <button onClick={() => setConfirmDelete(true)} className="text-xs text-text-muted hover:text-nia-red transition-colors" title="Delete entry">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -66,7 +66,7 @@ export async function PATCH(request: Request) {
     updates.status = status;
     if (status === "completed") {
       updates.completed_at = new Date().toISOString();
-    } else if (status === "in_progress") {
+    } else {
       updates.completed_at = null;
     }
   }
