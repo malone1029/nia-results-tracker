@@ -17,17 +17,12 @@ import type { Metric, Entry } from '@/lib/types';
 import { NIA_COLORS } from '@/lib/colors';
 import Link from 'next/link';
 import { Card, Badge, Button, Input } from '@/components/ui';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ReferenceLine,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+
+const MetricCharts = dynamic(() => import('./metric-charts'), {
+  ssr: false,
+  loading: () => <div className="h-64 animate-pulse bg-muted rounded" />,
+});
 
 interface LinkedProcessInfo {
   id: number;
@@ -453,66 +448,14 @@ export default function MetricDetailPage() {
 
       {/* Trend Chart */}
       {entries.length > 0 && (
-        <Card padding="lg">
-          <h2 className="text-xl font-bold text-nia-dark mb-4">Trend Chart</h2>
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
-              <XAxis dataKey="label" tick={{ fill: 'var(--foreground)', fontSize: 12 }} />
-              <YAxis tick={{ fill: 'var(--foreground)', fontSize: 12 }} domain={['auto', 'auto']} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--card)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                }}
-                formatter={(value: unknown) => [
-                  formatValue(value as number, metric.unit),
-                  metric.name,
-                ]}
-                labelFormatter={(label: unknown) => String(label)}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={NIA_COLORS.dark}
-                strokeWidth={2}
-                dot={{ fill: 'var(--foreground)', r: 5 }}
-                activeDot={{ fill: NIA_COLORS.orange, r: 7 }}
-                name="Actual"
-              />
-              {metric.target_value !== null && (
-                <ReferenceLine
-                  y={metric.target_value}
-                  stroke={NIA_COLORS.green}
-                  strokeDasharray="8 4"
-                  strokeWidth={2}
-                  label={{
-                    value: `Target: ${metric.target_value}`,
-                    fill: NIA_COLORS.green,
-                    fontSize: 12,
-                    position: 'right',
-                  }}
-                />
-              )}
-              {metric.comparison_value !== null && (
-                <ReferenceLine
-                  y={metric.comparison_value}
-                  stroke={NIA_COLORS.orange}
-                  strokeDasharray="4 4"
-                  strokeWidth={2}
-                  label={{
-                    value: `${metric.comparison_source || 'Comparison'}: ${metric.comparison_value}`,
-                    fill: NIA_COLORS.orange,
-                    fontSize: 12,
-                    position: 'right',
-                  }}
-                />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
+        <MetricCharts
+          chartData={chartData}
+          metricName={metric.name}
+          unit={metric.unit}
+          targetValue={metric.target_value}
+          comparisonValue={metric.comparison_value}
+          comparisonSource={metric.comparison_source}
+        />
       )}
 
       {/* LeTCI Assessment */}

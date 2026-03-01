@@ -49,8 +49,12 @@ import {
   type HealthResult,
   type HealthMetricInput,
 } from '@/lib/process-health';
-import { NIA_COLORS, ADLI_COLORS, getTrendColor } from '@/lib/colors';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { NIA_COLORS, ADLI_COLORS } from '@/lib/colors';
+
+const ProcessSparkline = dynamic(
+  () => import('./process-charts').then((mod) => mod.ProcessSparkline),
+  { ssr: false, loading: () => <span className="w-16 h-6 inline-block" /> }
+);
 
 interface ProcessDetail {
   id: number;
@@ -1654,22 +1658,6 @@ function ProcessDetailContent() {
                 {metrics.length > 0 ? (
                   <div className="space-y-2">
                     {metrics.map((m) => {
-                      const sparkData = m.sparkline.map((v, i) => ({ i, v }));
-                      const first = m.sparkline[0];
-                      const last = m.sparkline[m.sparkline.length - 1];
-                      const trend =
-                        m.sparkline.length >= 2
-                          ? last > first
-                            ? 'up'
-                            : last < first
-                              ? 'down'
-                              : 'flat'
-                          : null;
-                      const improving =
-                        trend &&
-                        ((trend === 'up' && m.is_higher_better) ||
-                          (trend === 'down' && !m.is_higher_better));
-                      const sparkColor = getTrendColor(!!improving, trend);
                       return (
                         <div
                           key={m.id}
@@ -1690,26 +1678,10 @@ function ProcessDetailContent() {
                                 {m.cadence}
                               </span>
                             </div>
-                            {m.sparkline.length >= 2 ? (
-                              <div className="w-16 h-6 flex-shrink-0">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <LineChart data={sparkData}>
-                                    <Line
-                                      type="monotone"
-                                      dataKey="v"
-                                      stroke={sparkColor}
-                                      strokeWidth={1.5}
-                                      dot={false}
-                                      isAnimationActive={false}
-                                    />
-                                  </LineChart>
-                                </ResponsiveContainer>
-                              </div>
-                            ) : (
-                              <span className="text-text-muted text-xs w-16 text-center flex-shrink-0">
-                                &mdash;
-                              </span>
-                            )}
+                            <ProcessSparkline
+                              values={m.sparkline}
+                              isHigherBetter={m.is_higher_better}
+                            />
                             <div className="text-right flex-shrink-0 w-24">
                               {m.last_value !== null ? (
                                 <>
