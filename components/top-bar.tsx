@@ -50,7 +50,7 @@ export default function TopBar({
       {/* Mobile hamburger */}
       <button
         onClick={onMenuClick}
-        className="lg:hidden text-text-tertiary hover:text-foreground -ml-1"
+        className="md:hidden text-text-tertiary hover:text-foreground -ml-1"
         aria-label="Open menu"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,24 +64,24 @@ export default function TopBar({
       </button>
 
       {/* Mobile app name */}
-      <span className="lg:hidden text-sm font-bold text-foreground font-display">
+      <span className="md:hidden text-sm font-bold text-foreground font-display">
         NIA Excellence Hub
       </span>
 
       {/* Desktop: spacer + centered search + spacer */}
-      <div className="hidden lg:flex flex-1" />
-      <div className="hidden lg:block w-full max-w-lg">
+      <div className="hidden md:flex flex-1" />
+      <div className="hidden md:block w-full max-w-lg">
         <GlobalSearch variant="light" />
       </div>
-      <div className="hidden lg:flex flex-1" />
+      <div className="hidden md:flex flex-1" />
 
       {/* Mobile spacer */}
-      <div className="flex-1 lg:hidden" />
+      <div className="flex-1 md:hidden" />
 
       {/* Mobile search icon */}
       <button
         onClick={() => setMobileSearchOpen(true)}
-        className="lg:hidden text-text-tertiary hover:text-foreground p-1"
+        className="md:hidden text-text-tertiary hover:text-foreground p-1"
         aria-label="Search"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +178,7 @@ export default function TopBar({
       )}
       {/* Mobile search overlay */}
       {mobileSearchOpen && (
-        <div className="fixed inset-0 z-50 bg-card flex flex-col lg:hidden">
+        <div className="fixed inset-0 z-50 bg-card flex flex-col md:hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
             <button
               onClick={() => setMobileSearchOpen(false)}
