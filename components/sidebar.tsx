@@ -467,7 +467,7 @@ export default function Sidebar({
           onClick={() => toggleGroup(group.label)}
           aria-expanded={expanded}
           aria-controls={groupId}
-          className={`hidden lg:flex w-full items-center justify-between px-2 py-1.5 rounded-md text-[10px] uppercase tracking-widest font-medium transition-colors hover:bg-white/5 ${
+          className={`flex md:hidden lg:flex w-full items-center justify-between px-2 py-1.5 rounded-md text-[10px] uppercase tracking-widest font-medium transition-colors hover:bg-white/5 ${
             isAdminGroup ? 'text-nia-orange/60' : 'text-white/40'
           }`}
         >
@@ -476,8 +476,10 @@ export default function Sidebar({
         </button>
         <div
           id={groupId}
-          className={`flex flex-col gap-0.5 overflow-visible lg:overflow-hidden transition-all duration-200 ${
-            expanded ? 'lg:max-h-96 lg:opacity-100 lg:mt-1' : 'lg:max-h-0 lg:opacity-0'
+          className={`flex flex-col gap-0.5 overflow-hidden md:overflow-visible lg:overflow-hidden transition-all duration-200 ${
+            expanded
+              ? 'max-h-96 opacity-100 mt-1 md:max-h-none md:mt-0 lg:max-h-96 lg:mt-1'
+              : 'max-h-0 opacity-0 md:max-h-none md:opacity-100 lg:max-h-0 lg:opacity-0'
           }`}
         >
           {group.links.map((link) => (
@@ -487,7 +489,7 @@ export default function Sidebar({
               onClick={onClose}
               aria-current={isActive(link.href) ? 'page' : undefined}
               title={link.label}
-              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all justify-center lg:justify-start ${
+              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all md:justify-center lg:justify-start ${
                 isActive(link.href)
                   ? isAdminGroup
                     ? 'bg-nia-orange/20 text-nia-orange font-medium'
@@ -496,7 +498,7 @@ export default function Sidebar({
               }`}
             >
               <NavIcon icon={link.icon} className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden lg:inline">{link.label}</span>
+              <span className="md:hidden lg:inline">{link.label}</span>
             </Link>
           ))}
         </div>
@@ -507,7 +509,7 @@ export default function Sidebar({
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar">
       {/* Logo + app name */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-white/10 lg:justify-start justify-center">
+      <div className="flex items-center gap-3 px-4 py-5 border-b border-white/10 md:justify-center lg:justify-start">
         <Image
           src="/logo.png"
           alt="NIA Logo"
@@ -515,7 +517,7 @@ export default function Sidebar({
           height={36}
           className="rounded flex-shrink-0"
         />
-        <div className="hidden lg:block">
+        <div className="md:hidden lg:block">
           <div className="text-white font-bold text-sm leading-tight font-display">
             NIA Excellence Hub
           </div>
@@ -524,7 +526,7 @@ export default function Sidebar({
       </div>
 
       {/* Health widget — hidden when collapsed at md, visible at lg */}
-      <div className="hidden lg:block">
+      <div className="md:hidden lg:block">
         <SidebarHealthWidget
           data={healthData ?? null}
           loading={healthLoading}
@@ -552,14 +554,14 @@ export default function Sidebar({
           onClick={onClose}
           aria-current={isActive('/help') ? 'page' : undefined}
           title="Help"
-          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all justify-center lg:justify-start ${
+          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all md:justify-center lg:justify-start ${
             isActive('/help')
               ? 'bg-white/15 text-white font-medium nav-link-active'
               : 'text-white/60 hover:text-white hover:bg-white/8'
           }`}
         >
           <NavIcon icon="help" className="w-4 h-4 flex-shrink-0" />
-          <span className="hidden lg:inline">Help</span>
+          <span className="md:hidden lg:inline">Help</span>
         </Link>
         <button
           onClick={() => {
@@ -567,24 +569,24 @@ export default function Sidebar({
             onFeedbackClick?.();
           }}
           title="Feedback"
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all text-white/60 hover:text-white hover:bg-white/8 justify-center lg:justify-start"
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all text-white/60 hover:text-white hover:bg-white/8 md:justify-center lg:justify-start"
         >
           <NavIcon icon="message" className="w-4 h-4 flex-shrink-0" />
-          <span className="hidden lg:inline">Feedback</span>
+          <span className="md:hidden lg:inline">Feedback</span>
         </button>
         <Link
           href="/settings"
           onClick={onClose}
           aria-current={isActive('/settings') ? 'page' : undefined}
           title="Settings"
-          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all justify-center lg:justify-start ${
+          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all md:justify-center lg:justify-start ${
             isActive('/settings')
               ? 'bg-white/15 text-white font-medium nav-link-active'
               : 'text-white/60 hover:text-white hover:bg-white/8'
           }`}
         >
           <NavIcon icon="settings" className="w-4 h-4 flex-shrink-0" />
-          <span className="hidden lg:inline">Settings</span>
+          <span className="md:hidden lg:inline">Settings</span>
         </Link>
       </div>
     </div>
