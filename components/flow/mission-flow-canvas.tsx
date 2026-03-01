@@ -63,8 +63,8 @@ function MissionFlowInner({ flowData, height = 700 }: MissionFlowCanvasProps) {
     // Replace nodes/edges when flowData changes
   }, [nodesWithTheme, layout.edges]);
 
-  const bgColor = isDark ? '#111111' : '#f8fafc';
-  const gridColor = isDark ? '#2e2e2e' : '#e5e7eb';
+  const bgColor = isDark ? 'var(--background)' : '#f8fafc';
+  const gridColor = 'var(--border)';
 
   return (
     <div style={{ height, background: bgColor, borderRadius: 8 }} className="border border-border">
@@ -87,8 +87,8 @@ function MissionFlowInner({ flowData, height = 700 }: MissionFlowCanvasProps) {
         <Controls
           showInteractive={false}
           style={{
-            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-            border: `1px solid ${isDark ? '#2e2e2e' : '#e5e7eb'}`,
+            backgroundColor: isDark ? 'var(--card)' : '#ffffff',
+            border: '1px solid var(--border)',
             borderRadius: 8,
           }}
         />

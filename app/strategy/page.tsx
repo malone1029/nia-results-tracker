@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRole } from '@/lib/use-role';
 import { Card, Badge } from '@/components/ui';
+import { NIA_COLORS } from '@/lib/colors';
 import type { BscPerspective, StrategicObjectiveWithStatus, ObjectiveStatus } from '@/lib/types';
 
 const PERSPECTIVES: { key: BscPerspective; label: string; description: string }[] = [
@@ -32,11 +33,11 @@ const PERSPECTIVES: { key: BscPerspective; label: string; description: string }[
 function statusColor(s: ObjectiveStatus): string {
   switch (s) {
     case 'green':
-      return '#b1bd37';
+      return NIA_COLORS.green;
     case 'yellow':
-      return '#f79935';
+      return NIA_COLORS.orange;
     case 'red':
-      return '#dc2626';
+      return NIA_COLORS.red;
     default:
       return 'var(--grid-line)';
   }
@@ -58,9 +59,9 @@ function trendIcon(t: string): string {
 function trendColor(t: string): string {
   switch (t) {
     case 'improving':
-      return '#b1bd37';
+      return NIA_COLORS.green;
     case 'declining':
-      return '#dc2626';
+      return NIA_COLORS.red;
     default:
       return 'var(--text-muted)';
   }

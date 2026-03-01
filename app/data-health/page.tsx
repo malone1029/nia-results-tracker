@@ -19,6 +19,7 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import HelpTip from '@/components/help-tip';
 import SectionIntro from '@/components/section-intro';
 import ContextualTip from '@/components/contextual-tip';
+import { NIA_COLORS, getHealthColor, getTrendColor } from '@/lib/colors';
 
 interface MetricRow extends Metric {
   process_names: string;
@@ -599,23 +600,23 @@ export default function DataHealthPage() {
         <HeroCard
           label="Overdue"
           value={overdue.length}
-          color="#dc2626"
+          color={NIA_COLORS.red}
           subtitle="past review date"
         />
 
         <HeroCard
           label="Due Soon"
           value={dueSoon.length}
-          color="#f79935"
+          color={NIA_COLORS.orange}
           subtitle="review within 7 days"
         />
       </div>
 
       {/* Secondary stats ribbon */}
       <div className="grid grid-cols-3 gap-3">
-        <MiniStat label="Total Metrics" value={displayMetrics.length} color="#324a4d" />
-        <MiniStat label="Current" value={current.length} color="#b1bd37" />
-        <MiniStat label="Need Targets" value={needsTargets.length} color="#55787c" />
+        <MiniStat label="Total Metrics" value={displayMetrics.length} color={NIA_COLORS.dark} />
+        <MiniStat label="Current" value={current.length} color={NIA_COLORS.green} />
+        <MiniStat label="Need Targets" value={needsTargets.length} color={NIA_COLORS.greyBlue} />
       </div>
 
       {/* Key Process Summary */}
@@ -739,7 +740,7 @@ export default function DataHealthPage() {
           metrics={overdue}
           sparklineData={sparklineData}
           onLogClick={openLogForm}
-          accentColor="#dc2626"
+          accentColor={NIA_COLORS.red}
           editMode={editMode}
           selected={selected}
           onToggleSelect={toggleSelect}
@@ -754,7 +755,7 @@ export default function DataHealthPage() {
           metrics={dueSoon}
           sparklineData={sparklineData}
           onLogClick={openLogForm}
-          accentColor="#f79935"
+          accentColor={NIA_COLORS.orange}
           editMode={editMode}
           selected={selected}
           onToggleSelect={toggleSelect}
@@ -782,7 +783,7 @@ export default function DataHealthPage() {
           sparklineData={sparklineData}
           defaultOpen={false}
           onLogClick={openLogForm}
-          accentColor="#55787c"
+          accentColor={NIA_COLORS.greyBlue}
           editMode={editMode}
           selected={selected}
           onToggleSelect={toggleSelect}
@@ -798,7 +799,7 @@ export default function DataHealthPage() {
           sparklineData={sparklineData}
           defaultOpen={false}
           onLogClick={openLogForm}
-          accentColor="#b1bd37"
+          accentColor={NIA_COLORS.green}
           editMode={editMode}
           selected={selected}
           onToggleSelect={toggleSelect}
@@ -814,7 +815,7 @@ export default function DataHealthPage() {
           sparklineData={sparklineData}
           defaultOpen={false}
           onLogClick={openLogForm}
-          accentColor="#6366f1"
+          accentColor={NIA_COLORS.indigo}
           editMode={editMode}
           selected={selected}
           onToggleSelect={toggleSelect}
@@ -832,7 +833,7 @@ function HealthRing({ percentage }: { percentage: number }) {
   const radius = 38;
   const circumference = 2 * Math.PI * radius;
   const offset = mounted ? circumference - (percentage / 100) * circumference : circumference;
-  const color = percentage >= 80 ? '#b1bd37' : percentage >= 50 ? '#f79935' : '#dc2626';
+  const color = getHealthColor(percentage);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 100);
@@ -878,15 +879,15 @@ function HeroCard({
   subtitle: string;
 }) {
   const accentMap: Record<string, 'orange' | 'red' | 'green' | 'dark'> = {
-    '#dc2626': 'red',
-    '#f79935': 'orange',
-    '#b1bd37': 'green',
-    '#324a4d': 'dark',
+    [NIA_COLORS.red]: 'red',
+    [NIA_COLORS.orange]: 'orange',
+    [NIA_COLORS.green]: 'green',
+    [NIA_COLORS.dark]: 'dark',
   };
 
   const glowMap: Record<string, string> = {
-    '#dc2626': 'glow-red',
-    '#f79935': 'glow-orange',
+    [NIA_COLORS.red]: 'glow-red',
+    [NIA_COLORS.orange]: 'glow-orange',
   };
 
   return (
@@ -942,11 +943,11 @@ function MetricSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   const accentMap: Record<string, 'orange' | 'red' | 'green' | 'dark'> = {
-    '#dc2626': 'red' as const,
-    '#f79935': 'orange' as const,
-    '#b1bd37': 'green' as const,
-    '#55787c': 'dark' as const,
-    '#6366f1': 'dark' as const,
+    [NIA_COLORS.red]: 'red' as const,
+    [NIA_COLORS.orange]: 'orange' as const,
+    [NIA_COLORS.green]: 'green' as const,
+    [NIA_COLORS.greyBlue]: 'dark' as const,
+    [NIA_COLORS.indigo]: 'dark' as const,
   };
 
   return (
@@ -1160,7 +1161,7 @@ function Sparkline({ values, isHigherBetter }: { values: number[]; isHigherBette
   const last = values[values.length - 1];
   const trend = last > first ? 'up' : last < first ? 'down' : 'flat';
   const improving = (trend === 'up' && isHigherBetter) || (trend === 'down' && !isHigherBetter);
-  const color = improving ? '#b1bd37' : trend === 'flat' ? '#55787c' : '#dc2626';
+  const color = getTrendColor(improving, trend);
   const data = values.map((v, i) => ({ i, v }));
 
   return (

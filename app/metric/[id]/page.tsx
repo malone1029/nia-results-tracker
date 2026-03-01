@@ -14,6 +14,7 @@ import {
   formatValue,
 } from '@/lib/review-status';
 import type { Metric, Entry } from '@/lib/types';
+import { NIA_COLORS } from '@/lib/colors';
 import Link from 'next/link';
 import { Card, Badge, Button, Input } from '@/components/ui';
 import {
@@ -264,9 +265,9 @@ export default function MetricDetailPage() {
     insufficient: '—',
   };
   const trendColor: Record<string, string> = {
-    improving: '#b1bd37',
-    declining: '#dc2626',
-    flat: '#55787c',
+    improving: NIA_COLORS.green,
+    declining: NIA_COLORS.red,
+    flat: NIA_COLORS.greyBlue,
     insufficient: 'var(--text-muted)',
   };
 
@@ -475,21 +476,21 @@ export default function MetricDetailPage() {
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke="#324a4d"
+                stroke={NIA_COLORS.dark}
                 strokeWidth={2}
                 dot={{ fill: 'var(--foreground)', r: 5 }}
-                activeDot={{ fill: '#f79935', r: 7 }}
+                activeDot={{ fill: NIA_COLORS.orange, r: 7 }}
                 name="Actual"
               />
               {metric.target_value !== null && (
                 <ReferenceLine
                   y={metric.target_value}
-                  stroke="#b1bd37"
+                  stroke={NIA_COLORS.green}
                   strokeDasharray="8 4"
                   strokeWidth={2}
                   label={{
                     value: `Target: ${metric.target_value}`,
-                    fill: '#b1bd37',
+                    fill: NIA_COLORS.green,
                     fontSize: 12,
                     position: 'right',
                   }}
@@ -498,12 +499,12 @@ export default function MetricDetailPage() {
               {metric.comparison_value !== null && (
                 <ReferenceLine
                   y={metric.comparison_value}
-                  stroke="#f79935"
+                  stroke={NIA_COLORS.orange}
                   strokeDasharray="4 4"
                   strokeWidth={2}
                   label={{
                     value: `${metric.comparison_source || 'Comparison'}: ${metric.comparison_value}`,
-                    fill: '#f79935',
+                    fill: NIA_COLORS.orange,
                     fontSize: 12,
                     position: 'right',
                   }}

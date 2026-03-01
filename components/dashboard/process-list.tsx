@@ -5,6 +5,7 @@ import { MiniBar } from '@/components/adli-bars';
 import type { ProcessWithCategory } from '@/lib/fetch-health-data';
 import type { HealthResult } from '@/lib/process-health';
 import type { ScoreRow } from './types';
+import { getHealthColor } from '@/lib/colors';
 
 export default function ProcessList({
   processes,
@@ -20,10 +21,7 @@ export default function ProcessList({
   // Map health levels to accent colors for left border
   const getAccentColor = (health: HealthResult | undefined) => {
     if (!health) return 'var(--border-light)';
-    if (health.total >= 80) return '#b1bd37';
-    if (health.total >= 60) return '#55787c';
-    if (health.total >= 40) return '#f79935';
-    return '#dc2626';
+    return getHealthColor(health.total);
   };
 
   return (
