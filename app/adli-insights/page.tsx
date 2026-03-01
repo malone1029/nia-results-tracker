@@ -303,11 +303,13 @@ export default function AiInsightsPage() {
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-4 gap-2 pl-7">
-                          <MiniBar label="A" score={s.approach_score} />
-                          <MiniBar label="D" score={s.deployment_score} />
-                          <MiniBar label="L" score={s.learning_score} />
-                          <MiniBar label="I" score={s.integration_score} />
+                        <div className="overflow-x-auto pl-7">
+                          <div className="grid grid-cols-4 gap-2 min-w-[200px]">
+                            <MiniBar label="A" score={s.approach_score} />
+                            <MiniBar label="D" score={s.deployment_score} />
+                            <MiniBar label="L" score={s.learning_score} />
+                            <MiniBar label="I" score={s.integration_score} />
+                          </div>
                         </div>
 
                         <div className="text-[10px] text-text-muted mt-1.5 pl-7">
@@ -366,11 +368,13 @@ export default function AiInsightsPage() {
                               </span>
                             </div>
 
-                            <div className="grid grid-cols-4 gap-2">
-                              <MiniBar label="A" score={s.approach_score} />
-                              <MiniBar label="D" score={s.deployment_score} />
-                              <MiniBar label="L" score={s.learning_score} />
-                              <MiniBar label="I" score={s.integration_score} />
+                            <div className="overflow-x-auto">
+                              <div className="grid grid-cols-4 gap-2 min-w-[200px]">
+                                <MiniBar label="A" score={s.approach_score} />
+                                <MiniBar label="D" score={s.deployment_score} />
+                                <MiniBar label="L" score={s.learning_score} />
+                                <MiniBar label="I" score={s.integration_score} />
+                              </div>
                             </div>
 
                             <div className="text-[10px] text-text-muted mt-1.5">

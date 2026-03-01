@@ -209,7 +209,7 @@ export default function ApplicationPage() {
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-surface-muted rounded w-64" />
           <div className="h-4 bg-surface-muted rounded w-full" />
-          <div className="grid grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-20 bg-surface-subtle rounded-xl" />
             ))}

@@ -246,7 +246,7 @@ export default function GapAnalysisPage() {
         </div>
 
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-card rounded-xl border p-4">
             <div className="text-2xl font-bold text-nia-red">{totalGaps}</div>
             <div className="text-xs text-text-tertiary">Unmapped Questions</div>

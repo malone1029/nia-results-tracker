@@ -3289,7 +3289,7 @@ function ImprovementCard({
       )}
 
       {expanded && (improvement.before_snapshot || improvement.after_snapshot) && (
-        <div className="mt-3 pt-3 border-t border-border-light grid grid-cols-2 gap-3">
+        <div className="mt-3 pt-3 border-t border-border-light grid grid-cols-1 sm:grid-cols-2 gap-3">
           {improvement.before_snapshot && (
             <div>
               <span className="text-xs font-medium text-text-muted uppercase">Before</span>

@@ -613,7 +613,7 @@ export default function DataHealthPage() {
       </div>
 
       {/* Secondary stats ribbon */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <MiniStat label="Total Metrics" value={displayMetrics.length} color={NIA_COLORS.dark} />
         <MiniStat label="Current" value={current.length} color={NIA_COLORS.green} />
         <MiniStat label="Need Targets" value={needsTargets.length} color={NIA_COLORS.greyBlue} />
