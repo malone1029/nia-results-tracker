@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
 // React Flow canvas for the Command Center Mission Workflow Diagram.
 // Renders all 6 Baldrige categories with process nodes and gap nodes,
 // with built-in pan / zoom.
 
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -13,11 +13,11 @@ import {
   useNodesState,
   useEdgesState,
   BackgroundVariant,
-} from "@xyflow/react";
+} from '@xyflow/react';
 
-import { MISSION_NODE_TYPES } from "./mission-nodes";
-import { calculateMissionLayout } from "@/lib/flow-layout";
-import type { MissionFlowData } from "@/lib/flow-types";
+import { MISSION_NODE_TYPES } from './mission-nodes';
+import { calculateMissionLayout } from '@/lib/flow-layout';
+import type { MissionFlowData } from '@/lib/flow-types';
 
 // nodeTypes MUST be module-level — never redefine inside a component body
 const nodeTypes = MISSION_NODE_TYPES;
@@ -32,13 +32,13 @@ function MissionFlowInner({ flowData, height = 700 }: MissionFlowCanvasProps) {
 
   // Detect dark mode from data-theme attribute
   useEffect(() => {
-    const check = () =>
-      setIsDark(
-        document.documentElement.getAttribute("data-theme") === "dark"
-      );
+    const check = () => setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
     check();
     const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
     return () => observer.disconnect();
   }, []);
 
@@ -63,14 +63,11 @@ function MissionFlowInner({ flowData, height = 700 }: MissionFlowCanvasProps) {
     // Replace nodes/edges when flowData changes
   }, [nodesWithTheme, layout.edges]);
 
-  const bgColor = isDark ? "#111111" : "#f8fafc";
-  const gridColor = isDark ? "#2e2e2e" : "#e5e7eb";
+  const bgColor = isDark ? '#111111' : '#f8fafc';
+  const gridColor = isDark ? '#2e2e2e' : '#e5e7eb';
 
   return (
-    <div
-      style={{ height, background: bgColor, borderRadius: 8 }}
-      className="border border-border"
-    >
+    <div style={{ height, background: bgColor, borderRadius: 8 }} className="border border-border">
       <ReactFlow
         nodes={nodesWithTheme}
         edges={edges}
@@ -81,22 +78,17 @@ function MissionFlowInner({ flowData, height = 700 }: MissionFlowCanvasProps) {
         fitViewOptions={{ padding: 0.08 }}
         minZoom={0.2}
         maxZoom={2}
-        colorMode={isDark ? "dark" : "light"}
+        colorMode={isDark ? 'dark' : 'light'}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
       >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          color={gridColor}
-        />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={gridColor} />
         <Controls
           showInteractive={false}
           style={{
-            backgroundColor: isDark ? "#1a1a1a" : "#ffffff",
-            border: `1px solid ${isDark ? "#2e2e2e" : "#e5e7eb"}`,
+            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+            border: `1px solid ${isDark ? '#2e2e2e' : '#e5e7eb'}`,
             borderRadius: 8,
           }}
         />

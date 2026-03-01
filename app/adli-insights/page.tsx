@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import EmptyState from "@/components/empty-state";
-import AdliRadar from "@/components/adli-radar";
-import { ListPageSkeleton } from "@/components/skeleton";
-import { getMaturityLevel } from "@/lib/colors";
-import { DimBar, MiniBar } from "@/components/adli-bars";
-import { Card, CardHeader, Badge, Button } from "@/components/ui";
-import AdliScoringInfo from "@/components/adli-scoring-info";
-import HelpTip from "@/components/help-tip";
-import SectionIntro from "@/components/section-intro";
-import ContextualTip from "@/components/contextual-tip";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import EmptyState from '@/components/empty-state';
+import AdliRadar from '@/components/adli-radar';
+import { ListPageSkeleton } from '@/components/skeleton';
+import { getMaturityLevel } from '@/lib/colors';
+import { DimBar, MiniBar } from '@/components/adli-bars';
+import { Card, CardHeader, Badge, Button } from '@/components/ui';
+import AdliScoringInfo from '@/components/adli-scoring-info';
+import HelpTip from '@/components/help-tip';
+import SectionIntro from '@/components/section-intro';
+import ContextualTip from '@/components/contextual-tip';
+import { supabase } from '@/lib/supabase';
 
 interface ScoreRow {
   id: number;
@@ -48,16 +48,16 @@ export default function AiInsightsPage() {
   const [scores, setScores] = useState<ScoreRow[]>([]);
   const [totalProcessCount, setTotalProcessCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<"category" | "score">("category");
-  const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support">("all");
+  const [sortBy, setSortBy] = useState<'category' | 'score'>('category');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'key' | 'support'>('all');
 
   useEffect(() => {
-    document.title = "ADLI Insights | NIA Excellence Hub";
+    document.title = 'ADLI Insights | NIA Excellence Hub';
 
     async function fetchScores() {
       const [res, countRes] = await Promise.all([
-        fetch("/api/ai/scores"),
-        supabase.from("processes").select("id", { count: "exact", head: true }),
+        fetch('/api/ai/scores'),
+        supabase.from('processes').select('id', { count: 'exact', head: true }),
       ]);
       if (res.ok) {
         const data = await res.json();
@@ -70,9 +70,8 @@ export default function AiInsightsPage() {
   }, []);
 
   // Filter by process type
-  const filteredScores = typeFilter === "all"
-    ? scores
-    : scores.filter((s) => s.processes.process_type === typeFilter);
+  const filteredScores =
+    typeFilter === 'all' ? scores : scores.filter((s) => s.processes.process_type === typeFilter);
 
   // Group by category
   const categoryGroups: CategoryGroup[] = [];
@@ -96,27 +95,39 @@ export default function AiInsightsPage() {
     });
   }
 
-  if (sortBy === "category") {
+  if (sortBy === 'category') {
     categoryGroups.sort((a, b) => a.sortOrder - b.sortOrder);
   } else {
     categoryGroups.sort((a, b) => a.avgOverall - b.avgOverall);
   }
 
   // Overall org average
-  const orgAvg = filteredScores.length > 0
-    ? Math.round(filteredScores.reduce((sum, s) => sum + s.overall_score, 0) / filteredScores.length)
-    : 0;
+  const orgAvg =
+    filteredScores.length > 0
+      ? Math.round(
+          filteredScores.reduce((sum, s) => sum + s.overall_score, 0) / filteredScores.length
+        )
+      : 0;
   const orgLevel = getMaturityLevel(orgAvg);
 
   // Dimension averages
-  const dimAvgs = filteredScores.length > 0
-    ? {
-        approach: Math.round(filteredScores.reduce((s, r) => s + r.approach_score, 0) / filteredScores.length),
-        deployment: Math.round(filteredScores.reduce((s, r) => s + r.deployment_score, 0) / filteredScores.length),
-        learning: Math.round(filteredScores.reduce((s, r) => s + r.learning_score, 0) / filteredScores.length),
-        integration: Math.round(filteredScores.reduce((s, r) => s + r.integration_score, 0) / filteredScores.length),
-      }
-    : null;
+  const dimAvgs =
+    filteredScores.length > 0
+      ? {
+          approach: Math.round(
+            filteredScores.reduce((s, r) => s + r.approach_score, 0) / filteredScores.length
+          ),
+          deployment: Math.round(
+            filteredScores.reduce((s, r) => s + r.deployment_score, 0) / filteredScores.length
+          ),
+          learning: Math.round(
+            filteredScores.reduce((s, r) => s + r.learning_score, 0) / filteredScores.length
+          ),
+          integration: Math.round(
+            filteredScores.reduce((s, r) => s + r.integration_score, 0) / filteredScores.length
+          ),
+        }
+      : null;
 
   if (loading) return <ListPageSkeleton showStats statCount={5} />;
 
@@ -134,7 +145,8 @@ export default function AiInsightsPage() {
       </div>
 
       <SectionIntro storageKey="intro-adli">
-        ADLI = Approach, Deployment, Learning, Integration — the four dimensions Baldrige uses to evaluate process maturity. Run an AI assessment on any process to generate scores.
+        ADLI = Approach, Deployment, Learning, Integration — the four dimensions Baldrige uses to
+        evaluate process maturity. Run an AI assessment on any process to generate scores.
       </SectionIntro>
 
       {(() => {
@@ -142,7 +154,9 @@ export default function AiInsightsPage() {
         const unassessed = totalProcessCount - assessedIds.size;
         return unassessed > 0 ? (
           <ContextualTip tipId="adli-unassessed" show={scores.length > 0}>
-            {unassessed} process{unassessed !== 1 ? "es" : ""} ha{unassessed !== 1 ? "ven't" : "sn't"} been assessed yet. Open them and use the AI Coach to run an ADLI analysis.
+            {unassessed} process{unassessed !== 1 ? 'es' : ''} ha
+            {unassessed !== 1 ? "ven't" : "sn't"} been assessed yet. Open them and use the AI Coach
+            to run an ADLI analysis.
           </ContextualTip>
         ) : null;
       })()}
@@ -153,7 +167,7 @@ export default function AiInsightsPage() {
             illustration="radar"
             title="No assessments yet"
             description="Open any process and use the AI chat panel to run an ADLI analysis. Scores will appear here automatically."
-            action={{ label: "Go to Processes", href: "/processes" }}
+            action={{ label: 'Go to Processes', href: '/processes' }}
           />
         </Card>
       ) : (
@@ -188,17 +202,14 @@ export default function AiInsightsPage() {
                     >
                       {orgAvg}%
                     </span>
-                    <span
-                      className="text-base font-medium"
-                      style={{ color: orgLevel.color }}
-                    >
+                    <span className="text-base font-medium" style={{ color: orgLevel.color }}>
                       {orgLevel.label}
                     </span>
                   </div>
                   <div className="text-sm text-text-muted mt-1">
                     {filteredScores.length} process
-                    {filteredScores.length !== 1 ? "es" : ""} assessed
-                    {typeFilter !== "all" && ` (${typeFilter} only)`}
+                    {filteredScores.length !== 1 ? 'es' : ''} assessed
+                    {typeFilter !== 'all' && ` (${typeFilter} only)`}
                   </div>
                 </div>
 
@@ -219,28 +230,33 @@ export default function AiInsightsPage() {
             <h2 className="text-lg font-semibold text-nia-dark">Process Scores</h2>
             <div className="flex items-center gap-2 text-sm">
               <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
-                {(["all", "key", "support"] as const).map((t) => (
-                  <button key={t} onClick={() => setTypeFilter(t)}
+                {(['all', 'key', 'support'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTypeFilter(t)}
                     className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                      typeFilter === t ? "bg-card text-nia-dark shadow-sm" : "text-text-tertiary hover:text-text-secondary"
-                    }`}>
-                    {t === "all" ? "All" : t === "key" ? "\u2605 Key" : "Support"}
+                      typeFilter === t
+                        ? 'bg-card text-nia-dark shadow-sm'
+                        : 'text-text-tertiary hover:text-text-secondary'
+                    }`}
+                  >
+                    {t === 'all' ? 'All' : t === 'key' ? '\u2605 Key' : 'Support'}
                   </button>
                 ))}
               </div>
               <span className="text-text-muted">|</span>
               <span className="text-text-tertiary">Sort:</span>
               <Button
-                variant={sortBy === "category" ? "primary" : "ghost"}
+                variant={sortBy === 'category' ? 'primary' : 'ghost'}
                 size="xs"
-                onClick={() => setSortBy("category")}
+                onClick={() => setSortBy('category')}
               >
                 By Category
               </Button>
               <Button
-                variant={sortBy === "score" ? "primary" : "ghost"}
+                variant={sortBy === 'score' ? 'primary' : 'ghost'}
                 size="xs"
-                onClick={() => setSortBy("score")}
+                onClick={() => setSortBy('score')}
               >
                 By Score
               </Button>
@@ -248,7 +264,7 @@ export default function AiInsightsPage() {
           </div>
 
           {/* Process scores list */}
-          {sortBy === "score" ? (
+          {sortBy === 'score' ? (
             /* Flat list sorted by score (highest first) */
             <Card className="overflow-hidden">
               <div className="divide-y divide-border-light">
@@ -270,8 +286,10 @@ export default function AiInsightsPage() {
                             <span className="text-sm font-medium text-nia-dark truncate">
                               {s.processes.name}
                             </span>
-                            {s.processes.process_type === "key" && (
-                              <Badge color="orange" size="xs" pill={false}>KEY</Badge>
+                            {s.processes.process_type === 'key' && (
+                              <Badge color="orange" size="xs" pill={false}>
+                                KEY
+                              </Badge>
                             )}
                             <span className="text-[10px] text-text-muted flex-shrink-0">
                               {s.processes.categories.display_name}
@@ -334,8 +352,10 @@ export default function AiInsightsPage() {
                                 <span className="text-sm font-medium text-nia-dark truncate">
                                   {s.processes.name}
                                 </span>
-                                {s.processes.process_type === "key" && (
-                                  <Badge color="orange" size="xs" pill={false}>KEY</Badge>
+                                {s.processes.process_type === 'key' && (
+                                  <Badge color="orange" size="xs" pill={false}>
+                                    KEY
+                                  </Badge>
                                 )}
                               </div>
                               <span
@@ -371,4 +391,3 @@ export default function AiInsightsPage() {
     </div>
   );
 }
-

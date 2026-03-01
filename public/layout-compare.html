@@ -1,0 +1,1362 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Process Page Layout Options</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #111111;
+        color: #e5e7eb;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+
+      .page-header {
+        padding: 24px 32px;
+        border-bottom: 1px solid #2e2e2e;
+      }
+      h1 {
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+      .subtitle {
+        color: #71717a;
+        font-size: 13px;
+      }
+
+      .options {
+        padding: 24px 32px;
+      }
+      .option-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        margin-top: 32px;
+      }
+      .option-header:first-child {
+        margin-top: 0;
+      }
+      .option-header h2 {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .tag {
+        font-size: 10px;
+        padding: 3px 10px;
+        border-radius: 99px;
+        font-weight: 600;
+      }
+      .tag-rec {
+        background: #324a4d33;
+        color: #8ab0b5;
+      }
+      .tag-alt {
+        background: #2e2e2e;
+        color: #a1a1aa;
+      }
+      .option-desc {
+        color: #71717a;
+        font-size: 13px;
+        margin-bottom: 16px;
+        max-width: 700px;
+        line-height: 1.5;
+      }
+
+      /* Shared mockup frame */
+      .frame {
+        border: 1px solid #2e2e2e;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #161616;
+        max-width: 1000px;
+      }
+      .frame-topbar {
+        height: 36px;
+        background: #1a1a1a;
+        border-bottom: 1px solid #2e2e2e;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        gap: 8px;
+      }
+      .frame-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .dot-r {
+        background: #ff5f57;
+      }
+      .dot-y {
+        background: #febc2e;
+      }
+      .dot-g {
+        background: #28c840;
+      }
+      .frame-title {
+        font-size: 10px;
+        color: #71717a;
+        margin-left: 8px;
+      }
+      .frame-body {
+        display: flex;
+        min-height: 500px;
+      }
+
+      /* Sidebar mock */
+      .sidebar-mock {
+        width: 160px;
+        background: #161616;
+        border-right: 1px solid #2e2e2e;
+        padding: 12px 8px;
+        flex-shrink: 0;
+      }
+      .sb-logo {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 6px 12px;
+        border-bottom: 1px solid #252525;
+        margin-bottom: 8px;
+      }
+      .sb-logo-dot {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        background: #f79935;
+        font-size: 9px;
+        color: white;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .sb-logo-text {
+        font-size: 9px;
+        color: white;
+        font-weight: 600;
+      }
+      .sb-group {
+        font-size: 8px;
+        color: #52525b;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 4px 6px;
+        margin-top: 8px;
+      }
+      .sb-item {
+        font-size: 10px;
+        color: #71717a;
+        padding: 5px 8px;
+        border-radius: 4px;
+        margin: 1px 0;
+      }
+      .sb-item.active {
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+        font-weight: 500;
+      }
+
+      /* Content area */
+      .content-area {
+        flex: 1;
+        padding: 16px;
+        background: #111111;
+        overflow: hidden;
+      }
+
+      /* Mini components */
+      .mini-breadcrumb {
+        font-size: 9px;
+        color: #55787c;
+        margin-bottom: 8px;
+      }
+      .mini-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #e5e7eb;
+        margin-bottom: 2px;
+      }
+      .mini-meta {
+        font-size: 9px;
+        color: #71717a;
+        margin-bottom: 12px;
+      }
+      .mini-tabs {
+        display: flex;
+        gap: 2px;
+        background: #1a1a1a;
+        border-radius: 6px;
+        padding: 2px;
+        margin-bottom: 12px;
+      }
+      .mini-tab {
+        font-size: 9px;
+        padding: 5px 12px;
+        border-radius: 4px;
+        color: #71717a;
+        cursor: default;
+      }
+      .mini-tab.active {
+        background: #222;
+        color: white;
+        font-weight: 500;
+      }
+
+      .mini-card {
+        background: #1a1a1a;
+        border: 1px solid #2e2e2e;
+        border-radius: 8px;
+        padding: 10px;
+      }
+      .mini-card-title {
+        font-size: 8px;
+        color: #71717a;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+      }
+      .mini-card-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #e5e7eb;
+      }
+      .mini-card-sub {
+        font-size: 9px;
+        color: #52525b;
+        margin-top: 2px;
+      }
+
+      .mini-bar {
+        height: 4px;
+        border-radius: 2px;
+        background: #2e2e2e;
+        margin: 3px 0;
+      }
+      .mini-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+      }
+
+      .mini-section {
+        background: #1a1a1a;
+        border: 1px solid #2e2e2e;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+      }
+      .mini-section-title {
+        font-size: 10px;
+        font-weight: 600;
+        color: #a1a1aa;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .mini-section-content {
+        font-size: 9px;
+        color: #52525b;
+        line-height: 1.4;
+      }
+      .mini-text-line {
+        height: 3px;
+        background: #2e2e2e;
+        border-radius: 2px;
+        margin: 4px 0;
+      }
+      .mini-text-short {
+        width: 60%;
+      }
+      .mini-text-med {
+        width: 80%;
+      }
+      .mini-text-long {
+        width: 95%;
+      }
+
+      .mini-metric-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 0;
+        border-bottom: 1px solid #252525;
+      }
+      .mini-metric-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .mini-metric-name {
+        font-size: 9px;
+        color: #a1a1aa;
+        flex: 1;
+      }
+      .mini-metric-val {
+        font-size: 9px;
+        color: #e5e7eb;
+        font-weight: 500;
+      }
+      .mini-sparkline {
+        width: 32px;
+        height: 10px;
+        flex-shrink: 0;
+      }
+      .mini-sparkline svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Radar placeholder */
+      .mini-radar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 1px solid #2e2e2e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 6px;
+        position: relative;
+      }
+      .mini-radar::before {
+        content: '';
+        position: absolute;
+        inset: 15px;
+        border-radius: 50%;
+        border: 1px solid #2e2e2e;
+      }
+      .mini-radar-score {
+        font-size: 16px;
+        font-weight: 700;
+        color: #8ab0b5;
+      }
+
+      .mini-stepper {
+        display: flex;
+        gap: 3px;
+        margin-bottom: 12px;
+        align-items: center;
+      }
+      .mini-step {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #2e2e2e;
+      }
+      .mini-step.done {
+        background: #b1bd37;
+      }
+      .mini-step.current {
+        background: #55787c;
+        box-shadow:
+          0 0 0 2px #111,
+          0 0 0 3px #55787c;
+      }
+      .mini-step-line {
+        flex: 1;
+        height: 2px;
+        background: #2e2e2e;
+      }
+      .mini-step-line.done {
+        background: #b1bd37;
+      }
+
+      /* Grid layouts */
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .three-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+      .left-right {
+        display: grid;
+        grid-template-columns: 3fr 2fr;
+        gap: 12px;
+      }
+      .side-panel-layout {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 0;
+        height: 100%;
+      }
+      .side-panel {
+        border-left: 1px solid #2e2e2e;
+        padding: 16px;
+        background: #161616;
+        overflow-y: auto;
+      }
+
+      /* AI fab */
+      .ai-fab {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        background: #324a4d;
+        color: white;
+        font-size: 9px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 99px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .ai-fab-dot {
+        width: 6px;
+        height: 6px;
+        background: #b1bd37;
+        border-radius: 50%;
+      }
+
+      .mermaid-placeholder {
+        background: #1a1a1a;
+        border: 1px dashed #2e2e2e;
+        border-radius: 8px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: #52525b;
+      }
+
+      .survey-card {
+        background: #1a1a1a;
+        border: 1px solid #2e2e2e;
+        border-radius: 6px;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .survey-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        background: #b1bd37/20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+      }
+      .survey-info {
+        flex: 1;
+      }
+      .survey-name {
+        font-size: 9px;
+        color: #a1a1aa;
+        font-weight: 500;
+      }
+      .survey-stat {
+        font-size: 8px;
+        color: #52525b;
+      }
+
+      .current-label {
+        display: inline-block;
+        font-size: 9px;
+        color: #f79935;
+        border: 1px solid #f79935;
+        border-radius: 4px;
+        padding: 1px 6px;
+        margin-bottom: 12px;
+      }
+      .problem-callout {
+        font-size: 10px;
+        color: #dc2626;
+        background: #dc262610;
+        border: 1px solid #dc262630;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 12px;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-header">
+      <h1>Process Page Layout Options</h1>
+      <p class="subtitle">
+        Compare three approaches for reorganizing the process detail page. Each mockup shows the
+        same content arranged differently.
+      </p>
+    </div>
+
+    <div class="options">
+      <!-- CURRENT STATE -->
+      <div class="option-header">
+        <h2>Current Layout</h2>
+        <span class="tag tag-alt">As-is</span>
+      </div>
+      <p class="option-desc">
+        Single narrow column (max-w-3xl = 768px), everything stacked vertically. 18 sections, lots
+        of scrolling, wasted screen space on desktop.
+      </p>
+
+      <div class="frame" style="max-width: 700px">
+        <div class="frame-topbar">
+          <div class="frame-dot dot-r"></div>
+          <div class="frame-dot dot-y"></div>
+          <div class="frame-dot dot-g"></div>
+          <span class="frame-title">Current — nia-results-tracker.vercel.app/processes/42</span>
+        </div>
+        <div class="frame-body">
+          <div class="sidebar-mock">
+            <div class="sb-logo">
+              <div class="sb-logo-dot">N</div>
+              <div class="sb-logo-text">NIA Hub</div>
+            </div>
+            <div class="sb-group">Overview</div>
+            <div class="sb-item">Dashboard</div>
+            <div class="sb-group">Processes</div>
+            <div class="sb-item active">Processes</div>
+          </div>
+          <div class="content-area" style="position: relative">
+            <div style="max-width: 400px; margin: 0 auto">
+              <div class="problem-callout">
+                Narrow column — large gray gaps on both sides on desktop
+              </div>
+              <div class="mini-breadcrumb">← Back to Processes</div>
+              <div class="mini-title">Exit Interview Process</div>
+              <div class="mini-meta">Leadership Development · Owner: Jon Malone</div>
+              <div class="mini-stepper">
+                <div class="mini-step done"></div>
+                <div class="mini-step-line done"></div>
+                <div class="mini-step done"></div>
+                <div class="mini-step-line done"></div>
+                <div class="mini-step current"></div>
+                <div class="mini-step-line"></div>
+                <div class="mini-step"></div>
+                <div class="mini-step-line"></div>
+                <div class="mini-step"></div>
+                <div class="mini-step-line"></div>
+                <div class="mini-step"></div>
+              </div>
+              <div class="mini-tabs">
+                <div class="mini-tab active">Content</div>
+                <div class="mini-tab">Tasks</div>
+              </div>
+              <!-- Stack of sections -->
+              <div class="mini-section">
+                <div class="mini-section-title">ADLI Maturity</div>
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <div class="mini-radar"><span class="mini-radar-score">67</span></div>
+                  <div style="flex: 1">
+                    <div class="mini-bar">
+                      <div class="mini-bar-fill" style="width: 72%; background: #f79935"></div>
+                    </div>
+                    <div class="mini-bar">
+                      <div class="mini-bar-fill" style="width: 65%; background: #55787c"></div>
+                    </div>
+                    <div class="mini-bar">
+                      <div class="mini-bar-fill" style="width: 58%; background: #b1bd37"></div>
+                    </div>
+                    <div class="mini-bar">
+                      <div class="mini-bar-fill" style="width: 70%; background: #324a4d"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">Metrics & Results (4)</div>
+                <div class="mini-metric-row">
+                  <div class="mini-metric-dot" style="background: #b1bd37"></div>
+                  <div class="mini-metric-name">Satisfaction Score</div>
+                  <div class="mini-metric-val">4.2</div>
+                </div>
+                <div class="mini-metric-row">
+                  <div class="mini-metric-dot" style="background: #dc2626"></div>
+                  <div class="mini-metric-name">Response Rate</div>
+                  <div class="mini-metric-val">68%</div>
+                </div>
+                <div class="mini-metric-row">
+                  <div class="mini-metric-dot" style="background: #b1bd37"></div>
+                  <div class="mini-metric-name">Completion Time</div>
+                  <div class="mini-metric-val">12d</div>
+                </div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">Surveys (1)</div>
+                <div class="mini-section-content">Exit Interview Survey · 23 responses</div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ Charter</div>
+                <div class="mini-text-line mini-text-long"></div>
+                <div class="mini-text-line mini-text-med"></div>
+                <div class="mini-text-line mini-text-short"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ Approach</div>
+                <div class="mini-text-line mini-text-long"></div>
+                <div class="mini-text-line mini-text-med"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ Deployment</div>
+                <div class="mini-text-line mini-text-med"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ Learning</div>
+                <div class="mini-text-line mini-text-med"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ Integration</div>
+                <div class="mini-text-line mini-text-med"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ Process Map</div>
+                <div class="mini-section-content">[Mermaid diagram]</div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ EB Connections</div>
+                <div class="mini-text-line mini-text-short"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ Requirements</div>
+                <div class="mini-text-line mini-text-short"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ Files (2)</div>
+                <div class="mini-text-line mini-text-short"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ Improvement History</div>
+                <div class="mini-text-line mini-text-short"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">▶ Change Log</div>
+                <div class="mini-text-line mini-text-short"></div>
+              </div>
+              <div style="height: 40px"></div>
+            </div>
+            <div class="ai-fab">
+              <div class="ai-fab-dot"></div>
+              AI Coach
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPTION A: Tabs + Two Column -->
+      <div class="option-header" style="margin-top: 48px">
+        <h2>A: Tabs + Two-Column Dashboard</h2>
+        <span class="tag tag-rec">Recommended</span>
+      </div>
+      <p class="option-desc">
+        Three tabs: <strong>Overview</strong> (dashboard grid),
+        <strong>Documentation</strong> (full-width reading), <strong>History</strong>. Uses full
+        screen width (max-w-6xl). Quick checks live on Overview, deep reading on Documentation.
+      </p>
+
+      <div class="frame">
+        <div class="frame-topbar">
+          <div class="frame-dot dot-r"></div>
+          <div class="frame-dot dot-y"></div>
+          <div class="frame-dot dot-g"></div>
+          <span class="frame-title">Option A — Tabs + Dashboard</span>
+        </div>
+        <div class="frame-body">
+          <div class="sidebar-mock">
+            <div class="sb-logo">
+              <div class="sb-logo-dot">N</div>
+              <div class="sb-logo-text">NIA Hub</div>
+            </div>
+            <div class="sb-group">Overview</div>
+            <div class="sb-item">Dashboard</div>
+            <div class="sb-group">Processes</div>
+            <div class="sb-item active">Processes</div>
+          </div>
+          <div class="content-area" style="position: relative">
+            <div class="mini-breadcrumb">← Back to Processes</div>
+            <div
+              style="
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                margin-bottom: 4px;
+              "
+            >
+              <div class="mini-title">Exit Interview Process</div>
+              <div style="display: flex; gap: 4px">
+                <div
+                  style="
+                    font-size: 8px;
+                    background: #b1bd37;
+                    color: white;
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    font-weight: 600;
+                  "
+                >
+                  Sync Asana
+                </div>
+                <div
+                  style="
+                    font-size: 8px;
+                    background: #2e2e2e;
+                    color: #a1a1aa;
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                  "
+                >
+                  Edit
+                </div>
+              </div>
+            </div>
+            <div class="mini-meta">Leadership Development · Owner: Jon Malone · Item 6.1</div>
+
+            <!-- Stepper -->
+            <div class="mini-stepper" style="margin-top: 10px">
+              <div class="mini-step done"></div>
+              <div class="mini-step-line done"></div>
+              <div class="mini-step done"></div>
+              <div class="mini-step-line done"></div>
+              <div class="mini-step current"></div>
+              <div class="mini-step-line"></div>
+              <div class="mini-step"></div>
+              <div class="mini-step-line"></div>
+              <div class="mini-step"></div>
+              <div class="mini-step-line"></div>
+              <div class="mini-step"></div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="mini-tabs" style="max-width: 400px">
+              <div class="mini-tab active">Overview</div>
+              <div class="mini-tab">Documentation</div>
+              <div class="mini-tab">Tasks</div>
+              <div class="mini-tab">History</div>
+            </div>
+
+            <!-- Two column dashboard -->
+            <div class="left-right">
+              <!-- Left column -->
+              <div>
+                <!-- Health + ADLI side by side -->
+                <div class="two-col" style="margin-bottom: 8px">
+                  <div class="mini-card">
+                    <div class="mini-card-title">Health Score</div>
+                    <div class="mini-card-value">72</div>
+                    <div class="mini-card-sub">On Track</div>
+                    <div style="margin-top: 6px">
+                      <div class="mini-bar">
+                        <div class="mini-bar-fill" style="width: 85%; background: #b1bd37"></div>
+                      </div>
+                      <div class="mini-bar">
+                        <div class="mini-bar-fill" style="width: 70%; background: #55787c"></div>
+                      </div>
+                      <div class="mini-bar">
+                        <div class="mini-bar-fill" style="width: 60%; background: #f79935"></div>
+                      </div>
+                      <div class="mini-bar">
+                        <div class="mini-bar-fill" style="width: 75%; background: #324a4d"></div>
+                      </div>
+                      <div class="mini-bar">
+                        <div class="mini-bar-fill" style="width: 65%; background: #71717a"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mini-card" style="text-align: center">
+                    <div class="mini-card-title">ADLI Maturity</div>
+                    <div class="mini-radar"><span class="mini-radar-score">67</span></div>
+                    <div style="display: flex; gap: 4px; justify-content: center">
+                      <span style="font-size: 8px; color: #f79935; font-weight: 600">A 72</span>
+                      <span style="font-size: 8px; color: #55787c; font-weight: 600">D 65</span>
+                      <span style="font-size: 8px; color: #b1bd37; font-weight: 600">L 58</span>
+                      <span style="font-size: 8px; color: #52525b; font-weight: 600">I 70</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Metrics -->
+                <div class="mini-section">
+                  <div class="mini-section-title">Metrics & Results (4)</div>
+                  <div class="mini-metric-row">
+                    <div class="mini-metric-dot" style="background: #b1bd37"></div>
+                    <div class="mini-metric-name">Satisfaction Score</div>
+                    <div class="mini-sparkline">
+                      <svg viewBox="0 0 32 10">
+                        <polyline
+                          points="0,8 8,6 16,7 24,4 32,3"
+                          fill="none"
+                          stroke="#b1bd37"
+                          stroke-width="1.5"
+                        />
+                      </svg>
+                    </div>
+                    <div class="mini-metric-val">4.2</div>
+                  </div>
+                  <div class="mini-metric-row">
+                    <div class="mini-metric-dot" style="background: #dc2626"></div>
+                    <div class="mini-metric-name">Response Rate</div>
+                    <div class="mini-sparkline">
+                      <svg viewBox="0 0 32 10">
+                        <polyline
+                          points="0,3 8,5 16,4 24,7 32,8"
+                          fill="none"
+                          stroke="#dc2626"
+                          stroke-width="1.5"
+                        />
+                      </svg>
+                    </div>
+                    <div class="mini-metric-val">68%</div>
+                  </div>
+                  <div class="mini-metric-row">
+                    <div class="mini-metric-dot" style="background: #b1bd37"></div>
+                    <div class="mini-metric-name">Completion Time</div>
+                    <div class="mini-sparkline">
+                      <svg viewBox="0 0 32 10">
+                        <polyline
+                          points="0,7 8,5 16,4 24,3 32,2"
+                          fill="none"
+                          stroke="#b1bd37"
+                          stroke-width="1.5"
+                        />
+                      </svg>
+                    </div>
+                    <div class="mini-metric-val">12 days</div>
+                  </div>
+                  <div class="mini-metric-row">
+                    <div class="mini-metric-dot" style="background: #f79935"></div>
+                    <div class="mini-metric-name">Action Item Rate</div>
+                    <div class="mini-sparkline">
+                      <svg viewBox="0 0 32 10">
+                        <polyline
+                          points="0,5 8,5 16,6 24,5 32,5"
+                          fill="none"
+                          stroke="#71717a"
+                          stroke-width="1.5"
+                        />
+                      </svg>
+                    </div>
+                    <div class="mini-metric-val">78%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right column -->
+              <div>
+                <!-- Surveys -->
+                <div class="mini-section" style="margin-bottom: 8px">
+                  <div class="mini-section-title">Surveys</div>
+                  <div class="survey-card">
+                    <div style="font-size: 14px">📋</div>
+                    <div class="survey-info">
+                      <div class="survey-name">Exit Interview Survey</div>
+                      <div class="survey-stat">Wave 3 · 23 responses · Open</div>
+                    </div>
+                    <div
+                      style="
+                        font-size: 8px;
+                        background: #b1bd37;
+                        color: white;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-weight: 500;
+                      "
+                    >
+                      Active
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Process Map preview -->
+                <div class="mini-section" style="margin-bottom: 8px">
+                  <div class="mini-section-title">Process Map</div>
+                  <div class="mermaid-placeholder">flowchart preview →</div>
+                </div>
+
+                <!-- Quick links -->
+                <div class="mini-section">
+                  <div class="mini-section-title">Quick Info</div>
+                  <div style="font-size: 9px; color: #71717a; line-height: 1.8">
+                    <div>📎 2 attached files</div>
+                    <div>🔗 3 EB connections</div>
+                    <div>📋 2 key requirements</div>
+                    <div style="color: #55787c">View in Asana →</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ai-fab">
+              <div class="ai-fab-dot"></div>
+              AI Coach
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Show Documentation tab view -->
+      <p class="option-desc" style="margin-top: 12px; color: #55787c">
+        ↳ <strong>Documentation tab</strong> would look like this — full-width for reading:
+      </p>
+      <div class="frame" style="margin-top: 8px">
+        <div class="frame-topbar">
+          <div class="frame-dot dot-r"></div>
+          <div class="frame-dot dot-y"></div>
+          <div class="frame-dot dot-g"></div>
+          <span class="frame-title">Option A — Documentation Tab</span>
+        </div>
+        <div class="frame-body">
+          <div class="sidebar-mock">
+            <div class="sb-logo">
+              <div class="sb-logo-dot">N</div>
+              <div class="sb-logo-text">NIA Hub</div>
+            </div>
+            <div class="sb-group">Overview</div>
+            <div class="sb-item">Dashboard</div>
+            <div class="sb-group">Processes</div>
+            <div class="sb-item active">Processes</div>
+          </div>
+          <div class="content-area" style="position: relative">
+            <div class="mini-breadcrumb">← Back to Processes</div>
+            <div class="mini-title" style="margin-bottom: 2px">Exit Interview Process</div>
+            <div class="mini-meta">Leadership Development · Owner: Jon Malone</div>
+            <div class="mini-tabs" style="max-width: 400px">
+              <div class="mini-tab">Overview</div>
+              <div class="mini-tab active">Documentation</div>
+              <div class="mini-tab">Tasks</div>
+              <div class="mini-tab">History</div>
+            </div>
+
+            <!-- Full-width documentation -->
+            <div class="two-col">
+              <div>
+                <div class="mini-section">
+                  <div class="mini-section-title">Charter</div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-short"></div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                </div>
+                <div class="mini-section">
+                  <div class="mini-section-title">Approach</div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-short"></div>
+                </div>
+                <div class="mini-section">
+                  <div class="mini-section-title">Deployment</div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                  <div class="mini-text-line mini-text-long"></div>
+                </div>
+              </div>
+              <div>
+                <div class="mini-section">
+                  <div class="mini-section-title">Learning</div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-short"></div>
+                </div>
+                <div class="mini-section">
+                  <div class="mini-section-title">Integration</div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                  <div class="mini-text-line mini-text-long"></div>
+                </div>
+                <div class="mini-section">
+                  <div class="mini-section-title">Process Map</div>
+                  <div class="mermaid-placeholder" style="height: 100px">
+                    flowchart TD<br />A → B → C
+                  </div>
+                </div>
+                <div class="mini-section">
+                  <div class="mini-section-title">EB Connections (3)</div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ai-fab">
+              <div class="ai-fab-dot"></div>
+              AI Coach
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPTION B: Persistent Side Panel -->
+      <div class="option-header" style="margin-top: 48px">
+        <h2>B: Persistent Side Panel</h2>
+        <span class="tag tag-alt">Dashboard</span>
+      </div>
+      <p class="option-desc">
+        Fixed right panel with health, ADLI, metrics, and surveys. Left side scrolls through
+        documentation. No tabs needed — everything is always visible. Like a code editor with file
+        explorer on the side.
+      </p>
+
+      <div class="frame">
+        <div class="frame-topbar">
+          <div class="frame-dot dot-r"></div>
+          <div class="frame-dot dot-y"></div>
+          <div class="frame-dot dot-g"></div>
+          <span class="frame-title">Option B — Persistent Side Panel</span>
+        </div>
+        <div class="frame-body">
+          <div class="sidebar-mock">
+            <div class="sb-logo">
+              <div class="sb-logo-dot">N</div>
+              <div class="sb-logo-text">NIA Hub</div>
+            </div>
+            <div class="sb-group">Overview</div>
+            <div class="sb-item">Dashboard</div>
+            <div class="sb-group">Processes</div>
+            <div class="sb-item active">Processes</div>
+          </div>
+          <div style="flex: 1; display: grid; grid-template-columns: 1fr 240px">
+            <!-- Left: scrollable content -->
+            <div class="content-area" style="position: relative">
+              <div class="mini-breadcrumb">← Back to Processes</div>
+              <div class="mini-title">Exit Interview Process</div>
+              <div class="mini-meta">Leadership Development · Owner: Jon Malone</div>
+              <div class="mini-stepper" style="margin-top: 10px">
+                <div class="mini-step done"></div>
+                <div class="mini-step-line done"></div>
+                <div class="mini-step done"></div>
+                <div class="mini-step-line done"></div>
+                <div class="mini-step current"></div>
+                <div class="mini-step-line"></div>
+                <div class="mini-step"></div>
+                <div class="mini-step-line"></div>
+                <div class="mini-step"></div>
+                <div class="mini-step-line"></div>
+                <div class="mini-step"></div>
+              </div>
+              <div class="mini-tabs" style="max-width: 250px">
+                <div class="mini-tab active">Content</div>
+                <div class="mini-tab">Tasks</div>
+              </div>
+
+              <div class="mini-section">
+                <div class="mini-section-title">Charter</div>
+                <div class="mini-text-line mini-text-long"></div>
+                <div class="mini-text-line mini-text-long"></div>
+                <div class="mini-text-line mini-text-med"></div>
+                <div class="mini-text-line mini-text-long"></div>
+                <div class="mini-text-line mini-text-short"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">Approach</div>
+                <div class="mini-text-line mini-text-long"></div>
+                <div class="mini-text-line mini-text-med"></div>
+                <div class="mini-text-line mini-text-long"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">Deployment</div>
+                <div class="mini-text-line mini-text-med"></div>
+                <div class="mini-text-line mini-text-long"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">Learning</div>
+                <div class="mini-text-line mini-text-long"></div>
+                <div class="mini-text-line mini-text-med"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">Integration</div>
+                <div class="mini-text-line mini-text-long"></div>
+              </div>
+              <div class="mini-section">
+                <div class="mini-section-title">Process Map</div>
+                <div class="mermaid-placeholder">flowchart TD</div>
+              </div>
+
+              <div class="ai-fab">
+                <div class="ai-fab-dot"></div>
+                AI Coach
+              </div>
+            </div>
+
+            <!-- Right: fixed panel -->
+            <div class="side-panel">
+              <div class="mini-card" style="margin-bottom: 8px; text-align: center">
+                <div class="mini-card-title">Health</div>
+                <div class="mini-card-value">72</div>
+                <div class="mini-card-sub">On Track</div>
+              </div>
+
+              <div class="mini-card" style="margin-bottom: 8px; text-align: center">
+                <div class="mini-card-title">ADLI Maturity</div>
+                <div class="mini-radar" style="width: 64px; height: 64px; margin: 6px auto">
+                  <span class="mini-radar-score" style="font-size: 13px">67</span>
+                </div>
+                <div style="font-size: 8px; color: #71717a">
+                  <div class="mini-bar">
+                    <div class="mini-bar-fill" style="width: 72%; background: #f79935"></div>
+                  </div>
+                  <div class="mini-bar">
+                    <div class="mini-bar-fill" style="width: 65%; background: #55787c"></div>
+                  </div>
+                  <div class="mini-bar">
+                    <div class="mini-bar-fill" style="width: 58%; background: #b1bd37"></div>
+                  </div>
+                  <div class="mini-bar">
+                    <div class="mini-bar-fill" style="width: 70%; background: #324a4d"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mini-card" style="margin-bottom: 8px">
+                <div class="mini-card-title">Metrics (4)</div>
+                <div class="mini-metric-row">
+                  <div class="mini-metric-dot" style="background: #b1bd37"></div>
+                  <div class="mini-metric-name">Satisfaction</div>
+                  <div class="mini-metric-val">4.2</div>
+                </div>
+                <div class="mini-metric-row">
+                  <div class="mini-metric-dot" style="background: #dc2626"></div>
+                  <div class="mini-metric-name">Response Rate</div>
+                  <div class="mini-metric-val">68%</div>
+                </div>
+                <div class="mini-metric-row">
+                  <div class="mini-metric-dot" style="background: #b1bd37"></div>
+                  <div class="mini-metric-name">Completion</div>
+                  <div class="mini-metric-val">12d</div>
+                </div>
+              </div>
+
+              <div class="mini-card" style="margin-bottom: 8px">
+                <div class="mini-card-title">Surveys</div>
+                <div style="font-size: 9px; color: #a1a1aa">Exit Interview</div>
+                <div style="font-size: 8px; color: #52525b">Wave 3 · 23 resp.</div>
+              </div>
+
+              <div class="mini-card">
+                <div class="mini-card-title">Quick Links</div>
+                <div style="font-size: 8px; color: #71717a; line-height: 1.8">
+                  <div>📎 2 files</div>
+                  <div>🔗 3 EB connections</div>
+                  <div>📋 2 requirements</div>
+                  <div style="color: #55787c">Asana →</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPTION C: Wider Single Column -->
+      <div class="option-header" style="margin-top: 48px">
+        <h2>C: Wider Single Column + Smart Grouping</h2>
+        <span class="tag tag-alt">Minimal change</span>
+      </div>
+      <p class="option-desc">
+        Keep the single column but expand to max-w-5xl. Add a compact summary strip at the top.
+        Group related sections (all ADLI together, all reference items together). Least disruptive
+        change.
+      </p>
+
+      <div class="frame">
+        <div class="frame-topbar">
+          <div class="frame-dot dot-r"></div>
+          <div class="frame-dot dot-y"></div>
+          <div class="frame-dot dot-g"></div>
+          <span class="frame-title">Option C — Wider + Grouped</span>
+        </div>
+        <div class="frame-body">
+          <div class="sidebar-mock">
+            <div class="sb-logo">
+              <div class="sb-logo-dot">N</div>
+              <div class="sb-logo-text">NIA Hub</div>
+            </div>
+            <div class="sb-group">Overview</div>
+            <div class="sb-item">Dashboard</div>
+            <div class="sb-group">Processes</div>
+            <div class="sb-item active">Processes</div>
+          </div>
+          <div class="content-area" style="position: relative">
+            <div class="mini-breadcrumb">← Back to Processes</div>
+            <div class="mini-title">Exit Interview Process</div>
+            <div class="mini-meta">Leadership Development · Owner: Jon Malone</div>
+
+            <!-- Summary strip -->
+            <div class="three-col" style="margin: 12px 0">
+              <div class="mini-card" style="text-align: center">
+                <div class="mini-card-title">Health</div>
+                <div class="mini-card-value" style="font-size: 22px">72</div>
+                <div class="mini-card-sub">On Track</div>
+              </div>
+              <div class="mini-card" style="text-align: center">
+                <div class="mini-card-title">ADLI</div>
+                <div class="mini-card-value" style="font-size: 22px">67</div>
+                <div class="mini-card-sub">4 dimensions</div>
+              </div>
+              <div class="mini-card" style="text-align: center">
+                <div class="mini-card-title">Metrics</div>
+                <div class="mini-card-value" style="font-size: 22px">3/4</div>
+                <div class="mini-card-sub">On target</div>
+              </div>
+            </div>
+
+            <div class="mini-stepper">
+              <div class="mini-step done"></div>
+              <div class="mini-step-line done"></div>
+              <div class="mini-step done"></div>
+              <div class="mini-step-line done"></div>
+              <div class="mini-step current"></div>
+              <div class="mini-step-line"></div>
+              <div class="mini-step"></div>
+              <div class="mini-step-line"></div>
+              <div class="mini-step"></div>
+              <div class="mini-step-line"></div>
+              <div class="mini-step"></div>
+            </div>
+
+            <div class="mini-tabs" style="max-width: 300px">
+              <div class="mini-tab active">Content</div>
+              <div class="mini-tab">Tasks</div>
+            </div>
+
+            <!-- Grouped sections — still single column but wider -->
+            <div class="mini-section">
+              <div class="mini-section-title">▶ Charter</div>
+              <div class="mini-text-line mini-text-long"></div>
+              <div class="mini-text-line mini-text-med"></div>
+            </div>
+
+            <!-- ADLI grouped -->
+            <div class="mini-section">
+              <div class="mini-section-title">ADLI Documentation</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px">
+                <div style="background: #252525; border-radius: 4px; padding: 6px">
+                  <div style="font-size: 8px; color: #f79935; font-weight: 600; margin-bottom: 3px">
+                    Approach
+                  </div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                </div>
+                <div style="background: #252525; border-radius: 4px; padding: 6px">
+                  <div style="font-size: 8px; color: #55787c; font-weight: 600; margin-bottom: 3px">
+                    Deployment
+                  </div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                </div>
+                <div style="background: #252525; border-radius: 4px; padding: 6px">
+                  <div style="font-size: 8px; color: #b1bd37; font-weight: 600; margin-bottom: 3px">
+                    Learning
+                  </div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                </div>
+                <div style="background: #252525; border-radius: 4px; padding: 6px">
+                  <div style="font-size: 8px; color: #71717a; font-weight: 600; margin-bottom: 3px">
+                    Integration
+                  </div>
+                  <div class="mini-text-line mini-text-long"></div>
+                  <div class="mini-text-line mini-text-med"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mini-section">
+              <div class="mini-section-title">▶ Process Map</div>
+              <div class="mermaid-placeholder">flowchart TD</div>
+            </div>
+
+            <!-- Reference grouped -->
+            <div class="mini-section">
+              <div class="mini-section-title">Reference</div>
+              <div style="font-size: 9px; color: #71717a; line-height: 1.8">
+                <div>📋 2 key requirements · 🔗 3 EB connections · 📎 2 files</div>
+              </div>
+            </div>
+
+            <div class="ai-fab">
+              <div class="ai-fab-dot"></div>
+              AI Coach
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparison summary -->
+      <div
+        style="
+          margin-top: 48px;
+          padding: 20px;
+          background: #1a1a1a;
+          border-radius: 12px;
+          border: 1px solid #2e2e2e;
+          max-width: 800px;
+        "
+      >
+        <table style="width: 100%; font-size: 12px; border-collapse: collapse">
+          <thead>
+            <tr style="border-bottom: 1px solid #2e2e2e">
+              <th style="text-align: left; padding: 8px; color: #71717a; font-weight: 500">
+                Criteria
+              </th>
+              <th style="text-align: center; padding: 8px; color: #71717a; font-weight: 500">
+                A: Tabs
+              </th>
+              <th style="text-align: center; padding: 8px; color: #71717a; font-weight: 500">
+                B: Side Panel
+              </th>
+              <th style="text-align: center; padding: 8px; color: #71717a; font-weight: 500">
+                C: Wider
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #252525">
+              <td style="padding: 8px; color: #a1a1aa">Uses full screen</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">Yes</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">Yes</td>
+              <td style="text-align: center; padding: 8px; color: #f79935">Partial</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #252525">
+              <td style="padding: 8px; color: #a1a1aa">Quick status check</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">Great</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">Great</td>
+              <td style="text-align: center; padding: 8px; color: #f79935">OK</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #252525">
+              <td style="padding: 8px; color: #a1a1aa">Reading space</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">Full width</td>
+              <td style="text-align: center; padding: 8px; color: #f79935">Narrower</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">Good</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #252525">
+              <td style="padding: 8px; color: #a1a1aa">Reduces scrolling</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">A lot</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">A lot</td>
+              <td style="text-align: center; padding: 8px; color: #f79935">Some</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #252525">
+              <td style="padding: 8px; color: #a1a1aa">Mobile friendly</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">Yes (stacks)</td>
+              <td style="text-align: center; padding: 8px; color: #f79935">Tricky</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">Yes</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; color: #a1a1aa">Implementation effort</td>
+              <td style="text-align: center; padding: 8px; color: #f79935">Medium</td>
+              <td style="text-align: center; padding: 8px; color: #f79935">Medium</td>
+              <td style="text-align: center; padding: 8px; color: #b1bd37">Small</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

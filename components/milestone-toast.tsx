@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import type { HealthResult } from "@/lib/process-health";
-import HealthRing from "@/components/health-ring";
+import { useEffect, useState } from 'react';
+import type { HealthResult } from '@/lib/process-health';
+import HealthRing from '@/components/health-ring';
 
 interface MilestoneToastProps {
   processId: number;
@@ -22,7 +22,7 @@ interface ToastMessage {
 // Check sessionStorage for already-shown milestones this session
 function wasShown(processId: number, milestoneKey: string): boolean {
   try {
-    const shown = JSON.parse(sessionStorage.getItem("milestones_shown") || "{}");
+    const shown = JSON.parse(sessionStorage.getItem('milestones_shown') || '{}');
     return !!shown[`${processId}_${milestoneKey}`];
   } catch {
     return false;
@@ -31,9 +31,9 @@ function wasShown(processId: number, milestoneKey: string): boolean {
 
 function markShown(processId: number, milestoneKey: string) {
   try {
-    const shown = JSON.parse(sessionStorage.getItem("milestones_shown") || "{}");
+    const shown = JSON.parse(sessionStorage.getItem('milestones_shown') || '{}');
     shown[`${processId}_${milestoneKey}`] = true;
-    sessionStorage.setItem("milestones_shown", JSON.stringify(shown));
+    sessionStorage.setItem('milestones_shown', JSON.stringify(shown));
   } catch {
     // ignore
   }
@@ -53,45 +53,45 @@ export default function MilestoneToast({
     if (!health) return;
 
     const newToasts: ToastMessage[] = [];
-    const name = processName.length > 30 ? processName.slice(0, 30) + "..." : processName;
+    const name = processName.length > 30 ? processName.slice(0, 30) + '...' : processName;
 
     // 1. Baldrige Ready (80+ health) — show the score
-    if (health.total >= 80 && !wasShown(processId, "baldrige_ready")) {
+    if (health.total >= 80 && !wasShown(processId, 'baldrige_ready')) {
       newToasts.push({
-        key: "baldrige_ready",
+        key: 'baldrige_ready',
         text: `${name} hit Baldrige Ready!`,
         showRing: true,
       });
     }
 
     // 2. All ADLI sections completed (documentation = 25/25)
-    if (health.dimensions.documentation.score === 25 && !wasShown(processId, "docs_complete")) {
+    if (health.dimensions.documentation.score === 25 && !wasShown(processId, 'docs_complete')) {
       newToasts.push({
-        key: "docs_complete",
+        key: 'docs_complete',
         text: `All documentation complete for ${name} \u2014 25/25 points!`,
       });
     }
 
     // 3. First improvement cycle completed
-    if (hasImprovements && !wasShown(processId, "first_improvement")) {
+    if (hasImprovements && !wasShown(processId, 'first_improvement')) {
       newToasts.push({
-        key: "first_improvement",
+        key: 'first_improvement',
         text: `First improvement cycle completed for ${name}!`,
       });
     }
 
     // 4. Linked to Asana for the first time
-    if (hasAsanaLink && !wasShown(processId, "asana_linked")) {
+    if (hasAsanaLink && !wasShown(processId, 'asana_linked')) {
       newToasts.push({
-        key: "asana_linked",
+        key: 'asana_linked',
         text: `${name} is now linked to Asana \u2014 operations connected!`,
       });
     }
 
     // 5. All linked metrics have current data
-    if (allMetricsCurrent && !wasShown(processId, "metrics_current")) {
+    if (allMetricsCurrent && !wasShown(processId, 'metrics_current')) {
       newToasts.push({
-        key: "metrics_current",
+        key: 'metrics_current',
         text: `All metrics are current for ${name} \u2014 data is flowing!`,
       });
     }
@@ -120,9 +120,15 @@ export default function MilestoneToast({
           className="flex items-center gap-3 bg-card border border-nia-green/30 rounded-xl shadow-lg px-5 py-3.5 max-w-sm"
         >
           {toast.showRing && health ? (
-            <HealthRing score={health.total} color={health.level.color} size={36} strokeWidth={3} className="text-[9px] flex-shrink-0" />
+            <HealthRing
+              score={health.total}
+              color={health.level.color}
+              size={36}
+              strokeWidth={3}
+              className="text-[9px] flex-shrink-0"
+            />
           ) : (
-            <span className="text-xl flex-shrink-0">{"\u2728"}</span>
+            <span className="text-xl flex-shrink-0">{'\u2728'}</span>
           )}
           <div className="flex-1 min-w-0">
             <span className="text-sm text-nia-dark font-medium">{toast.text}</span>

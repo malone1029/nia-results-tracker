@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { getAsanaToken, asanaFetch } from "@/lib/asana";
-import { fetchProjectSections, findAdliTasks } from "@/lib/asana-helpers";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { getAsanaToken, asanaFetch } from '@/lib/asana';
+import { fetchProjectSections, findAdliTasks } from '@/lib/asana-helpers';
 
 export async function POST(request: Request) {
   const { projectGid } = await request.json();
 
   if (!projectGid) {
-    return NextResponse.json({ error: "projectGid is required" }, { status: 400 });
+    return NextResponse.json({ error: 'projectGid is required' }, { status: 400 });
   }
 
   const supabase = await createSupabaseServer();
@@ -17,28 +17,31 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   const token = await getAsanaToken(user.id);
   if (!token) {
-    return NextResponse.json({ error: "Asana not connected" }, { status: 401 });
+    return NextResponse.json({ error: 'Asana not connected' }, { status: 401 });
   }
 
   try {
     // Check if this project was already imported
     const { data: existing } = await supabase
-      .from("processes")
-      .select("id, name")
-      .eq("asana_project_gid", projectGid)
+      .from('processes')
+      .select('id, name')
+      .eq('asana_project_gid', projectGid)
       .single();
 
     if (existing) {
-      return NextResponse.json({
-        error: "already_exists",
-        existingId: existing.id,
-        existingName: existing.name,
-      }, { status: 409 });
+      return NextResponse.json(
+        {
+          error: 'already_exists',
+          existingId: existing.id,
+          existingName: existing.name,
+        },
+        { status: 409 }
+      );
     }
 
     // Fetch project details
@@ -59,7 +62,7 @@ export async function POST(request: Request) {
 
     // Build the process fields from Asana data
     const projectName = project.data.name;
-    const projectNotes = project.data.notes || "";
+    const projectNotes = project.data.notes || '';
     const ownerName = project.data.owner?.name || null;
 
     // Collect all unique assignees as stakeholders
@@ -105,21 +108,19 @@ export async function POST(request: Request) {
     }
 
     // Short description for the list view (first sentence or 200 chars)
-    const shortDesc = projectNotes
-      ? projectNotes.split(/[.!?]\s/)[0].slice(0, 200)
-      : null;
+    const shortDesc = projectNotes ? projectNotes.split(/[.!?]\s/)[0].slice(0, 200) : null;
 
     // Determine starting guided step based on what content was found
     // If ADLI tasks found → start at assessment; otherwise → start at charter
-    const guidedStep = Object.keys(adliTasks).length > 0 ? "assessment" : "charter";
+    const guidedStep = Object.keys(adliTasks).length > 0 ? 'assessment' : 'charter';
 
     // Build process data
     const processData: Record<string, unknown> = {
       name: projectName,
       category_id: 6, // Default to Operations; user can change later
       description: shortDesc,
-      status: "draft",
-      template_type: "full",
+      status: 'draft',
+      template_type: 'full',
       owner: ownerName,
       charter,
       adli_approach: adliFields.adli_approach,
@@ -136,9 +137,9 @@ export async function POST(request: Request) {
 
     // Insert into database
     const { data: newProcess, error: insertError } = await supabase
-      .from("processes")
+      .from('processes')
       .insert(processData)
-      .select("id")
+      .select('id')
       .single();
 
     if (insertError) {
@@ -146,7 +147,7 @@ export async function POST(request: Request) {
     }
 
     // Log in history
-    await supabase.from("process_history").insert({
+    await supabase.from('process_history').insert({
       process_id: newProcess.id,
       change_description: `Imported from Asana project "${projectName}" by ${user.email}`,
     });
@@ -154,15 +155,12 @@ export async function POST(request: Request) {
     return NextResponse.json({
       id: newProcess.id,
       name: projectName,
-      templateType: "full",
+      templateType: 'full',
       sectionsImported: sectionData.length,
       adliFound: Object.keys(adliTasks).length,
       guidedStep,
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: (err as Error).message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 }

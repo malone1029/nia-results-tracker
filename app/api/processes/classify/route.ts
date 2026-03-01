@@ -1,8 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isAdminRole } from "@/lib/auth-helpers";
-import { checkRateLimit } from "@/lib/rate-limit";
+import Anthropic from '@anthropic-ai/sdk';
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isAdminRole } from '@/lib/auth-helpers';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 120;
 
@@ -25,15 +25,15 @@ export async function POST() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const { data: roleData } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
-  if (!isAdminRole(roleData?.role || "")) {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  if (!isAdminRole(roleData?.role || '')) {
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
   }
 
   // Rate limit
@@ -42,13 +42,15 @@ export async function POST() {
 
   // Fetch all processes
   const { data: processes, error } = await supabase
-    .from("processes")
-    .select("id, name, description, category_id, process_type, charter, adli_approach, adli_deployment, adli_learning, adli_integration, categories!inner(display_name)")
-    .order("name");
+    .from('processes')
+    .select(
+      'id, name, description, category_id, process_type, charter, adli_approach, adli_deployment, adli_learning, adli_integration, categories!inner(display_name)'
+    )
+    .order('name');
 
   if (error || !processes || processes.length === 0) {
     return NextResponse.json(
-      { error: error?.message || "No processes found" },
+      { error: error?.message || 'No processes found' },
       { status: error ? 500 : 400 }
     );
   }
@@ -62,7 +64,7 @@ export async function POST() {
     if (charter?.content) parts.push(`Charter: ${String(charter.content).slice(0, 200)}`);
     const approach = p.adli_approach as Record<string, unknown> | null;
     if (approach?.content) parts.push(`Approach: ${String(approach.content).slice(0, 100)}`);
-    return parts.join("\n  ");
+    return parts.join('\n  ');
   });
 
   // Process in batches of 10
@@ -72,7 +74,7 @@ export async function POST() {
     name: string;
     category: string;
     current_type: string;
-    suggestion: "key" | "support";
+    suggestion: 'key' | 'support';
     rationale: string;
   }[] = [];
 
@@ -96,23 +98,23 @@ Return a JSON object where keys are process IDs and values have "suggestion" and
 
 Return ONLY the JSON object. Every process must be classified.`;
 
-    const userPrompt = `Classify these processes:\n\n${batchSummaries.join("\n\n")}`;
+    const userPrompt = `Classify these processes:\n\n${batchSummaries.join('\n\n')}`;
 
     try {
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-6",
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
+        messages: [{ role: 'user', content: userPrompt }],
       });
 
-      const text = response.content[0].type === "text" ? response.content[0].text : "";
+      const text = response.content[0].type === 'text' ? response.content[0].text : '';
       let parsed: Record<string, { suggestion: string; rationale: string }> = {};
       try {
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
       } catch {
-        console.error("Failed to parse AI classification response");
+        console.error('Failed to parse AI classification response');
       }
 
       for (const proc of batchProcesses) {
@@ -122,15 +124,16 @@ Return ONLY the JSON object. Every process must be classified.`;
           process_id: proc.id,
           name: proc.name,
           category: cat.display_name,
-          current_type: (proc.process_type as string) || "unclassified",
-          suggestion: (result?.suggestion === "key" || result?.suggestion === "support")
-            ? result.suggestion
-            : "support",
-          rationale: result?.rationale || "Unable to determine — defaulting to support",
+          current_type: (proc.process_type as string) || 'unclassified',
+          suggestion:
+            result?.suggestion === 'key' || result?.suggestion === 'support'
+              ? result.suggestion
+              : 'support',
+          rationale: result?.rationale || 'Unable to determine — defaulting to support',
         });
       }
     } catch (err) {
-      console.error("AI classification batch error:", err);
+      console.error('AI classification batch error:', err);
       // On error, default all to support with error message
       for (const proc of batchProcesses) {
         const cat = proc.categories as unknown as { display_name: string };
@@ -138,9 +141,9 @@ Return ONLY the JSON object. Every process must be classified.`;
           process_id: proc.id,
           name: proc.name,
           category: cat.display_name,
-          current_type: (proc.process_type as string) || "unclassified",
-          suggestion: "support",
-          rationale: "AI analysis failed for this batch — please review manually",
+          current_type: (proc.process_type as string) || 'unclassified',
+          suggestion: 'support',
+          rationale: 'AI analysis failed for this batch — please review manually',
         });
       }
     }
@@ -149,7 +152,7 @@ Return ONLY the JSON object. Every process must be classified.`;
   return NextResponse.json({
     suggestions: results,
     total: results.length,
-    keyCount: results.filter((r) => r.suggestion === "key").length,
-    supportCount: results.filter((r) => r.suggestion === "support").length,
+    keyCount: results.filter((r) => r.suggestion === 'key').length,
+    supportCount: results.filter((r) => r.suggestion === 'support').length,
   });
 }

@@ -4,12 +4,8 @@
  */
 
 /** Base skeleton element — a shimmer sweep effect that implies loading activity */
-function Skeleton({ className = "" }: { className?: string }) {
-  return (
-    <div
-      className={`skeleton-shimmer ${className}`}
-    />
-  );
+function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`skeleton-shimmer ${className}`} />;
 }
 
 /** Page title + subtitle placeholder */
@@ -42,10 +38,7 @@ function CardSkeleton({ lines = 3 }: { lines?: number }) {
     <div className="bg-card rounded-lg shadow p-5 border-l-4 border-border-light">
       <Skeleton className="h-5 w-48 mb-4" />
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton
-          key={i}
-          className={`h-3 mb-2 ${i === lines - 1 ? "w-2/3" : "w-full"}`}
-        />
+        <Skeleton key={i} className={`h-3 mb-2 ${i === lines - 1 ? 'w-2/3' : 'w-full'}`} />
       ))}
     </div>
   );
@@ -124,7 +117,13 @@ export function DashboardSkeleton() {
 }
 
 /** List pages: header + optional stat cards + table (processes, schedule, etc.) */
-export function ListPageSkeleton({ showStats = false, statCount = 4 }: { showStats?: boolean; statCount?: number }) {
+export function ListPageSkeleton({
+  showStats = false,
+  statCount = 4,
+}: {
+  showStats?: boolean;
+  statCount?: number;
+}) {
   return (
     <div className="space-y-6">
       <PageHeaderSkeleton />

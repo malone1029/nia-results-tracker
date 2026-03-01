@@ -7,11 +7,11 @@
  */
 
 export interface RecurrenceRule {
-  type: "daily" | "weekly" | "monthly";
-  interval: number;       // every N days/weeks/months
-  dayOfWeek?: number;     // 0-6 for weekly (0 = Sunday)
-  dayOfMonth?: number;    // 1-31 for monthly
-  endDate?: string;       // optional ISO date string to stop recurring
+  type: 'daily' | 'weekly' | 'monthly';
+  interval: number; // every N days/weeks/months
+  dayOfWeek?: number; // 0-6 for weekly (0 = Sunday)
+  dayOfMonth?: number; // 1-31 for monthly
+  endDate?: string; // optional ISO date string to stop recurring
 }
 
 /**
@@ -31,11 +31,11 @@ export function computeNextDueDate(
   let next: Date;
 
   switch (rule.type) {
-    case "daily":
+    case 'daily':
       next = new Date(Date.UTC(year, month, day + rule.interval));
       break;
 
-    case "weekly": {
+    case 'weekly': {
       // Advance by N weeks from the completed date
       next = new Date(Date.UTC(year, month, day + 7 * rule.interval));
       // If a specific day of week is set, adjust to the next occurrence
@@ -49,12 +49,14 @@ export function computeNextDueDate(
       break;
     }
 
-    case "monthly": {
+    case 'monthly': {
       const targetMonth = month + rule.interval;
       const targetDay = rule.dayOfMonth || day;
       // Handle month overflow (e.g. Jan 31 + 1 month = Feb 28)
       next = new Date(Date.UTC(year, targetMonth, 1));
-      const lastDayOfMonth = new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)).getUTCDate();
+      const lastDayOfMonth = new Date(
+        Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)
+      ).getUTCDate();
       next.setUTCDate(Math.min(targetDay, lastDayOfMonth));
       break;
     }
@@ -65,7 +67,7 @@ export function computeNextDueDate(
 
   // Check if past end date
   if (rule.endDate) {
-    const end = new Date(rule.endDate + "T23:59:59Z");
+    const end = new Date(rule.endDate + 'T23:59:59Z');
     if (next > end) return null;
   }
 
@@ -76,40 +78,40 @@ export function computeNextDueDate(
  * Human-readable description of a recurrence rule.
  */
 export function describeRecurrence(rule: RecurrenceRule): string {
-  const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   switch (rule.type) {
-    case "daily":
-      if (rule.interval === 1) return "Every day";
+    case 'daily':
+      if (rule.interval === 1) return 'Every day';
       return `Every ${rule.interval} days`;
 
-    case "weekly":
+    case 'weekly':
       if (rule.dayOfWeek !== undefined) {
         const dayName = DAYS[rule.dayOfWeek];
         if (rule.interval === 1) return `Every ${dayName}`;
         return `Every ${rule.interval} weeks on ${dayName}`;
       }
-      if (rule.interval === 1) return "Every week";
+      if (rule.interval === 1) return 'Every week';
       return `Every ${rule.interval} weeks`;
 
-    case "monthly":
+    case 'monthly':
       if (rule.dayOfMonth) {
         const suffix =
           rule.dayOfMonth === 1 || rule.dayOfMonth === 21 || rule.dayOfMonth === 31
-            ? "st"
+            ? 'st'
             : rule.dayOfMonth === 2 || rule.dayOfMonth === 22
-            ? "nd"
-            : rule.dayOfMonth === 3 || rule.dayOfMonth === 23
-            ? "rd"
-            : "th";
+              ? 'nd'
+              : rule.dayOfMonth === 3 || rule.dayOfMonth === 23
+                ? 'rd'
+                : 'th';
         if (rule.interval === 1) return `Monthly on the ${rule.dayOfMonth}${suffix}`;
         return `Every ${rule.interval} months on the ${rule.dayOfMonth}${suffix}`;
       }
-      if (rule.interval === 1) return "Every month";
+      if (rule.interval === 1) return 'Every month';
       return `Every ${rule.interval} months`;
 
     default:
-      return "Recurring";
+      return 'Recurring';
   }
 }
 
@@ -117,27 +119,27 @@ export function describeRecurrence(rule: RecurrenceRule): string {
  * Validate a RecurrenceRule object. Returns null if valid, error message if not.
  */
 export function validateRecurrenceRule(rule: unknown): string | null {
-  if (!rule || typeof rule !== "object") return "Invalid recurrence rule";
+  if (!rule || typeof rule !== 'object') return 'Invalid recurrence rule';
 
   const r = rule as Record<string, unknown>;
-  if (!["daily", "weekly", "monthly"].includes(r.type as string)) {
-    return "Type must be daily, weekly, or monthly";
+  if (!['daily', 'weekly', 'monthly'].includes(r.type as string)) {
+    return 'Type must be daily, weekly, or monthly';
   }
-  if (typeof r.interval !== "number" || r.interval < 1 || r.interval > 365) {
-    return "Interval must be between 1 and 365";
+  if (typeof r.interval !== 'number' || r.interval < 1 || r.interval > 365) {
+    return 'Interval must be between 1 and 365';
   }
   if (r.dayOfWeek !== undefined) {
-    if (typeof r.dayOfWeek !== "number" || r.dayOfWeek < 0 || r.dayOfWeek > 6) {
-      return "dayOfWeek must be 0-6";
+    if (typeof r.dayOfWeek !== 'number' || r.dayOfWeek < 0 || r.dayOfWeek > 6) {
+      return 'dayOfWeek must be 0-6';
     }
   }
   if (r.dayOfMonth !== undefined) {
-    if (typeof r.dayOfMonth !== "number" || r.dayOfMonth < 1 || r.dayOfMonth > 31) {
-      return "dayOfMonth must be 1-31";
+    if (typeof r.dayOfMonth !== 'number' || r.dayOfMonth < 1 || r.dayOfMonth > 31) {
+      return 'dayOfMonth must be 1-31';
     }
   }
-  if (r.endDate !== undefined && typeof r.endDate !== "string") {
-    return "endDate must be an ISO date string";
+  if (r.endDate !== undefined && typeof r.endDate !== 'string') {
+    return 'endDate must be an ISO date string';
   }
   return null;
 }

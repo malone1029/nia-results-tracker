@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from 'react';
 
 interface HelpTipProps {
   text: string;
-  position?: "top" | "bottom";
+  position?: 'top' | 'bottom';
 }
 
 export default function HelpTip({ text, position }: HelpTipProps) {
   const [show, setShow] = useState(false);
-  const [pos, setPos] = useState<"top" | "bottom">(position || "top");
+  const [pos, setPos] = useState<'top' | 'bottom'>(position || 'top');
   const tipRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -17,7 +17,7 @@ export default function HelpTip({ text, position }: HelpTipProps) {
   useEffect(() => {
     if (show && !position && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setPos(rect.top < 120 ? "bottom" : "top");
+      setPos(rect.top < 120 ? 'bottom' : 'top');
     }
   }, [show, position]);
 
@@ -34,8 +34,8 @@ export default function HelpTip({ text, position }: HelpTipProps) {
         setShow(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [show]);
 
   return (
@@ -53,7 +53,7 @@ export default function HelpTip({ text, position }: HelpTipProps) {
       {show && (
         <div
           ref={tipRef}
-          className={`help-tip-popover ${pos === "top" ? "help-tip-top" : "help-tip-bottom"}`}
+          className={`help-tip-popover ${pos === 'top' ? 'help-tip-top' : 'help-tip-bottom'}`}
         >
           {text}
         </div>

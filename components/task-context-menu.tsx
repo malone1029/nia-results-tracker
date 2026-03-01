@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useCallback } from "react";
-import type { ProcessTask, TaskPriority } from "@/lib/types";
+import { useEffect, useRef, useCallback } from 'react';
+import type { ProcessTask, TaskPriority } from '@/lib/types';
 
 // ── Menu item types ──────────────────────────────────────────
 
@@ -26,8 +26,8 @@ export interface ContextMenuPosition {
 export function getSingleTaskMenuItems(task: ProcessTask): ContextMenuItem[] {
   return [
     {
-      id: task.completed ? "uncomplete" : "complete",
-      label: task.completed ? "Mark Incomplete" : "Mark Complete",
+      id: task.completed ? 'uncomplete' : 'complete',
+      label: task.completed ? 'Mark Incomplete' : 'Mark Complete',
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -35,57 +35,82 @@ export function getSingleTaskMenuItems(task: ProcessTask): ContextMenuItem[] {
       ),
     },
     {
-      id: "set-priority",
-      label: "Set Priority",
+      id: 'set-priority',
+      label: 'Set Priority',
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+          />
         </svg>
       ),
       submenu: [
-        { id: "priority-high", label: "High" },
-        { id: "priority-medium", label: "Medium" },
-        { id: "priority-low", label: "Low" },
+        { id: 'priority-high', label: 'High' },
+        { id: 'priority-medium', label: 'Medium' },
+        { id: 'priority-low', label: 'Low' },
       ],
     },
     {
-      id: "assign",
-      label: "Assign...",
+      id: 'assign',
+      label: 'Assign...',
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+          />
         </svg>
       ),
     },
     {
-      id: "set-due-date",
-      label: "Set Due Date...",
+      id: 'set-due-date',
+      label: 'Set Due Date...',
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
         </svg>
       ),
     },
     ...(task.asana_task_url
       ? [
           {
-            id: "open-in-asana",
-            label: "Open in Asana",
+            id: 'open-in-asana',
+            label: 'Open in Asana',
             icon: (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
               </svg>
             ),
           },
         ]
       : []),
     {
-      id: "delete",
-      label: "Delete",
+      id: 'delete',
+      label: 'Delete',
       danger: true,
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+          />
         </svg>
       ),
     },
@@ -96,7 +121,7 @@ export function getSingleTaskMenuItems(task: ProcessTask): ContextMenuItem[] {
 export function getBulkTaskMenuItems(count: number): ContextMenuItem[] {
   return [
     {
-      id: "bulk-complete",
+      id: 'bulk-complete',
       label: `Complete ${count} tasks`,
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,44 +130,64 @@ export function getBulkTaskMenuItems(count: number): ContextMenuItem[] {
       ),
     },
     {
-      id: "bulk-set-priority",
+      id: 'bulk-set-priority',
       label: `Set priority for ${count} tasks`,
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+          />
         </svg>
       ),
       submenu: [
-        { id: "bulk-priority-high", label: "High" },
-        { id: "bulk-priority-medium", label: "Medium" },
-        { id: "bulk-priority-low", label: "Low" },
+        { id: 'bulk-priority-high', label: 'High' },
+        { id: 'bulk-priority-medium', label: 'Medium' },
+        { id: 'bulk-priority-low', label: 'Low' },
       ],
     },
     {
-      id: "bulk-assign",
+      id: 'bulk-assign',
       label: `Assign ${count} tasks`,
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+          />
         </svg>
       ),
     },
     {
-      id: "bulk-set-due-date",
+      id: 'bulk-set-due-date',
       label: `Set due date for ${count} tasks`,
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
         </svg>
       ),
     },
     {
-      id: "bulk-delete",
+      id: 'bulk-delete',
       label: `Delete ${count} tasks`,
       danger: true,
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+          />
         </svg>
       ),
     },
@@ -197,22 +242,23 @@ export default function TaskContextMenu({
       }
     }
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.stopPropagation();
         onClose();
         return;
       }
 
       const focusableItems = items.filter((i) => !i.disabled);
-      if (e.key === "ArrowDown") {
+      if (e.key === 'ArrowDown') {
         e.preventDefault();
         focusIndex.current = (focusIndex.current + 1) % focusableItems.length;
         focusCurrentItem();
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        focusIndex.current = (focusIndex.current - 1 + focusableItems.length) % focusableItems.length;
+        focusIndex.current =
+          (focusIndex.current - 1 + focusableItems.length) % focusableItems.length;
         focusCurrentItem();
-      } else if (e.key === "Enter") {
+      } else if (e.key === 'Enter') {
         e.preventDefault();
         const item = focusableItems[focusIndex.current];
         if (item && !item.submenu) {
@@ -224,16 +270,16 @@ export default function TaskContextMenu({
       onClose();
     }
 
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
-    window.addEventListener("scroll", handleScroll, true);
-    window.addEventListener("resize", onClose);
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', onClose);
 
     return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-      window.removeEventListener("scroll", handleScroll, true);
-      window.removeEventListener("resize", onClose);
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', onClose);
     };
   }, [onClose, onAction, items]);
 
@@ -277,19 +323,29 @@ export default function TaskContextMenu({
             }}
             className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors ${
               item.danger
-                ? "text-nia-red hover:bg-nia-red/10"
-                : "text-foreground hover:bg-surface-hover"
-            } ${item.disabled ? "opacity-40 cursor-default" : "cursor-pointer"}`}
+                ? 'text-nia-red hover:bg-nia-red/10'
+                : 'text-foreground hover:bg-surface-hover'
+            } ${item.disabled ? 'opacity-40 cursor-default' : 'cursor-pointer'}`}
           >
             {item.icon && (
-              <span className={`flex-shrink-0 ${item.danger ? "text-nia-red" : "text-text-muted"}`}>
+              <span className={`flex-shrink-0 ${item.danger ? 'text-nia-red' : 'text-text-muted'}`}>
                 {item.icon}
               </span>
             )}
             <span className="flex-1">{item.label}</span>
             {item.submenu && (
-              <svg className="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg
+                className="w-3 h-3 text-text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             )}
           </button>
@@ -306,13 +362,13 @@ export default function TaskContextMenu({
                     onClick={() => onAction(sub.id)}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-surface-hover text-left cursor-pointer"
                   >
-                    {sub.id.includes("high") && (
+                    {sub.id.includes('high') && (
                       <span className="w-2 h-2 rounded-full bg-red-500" />
                     )}
-                    {sub.id.includes("medium") && (
+                    {sub.id.includes('medium') && (
                       <span className="w-2 h-2 rounded-full bg-nia-orange" />
                     )}
-                    {sub.id.includes("low") && (
+                    {sub.id.includes('low') && (
                       <span className="w-2 h-2 rounded-full bg-surface-muted" />
                     )}
                     {sub.label}

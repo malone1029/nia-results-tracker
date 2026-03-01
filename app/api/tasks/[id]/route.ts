@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { getAsanaToken, asanaFetch } from "@/lib/asana";
-import { PDCA_SECTION_VALUES, PDCA_SECTIONS } from "@/lib/pdca";
-import { sendTaskNotification } from "@/lib/send-task-notification";
-import { computeNextDueDate, validateRecurrenceRule } from "@/lib/recurrence";
-import type { PdcaSection, RecurrenceRule } from "@/lib/types";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { getAsanaToken, asanaFetch } from '@/lib/asana';
+import { PDCA_SECTION_VALUES, PDCA_SECTIONS } from '@/lib/pdca';
+import { sendTaskNotification } from '@/lib/send-task-notification';
+import { computeNextDueDate, validateRecurrenceRule } from '@/lib/recurrence';
+import type { PdcaSection, RecurrenceRule } from '@/lib/types';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://nia-results-tracker.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nia-results-tracker.vercel.app';
 
 // ── Simple per-user rate limiter (protects Asana's 150 req/min limit) ──
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -34,14 +34,11 @@ function checkRateLimit(userId: string): boolean {
  *
  * For Hub tasks: updates Supabase directly.
  */
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!id || isNaN(id)) {
-    return NextResponse.json({ error: "Invalid task ID" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid task ID' }, { status: 400 });
   }
 
   const body = await request.json();
@@ -52,34 +49,36 @@ export async function PATCH(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   // Rate limit: 30 updates/min per user
   if (!checkRateLimit(user.id)) {
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment." },
+      { error: 'Too many requests. Please wait a moment.' },
       { status: 429 }
     );
   }
 
   // Fetch the task (includes fields needed for activity log diffs)
   const { data: task, error: fetchError } = await supabase
-    .from("process_tasks")
-    .select("id, title, origin, asana_task_gid, process_id, priority, assignee_name, assignee_email, completed, recurrence_rule, pdca_section, description, assignee_asana_gid, start_date, due_date")
-    .eq("id", id)
+    .from('process_tasks')
+    .select(
+      'id, title, origin, asana_task_gid, process_id, priority, assignee_name, assignee_email, completed, recurrence_rule, pdca_section, description, assignee_asana_gid, start_date, due_date'
+    )
+    .eq('id', id)
     .single();
 
   if (fetchError || !task) {
-    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 });
   }
 
   // Build Supabase update object from allowed fields
   const updates: Record<string, unknown> = {};
 
   if (body.title !== undefined) {
-    if (typeof body.title !== "string" || body.title.trim().length === 0) {
-      return NextResponse.json({ error: "Title cannot be empty" }, { status: 400 });
+    if (typeof body.title !== 'string' || body.title.trim().length === 0) {
+      return NextResponse.json({ error: 'Title cannot be empty' }, { status: 400 });
     }
     updates.title = body.title.trim();
   }
@@ -88,13 +87,15 @@ export async function PATCH(
   if (body.due_date !== undefined) updates.due_date = body.due_date;
   if (body.assignee_name !== undefined) updates.assignee_name = body.assignee_name;
   if (body.assignee_email !== undefined) updates.assignee_email = body.assignee_email;
-  if (body.assignee_asana_gid !== undefined)
-    updates.assignee_asana_gid = body.assignee_asana_gid;
+  if (body.assignee_asana_gid !== undefined) updates.assignee_asana_gid = body.assignee_asana_gid;
 
   // Sort order (used by drag-and-drop reorder)
   if (body.sort_order !== undefined) {
-    if (typeof body.sort_order !== "number" || body.sort_order < 0) {
-      return NextResponse.json({ error: "sort_order must be a non-negative number" }, { status: 400 });
+    if (typeof body.sort_order !== 'number' || body.sort_order < 0) {
+      return NextResponse.json(
+        { error: 'sort_order must be a non-negative number' },
+        { status: 400 }
+      );
     }
     updates.sort_order = body.sort_order;
   }
@@ -103,7 +104,7 @@ export async function PATCH(
   if (body.pdca_section !== undefined) {
     if (!PDCA_SECTION_VALUES.includes(body.pdca_section)) {
       return NextResponse.json(
-        { error: `Invalid pdca_section. Must be one of: ${PDCA_SECTION_VALUES.join(", ")}` },
+        { error: `Invalid pdca_section. Must be one of: ${PDCA_SECTION_VALUES.join(', ')}` },
         { status: 400 }
       );
     }
@@ -114,9 +115,9 @@ export async function PATCH(
 
   // Priority (Hub-only — not synced to Asana)
   if (body.priority !== undefined) {
-    if (!["high", "medium", "low"].includes(body.priority)) {
+    if (!['high', 'medium', 'low'].includes(body.priority)) {
       return NextResponse.json(
-        { error: "Invalid priority. Must be one of: high, medium, low" },
+        { error: 'Invalid priority. Must be one of: high, medium, low' },
         { status: 400 }
       );
     }
@@ -141,25 +142,25 @@ export async function PATCH(
     updates.completed = body.completed;
     if (body.completed) {
       updates.completed_at = new Date().toISOString();
-      updates.status = "completed";
+      updates.status = 'completed';
     } else {
       updates.completed_at = null;
-      updates.status = "active";
+      updates.status = 'active';
     }
   }
 
   if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
   }
 
   // For Asana-origin tasks: push to Asana first
-  if (task.origin === "asana" && task.asana_task_gid) {
+  if (task.origin === 'asana' && task.asana_task_gid) {
     const token = await getAsanaToken(user.id);
     if (!token) {
       return NextResponse.json(
         {
-          error: "asana_not_connected",
-          message: "Asana not connected. Reconnect in Settings.",
+          error: 'asana_not_connected',
+          message: 'Asana not connected. Reconnect in Settings.',
         },
         { status: 401 }
       );
@@ -172,22 +173,19 @@ export async function PATCH(
     if (body.start_date !== undefined) asanaData.start_on = body.start_date;
     if (body.due_date !== undefined) asanaData.due_on = body.due_date;
     if (body.completed !== undefined) asanaData.completed = body.completed;
-    if (body.assignee_asana_gid !== undefined)
-      asanaData.assignee = body.assignee_asana_gid;
+    if (body.assignee_asana_gid !== undefined) asanaData.assignee = body.assignee_asana_gid;
 
     if (Object.keys(asanaData).length > 0) {
       try {
         await asanaFetch(token, `/tasks/${task.asana_task_gid}`, {
-          method: "PUT",
+          method: 'PUT',
           body: JSON.stringify({ data: asanaData }),
         });
       } catch (err) {
         return NextResponse.json(
           {
-            error: "asana_sync_failed",
-            message:
-              (err as Error).message ||
-              "Couldn't update in Asana. Please try again.",
+            error: 'asana_sync_failed',
+            message: (err as Error).message || "Couldn't update in Asana. Please try again.",
           },
           { status: 502 }
         );
@@ -199,9 +197,9 @@ export async function PATCH(
       try {
         // Look up the process's Asana project
         const { data: proc } = await supabase
-          .from("processes")
-          .select("asana_project_gid")
-          .eq("id", task.process_id)
+          .from('processes')
+          .select('asana_project_gid')
+          .eq('id', task.process_id)
           .single();
 
         if (proc?.asana_project_gid) {
@@ -217,7 +215,7 @@ export async function PATCH(
 
           if (targetSection) {
             await asanaFetch(token, `/sections/${targetSection.gid}/addTask`, {
-              method: "POST",
+              method: 'POST',
               body: JSON.stringify({ data: { task: task.asana_task_gid } }),
             });
             updates.asana_section_gid = targetSection.gid;
@@ -234,10 +232,7 @@ export async function PATCH(
   }
 
   // Update Supabase
-  const { error: updateError } = await supabase
-    .from("process_tasks")
-    .update(updates)
-    .eq("id", id);
+  const { error: updateError } = await supabase.from('process_tasks').update(updates).eq('id', id);
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
@@ -249,21 +244,21 @@ export async function PATCH(
     try {
       // Get all tasks this task depends on
       const { data: deps } = await supabase
-        .from("task_dependencies")
-        .select("depends_on_task_id")
-        .eq("task_id", id);
+        .from('task_dependencies')
+        .select('depends_on_task_id')
+        .eq('task_id', id);
 
       if (deps && deps.length > 0) {
         const depIds = deps.map((d) => d.depends_on_task_id);
         const { data: depTasks } = await supabase
-          .from("process_tasks")
-          .select("id, completed")
-          .in("id", depIds);
+          .from('process_tasks')
+          .select('id, completed')
+          .in('id', depIds);
 
         const incompleteCount = (depTasks || []).filter((t) => !t.completed).length;
         if (incompleteCount > 0) {
           blockerWarning = {
-            warning: "completed_with_blockers",
+            warning: 'completed_with_blockers',
             blockerCount: incompleteCount,
           };
         }
@@ -282,27 +277,28 @@ export async function PATCH(
 
       if (nextDueDate) {
         // Check if a next occurrence already exists (prevent double-spawn)
-        const parentId = (task as Record<string, unknown>).recurring_parent_id as number | null || task.id;
+        const parentId =
+          ((task as Record<string, unknown>).recurring_parent_id as number | null) || task.id;
         const { data: existing } = await supabase
-          .from("process_tasks")
-          .select("id")
-          .eq("recurring_parent_id", parentId)
-          .eq("completed", false)
+          .from('process_tasks')
+          .select('id')
+          .eq('recurring_parent_id', parentId)
+          .eq('completed', false)
           .limit(1);
 
         if (!existing || existing.length === 0) {
           // Spawn new recurring task
           const { data: maxRow } = await supabase
-            .from("process_tasks")
-            .select("sort_order")
-            .eq("process_id", task.process_id)
-            .eq("pdca_section", task.pdca_section)
-            .order("sort_order", { ascending: false })
+            .from('process_tasks')
+            .select('sort_order')
+            .eq('process_id', task.process_id)
+            .eq('pdca_section', task.pdca_section)
+            .order('sort_order', { ascending: false })
             .limit(1)
             .single();
 
           const { data: newTask } = await supabase
-            .from("process_tasks")
+            .from('process_tasks')
             .insert({
               process_id: task.process_id,
               title: task.title,
@@ -313,15 +309,15 @@ export async function PATCH(
               assignee_asana_gid: task.assignee_asana_gid,
               due_date: nextDueDate,
               start_date: null,
-              priority: (task as Record<string, unknown>).priority as string || "medium",
+              priority: ((task as Record<string, unknown>).priority as string) || 'medium',
               recurrence_rule: task.recurrence_rule,
               recurring_parent_id: parentId,
-              origin: task.origin === "asana" ? "hub_manual" : task.origin,
-              source: "user_created",
-              status: "active",
+              origin: task.origin === 'asana' ? 'hub_manual' : task.origin,
+              source: 'user_created',
+              status: 'active',
               sort_order: (maxRow?.sort_order ?? 0) + 1000,
             })
-            .select("id")
+            .select('id')
             .single();
 
           if (newTask) {
@@ -330,18 +326,18 @@ export async function PATCH(
         }
       }
     } catch (err) {
-      console.warn("[PATCH /api/tasks] Recurrence spawn error:", (err as Error).message);
+      console.warn('[PATCH /api/tasks] Recurrence spawn error:', (err as Error).message);
     }
   }
 
   // ── Activity logging (best-effort, non-blocking) ──
   try {
     const { data: roleRow } = await supabase
-      .from("user_roles")
-      .select("full_name")
-      .eq("user_id", user.id)
+      .from('user_roles')
+      .select('full_name')
+      .eq('user_id', user.id)
       .single();
-    const userName = roleRow?.full_name || user.email || "Unknown";
+    const userName = roleRow?.full_name || user.email || 'Unknown';
 
     const activities: {
       task_id: number;
@@ -352,9 +348,14 @@ export async function PATCH(
     }[] = [];
 
     if (body.completed === true && !task.completed) {
-      activities.push({ task_id: id, user_id: user.id, user_name: userName, action: "completed" });
+      activities.push({ task_id: id, user_id: user.id, user_name: userName, action: 'completed' });
     } else if (body.completed === false && task.completed) {
-      activities.push({ task_id: id, user_id: user.id, user_name: userName, action: "uncompleted" });
+      activities.push({
+        task_id: id,
+        user_id: user.id,
+        user_name: userName,
+        action: 'uncompleted',
+      });
     }
 
     if (body.priority !== undefined && body.priority !== task.priority) {
@@ -362,7 +363,7 @@ export async function PATCH(
         task_id: id,
         user_id: user.id,
         user_name: userName,
-        action: "priority_changed",
+        action: 'priority_changed',
         detail: { from: task.priority, to: body.priority },
       });
     }
@@ -372,8 +373,11 @@ export async function PATCH(
         task_id: id,
         user_id: user.id,
         user_name: userName,
-        action: "reassigned",
-        detail: { from: task.assignee_name || "Unassigned", to: body.assignee_name || "Unassigned" },
+        action: 'reassigned',
+        detail: {
+          from: task.assignee_name || 'Unassigned',
+          to: body.assignee_name || 'Unassigned',
+        },
       });
     }
 
@@ -382,13 +386,13 @@ export async function PATCH(
         task_id: id,
         user_id: user.id,
         user_name: userName,
-        action: "recurrence_set",
+        action: 'recurrence_set',
         detail: body.recurrence_rule ? { rule: body.recurrence_rule } : { removed: true },
       });
     }
 
     if (activities.length > 0) {
-      await supabase.from("task_activity_log").insert(activities);
+      await supabase.from('task_activity_log').insert(activities);
     }
   } catch {
     // Activity logging is non-critical — don't fail the request
@@ -398,26 +402,26 @@ export async function PATCH(
   try {
     // Get task info for emails (need title + process name)
     const { data: taskInfo } = await supabase
-      .from("process_tasks")
-      .select("title, process_id, assignee_email, assignee_name")
-      .eq("id", id)
+      .from('process_tasks')
+      .select('title, process_id, assignee_email, assignee_name')
+      .eq('id', id)
       .single();
 
     if (taskInfo) {
       const { data: updaterRole } = await supabase
-        .from("user_roles")
-        .select("full_name, email")
-        .eq("user_id", user.id)
+        .from('user_roles')
+        .select('full_name, email')
+        .eq('user_id', user.id)
         .single();
-      const updaterDisplayName = updaterRole?.full_name || user.email || "Someone";
+      const updaterDisplayName = updaterRole?.full_name || user.email || 'Someone';
       const updaterEmail = updaterRole?.email || user.email;
 
       const { data: proc } = await supabase
-        .from("processes")
-        .select("name")
-        .eq("id", taskInfo.process_id)
+        .from('processes')
+        .select('name')
+        .eq('id', taskInfo.process_id)
         .single();
-      const processName = proc?.name || "Unknown process";
+      const processName = proc?.name || 'Unknown process';
 
       // Assignment email: when assignee_email changes to someone other than the updater
       if (
@@ -428,17 +432,17 @@ export async function PATCH(
       ) {
         // Check recipient's preference
         const { data: assigneeUser } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("email", body.assignee_email)
+          .from('user_roles')
+          .select('user_id')
+          .eq('email', body.assignee_email)
           .single();
 
         let shouldSend = true;
         if (assigneeUser) {
           const { data: pref } = await supabase
-            .from("notification_preferences")
-            .select("notify_on_assignment")
-            .eq("user_id", assigneeUser.user_id)
+            .from('notification_preferences')
+            .select('notify_on_assignment')
+            .eq('user_id', assigneeUser.user_id)
             .single();
           if (pref && pref.notify_on_assignment === false) shouldSend = false;
         }
@@ -447,11 +451,11 @@ export async function PATCH(
           await sendTaskNotification({
             to: body.assignee_email,
             subject: `You've been assigned: "${taskInfo.title}"`,
-            recipientName: body.assignee_name || "there",
+            recipientName: body.assignee_name || 'there',
             taskTitle: taskInfo.title,
             processName,
             bodyText: `<strong>${updaterDisplayName}</strong> assigned you to this task.`,
-            ctaLabel: "View Task",
+            ctaLabel: 'View Task',
             ctaUrl: `${APP_URL}/processes/${taskInfo.process_id}`,
           });
         }
@@ -466,17 +470,17 @@ export async function PATCH(
       ) {
         // Check recipient's preference
         const { data: assigneeUser } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("email", taskInfo.assignee_email)
+          .from('user_roles')
+          .select('user_id')
+          .eq('email', taskInfo.assignee_email)
           .single();
 
         let shouldSend = true;
         if (assigneeUser) {
           const { data: pref } = await supabase
-            .from("notification_preferences")
-            .select("notify_on_completion")
-            .eq("user_id", assigneeUser.user_id)
+            .from('notification_preferences')
+            .select('notify_on_completion')
+            .eq('user_id', assigneeUser.user_id)
             .single();
           if (pref && pref.notify_on_completion === false) shouldSend = false;
         }
@@ -485,11 +489,11 @@ export async function PATCH(
           await sendTaskNotification({
             to: taskInfo.assignee_email,
             subject: `Task completed: "${taskInfo.title}"`,
-            recipientName: taskInfo.assignee_name || "there",
+            recipientName: taskInfo.assignee_name || 'there',
             taskTitle: taskInfo.title,
             processName,
             bodyText: `<strong>${updaterDisplayName}</strong> marked this task as complete.`,
-            ctaLabel: "View Task",
+            ctaLabel: 'View Task',
             ctaUrl: `${APP_URL}/processes/${taskInfo.process_id}`,
           });
         }
@@ -497,7 +501,7 @@ export async function PATCH(
     }
   } catch (err) {
     // Email notifications are non-critical — never fail the request
-    console.warn("[PATCH /api/tasks] Notification error:", (err as Error).message);
+    console.warn('[PATCH /api/tasks] Notification error:', (err as Error).message);
   }
 
   return NextResponse.json({
@@ -513,14 +517,11 @@ export async function PATCH(
  * If the task has an asana_task_gid (any origin), deletes from Asana first.
  * On Asana failure, returns 502 and does NOT delete from Supabase (strict sync).
  */
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!id || isNaN(id)) {
-    return NextResponse.json({ error: "Invalid task ID" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid task ID' }, { status: 400 });
   }
 
   const supabase = await createSupabaseServer();
@@ -530,26 +531,26 @@ export async function DELETE(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   // Rate limit
   if (!checkRateLimit(user.id)) {
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment." },
+      { error: 'Too many requests. Please wait a moment.' },
       { status: 429 }
     );
   }
 
   // Fetch task to check for asana_task_gid
   const { data: task, error: fetchError } = await supabase
-    .from("process_tasks")
-    .select("id, asana_task_gid")
-    .eq("id", id)
+    .from('process_tasks')
+    .select('id, asana_task_gid')
+    .eq('id', id)
     .single();
 
   if (fetchError || !task) {
-    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 });
   }
 
   // If task has an Asana GID, delete from Asana first (strict sync)
@@ -558,8 +559,8 @@ export async function DELETE(
     if (!token) {
       return NextResponse.json(
         {
-          error: "asana_not_connected",
-          message: "Asana not connected. Reconnect in Settings to delete this task.",
+          error: 'asana_not_connected',
+          message: 'Asana not connected. Reconnect in Settings to delete this task.',
         },
         { status: 502 }
       );
@@ -567,12 +568,12 @@ export async function DELETE(
 
     try {
       await asanaFetch(token, `/tasks/${task.asana_task_gid}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
     } catch (err) {
       return NextResponse.json(
         {
-          error: "asana_delete_failed",
+          error: 'asana_delete_failed',
           message:
             (err as Error).message ||
             "Couldn't delete from Asana. Try again or disconnect Asana first.",
@@ -583,10 +584,7 @@ export async function DELETE(
   }
 
   // Delete from Supabase
-  const { error: deleteError } = await supabase
-    .from("process_tasks")
-    .delete()
-    .eq("id", id);
+  const { error: deleteError } = await supabase.from('process_tasks').delete().eq('id', id);
 
   if (deleteError) {
     return NextResponse.json({ error: deleteError.message }, { status: 500 });

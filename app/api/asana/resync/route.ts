@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { getAsanaToken, asanaFetch } from "@/lib/asana";
-import { fetchProjectSections, findAdliTasks } from "@/lib/asana-helpers";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { getAsanaToken, asanaFetch } from '@/lib/asana';
+import { fetchProjectSections, findAdliTasks } from '@/lib/asana-helpers';
 
 /**
  * POST /api/asana/resync
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const { processId } = await request.json();
 
   if (!processId) {
-    return NextResponse.json({ error: "processId is required" }, { status: 400 });
+    return NextResponse.json({ error: 'processId is required' }, { status: 400 });
   }
 
   const supabase = await createSupabaseServer();
@@ -28,31 +28,31 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   const token = await getAsanaToken(user.id);
   if (!token) {
     return NextResponse.json(
-      { error: "not_connected", message: "Asana not connected. Go to Settings to connect." },
+      { error: 'not_connected', message: 'Asana not connected. Go to Settings to connect.' },
       { status: 401 }
     );
   }
 
   // Fetch the full process (need current raw data for snapshot + charter for comparison)
   const { data: proc, error: procError } = await supabase
-    .from("processes")
-    .select("*")
-    .eq("id", processId)
+    .from('processes')
+    .select('*')
+    .eq('id', processId)
     .single();
 
   if (procError || !proc) {
-    return NextResponse.json({ error: "Process not found" }, { status: 404 });
+    return NextResponse.json({ error: 'Process not found' }, { status: 404 });
   }
 
   if (!proc.asana_project_gid) {
     return NextResponse.json(
-      { error: "not_linked", message: "This process is not linked to an Asana project." },
+      { error: 'not_linked', message: 'This process is not linked to an Asana project.' },
       { status: 400 }
     );
   }
@@ -96,12 +96,12 @@ export async function POST(request: Request) {
       // Fresh data
       asana_raw_data: asanaRawData,
       // Restart guided flow at charter review (not assessment — charter needs review first)
-      guided_step: "charter",
+      guided_step: 'charter',
       updated_at: new Date().toISOString(),
     };
 
     // Update charter from Asana project notes
-    const projectNotes = project.data.notes || "";
+    const projectNotes = project.data.notes || '';
     if (projectNotes) {
       const existingCharter = (proc.charter as Record<string, unknown>) || {};
       updatePayload.charter = {
@@ -128,9 +128,9 @@ export async function POST(request: Request) {
 
     // Perform the update
     const { error: updateError } = await supabase
-      .from("processes")
+      .from('processes')
       .update(updatePayload)
-      .eq("id", processId);
+      .eq('id', processId);
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
 
     // Log in history
     const adliCount = Object.keys(adliTasks).length;
-    await supabase.from("process_history").insert({
+    await supabase.from('process_history').insert({
       process_id: processId,
       change_description: `Synced from Asana (${totalTasks} tasks, ${totalSubtasks} subtasks, ${adliCount} ADLI docs) by ${user.email}`,
     });
@@ -151,10 +151,14 @@ export async function POST(request: Request) {
       adliFound: adliCount,
     });
   } catch (err) {
-    const errMsg = (err as Error).message || "";
-    if (errMsg.includes("Unknown object") || errMsg.includes("Not Found") || errMsg.includes("404")) {
+    const errMsg = (err as Error).message || '';
+    if (
+      errMsg.includes('Unknown object') ||
+      errMsg.includes('Not Found') ||
+      errMsg.includes('404')
+    ) {
       return NextResponse.json(
-        { error: "not_linked", message: "The linked Asana project no longer exists." },
+        { error: 'not_linked', message: 'The linked Asana project no longer exists.' },
         { status: 400 }
       );
     }

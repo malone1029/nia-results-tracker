@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
-import { CategoryGridSkeleton } from "@/components/skeleton";
-import Link from "next/link";
-import EmptyState from "@/components/empty-state";
-import { Button, Badge, Card, Select } from "@/components/ui";
-import HealthRing from "@/components/health-ring";
-import { type HealthResult } from "@/lib/process-health";
-import { fetchHealthData, type ProcessWithCategory } from "@/lib/fetch-health-data";
-import { formatRelativeTime, getFreshnessColor, getFreshnessDays } from "@/lib/formatting";
-import { useRole } from "@/lib/use-role";
+import { useEffect, useState, useMemo } from 'react';
+import { supabase } from '@/lib/supabase';
+import { CategoryGridSkeleton } from '@/components/skeleton';
+import Link from 'next/link';
+import EmptyState from '@/components/empty-state';
+import { Button, Badge, Card, Select } from '@/components/ui';
+import HealthRing from '@/components/health-ring';
+import { type HealthResult } from '@/lib/process-health';
+import { fetchHealthData, type ProcessWithCategory } from '@/lib/fetch-health-data';
+import { formatRelativeTime, getFreshnessColor, getFreshnessDays } from '@/lib/formatting';
+import { useRole } from '@/lib/use-role';
 
 interface ClassificationSuggestion {
   process_id: number;
   name: string;
   category: string;
   current_type: string;
-  suggestion: "key" | "support";
+  suggestion: 'key' | 'support';
   rationale: string;
-  override?: "key" | "support"; // user override
+  override?: 'key' | 'support'; // user override
 }
 
 interface CategorySummary {
@@ -36,27 +36,29 @@ export default function ProcessesPage() {
   const [lastActivityMap, setLastActivityMap] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<number | null>(null);
-  const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support" | "unclassified">("all");
-  const [sortBy, setSortBy] = useState<"name" | "health">("name");
+  const [typeFilter, setTypeFilter] = useState<'all' | 'key' | 'support' | 'unclassified'>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'health'>('name');
 
   // Admin role
   const { isAdmin } = useRole();
 
   // Classification review state
   const [classifyLoading, setClassifyLoading] = useState(false);
-  const [classifySuggestions, setClassifySuggestions] = useState<ClassificationSuggestion[] | null>(null);
+  const [classifySuggestions, setClassifySuggestions] = useState<ClassificationSuggestion[] | null>(
+    null
+  );
   const [classifySaving, setClassifySaving] = useState(false);
   const [classifyMsg, setClassifyMsg] = useState<string | null>(null);
 
   // Bulk edit state
   const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [newOwner, setNewOwner] = useState("");
+  const [newOwner, setNewOwner] = useState('');
   const [updating, setUpdating] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Processes | NIA Excellence Hub";
+    document.title = 'Processes | NIA Excellence Hub';
 
     async function fetchData() {
       const healthData = await fetchHealthData();
@@ -84,9 +86,11 @@ export default function ProcessesPage() {
   }, []);
 
   async function setProcessType(id: number, newType: string) {
-    await supabase.from("processes").update({ process_type: newType }).eq("id", id);
+    await supabase.from('processes').update({ process_type: newType }).eq('id', id);
     setProcesses((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, process_type: newType as "key" | "support" | "unclassified" } : p))
+      prev.map((p) =>
+        p.id === id ? { ...p, process_type: newType as 'key' | 'support' | 'unclassified' } : p
+      )
     );
   }
 
@@ -123,7 +127,7 @@ export default function ProcessesPage() {
   function exitEditMode() {
     setEditMode(false);
     setSelected(new Set());
-    setNewOwner("");
+    setNewOwner('');
   }
 
   async function bulkUpdateOwner() {
@@ -131,11 +135,9 @@ export default function ProcessesPage() {
     setUpdating(true);
     const ids = [...selected];
     const trimmed = newOwner.trim();
-    await supabase.from("processes").update({ owner: trimmed }).in("id", ids);
-    setProcesses((prev) =>
-      prev.map((p) => (ids.includes(p.id) ? { ...p, owner: trimmed } : p))
-    );
-    setSuccessMsg(`Updated ${ids.length} process${ids.length > 1 ? "es" : ""} to "${trimmed}"`);
+    await supabase.from('processes').update({ owner: trimmed }).in('id', ids);
+    setProcesses((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, owner: trimmed } : p)));
+    setSuccessMsg(`Updated ${ids.length} process${ids.length > 1 ? 'es' : ''} to "${trimmed}"`);
     exitEditMode();
     setTimeout(() => setSuccessMsg(null), 4000);
     setUpdating(false);
@@ -146,35 +148,34 @@ export default function ProcessesPage() {
     setClassifyLoading(true);
     setClassifyMsg(null);
     try {
-      const res = await fetch("/api/processes/classify", { method: "POST" });
+      const res = await fetch('/api/processes/classify', { method: 'POST' });
       if (!res.ok) {
         const data = await res.json();
-        setClassifyMsg(data.error || "Classification failed");
+        setClassifyMsg(data.error || 'Classification failed');
         setClassifyLoading(false);
         return;
       }
       const data = await res.json();
       setClassifySuggestions(data.suggestions);
     } catch {
-      setClassifyMsg("Network error — please try again");
+      setClassifyMsg('Network error — please try again');
     }
     setClassifyLoading(false);
   }
 
-  function setClassifyOverride(processId: number, value: "key" | "support") {
-    setClassifySuggestions((prev) =>
-      prev?.map((s) =>
-        s.process_id === processId
-          ? { ...s, override: s.override === value ? undefined : value }
-          : s
-      ) || null
+  function setClassifyOverride(processId: number, value: 'key' | 'support') {
+    setClassifySuggestions(
+      (prev) =>
+        prev?.map((s) =>
+          s.process_id === processId
+            ? { ...s, override: s.override === value ? undefined : value }
+            : s
+        ) || null
     );
   }
 
   function acceptAllClassifications() {
-    setClassifySuggestions((prev) =>
-      prev?.map((s) => ({ ...s, override: undefined })) || null
-    );
+    setClassifySuggestions((prev) => prev?.map((s) => ({ ...s, override: undefined })) || null);
   }
 
   async function saveClassifications() {
@@ -187,20 +188,29 @@ export default function ProcessesPage() {
     }));
     // Update each process with type and rationale
     for (const u of updates) {
-      await supabase.from("processes").update({
-        process_type: u.type,
-        classification_rationale: u.rationale,
-      }).eq("id", u.id);
+      await supabase
+        .from('processes')
+        .update({
+          process_type: u.type,
+          classification_rationale: u.rationale,
+        })
+        .eq('id', u.id);
     }
     // Update local state
     setProcesses((prev) =>
       prev.map((p) => {
         const match = updates.find((u) => u.id === p.id);
-        return match ? { ...p, process_type: match.type as "key" | "support" | "unclassified", classification_rationale: match.rationale } : p;
+        return match
+          ? {
+              ...p,
+              process_type: match.type as 'key' | 'support' | 'unclassified',
+              classification_rationale: match.rationale,
+            }
+          : p;
       })
     );
-    const keyCount = updates.filter((u) => u.type === "key").length;
-    const supportCount = updates.filter((u) => u.type === "support").length;
+    const keyCount = updates.filter((u) => u.type === 'key').length;
+    const supportCount = updates.filter((u) => u.type === 'support').length;
     setClassifyMsg(`Saved: ${keyCount} Key, ${supportCount} Support`);
     setClassifySuggestions(null);
     setClassifySaving(false);
@@ -211,10 +221,10 @@ export default function ProcessesPage() {
   const filtered = useMemo(() => {
     const result = processes.filter((p) => {
       if (filterCategory !== null && p.category_id !== filterCategory) return false;
-      if (typeFilter !== "all" && p.process_type !== typeFilter) return false;
+      if (typeFilter !== 'all' && p.process_type !== typeFilter) return false;
       return true;
     });
-    if (sortBy === "health") {
+    if (sortBy === 'health') {
       result.sort((a, b) => {
         const aScore = healthScores.get(a.id)?.total ?? 0;
         const bScore = healthScores.get(b.id)?.total ?? 0;
@@ -232,7 +242,7 @@ export default function ProcessesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-nia-dark">
-            Processes{" "}
+            Processes{' '}
             {processes.length > 0 && (
               <span className="text-text-muted font-normal text-lg">({processes.length})</span>
             )}
@@ -249,15 +259,11 @@ export default function ProcessesPage() {
               onClick={runClassification}
               disabled={classifyLoading}
             >
-              {classifyLoading ? "Analyzing..." : "Review Classifications"}
+              {classifyLoading ? 'Analyzing...' : 'Review Classifications'}
             </Button>
           )}
           {!editMode && !classifySuggestions && (
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={() => setEditMode(true)}
-            >
+            <Button variant="secondary" size="md" onClick={() => setEditMode(true)}>
               Edit Owners
             </Button>
           )}
@@ -278,9 +284,10 @@ export default function ProcessesPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {categories.map((cat) => {
             // Recompute counts when key filter is active
-            const catProcesses = typeFilter !== "all"
-              ? processes.filter((p) => p.category_id === cat.id && p.process_type === typeFilter)
-              : processes.filter((p) => p.category_id === cat.id);
+            const catProcesses =
+              typeFilter !== 'all'
+                ? processes.filter((p) => p.category_id === cat.id && p.process_type === typeFilter)
+                : processes.filter((p) => p.category_id === cat.id);
             const count = catProcesses.length;
             const isEmpty = count === 0;
             const isSelected = filterCategory === cat.id;
@@ -288,27 +295,26 @@ export default function ProcessesPage() {
             return (
               <button
                 key={cat.id}
-                onClick={() =>
-                  setFilterCategory(isSelected ? null : cat.id)
-                }
+                onClick={() => setFilterCategory(isSelected ? null : cat.id)}
                 className={`rounded-xl p-3 text-center transition-all duration-200 ${
-                  isSelected
-                    ? "ring-2 ring-nia-dark shadow-md"
-                    : "shadow-sm card-hover-strong"
-                } ${isEmpty ? "opacity-60" : ""}`}
-                style={{ backgroundColor: isEmpty ? "#dc262608" : "#324a4d08", borderTop: `3px solid ${isEmpty ? "#dc2626" : "#55787c"}` }}
+                  isSelected ? 'ring-2 ring-nia-dark shadow-md' : 'shadow-sm card-hover-strong'
+                } ${isEmpty ? 'opacity-60' : ''}`}
+                style={{
+                  backgroundColor: isEmpty ? '#dc262608' : '#324a4d08',
+                  borderTop: `3px solid ${isEmpty ? '#dc2626' : '#55787c'}`,
+                }}
               >
-                <div className={`text-2xl font-bold font-display ${isEmpty ? "text-nia-red" : "text-nia-dark"}`}>
+                <div
+                  className={`text-2xl font-bold font-display ${isEmpty ? 'text-nia-red' : 'text-nia-dark'}`}
+                >
                   {count}
                 </div>
-                <div className={`text-xs font-medium mt-1 leading-tight ${isEmpty ? "text-nia-red" : "text-nia-dark"}`}>
+                <div
+                  className={`text-xs font-medium mt-1 leading-tight ${isEmpty ? 'text-nia-red' : 'text-nia-dark'}`}
+                >
                   {cat.display_name}
                 </div>
-                {isEmpty && (
-                  <div className="text-xs mt-1 text-nia-red">
-                    No processes
-                  </div>
-                )}
+                {isEmpty && <div className="text-xs mt-1 text-nia-red">No processes</div>}
               </button>
             );
           })}
@@ -318,25 +324,29 @@ export default function ProcessesPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
-          {(["all", "key", "support", "unclassified"] as const).map((t) => (
+          {(['all', 'key', 'support', 'unclassified'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTypeFilter(t)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 typeFilter === t
-                  ? "bg-card text-nia-dark shadow-sm"
-                  : "text-text-tertiary hover:text-text-secondary"
+                  ? 'bg-card text-nia-dark shadow-sm'
+                  : 'text-text-tertiary hover:text-text-secondary'
               }`}
             >
-              {t === "all" ? "All" : t === "key" ? "\u2605 Key" : t === "support" ? "Support" : "Unclassified"}
+              {t === 'all'
+                ? 'All'
+                : t === 'key'
+                  ? '\u2605 Key'
+                  : t === 'support'
+                    ? 'Support'
+                    : 'Unclassified'}
             </button>
           ))}
         </div>
         <Select
-          value={filterCategory ?? ""}
-          onChange={(e) =>
-            setFilterCategory(e.target.value ? Number(e.target.value) : null)
-          }
+          value={filterCategory ?? ''}
+          onChange={(e) => setFilterCategory(e.target.value ? Number(e.target.value) : null)}
           size="sm"
           className="w-auto"
         >
@@ -349,19 +359,19 @@ export default function ProcessesPage() {
         </Select>
         <Select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as "name" | "health")}
+          onChange={(e) => setSortBy(e.target.value as 'name' | 'health')}
           size="sm"
           className="w-auto"
         >
           <option value="name">Sort: A-Z</option>
           <option value="health">Sort: Needs Attention</option>
         </Select>
-        {(filterCategory !== null || typeFilter !== "all" || sortBy !== "name") && (
+        {(filterCategory !== null || typeFilter !== 'all' || sortBy !== 'name') && (
           <button
             onClick={() => {
               setFilterCategory(null);
-              setTypeFilter("all");
-              setSortBy("name");
+              setTypeFilter('all');
+              setSortBy('name');
             }}
             className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
           >
@@ -387,11 +397,18 @@ export default function ProcessesPage() {
         <Card className="border-2 border-nia-orange/30">
           <div className="p-4 border-b border-border-light flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-nia-dark">Review Process Classifications</h2>
+              <h2 className="text-lg font-semibold text-nia-dark">
+                Review Process Classifications
+              </h2>
               <p className="text-sm text-text-tertiary mt-0.5">
-                AI suggests {classifySuggestions.filter((s) => (s.override || s.suggestion) === "key").length} Key
-                {" "}and {classifySuggestions.filter((s) => (s.override || s.suggestion) === "support").length} Support processes.
-                Click a badge to override.
+                AI suggests{' '}
+                {classifySuggestions.filter((s) => (s.override || s.suggestion) === 'key').length}{' '}
+                Key and{' '}
+                {
+                  classifySuggestions.filter((s) => (s.override || s.suggestion) === 'support')
+                    .length
+                }{' '}
+                Support processes. Click a badge to override.
               </p>
             </div>
             <div className="flex gap-2">
@@ -404,12 +421,15 @@ export default function ProcessesPage() {
                 onClick={saveClassifications}
                 disabled={classifySaving}
               >
-                {classifySaving ? "Saving..." : "Save All"}
+                {classifySaving ? 'Saving...' : 'Save All'}
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => { setClassifySuggestions(null); setClassifyMsg(null); }}
+                onClick={() => {
+                  setClassifySuggestions(null);
+                  setClassifyMsg(null);
+                }}
               >
                 Cancel
               </Button>
@@ -420,29 +440,32 @@ export default function ProcessesPage() {
               const finalType = s.override || s.suggestion;
               const isOverridden = !!s.override;
               return (
-                <div key={s.process_id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div
+                  key={s.process_id}
+                  className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
+                >
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-nia-dark truncate">{s.name}</div>
                     <div className="text-xs text-text-muted">{s.category}</div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
-                      onClick={() => setClassifyOverride(s.process_id, "key")}
+                      onClick={() => setClassifyOverride(s.process_id, 'key')}
                       className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
-                        finalType === "key"
-                          ? "bg-nia-orange text-white shadow-sm"
-                          : "bg-surface-subtle text-text-muted hover:bg-nia-orange/10 hover:text-nia-orange"
-                      } ${isOverridden && finalType === "key" ? "ring-2 ring-nia-orange/40" : ""}`}
+                        finalType === 'key'
+                          ? 'bg-nia-orange text-white shadow-sm'
+                          : 'bg-surface-subtle text-text-muted hover:bg-nia-orange/10 hover:text-nia-orange'
+                      } ${isOverridden && finalType === 'key' ? 'ring-2 ring-nia-orange/40' : ''}`}
                     >
                       Key
                     </button>
                     <button
-                      onClick={() => setClassifyOverride(s.process_id, "support")}
+                      onClick={() => setClassifyOverride(s.process_id, 'support')}
                       className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
-                        finalType === "support"
-                          ? "bg-nia-grey-blue text-white shadow-sm"
-                          : "bg-surface-subtle text-text-muted hover:bg-nia-grey-blue/10 hover:text-nia-grey-blue"
-                      } ${isOverridden && finalType === "support" ? "ring-2 ring-nia-grey-blue/40" : ""}`}
+                        finalType === 'support'
+                          ? 'bg-nia-grey-blue text-white shadow-sm'
+                          : 'bg-surface-subtle text-text-muted hover:bg-nia-grey-blue/10 hover:text-nia-grey-blue'
+                      } ${isOverridden && finalType === 'support' ? 'ring-2 ring-nia-grey-blue/40' : ''}`}
                     >
                       Support
                     </button>
@@ -471,8 +494,8 @@ export default function ProcessesPage() {
                   onClick={() => selectByOwner(owner)}
                   className={`text-sm px-3 py-1 rounded-full transition-colors ${
                     allChecked
-                      ? "bg-nia-dark-solid text-white"
-                      : "bg-card text-nia-dark border border-border hover:border-nia-dark"
+                      ? 'bg-nia-dark-solid text-white'
+                      : 'bg-card text-nia-dark border border-border hover:border-nia-dark'
                   }`}
                 >
                   {owner}
@@ -481,10 +504,16 @@ export default function ProcessesPage() {
             })}
           </div>
           <span className="text-text-muted">|</span>
-          <button onClick={selectAll} className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors">
+          <button
+            onClick={selectAll}
+            className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
+          >
             Select All
           </button>
-          <button onClick={deselectAll} className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors">
+          <button
+            onClick={deselectAll}
+            className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
+          >
             Deselect All
           </button>
         </div>
@@ -494,16 +523,16 @@ export default function ProcessesPage() {
       {filtered.length === 0 ? (
         <Card>
           <EmptyState
-            illustration={processes.length === 0 ? "document" : "search"}
-            title={processes.length === 0 ? "No processes yet" : "No processes found"}
+            illustration={processes.length === 0 ? 'document' : 'search'}
+            title={processes.length === 0 ? 'No processes yet' : 'No processes found'}
             description={
               processes.length === 0
-                ? "Create your first process to start documenting how your organization works."
-                : "Try adjusting your filters or search terms."
+                ? 'Create your first process to start documenting how your organization works.'
+                : 'Try adjusting your filters or search terms.'
             }
             action={
               processes.length === 0
-                ? { label: "Create Process", href: "/processes/new" }
+                ? { label: 'Create Process', href: '/processes/new' }
                 : undefined
             }
           />
@@ -554,7 +583,16 @@ export default function ProcessesPage() {
                         </Link>
                         {process.asana_project_gid && (
                           <span className="text-text-muted ml-1" title="Linked to Asana">
-                            <svg className="inline w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-label="Linked to Asana"><circle cx="12" cy="6" r="4"/><circle cx="5" cy="18" r="4"/><circle cx="19" cy="18" r="4"/></svg>
+                            <svg
+                              className="inline w-3.5 h-3.5"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              aria-label="Linked to Asana"
+                            >
+                              <circle cx="12" cy="6" r="4" />
+                              <circle cx="5" cy="18" r="4" />
+                              <circle cx="19" cy="18" r="4" />
+                            </svg>
                           </span>
                         )}
                       </span>
@@ -572,7 +610,8 @@ export default function ProcessesPage() {
                         const health = healthScores.get(process.id);
                         if (!health) return null;
                         const dims = health.dimensions;
-                        const tooltip = `Health: ${health.total}/100 (${health.level.label})\n` +
+                        const tooltip =
+                          `Health: ${health.total}/100 (${health.level.label})\n` +
                           `Documentation: ${dims.documentation.score}/${dims.documentation.max}\n` +
                           `Maturity: ${dims.maturity.score}/${dims.maturity.max}\n` +
                           `Measurement: ${dims.measurement.score}/${dims.measurement.max}\n` +
@@ -580,7 +619,12 @@ export default function ProcessesPage() {
                           `Freshness: ${dims.freshness.score}/${dims.freshness.max}`;
                         return (
                           <div className="flex items-center gap-2" title={tooltip}>
-                            <HealthRing score={health.total} color={health.level.color} size={36} strokeWidth={3} />
+                            <HealthRing
+                              score={health.total}
+                              color={health.level.color}
+                              size={36}
+                              strokeWidth={3}
+                            />
                             <span className="text-xs text-text-muted">{health.level.label}</span>
                           </div>
                         );
@@ -594,7 +638,7 @@ export default function ProcessesPage() {
                         const color = getFreshnessColor(lastDate);
                         return (
                           <span
-                            className={`text-xs font-medium ${days > 90 ? "stale-pulse" : ""}`}
+                            className={`text-xs font-medium ${days > 90 ? 'stale-pulse' : ''}`}
                             style={{ color }}
                             title={new Date(lastDate).toLocaleDateString()}
                           >
@@ -604,7 +648,7 @@ export default function ProcessesPage() {
                       })()}
                     </td>
                     <td className="px-4 py-3 text-sm text-text-tertiary">
-                      {process.owner || "\u2014"}
+                      {process.owner || '\u2014'}
                     </td>
                   </tr>
                 ))}
@@ -615,7 +659,7 @@ export default function ProcessesPage() {
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {filtered.map((process) => (
-              <div key={process.id} className={editMode ? "flex items-start gap-3" : ""}>
+              <div key={process.id} className={editMode ? 'flex items-start gap-3' : ''}>
                 {editMode && (
                   <input
                     type="checkbox"
@@ -624,72 +668,86 @@ export default function ProcessesPage() {
                     className="w-4 h-4 mt-4 rounded border-border text-nia-dark focus:ring-nia-grey-blue cursor-pointer flex-shrink-0"
                   />
                 )}
-              <Link
-                href={`/processes/${process.id}`}
-                className="block flex-1"
-              >
-                <Card variant="interactive" accent="dark" padding="sm" className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="font-medium text-nia-dark flex items-center gap-2">
-                        <ClassificationBadge
-                          type={process.process_type}
-                          onToggle={(newType) => {
-                            setProcessType(process.id, newType);
-                          }}
-                          preventNavigation
-                          readOnly={!isAdmin}
-                        />
-                        {process.name}
-                        {process.asana_project_gid && (
-                          <span className="text-text-muted ml-1" title="Linked to Asana">
-                            <svg className="inline w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-label="Linked to Asana"><circle cx="12" cy="6" r="4"/><circle cx="5" cy="18" r="4"/><circle cx="19" cy="18" r="4"/></svg>
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-text-tertiary mt-1">
-                        {process.category_display_name}
-                        {process.baldrige_item && (
-                          <span className="text-text-muted">
-                            {" "}
-                            ({process.baldrige_item})
-                          </span>
-                        )}
+                <Link href={`/processes/${process.id}`} className="block flex-1">
+                  <Card variant="interactive" accent="dark" padding="sm" className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-medium text-nia-dark flex items-center gap-2">
+                          <ClassificationBadge
+                            type={process.process_type}
+                            onToggle={(newType) => {
+                              setProcessType(process.id, newType);
+                            }}
+                            preventNavigation
+                            readOnly={!isAdmin}
+                          />
+                          {process.name}
+                          {process.asana_project_gid && (
+                            <span className="text-text-muted ml-1" title="Linked to Asana">
+                              <svg
+                                className="inline w-3.5 h-3.5"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                aria-label="Linked to Asana"
+                              >
+                                <circle cx="12" cy="6" r="4" />
+                                <circle cx="5" cy="18" r="4" />
+                                <circle cx="19" cy="18" r="4" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-text-tertiary mt-1">
+                          {process.category_display_name}
+                          {process.baldrige_item && (
+                            <span className="text-text-muted"> ({process.baldrige_item})</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
-                    {(() => {
-                      const health = healthScores.get(process.id);
-                      if (!health) return null;
-                      return (
-                        <span className="flex items-center gap-1.5" title={`Health: ${health.total} — ${health.level.label}`}>
-                          <HealthRing score={health.total} color={health.level.color} size={24} strokeWidth={2.5} className="text-[9px]" />
-                          <span style={{ color: health.level.color }}>{health.level.label}</span>
-                        </span>
-                      );
-                    })()}
-                    {process.owner && (
-                      <>
-                        <span>&middot;</span>
-                        <span>{process.owner}</span>
-                      </>
-                    )}
-                    {(() => {
-                      const lastDate = lastActivityMap.get(process.id);
-                      if (!lastDate) return null;
-                      const color = getFreshnessColor(lastDate);
-                      const days = getFreshnessDays(lastDate);
-                      return (
+                    <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
+                      {(() => {
+                        const health = healthScores.get(process.id);
+                        if (!health) return null;
+                        return (
+                          <span
+                            className="flex items-center gap-1.5"
+                            title={`Health: ${health.total} — ${health.level.label}`}
+                          >
+                            <HealthRing
+                              score={health.total}
+                              color={health.level.color}
+                              size={24}
+                              strokeWidth={2.5}
+                              className="text-[9px]"
+                            />
+                            <span style={{ color: health.level.color }}>{health.level.label}</span>
+                          </span>
+                        );
+                      })()}
+                      {process.owner && (
                         <>
                           <span>&middot;</span>
-                          <span className={days > 90 ? "stale-pulse" : ""} style={{ color }}>{formatRelativeTime(lastDate)}</span>
+                          <span>{process.owner}</span>
                         </>
-                      );
-                    })()}
-                  </div>
-                </Card>
-              </Link>
+                      )}
+                      {(() => {
+                        const lastDate = lastActivityMap.get(process.id);
+                        if (!lastDate) return null;
+                        const color = getFreshnessColor(lastDate);
+                        const days = getFreshnessDays(lastDate);
+                        return (
+                          <>
+                            <span>&middot;</span>
+                            <span className={days > 90 ? 'stale-pulse' : ''} style={{ color }}>
+                              {formatRelativeTime(lastDate)}
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </Card>
+                </Link>
               </div>
             ))}
           </div>
@@ -701,7 +759,7 @@ export default function ProcessesPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50 px-4 py-3">
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center gap-3">
             <span className="text-sm font-medium text-nia-dark whitespace-nowrap">
-              {selected.size} process{selected.size !== 1 ? "es" : ""} selected
+              {selected.size} process{selected.size !== 1 ? 'es' : ''} selected
             </span>
             <div className="flex-1 relative w-full sm:max-w-xs">
               <input
@@ -725,7 +783,7 @@ export default function ProcessesPage() {
                 onClick={bulkUpdateOwner}
                 disabled={selected.size === 0 || !newOwner.trim() || updating}
               >
-                {updating ? "Updating..." : "Update Owner"}
+                {updating ? 'Updating...' : 'Update Owner'}
               </Button>
               <Button variant="secondary" size="md" onClick={exitEditMode}>
                 Cancel
@@ -752,33 +810,29 @@ function ClassificationBadge({
   preventNavigation?: boolean;
   readOnly?: boolean;
 }) {
-  const nextType = type === "key" ? "support" : type === "support" ? "unclassified" : "key";
+  const nextType = type === 'key' ? 'support' : type === 'support' ? 'unclassified' : 'key';
   const labels: Record<string, string> = {
-    key: "\u2605 Key",
-    support: "Support",
-    unclassified: "?",
+    key: '\u2605 Key',
+    support: 'Support',
+    unclassified: '?',
   };
 
   const baseClasses = `inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full whitespace-nowrap ${
-    type === "key"
-      ? "bg-nia-orange text-white"
-      : type === "support"
-      ? "bg-nia-grey-blue text-white"
-      : "bg-surface-subtle text-text-muted border border-border-light"
+    type === 'key'
+      ? 'bg-nia-orange text-white'
+      : type === 'support'
+        ? 'bg-nia-grey-blue text-white'
+        : 'bg-surface-subtle text-text-muted border border-border-light'
   }`;
 
   if (readOnly) {
-    return (
-      <span className={baseClasses}>
-        {labels[type] || labels.unclassified}
-      </span>
-    );
+    return <span className={baseClasses}>{labels[type] || labels.unclassified}</span>;
   }
 
   const tooltips: Record<string, string> = {
-    key: "Key process \u2014 click to change to Support",
-    support: "Support process \u2014 click to change to Unclassified",
-    unclassified: "Unclassified \u2014 click to set as Key",
+    key: 'Key process \u2014 click to change to Support',
+    support: 'Support process \u2014 click to change to Unclassified',
+    unclassified: 'Unclassified \u2014 click to set as Key',
   };
 
   return (
@@ -790,11 +844,11 @@ function ClassificationBadge({
       }}
       title={tooltips[type] || tooltips.unclassified}
       className={`${baseClasses} transition-all ${
-        type === "key"
-          ? "hover:bg-nia-orange/80"
-          : type === "support"
-          ? "hover:bg-nia-grey-blue/80"
-          : "hover:bg-nia-orange/10 hover:text-nia-orange"
+        type === 'key'
+          ? 'hover:bg-nia-orange/80'
+          : type === 'support'
+            ? 'hover:bg-nia-grey-blue/80'
+            : 'hover:bg-nia-orange/10 hover:text-nia-orange'
       }`}
     >
       {labels[type] || labels.unclassified}

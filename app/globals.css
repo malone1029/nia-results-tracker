@@ -1,6 +1,6 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @plugin "@tailwindcss/typography";
-@import "@xyflow/react/dist/style.css";
+@import '@xyflow/react/dist/style.css';
 
 :root {
   --background: #fafaf8;
@@ -42,7 +42,7 @@
   --sidebar-bg: #324a4d;
 }
 
-:root[data-theme="dark"] {
+:root[data-theme='dark'] {
   --background: #111111;
   --foreground: #e5e7eb;
   --nia-dark: #b8cdd0;
@@ -142,7 +142,12 @@ main a.btn-press:active {
   transform: scale(0.97);
 }
 main button {
-  transition: transform 100ms ease, opacity 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 200ms ease;
+  transition:
+    transform 100ms ease,
+    opacity 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease,
+    box-shadow 200ms ease;
 }
 
 /* Banner slide-in animation */
@@ -175,18 +180,42 @@ main > .space-y-6 > *,
 main > .space-y-8 > * {
   animation: fade-in-up 400ms ease-out both;
 }
-main > .space-y-6 > *:nth-child(1) { animation-delay: 0ms; }
-main > .space-y-6 > *:nth-child(2) { animation-delay: 50ms; }
-main > .space-y-6 > *:nth-child(3) { animation-delay: 100ms; }
-main > .space-y-6 > *:nth-child(4) { animation-delay: 150ms; }
-main > .space-y-6 > *:nth-child(5) { animation-delay: 200ms; }
-main > .space-y-6 > *:nth-child(n+6) { animation-delay: 250ms; }
-main > .space-y-8 > *:nth-child(1) { animation-delay: 0ms; }
-main > .space-y-8 > *:nth-child(2) { animation-delay: 50ms; }
-main > .space-y-8 > *:nth-child(3) { animation-delay: 100ms; }
-main > .space-y-8 > *:nth-child(4) { animation-delay: 150ms; }
-main > .space-y-8 > *:nth-child(5) { animation-delay: 200ms; }
-main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
+main > .space-y-6 > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+main > .space-y-6 > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+main > .space-y-6 > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+main > .space-y-6 > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+main > .space-y-6 > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+main > .space-y-6 > *:nth-child(n + 6) {
+  animation-delay: 250ms;
+}
+main > .space-y-8 > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+main > .space-y-8 > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+main > .space-y-8 > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+main > .space-y-8 > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+main > .space-y-8 > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+main > .space-y-8 > *:nth-child(n + 6) {
+  animation-delay: 250ms;
+}
 
 /* Sidebar slide-in animation for mobile */
 @keyframes sidebar-enter {
@@ -203,8 +232,15 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
 /* Stepper active-step pulse ring */
 @keyframes stepper-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.25; }
-  50% { transform: scale(1.5); opacity: 0; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
 }
 .stepper-pulse {
   animation: stepper-pulse 2s ease-in-out infinite;
@@ -214,8 +250,12 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
 /* Shimmer sweep for skeleton loading — a light band sweeps left-to-right */
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 .skeleton-shimmer {
   position: relative;
@@ -224,7 +264,7 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   border-radius: 0.375rem;
 }
 .skeleton-shimmer::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
@@ -235,7 +275,7 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   );
   animation: shimmer 1.5s ease-in-out infinite;
 }
-:root:not([data-theme="dark"]) .skeleton-shimmer::after {
+:root:not([data-theme='dark']) .skeleton-shimmer::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -246,14 +286,20 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
 /* Card hover lift — interactive cards rise with shadow growth */
 .card-hover {
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px -5px rgba(50, 74, 77, 0.1), 0 4px 10px -6px rgba(50, 74, 77, 0.08);
+  box-shadow:
+    0 8px 25px -5px rgba(50, 74, 77, 0.1),
+    0 4px 10px -6px rgba(50, 74, 77, 0.08);
 }
-:root[data-theme="dark"] .card-hover:hover {
-  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.3), 0 4px 10px -6px rgba(0, 0, 0, 0.2);
+:root[data-theme='dark'] .card-hover:hover {
+  box-shadow:
+    0 8px 25px -5px rgba(0, 0, 0, 0.3),
+    0 4px 10px -6px rgba(0, 0, 0, 0.2);
 }
 
 /* Focus ring — visible keyboard focus for accessibility */
@@ -265,9 +311,17 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
 /* Stat number count-up animation — used with JS to animate from 0 */
 @keyframes number-pop {
-  0% { transform: scale(0.8); opacity: 0; }
-  60% { transform: scale(1.05); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 .number-pop {
   animation: number-pop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -283,8 +337,15 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
 /* Overdue pulse — red status dots gently throb to draw attention */
 @keyframes overdue-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.7; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.7;
+  }
 }
 .overdue-pulse {
   animation: overdue-pulse 2s ease-in-out infinite;
@@ -292,8 +353,14 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
 /* Milestone toast slide-up animation */
 @keyframes slide-up {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
@@ -301,8 +368,12 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
 /* Slide-in from right — for draft panel drawer */
 @keyframes slide-in-right {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 .animate-slide-in-right {
   animation: slide-in-right 0.25s ease-out;
@@ -310,29 +381,48 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
 /* Stale pulse — subtle throb for 90+ day inactive processes */
 @keyframes stale-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 .stale-pulse {
   animation: stale-pulse 3s ease-in-out infinite;
 }
 
 /* Hero glow — colored box-shadow for stat cards */
-.glow-red    { box-shadow: 0 0 20px -4px rgba(220, 38, 38, 0.25); }
-.glow-orange { box-shadow: 0 0 20px -4px rgba(247, 153, 53, 0.25); }
-.glow-green  { box-shadow: 0 0 20px -4px rgba(177, 189, 55, 0.25); }
-.glow-dark   { box-shadow: 0 0 20px -4px rgba(50, 74, 77, 0.20); }
+.glow-red {
+  box-shadow: 0 0 20px -4px rgba(220, 38, 38, 0.25);
+}
+.glow-orange {
+  box-shadow: 0 0 20px -4px rgba(247, 153, 53, 0.25);
+}
+.glow-green {
+  box-shadow: 0 0 20px -4px rgba(177, 189, 55, 0.25);
+}
+.glow-dark {
+  box-shadow: 0 0 20px -4px rgba(50, 74, 77, 0.2);
+}
 
 /* Stronger lift for category grid cards */
 .card-hover-strong {
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
 }
 .card-hover-strong:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 30px -8px rgba(50, 74, 77, 0.15), 0 4px 12px -4px rgba(50, 74, 77, 0.08);
+  box-shadow:
+    0 12px 30px -8px rgba(50, 74, 77, 0.15),
+    0 4px 12px -4px rgba(50, 74, 77, 0.08);
 }
-:root[data-theme="dark"] .card-hover-strong:hover {
-  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.4), 0 4px 12px -4px rgba(0, 0, 0, 0.2);
+:root[data-theme='dark'] .card-hover-strong:hover {
+  box-shadow:
+    0 12px 30px -8px rgba(0, 0, 0, 0.4),
+    0 4px 12px -4px rgba(0, 0, 0, 0.2);
 }
 
 /* Dropdown scale-in from top-right (profile menu) */
@@ -357,7 +447,7 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   position: relative;
 }
 .nav-link-active::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   top: 4px;
@@ -368,15 +458,28 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   animation: nav-bar-in 200ms ease-out;
 }
 @keyframes nav-bar-in {
-  from { transform: scaleY(0); }
-  to   { transform: scaleY(1); }
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
 }
 
 /* Success banner with subtle bounce (green banners only) */
 @keyframes success-celebrate {
-  0%   { opacity: 0; transform: translateY(-12px) scale(0.98); }
-  60%  { opacity: 1; transform: translateY(2px) scale(1.01); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(2px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 .success-celebrate {
   animation: success-celebrate 400ms ease-out;
@@ -384,8 +487,14 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
 /* Content fade-in-up for skeleton→content crossfade */
 @keyframes content-appear {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .content-appear {
   animation: content-appear 300ms ease-out;
@@ -393,12 +502,24 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 
 /* Welcome onboarding step transitions */
 @keyframes onboard-slide-in {
-  from { opacity: 0; transform: translateX(24px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 @keyframes onboard-slide-in-back {
-  from { opacity: 0; transform: translateX(-24px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 .onboard-slide-in {
   animation: onboard-slide-in 350ms cubic-bezier(0.2, 0, 0, 1);
@@ -443,7 +564,7 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
   color: var(--foreground);
   background: var(--card);
   border: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 50;
   animation: tooltip-enter 150ms ease-out;
 }
@@ -455,8 +576,14 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 }
 
 @keyframes tooltip-enter {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* ─── Context menu & bulk toolbar ──────────────────────────── */
@@ -494,7 +621,9 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 /* ─── Accessibility ─────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -502,7 +631,7 @@ main > .space-y-8 > *:nth-child(n+6) { animation-delay: 250ms; }
 }
 
 /* Prose (Typography plugin) dark mode overrides — prevents dark text on dark backgrounds */
-:root[data-theme="dark"] .prose {
+:root[data-theme='dark'] .prose {
   --tw-prose-body: var(--foreground);
   --tw-prose-headings: var(--foreground);
   --tw-prose-lead: var(--text-secondary);

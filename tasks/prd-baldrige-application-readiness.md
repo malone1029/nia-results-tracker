@@ -23,9 +23,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 ### Layer 0: Role System
 
 #### US-001: User roles table and middleware
+
 **Description:** As a developer, I need a role system so that certain features can be restricted to admin users only.
 
 **Acceptance Criteria:**
+
 - [ ] Create `user_roles` table with columns: `id`, `auth_id` (FK to Supabase auth.users), `email` (text), `role` (text: 'admin' | 'member', default 'member'), `created_at`
 - [ ] Seed Jon's email (`jon.malone@thenia.org`) as `admin` role
 - [ ] Create `/api/auth/role` GET endpoint that returns the current user's role
@@ -35,9 +37,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 - [ ] Typecheck passes
 
 #### US-002: Admin-only sidebar navigation
+
 **Description:** As an admin, I want to see Phase 3 pages in the sidebar. As a member, I should not see them.
 
 **Acceptance Criteria:**
+
 - [ ] Sidebar conditionally renders "Application" section (with sub-links) only when `isAdmin` is true
 - [ ] Application section contains links: "Criteria Map" (`/criteria`), "Gap Analysis" (`/criteria/gaps`)
 - [ ] Non-admin users see no change to their sidebar
@@ -48,9 +52,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 ### Layer 1: Baldrige Criteria Question Bank
 
 #### US-003: Criteria database schema
+
 **Description:** As a developer, I need database tables to store the Baldrige criteria hierarchy so that questions can be mapped to processes.
 
 **Acceptance Criteria:**
+
 - [ ] Create `baldrige_items` table: `id` (serial PK), `item_code` (text, unique — e.g., "1.1", "P.1"), `item_name` (text), `category_number` (int — 0 for P, 1-7), `category_name` (text), `item_type` (text: 'process' | 'results' | 'profile'), `points` (int), `sort_order` (int)
 - [ ] Create `baldrige_questions` table: `id` (serial PK), `item_id` (FK to baldrige_items), `question_code` (text, unique — e.g., "1.1a(1)", "P.1b(2)"), `area_label` (text — e.g., "Mission, Vision, and Values"), `question_text` (text — the full question), `question_type` (text: 'context' | 'process' | 'results'), `sort_order` (int)
 - [ ] Create `process_question_mappings` table: `id` (serial PK), `process_id` (FK to processes), `question_id` (FK to baldrige_questions), `coverage` (text: 'primary' | 'supporting' | 'partial'), `notes` (text, nullable), `mapped_by` (text: 'manual' | 'ai_suggested' | 'ai_confirmed'), `created_at` (timestamptz)
@@ -59,9 +65,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 - [ ] Typecheck passes
 
 #### US-004: Seed full criteria questions
+
 **Description:** As a developer, I need to populate the criteria tables with all 2023-2024 Baldrige Business/Nonprofit questions.
 
 **Acceptance Criteria:**
+
 - [ ] Create seed SQL script (`supabase/seed-baldrige-criteria.sql`) that inserts all items and questions
 - [ ] Organizational Profile: P.1 (5 sub-questions), P.2 (3 sub-questions)
 - [ ] Category 1 Leadership: 1.1 (7 sub-questions across a/b/c), 1.2 (8 sub-questions across a/b/c)
@@ -79,9 +87,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 ### Layer 2: Criteria Map Page (Admin-Only)
 
 #### US-005: Criteria Map overview page
+
 **Description:** As an admin, I want to see all Baldrige criteria items organized by category with coverage status so I can understand where I stand.
 
 **Acceptance Criteria:**
+
 - [ ] New page at `/criteria` (admin-only)
 - [ ] Page title: "Baldrige Criteria Map"
 - [ ] Shows all 7 categories (+ Org Profile) as collapsible sections
@@ -95,9 +105,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 - [ ] Verify in browser using dev-browser skill
 
 #### US-006: Criteria API endpoints
+
 **Description:** As a developer, I need API endpoints to read criteria data and manage mappings.
 
 **Acceptance Criteria:**
+
 - [ ] `GET /api/criteria` — returns all items, questions, and their mappings (with process names) in a nested structure
 - [ ] `POST /api/criteria/mappings` — create a mapping (process_id, question_id, coverage, notes, mapped_by). Admin-only.
 - [ ] `DELETE /api/criteria/mappings/[id]` — remove a mapping. Admin-only.
@@ -109,9 +121,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 ### Layer 3: AI-Assisted Mapping
 
 #### US-007: AI mapping suggestions for a question
+
 **Description:** As an admin, I want AI to analyze my processes and suggest which ones answer a specific Baldrige question, so I don't have to manually review every process.
 
 **Acceptance Criteria:**
+
 - [ ] "Suggest Mappings" button on each unmapped or partially-mapped question in the Criteria Map
 - [ ] Clicking triggers `POST /api/criteria/ai-suggest` with the question_id
 - [ ] API reads the question text + all processes (name, description, charter summary, ADLI summary, baldrige_category, baldrige_item) and asks Claude to suggest 1-5 processes that answer the question
@@ -124,9 +138,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 - [ ] Verify in browser using dev-browser skill
 
 #### US-008: AI bulk mapping scan
+
 **Description:** As an admin, I want AI to scan ALL unmapped questions and suggest mappings in bulk, so I can quickly bootstrap the criteria map.
 
 **Acceptance Criteria:**
+
 - [ ] "AI Scan All" button on the Criteria Map page header (admin-only)
 - [ ] Shows confirmation: "This will analyze X unmapped questions against Y processes. This may take a few minutes."
 - [ ] Triggers `POST /api/criteria/ai-scan` which processes questions in batches (5 at a time to manage token limits)
@@ -141,9 +157,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 ### Layer 4: Gap Analysis
 
 #### US-009: Gap Analysis page
+
 **Description:** As an admin, I want a focused view of Baldrige questions that have NO process mapped, so I can prioritize what to work on next.
 
 **Acceptance Criteria:**
+
 - [ ] New page at `/criteria/gaps` (admin-only)
 - [ ] Page title: "Application Gaps"
 - [ ] Groups unmapped questions by category, sorted by point value (highest first)
@@ -157,9 +175,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 - [ ] Verify in browser using dev-browser skill
 
 #### US-010: Process creation with Baldrige question context
+
 **Description:** As an admin, when I create a process from a gap, I want the AI to know which Baldrige question I'm trying to answer so it can guide me effectively.
 
 **Acceptance Criteria:**
+
 - [ ] When `/processes/new` receives `?baldrige_question_id=X` query param:
   - Auto-selects the correct Baldrige category
   - Shows a blue info banner: "This process is being created to address Baldrige question X.Xa(N): [question text]"
@@ -174,9 +194,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 ### Layer 5: Basic Narrative Drafting
 
 #### US-011: Draft narrative per Baldrige item
+
 **Description:** As an admin, I want AI to generate a draft application narrative for a Baldrige item using the mapped processes' ADLI content, so I have a starting point for the application.
 
 **Acceptance Criteria:**
+
 - [ ] "Draft Narrative" button on each item in the Criteria Map (only when at least 1 question is mapped)
 - [ ] Triggers `POST /api/criteria/draft` with the item_id
 - [ ] API gathers: all mapped processes for the item's questions, their charter content, ADLI content (approach/deployment/learning/integration), linked metrics with trends, and the full question text
@@ -195,9 +217,11 @@ The Baldrige Excellence Framework (2023-2024 Business/Nonprofit) has 17 items ac
 - [ ] Verify in browser using dev-browser skill
 
 #### US-012: Draft management and versioning
+
 **Description:** As an admin, I want to view, compare, and edit draft narratives so I can refine the application over time.
 
 **Acceptance Criteria:**
+
 - [ ] Each Baldrige item in the Criteria Map shows draft status: "No Draft", "Draft v1", "Draft v3", etc.
 - [ ] Clicking the draft badge opens a panel showing the latest draft with markdown rendering
 - [ ] Version selector dropdown to view previous versions

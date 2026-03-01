@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { getTrendDirection } from "@/lib/review-status";
-import { ListPageSkeleton } from "@/components/skeleton";
-import type { Metric } from "@/lib/types";
-import Link from "next/link";
-import { Card, Button, Select } from "@/components/ui";
-import HelpTip from "@/components/help-tip";
-import SectionIntro from "@/components/section-intro";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { getTrendDirection } from '@/lib/review-status';
+import { ListPageSkeleton } from '@/components/skeleton';
+import type { Metric } from '@/lib/types';
+import Link from 'next/link';
+import { Card, Button, Select } from '@/components/ui';
+import HelpTip from '@/components/help-tip';
+import SectionIntro from '@/components/section-intro';
 
 interface MetricLeTCI extends Metric {
   process_name: string;
@@ -19,7 +19,7 @@ interface MetricLeTCI extends Metric {
   entry_count: number;
   has_level: boolean;
   has_trend: boolean;
-  trend_direction: "improving" | "declining" | "flat" | "insufficient";
+  trend_direction: 'improving' | 'declining' | 'flat' | 'insufficient';
   has_comparison: boolean;
   has_integration: boolean;
   linked_requirements: string[]; // requirement names
@@ -30,19 +30,19 @@ export default function LeTCIPage() {
   const [metrics, setMetrics] = useState<MetricLeTCI[]>([]);
   const [allCategoryOptions, setAllCategoryOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support">("all");
-  const [sortField, setSortField] = useState<string>("letci_score");
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'key' | 'support'>('all');
+  const [sortField, setSortField] = useState<string>('letci_score');
   const [sortAsc, setSortAsc] = useState(true);
 
   useEffect(() => {
-    document.title = "LeTCI Summary | NIA Excellence Hub";
+    document.title = 'LeTCI Summary | NIA Excellence Hub';
     async function fetch() {
       // Fetch all Baldrige categories for the filter dropdown
       const { data: catData } = await supabase
-        .from("categories")
-        .select("display_name")
-        .order("sort_order");
+        .from('categories')
+        .select('display_name')
+        .order('sort_order');
 
       if (catData) {
         setAllCategoryOptions(catData.map((c: { display_name: string }) => c.display_name));
@@ -50,27 +50,45 @@ export default function LeTCIPage() {
 
       // Fetch metrics, junction links, and processes separately
       const [metricsRes, linksRes, processesRes] = await Promise.all([
-        supabase.from("metrics").select("*"),
-        supabase.from("metric_processes").select("metric_id, process_id"),
-        supabase.from("processes").select("id, name, process_type, categories!inner ( display_name, sort_order )"),
+        supabase.from('metrics').select('*'),
+        supabase.from('metric_processes').select('metric_id, process_id'),
+        supabase
+          .from('processes')
+          .select('id, name, process_type, categories!inner ( display_name, sort_order )'),
       ]);
 
       const metricsData = metricsRes.data;
 
       // Build process lookup
-      const processMap = new Map<number, { name: string; process_type: string; category_display_name: string; category_sort_order: number }>();
+      const processMap = new Map<
+        number,
+        {
+          name: string;
+          process_type: string;
+          category_display_name: string;
+          category_sort_order: number;
+        }
+      >();
       for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
         const cat = p.categories as Record<string, unknown>;
         processMap.set(p.id as number, {
           name: p.name as string,
-          process_type: (p.process_type as string) || "unclassified",
+          process_type: (p.process_type as string) || 'unclassified',
           category_display_name: cat.display_name as string,
           category_sort_order: cat.sort_order as number,
         });
       }
 
       // Build metric -> first linked process lookup (for display)
-      const metricFirstProcess = new Map<number, { name: string; process_type: string; category_display_name: string; category_sort_order: number }>();
+      const metricFirstProcess = new Map<
+        number,
+        {
+          name: string;
+          process_type: string;
+          category_display_name: string;
+          category_sort_order: number;
+        }
+      >();
       for (const link of linksRes.data || []) {
         if (metricFirstProcess.has(link.metric_id)) continue;
         const proc = processMap.get(link.process_id);
@@ -78,14 +96,12 @@ export default function LeTCIPage() {
       }
 
       const { data: entriesData } = await supabase
-        .from("entries")
-        .select("metric_id, value, date")
-        .order("date", { ascending: true });
+        .from('entries')
+        .select('metric_id, value, date')
+        .order('date', { ascending: true });
 
       // Fetch metric-requirement links with requirement names
-      const { data: reqLinkData } = await supabase
-        .from("metric_requirements")
-        .select(`
+      const { data: reqLinkData } = await supabase.from('metric_requirements').select(`
           metric_id,
           key_requirements!inner ( requirement )
         `);
@@ -130,10 +146,10 @@ export default function LeTCIPage() {
 
         return {
           ...(m as unknown as Metric),
-          process_name: proc?.name || "Unlinked",
-          is_key_process: (proc?.process_type || "unclassified") === "key",
-          process_type: proc?.process_type || "unclassified",
-          category_display_name: proc?.category_display_name || "—",
+          process_name: proc?.name || 'Unlinked',
+          is_key_process: (proc?.process_type || 'unclassified') === 'key',
+          process_type: proc?.process_type || 'unclassified',
+          category_display_name: proc?.category_display_name || '—',
           category_sort_order: proc?.category_sort_order || 99,
           entry_count: entries.length,
           has_level: hasLevel,
@@ -159,41 +175,41 @@ export default function LeTCIPage() {
 
   // Filter
   let filtered =
-    filterCategory === "all"
+    filterCategory === 'all'
       ? metrics
       : metrics.filter((m) => m.category_display_name === filterCategory);
-  if (typeFilter === "key") {
-    filtered = filtered.filter((m) => m.process_type === "key");
-  } else if (typeFilter === "support") {
-    filtered = filtered.filter((m) => m.process_type === "support");
+  if (typeFilter === 'key') {
+    filtered = filtered.filter((m) => m.process_type === 'key');
+  } else if (typeFilter === 'support') {
+    filtered = filtered.filter((m) => m.process_type === 'support');
   }
 
   // Sort
   const sorted = [...filtered].sort((a, b) => {
     let cmp = 0;
     switch (sortField) {
-      case "name":
+      case 'name':
         cmp = a.name.localeCompare(b.name);
         break;
-      case "process":
+      case 'process':
         cmp = a.process_name.localeCompare(b.process_name);
         break;
-      case "category":
+      case 'category':
         cmp = a.category_sort_order - b.category_sort_order;
         break;
-      case "letci_score":
+      case 'letci_score':
         cmp = a.letci_score - b.letci_score;
         break;
-      case "level":
+      case 'level':
         cmp = Number(a.has_level) - Number(b.has_level);
         break;
-      case "trend":
+      case 'trend':
         cmp = Number(a.has_trend) - Number(b.has_trend);
         break;
-      case "comparison":
+      case 'comparison':
         cmp = Number(a.has_comparison) - Number(b.has_comparison);
         break;
-      case "integration":
+      case 'integration':
         cmp = Number(a.has_integration) - Number(b.has_integration);
         break;
       default:
@@ -226,7 +242,7 @@ export default function LeTCIPage() {
         className="px-3 py-2 cursor-pointer hover:text-nia-orange transition-colors select-none"
         onClick={() => handleSort(field)}
       >
-        {label} {isActive ? (sortAsc ? "▲" : "▼") : ""}
+        {label} {isActive ? (sortAsc ? '▲' : '▼') : ''}
       </th>
     );
   }
@@ -244,7 +260,9 @@ export default function LeTCIPage() {
       </div>
 
       <SectionIntro storageKey="intro-letci">
-        LeTCI measures four elements Baldrige examiners look for in your metrics. Complete all four for full readiness: Level (data exists), Trend (3+ points), Comparison (benchmark set), Integration (linked to a requirement).
+        LeTCI measures four elements Baldrige examiners look for in your metrics. Complete all four
+        for full readiness: Level (data exists), Trend (3+ points), Comparison (benchmark set),
+        Integration (linked to a requirement).
       </SectionIntro>
 
       {/* Summary cards */}
@@ -254,21 +272,35 @@ export default function LeTCIPage() {
           <div className="text-xs text-text-muted">Total Metrics</div>
         </Card>
         <Card variant="interactive" accent="green" padding="sm" className="text-center">
-          <div className="text-2xl font-bold font-display number-pop text-nia-green">{withLevel}</div>
+          <div className="text-2xl font-bold font-display number-pop text-nia-green">
+            {withLevel}
+          </div>
           <div className="text-xs text-text-muted">Have Levels</div>
         </Card>
         {[
-          { val: withTrend, label: "Have Trends" },
-          { val: withComparison, label: "Have Comparisons" },
-          { val: withIntegration, label: "Have Integration" },
+          { val: withTrend, label: 'Have Trends' },
+          { val: withComparison, label: 'Have Comparisons' },
+          { val: withIntegration, label: 'Have Integration' },
         ].map(({ val, label }) => (
-          <Card key={label} variant="interactive" accent={val > 0 ? "green" : "red"} padding="sm" className="text-center">
-            <div className={`text-2xl font-bold font-display number-pop ${val > 0 ? "text-nia-green" : "text-nia-red"}`}>{val}</div>
+          <Card
+            key={label}
+            variant="interactive"
+            accent={val > 0 ? 'green' : 'red'}
+            padding="sm"
+            className="text-center"
+          >
+            <div
+              className={`text-2xl font-bold font-display number-pop ${val > 0 ? 'text-nia-green' : 'text-nia-red'}`}
+            >
+              {val}
+            </div>
             <div className="text-xs text-text-muted">{label}</div>
           </Card>
         ))}
         <Card variant="interactive" accent="green" padding="sm" className="text-center">
-          <div className="text-2xl font-bold font-display number-pop text-nia-green">{fullLeTCI}</div>
+          <div className="text-2xl font-bold font-display number-pop text-nia-green">
+            {fullLeTCI}
+          </div>
           <div className="text-xs text-text-muted">Full LeTCI (4/4)</div>
         </Card>
       </div>
@@ -276,12 +308,17 @@ export default function LeTCIPage() {
       {/* Filter */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
-          {(["all", "key", "support"] as const).map((t) => (
-            <button key={t} onClick={() => setTypeFilter(t)}
+          {(['all', 'key', 'support'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                typeFilter === t ? "bg-card text-nia-dark shadow-sm" : "text-text-tertiary hover:text-text-secondary"
-              }`}>
-              {t === "all" ? "All" : t === "key" ? "\u2605 Key" : "Support"}
+                typeFilter === t
+                  ? 'bg-card text-nia-dark shadow-sm'
+                  : 'text-text-tertiary hover:text-text-secondary'
+              }`}
+            >
+              {t === 'all' ? 'All' : t === 'key' ? '\u2605 Key' : 'Support'}
             </button>
           ))}
         </div>
@@ -333,10 +370,14 @@ export default function LeTCIPage() {
                     </Link>
                   </td>
                   <td className="px-3 py-2 text-text-tertiary">
-                    {metric.process_type === "key" && <span className="text-nia-orange mr-1">&#9733;</span>}
+                    {metric.process_type === 'key' && (
+                      <span className="text-nia-orange mr-1">&#9733;</span>
+                    )}
                     {metric.process_name}
                   </td>
-                  <td className="px-3 py-2 text-text-muted text-xs">{metric.category_display_name}</td>
+                  <td className="px-3 py-2 text-text-muted text-xs">
+                    {metric.category_display_name}
+                  </td>
                   <td className="px-3 py-2 text-center">
                     <LetciDot ready={metric.has_level} detail={`${metric.entry_count} entries`} />
                   </td>
@@ -344,9 +385,7 @@ export default function LeTCIPage() {
                     <LetciDot
                       ready={metric.has_trend}
                       detail={
-                        metric.has_trend
-                          ? metric.trend_direction
-                          : `${metric.entry_count}/3 needed`
+                        metric.has_trend ? metric.trend_direction : `${metric.entry_count}/3 needed`
                       }
                       trendDirection={metric.has_trend ? metric.trend_direction : undefined}
                     />
@@ -357,7 +396,7 @@ export default function LeTCIPage() {
                       detail={
                         metric.has_comparison
                           ? `${metric.comparison_value} (${metric.comparison_source})`
-                          : "Not set"
+                          : 'Not set'
                       }
                     />
                   </td>
@@ -365,14 +404,19 @@ export default function LeTCIPage() {
                     <div className="flex flex-col items-center gap-0.5">
                       <LetciDot
                         ready={metric.has_integration}
-                        detail={metric.has_integration ? metric.linked_requirements.join(", ") : "Not yet integrated"}
+                        detail={
+                          metric.has_integration
+                            ? metric.linked_requirements.join(', ')
+                            : 'Not yet integrated'
+                        }
                       />
                       {metric.has_integration && (
                         <Link
                           href="/requirements"
                           className="text-[10px] text-nia-grey-blue hover:text-nia-orange leading-tight"
                         >
-                          {metric.linked_requirements.length} req{metric.linked_requirements.length !== 1 ? "s" : ""}
+                          {metric.linked_requirements.length} req
+                          {metric.linked_requirements.length !== 1 ? 's' : ''}
                         </Link>
                       )}
                     </div>
@@ -383,10 +427,10 @@ export default function LeTCIPage() {
                       style={{
                         backgroundColor:
                           metric.letci_score === 4
-                            ? "#b1bd37"
+                            ? '#b1bd37'
                             : metric.letci_score >= 2
-                              ? "#f79935"
-                              : "#dc2626",
+                              ? '#f79935'
+                              : '#dc2626',
                       }}
                     >
                       {metric.letci_score}
@@ -409,12 +453,12 @@ function LetciDot({
 }: {
   ready: boolean;
   detail: string;
-  trendDirection?: "improving" | "declining" | "flat" | "insufficient";
+  trendDirection?: 'improving' | 'declining' | 'flat' | 'insufficient';
 }) {
   const trendColors: Record<string, string> = {
-    improving: "#b1bd37",
-    declining: "#dc2626",
-    flat: "#55787c",
+    improving: '#b1bd37',
+    declining: '#dc2626',
+    flat: '#55787c',
   };
 
   return (
@@ -424,13 +468,13 @@ function LetciDot({
         style={{
           backgroundColor: ready
             ? trendDirection
-              ? trendColors[trendDirection] || "#b1bd37"
-              : "#b1bd37"
-            : "var(--grid-line)",
+              ? trendColors[trendDirection] || '#b1bd37'
+              : '#b1bd37'
+            : 'var(--grid-line)',
         }}
       />
       <span className="text-[10px] text-text-muted leading-tight">
-        {trendDirection && ready ? trendDirection.slice(0, 3) : ""}
+        {trendDirection && ready ? trendDirection.slice(0, 3) : ''}
       </span>
     </div>
   );

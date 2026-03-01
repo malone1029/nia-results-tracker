@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { FormSkeleton } from "@/components/skeleton";
-import SurveyBuilderPage from "@/components/survey-builder-page";
-import type { QuestionInput, QuestionRow } from "@/lib/survey-types";
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { FormSkeleton } from '@/components/skeleton';
+import SurveyBuilderPage from '@/components/survey-builder-page';
+import type { QuestionInput, QuestionRow } from '@/lib/survey-types';
 
 interface MetricOption {
   id: number;
@@ -37,11 +37,11 @@ export default function EditSurveyPage() {
   const [metrics, setMetrics] = useState<MetricOption[]>([]);
   const [survey, setSurvey] = useState<SurveyApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!surveyId) {
-      setError("Invalid survey ID");
+      setError('Invalid survey ID');
       setLoading(false);
       return;
     }
@@ -50,10 +50,7 @@ export default function EditSurveyPage() {
       // Fetch survey (with questions) and metrics in parallel
       const [surveyRes, metricsRes] = await Promise.all([
         fetch(`/api/surveys/${surveyId}`).then((r) => r.json()) as Promise<SurveyApiResponse>,
-        supabase
-          .from("metrics")
-          .select("id, name, unit, cadence")
-          .order("name"),
+        supabase.from('metrics').select('id, name, unit, cadence').order('name'),
       ]);
 
       if (surveyRes.error) {
@@ -76,7 +73,7 @@ export default function EditSurveyPage() {
     return (
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="text-sm text-nia-red bg-nia-red/10 border border-nia-red/20 px-4 py-3 rounded-xl">
-          {error || "Survey not found"}
+          {error || 'Survey not found'}
         </div>
       </div>
     );
@@ -91,8 +88,8 @@ export default function EditSurveyPage() {
     metric_id: q.metric_id,
     options: q.options || {},
     is_required: q.is_required ?? true,
-    help_text: q.help_text || "",
-    section_label: q.section_label || "",
+    help_text: q.help_text || '',
+    section_label: q.section_label || '',
   }));
 
   return (

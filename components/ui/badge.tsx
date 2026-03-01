@@ -1,26 +1,26 @@
 /* ─── Color scheme definitions ──────────────────────────────── */
 
 const colorSchemes = {
-  gray: "bg-surface-subtle text-text-secondary",
-  dark: "bg-nia-dark/10 text-nia-dark",
-  orange: "bg-nia-orange/10 text-nia-orange",
-  green: "bg-nia-green/15 text-nia-green",
-  red: "bg-nia-red/10 text-nia-red",
-  purple: "bg-nia-purple/10 text-nia-purple",
-  yellow: "bg-nia-yellow/10 text-nia-yellow",
-  blue: "bg-nia-grey-blue/10 text-nia-grey-blue",
+  gray: 'bg-surface-subtle text-text-secondary',
+  dark: 'bg-nia-dark/10 text-nia-dark',
+  orange: 'bg-nia-orange/10 text-nia-orange',
+  green: 'bg-nia-green/15 text-nia-green',
+  red: 'bg-nia-red/10 text-nia-red',
+  purple: 'bg-nia-purple/10 text-nia-purple',
+  yellow: 'bg-nia-yellow/10 text-nia-yellow',
+  blue: 'bg-nia-grey-blue/10 text-nia-grey-blue',
   // Solid variants — white text on filled background
-  "solid-dark": "bg-nia-dark-solid text-white",
-  "solid-orange": "bg-nia-orange text-white",
-  "solid-green": "bg-nia-green text-white",
-  "solid-red": "bg-nia-red text-white",
-  "solid-purple": "bg-nia-purple text-white",
+  'solid-dark': 'bg-nia-dark-solid text-white',
+  'solid-orange': 'bg-nia-orange text-white',
+  'solid-green': 'bg-nia-green text-white',
+  'solid-red': 'bg-nia-red text-white',
+  'solid-purple': 'bg-nia-purple text-white',
 } as const;
 
 const sizes = {
-  xs: "text-[10px] px-1.5 py-0.5",
-  sm: "text-xs px-2 py-0.5",
-  md: "text-xs px-2.5 py-1",
+  xs: 'text-[10px] px-1.5 py-0.5',
+  sm: 'text-xs px-2 py-0.5',
+  md: 'text-xs px-2.5 py-1',
 } as const;
 
 /* ─── Types ─────────────────────────────────────────────────── */
@@ -40,24 +40,21 @@ interface BadgeProps {
 /* ─── Badge component ───────────────────────────────────────── */
 
 export default function Badge({
-  color = "gray",
-  size = "sm",
+  color = 'gray',
+  size = 'sm',
   dot = false,
   pill = true,
   children,
-  className = "",
+  className = '',
 }: BadgeProps) {
-  const rounded = pill ? "rounded-full" : "rounded";
+  const rounded = pill ? 'rounded-full' : 'rounded';
 
   return (
     <span
       className={`inline-flex items-center gap-1 font-medium whitespace-nowrap ${colorSchemes[color]} ${sizes[size]} ${rounded} ${className}`}
     >
       {dot && (
-        <span
-          className="w-1.5 h-1.5 rounded-full bg-current flex-shrink-0"
-          aria-hidden="true"
-        />
+        <span className="w-1.5 h-1.5 rounded-full bg-current flex-shrink-0" aria-hidden="true" />
       )}
       {children}
     </span>

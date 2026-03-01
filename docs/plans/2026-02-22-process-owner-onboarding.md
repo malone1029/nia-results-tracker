@@ -15,6 +15,7 @@
 ## Codebase Orientation
 
 **Key files to understand before starting:**
+
 - `lib/review-status.ts` — `getReviewStatus(cadence, lastEntryDate)` and `CADENCE_DAYS` constants — reuse these for compliance metric check
 - `lib/process-health.ts` — `computeHealth()` function and `HealthResult` interface — use to compute health scores for display
 - `lib/auth-helpers.ts` — `AppRole`, `isAdminRole()` — use for role checks in API routes
@@ -27,6 +28,7 @@
 **Owner matching:** Processes link to owners via `processes.owner` (text field) matched against `user_roles.full_name`. This is a soft link — exact string match. Keep this in mind when querying.
 
 **Compliance principle:** "I'll accept progress. I won't accept a failure to use."
+
 - Activity compliance = binary (green/red, no amber)
 - Growth trajectory = directional (sparkline, trend arrows)
 
@@ -35,6 +37,7 @@
 ## Task 1: Database Migration — Add Onboarding Tracking
 
 **Files:**
+
 - Create: `supabase/migrations/20260222050000_onboarding-tracking.sql`
 
 **Step 1: Write the migration**
@@ -68,6 +71,7 @@ git commit -m "feat: add onboarding_completed_at to user_roles"
 ## Task 2: Compliance Engine
 
 **Files:**
+
 - Create: `lib/compliance.ts`
 
 This is a pure function — no DB calls, no side effects. Takes data already fetched and returns compliance status. Tests verify it in isolation.
@@ -80,9 +84,9 @@ This is a pure function — no DB calls, no side effects. Takes data already fet
 // "I'll accept progress. I won't accept a failure to use." — Jon Malone
 //
 // Compliance thresholds (adjust here if expectations change):
-const PROCESS_UPDATE_WINDOW_DAYS = 90;     // must update process docs within 90 days
-const TASK_COMPLETION_WINDOW_DAYS = 90;    // must complete at least 1 task per 90 days
-const MIN_ACCEPTABLE_STATUS = ["ready_for_review", "approved"]; // at least one process must be here
+const PROCESS_UPDATE_WINDOW_DAYS = 90; // must update process docs within 90 days
+const TASK_COMPLETION_WINDOW_DAYS = 90; // must complete at least 1 task per 90 days
+const MIN_ACCEPTABLE_STATUS = ['ready_for_review', 'approved']; // at least one process must be here
 
 // Metric cadence windows match lib/review-status.ts CADENCE_DAYS
 // monthly=30, quarterly=90, semi-annual=182, annual=365
@@ -90,7 +94,7 @@ const MIN_ACCEPTABLE_STATUS = ["ready_for_review", "approved"]; // at least one 
 const CADENCE_GRACE: Record<string, number> = {
   monthly: 36,
   quarterly: 108,
-  "semi-annual": 218,
+  'semi-annual': 218,
   annual: 438,
 };
 
@@ -110,11 +114,11 @@ export interface ComplianceInput {
 }
 
 export interface ComplianceChecks {
-  onboardingComplete: boolean;     // has completed onboarding program
-  metricsAllCurrent: boolean;      // all linked metrics within cadence window (with grace)
+  onboardingComplete: boolean; // has completed onboarding program
+  metricsAllCurrent: boolean; // all linked metrics within cadence window (with grace)
   processRecentlyUpdated: boolean; // at least one process updated within 90 days
   taskCompletedThisQuarter: boolean; // at least one task completed in rolling 90 days
-  processStatusAcceptable: boolean;  // at least one process at ready_for_review or approved
+  processStatusAcceptable: boolean; // at least one process at ready_for_review or approved
 }
 
 export interface ComplianceResult {
@@ -147,9 +151,7 @@ export function computeCompliance(input: ComplianceInput): ComplianceResult {
   const processRecentlyUpdated =
     input.processes.length === 0
       ? false
-      : input.processes.some(
-          (p) => daysBetween(p.updated_at, now) <= PROCESS_UPDATE_WINDOW_DAYS
-        );
+      : input.processes.some((p) => daysBetween(p.updated_at, now) <= PROCESS_UPDATE_WINDOW_DAYS);
 
   // Check 4: At least one task completed in rolling 90 days
   const allCompletedDates = input.processes.flatMap((p) => p.tasksCompletedDates);
@@ -198,6 +200,7 @@ git commit -m "feat: add compliance engine for process owner scorecard"
 ## Task 3: Scorecard API Route
 
 **Files:**
+
 - Create: `app/api/owner/[id]/route.ts`
 
 This route serves two purposes: GET returns scorecard data, POST with `action=complete-onboarding` marks onboarding done.
@@ -206,78 +209,81 @@ This route serves two purposes: GET returns scorecard data, POST with `action=co
 
 ```typescript
 // app/api/owner/[id]/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isAdminRole } from "@/lib/auth-helpers";
-import { computeCompliance } from "@/lib/compliance";
+import { NextRequest, NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isAdminRole } from '@/lib/auth-helpers';
+import { computeCompliance } from '@/lib/compliance';
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: targetAuthId } = await params;
   const supabase = await createSupabaseServer();
 
   // Auth: get current user
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Role check: members can only view their own scorecard
   const { data: myRole } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
 
-  const role = myRole?.role ?? "member";
+  const role = myRole?.role ?? 'member';
   if (!isAdminRole(role) && user.id !== targetAuthId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   // Fetch target user
   const { data: owner, error: ownerErr } = await supabase
-    .from("user_roles")
-    .select("auth_id, email, full_name, role, last_login_at, onboarding_completed_at")
-    .eq("auth_id", targetAuthId)
+    .from('user_roles')
+    .select('auth_id, email, full_name, role, last_login_at, onboarding_completed_at')
+    .eq('auth_id', targetAuthId)
     .single();
 
   if (ownerErr || !owner) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
   // Fetch processes owned by this user (match on full_name)
   const ownerName = owner.full_name ?? owner.email;
   const { data: processes } = await supabase
-    .from("processes")
-    .select(`
+    .from('processes')
+    .select(
+      `
       id, name, status, updated_at, process_type,
       adli_approach, adli_deployment, adli_learning, adli_integration,
       charter, workflow
-    `)
-    .eq("owner", ownerName);
+    `
+    )
+    .eq('owner', ownerName);
 
   const processIds = (processes ?? []).map((p) => p.id);
 
   // Fetch metrics for these processes (via metric_processes junction)
-  const { data: metricLinks } = processIds.length > 0
-    ? await supabase
-        .from("metric_processes")
-        .select("process_id, metrics(id, name, cadence)")
-        .in("process_id", processIds)
-    : { data: [] };
+  const { data: metricLinks } =
+    processIds.length > 0
+      ? await supabase
+          .from('metric_processes')
+          .select('process_id, metrics(id, name, cadence)')
+          .in('process_id', processIds)
+      : { data: [] };
 
   // Fetch latest entry date per metric
   const metricIds = (metricLinks ?? [])
     .flatMap((ml) => (ml.metrics ? [ml.metrics] : []))
     .map((m: { id: number }) => m.id);
 
-  const { data: latestEntries } = metricIds.length > 0
-    ? await supabase
-        .from("entries")
-        .select("metric_id, date")
-        .in("metric_id", metricIds)
-        .order("date", { ascending: false })
-    : { data: [] };
+  const { data: latestEntries } =
+    metricIds.length > 0
+      ? await supabase
+          .from('entries')
+          .select('metric_id, date')
+          .in('metric_id', metricIds)
+          .order('date', { ascending: false })
+      : { data: [] };
 
   // Build a map: metric_id -> latest date
   const latestByMetric = new Map<number, string>();
@@ -291,23 +297,25 @@ export async function GET(
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-  const { data: completedTasks } = processIds.length > 0
-    ? await supabase
-        .from("process_tasks")
-        .select("process_id, completed_at")
-        .in("process_id", processIds)
-        .eq("completed", true)
-        .gte("completed_at", ninetyDaysAgo.toISOString())
-    : { data: [] };
+  const { data: completedTasks } =
+    processIds.length > 0
+      ? await supabase
+          .from('process_tasks')
+          .select('process_id, completed_at')
+          .in('process_id', processIds)
+          .eq('completed', true)
+          .gte('completed_at', ninetyDaysAgo.toISOString())
+      : { data: [] };
 
   // Fetch ADLI scores per process
-  const { data: adliScores } = processIds.length > 0
-    ? await supabase
-        .from("process_adli_scores")
-        .select("process_id, overall_score, scored_at")
-        .in("process_id", processIds)
-        .order("scored_at", { ascending: false })
-    : { data: [] };
+  const { data: adliScores } =
+    processIds.length > 0
+      ? await supabase
+          .from('process_adli_scores')
+          .select('process_id, overall_score, scored_at')
+          .in('process_id', processIds)
+          .order('scored_at', { ascending: false })
+      : { data: [] };
 
   // Latest ADLI score per process
   const latestAdliByProcess = new Map<number, number>();
@@ -319,19 +327,22 @@ export async function GET(
 
   // Fetch improvement journal count this calendar year
   const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
-  const { count: improvementCount } = processIds.length > 0
-    ? await supabase
-        .from("process_improvements")
-        .select("*", { count: "exact", head: true })
-        .in("process_id", processIds)
-        .gte("committed_date", yearStart)
-    : { count: 0 };
+  const { count: improvementCount } =
+    processIds.length > 0
+      ? await supabase
+          .from('process_improvements')
+          .select('*', { count: 'exact', head: true })
+          .in('process_id', processIds)
+          .gte('committed_date', yearStart)
+      : { count: 0 };
 
   // Build compliance input
   const processesForCompliance = (processes ?? []).map((p) => {
     const pMetrics = (metricLinks ?? [])
       .filter((ml) => ml.process_id === p.id)
-      .flatMap((ml) => (ml.metrics ? [ml.metrics as { id: number; name: string; cadence: string }] : []));
+      .flatMap((ml) =>
+        ml.metrics ? [ml.metrics as { id: number; name: string; cadence: string }] : []
+      );
 
     return {
       updated_at: p.updated_at,
@@ -352,19 +363,19 @@ export async function GET(
   });
 
   // Task completion rate this quarter (all tasks, not just recent completions)
-  const { data: allTasks } = processIds.length > 0
-    ? await supabase
-        .from("process_tasks")
-        .select("completed")
-        .in("process_id", processIds)
-        .in("origin", ["hub_manual", "asana"])
-    : { data: [] };
+  const { data: allTasks } =
+    processIds.length > 0
+      ? await supabase
+          .from('process_tasks')
+          .select('completed')
+          .in('process_id', processIds)
+          .in('origin', ['hub_manual', 'asana'])
+      : { data: [] };
 
   const totalTasks = (allTasks ?? []).length;
   const completedTasksTotal = (allTasks ?? []).filter((t) => t.completed).length;
-  const taskCompletionRate = totalTasks > 0
-    ? Math.round((completedTasksTotal / totalTasks) * 100)
-    : null;
+  const taskCompletionRate =
+    totalTasks > 0 ? Math.round((completedTasksTotal / totalTasks) * 100) : null;
 
   return NextResponse.json({
     owner,
@@ -382,36 +393,35 @@ export async function GET(
   });
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: targetAuthId } = await params;
   const supabase = await createSupabaseServer();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Only the user themselves (or an admin) can mark onboarding complete
   const { data: myRole } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
-  const role = myRole?.role ?? "member";
+  const role = myRole?.role ?? 'member';
   if (!isAdminRole(role) && user.id !== targetAuthId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const body = await req.json();
-  if (body.action !== "complete-onboarding") {
-    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  if (body.action !== 'complete-onboarding') {
+    return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   }
 
   const { error } = await supabase
-    .from("user_roles")
+    .from('user_roles')
     .update({ onboarding_completed_at: new Date().toISOString() })
-    .eq("auth_id", targetAuthId);
+    .eq('auth_id', targetAuthId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -439,6 +449,7 @@ git commit -m "feat: add scorecard API route GET+POST /api/owner/[id]"
 ## Task 4: Scorecard Page `/owner/[id]`
 
 **Files:**
+
 - Create: `app/owner/[id]/page.tsx`
 
 **Step 1: Write the page**
@@ -761,6 +772,7 @@ git commit -m "feat: add process owner scorecard page /owner/[id]"
 ## Task 5: Admin Scorecards Overview Page
 
 **Files:**
+
 - Create: `app/admin/scorecards/page.tsx`
 - Create: `app/api/admin/scorecards/route.ts`
 
@@ -768,62 +780,66 @@ git commit -m "feat: add process owner scorecard page /owner/[id]"
 
 ```typescript
 // app/api/admin/scorecards/route.ts
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isAdminRole } from "@/lib/auth-helpers";
-import { computeCompliance } from "@/lib/compliance";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isAdminRole } from '@/lib/auth-helpers';
+import { computeCompliance } from '@/lib/compliance';
 
 export async function GET() {
   const supabase = await createSupabaseServer();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { data: myRole } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
 
-  if (!isAdminRole(myRole?.role ?? "member")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdminRole(myRole?.role ?? 'member')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   // Fetch all registered users
   const { data: users } = await supabase
-    .from("user_roles")
-    .select("auth_id, email, full_name, role, last_login_at, onboarding_completed_at")
-    .order("full_name");
+    .from('user_roles')
+    .select('auth_id, email, full_name, role, last_login_at, onboarding_completed_at')
+    .order('full_name');
 
   if (!users) return NextResponse.json({ scorecards: [] });
 
   // For each user, compute compliance
   // Batch fetch all processes, then assign to owners
   const { data: allProcesses } = await supabase
-    .from("processes")
-    .select("id, name, status, updated_at, owner");
+    .from('processes')
+    .select('id, name, status, updated_at, owner');
 
   const processIds = (allProcesses ?? []).map((p) => p.id);
 
   // Fetch metric links
-  const { data: metricLinks } = processIds.length > 0
-    ? await supabase
-        .from("metric_processes")
-        .select("process_id, metrics(id, cadence)")
-        .in("process_id", processIds)
-    : { data: [] };
+  const { data: metricLinks } =
+    processIds.length > 0
+      ? await supabase
+          .from('metric_processes')
+          .select('process_id, metrics(id, cadence)')
+          .in('process_id', processIds)
+      : { data: [] };
 
   const metricIds = (metricLinks ?? [])
     .flatMap((ml) => (ml.metrics ? [ml.metrics as { id: number; cadence: string }] : []))
     .map((m) => m.id);
 
-  const { data: latestEntries } = metricIds.length > 0
-    ? await supabase
-        .from("entries")
-        .select("metric_id, date")
-        .in("metric_id", metricIds)
-        .order("date", { ascending: false })
-    : { data: [] };
+  const { data: latestEntries } =
+    metricIds.length > 0
+      ? await supabase
+          .from('entries')
+          .select('metric_id, date')
+          .in('metric_id', metricIds)
+          .order('date', { ascending: false })
+      : { data: [] };
 
   const latestByMetric = new Map<number, string>();
   for (const e of latestEntries ?? []) {
@@ -833,14 +849,15 @@ export async function GET() {
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-  const { data: completedTasks } = processIds.length > 0
-    ? await supabase
-        .from("process_tasks")
-        .select("process_id, completed_at")
-        .in("process_id", processIds)
-        .eq("completed", true)
-        .gte("completed_at", ninetyDaysAgo.toISOString())
-    : { data: [] };
+  const { data: completedTasks } =
+    processIds.length > 0
+      ? await supabase
+          .from('process_tasks')
+          .select('process_id, completed_at')
+          .in('process_id', processIds)
+          .eq('completed', true)
+          .gte('completed_at', ninetyDaysAgo.toISOString())
+      : { data: [] };
 
   // Build scorecards for each user
   const scorecards = users.map((u) => {
@@ -1049,6 +1066,7 @@ git commit -m "feat: add admin scorecards overview page and API"
 ## Task 6: Onboarding Program Page
 
 **Files:**
+
 - Create: `app/onboarding/page.tsx`
 
 This is a 4-chapter wizard. Each chapter is a full-screen step. Progress is saved in state; completion is written to the DB via POST to `/api/owner/[id]`.
@@ -1288,6 +1306,7 @@ git commit -m "feat: add 4-chapter onboarding program page"
 ## Task 7: Sidebar Navigation Links
 
 **Files:**
+
 - Modify: `components/sidebar.tsx:16-80`
 
 Add "My Scorecard" for all users in Overview, and "Scorecards" for admins in the Admin group.
@@ -1311,11 +1330,11 @@ Create `app/my-scorecard/page.tsx`:
 ```typescript
 // app/my-scorecard/page.tsx
 // Redirects to /owner/[current-user-id]
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function MyScorecardRedirect() {
   const router = useRouter();
@@ -1325,7 +1344,7 @@ export default function MyScorecardRedirect() {
       if (user) {
         router.replace(`/owner/${user.id}`);
       } else {
-        router.replace("/login");
+        router.replace('/login');
       }
     });
   }, [router]);
@@ -1371,6 +1390,7 @@ gh pr merge --merge --delete-branch
 ```
 
 Verify in production:
+
 1. Visit `/onboarding` — 4 chapters, completes successfully
 2. Visit `/my-scorecard` — redirects to your scorecard with compliance panel
 3. Visit `/admin/scorecards` — table of all users, non-compliant first

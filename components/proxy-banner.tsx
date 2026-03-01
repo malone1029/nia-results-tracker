@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRole } from "@/lib/use-role";
+import { useState } from 'react';
+import { useRole } from '@/lib/use-role';
 
 export default function ProxyBanner() {
   const { isProxying, proxyTargetName } = useRole();
@@ -11,8 +11,8 @@ export default function ProxyBanner() {
 
   async function handleExit() {
     setExiting(true);
-    await fetch("/api/admin/proxy", { method: "DELETE" });
-    window.location.href = "/settings";
+    await fetch('/api/admin/proxy', { method: 'DELETE' });
+    window.location.href = '/settings';
   }
 
   return (
@@ -39,7 +39,7 @@ export default function ProxyBanner() {
         disabled={exiting}
         className="text-white/90 hover:text-white underline underline-offset-2 transition-opacity disabled:opacity-50 text-xs"
       >
-        {exiting ? "Exiting..." : "Exit view"}
+        {exiting ? 'Exiting...' : 'Exit view'}
       </button>
     </div>
   );

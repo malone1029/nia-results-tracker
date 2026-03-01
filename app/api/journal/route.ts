@@ -1,20 +1,20 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
 
 export async function GET(request: Request) {
   const supabase = await createSupabaseServer();
   const { searchParams } = new URL(request.url);
-  const processId = searchParams.get("processId");
+  const processId = searchParams.get('processId');
 
   if (!processId) {
-    return NextResponse.json({ error: "processId is required" }, { status: 400 });
+    return NextResponse.json({ error: 'processId is required' }, { status: 400 });
   }
 
   const { data, error } = await supabase
-    .from("improvement_journal")
-    .select("*")
-    .eq("process_id", Number(processId))
-    .order("created_at", { ascending: false });
+    .from('improvement_journal')
+    .select('*')
+    .eq('process_id', Number(processId))
+    .order('created_at', { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -27,19 +27,16 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
   const body = await request.json();
 
-  const { process_id, title, description, status = "in_progress" } = body;
+  const { process_id, title, description, status = 'in_progress' } = body;
 
   if (!process_id || !title) {
-    return NextResponse.json(
-      { error: "process_id and title are required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'process_id and title are required' }, { status: 400 });
   }
 
   const { data, error } = await supabase
-    .from("improvement_journal")
+    .from('improvement_journal')
     .insert({ process_id, title, description, status })
-    .select("*")
+    .select('*')
     .single();
 
   if (error) {
@@ -56,7 +53,7 @@ export async function PATCH(request: Request) {
   const { id, title, description, status } = body;
 
   if (!id) {
-    return NextResponse.json({ error: "id is required" }, { status: 400 });
+    return NextResponse.json({ error: 'id is required' }, { status: 400 });
   }
 
   const updates: Record<string, unknown> = {};
@@ -64,7 +61,7 @@ export async function PATCH(request: Request) {
   if (description !== undefined) updates.description = description;
   if (status !== undefined) {
     updates.status = status;
-    if (status === "completed") {
+    if (status === 'completed') {
       updates.completed_at = new Date().toISOString();
     } else {
       updates.completed_at = null;
@@ -72,10 +69,10 @@ export async function PATCH(request: Request) {
   }
 
   const { data, error } = await supabase
-    .from("improvement_journal")
+    .from('improvement_journal')
     .update(updates)
-    .eq("id", id)
-    .select("*")
+    .eq('id', id)
+    .select('*')
     .single();
 
   if (error) {
@@ -88,16 +85,13 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const supabase = await createSupabaseServer();
   const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
+  const id = searchParams.get('id');
 
   if (!id) {
-    return NextResponse.json({ error: "id is required" }, { status: 400 });
+    return NextResponse.json({ error: 'id is required' }, { status: 400 });
   }
 
-  const { error } = await supabase
-    .from("improvement_journal")
-    .delete()
-    .eq("id", Number(id));
+  const { error } = await supabase.from('improvement_journal').delete().eq('id', Number(id));
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

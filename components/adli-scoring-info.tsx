@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 /**
  * Info modal explaining how AI scores ADLI dimensions.
@@ -12,10 +12,10 @@ export default function AdliScoringInfo() {
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === 'Escape') setOpen(false);
     }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, [open]);
 
   return (
@@ -27,7 +27,13 @@ export default function AdliScoringInfo() {
         title="How are these scores calculated?"
         aria-label="How are ADLI scores calculated?"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
           <circle cx="12" cy="12" r="10" />
           <path strokeLinecap="round" d="M12 16v-4m0-4h.01" />
         </svg>
@@ -54,7 +60,13 @@ export default function AdliScoringInfo() {
                 className="text-text-muted hover:text-nia-dark transition-colors p-1"
                 aria-label="Close"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -63,40 +75,74 @@ export default function AdliScoringInfo() {
             {/* Content */}
             <div className="px-5 py-4 space-y-5 text-sm text-text-secondary leading-relaxed">
               <p>
-                When you run an ADLI assessment, the AI coach reviews your process documentation
-                and scores each of the four dimensions from 0 to 100.
+                When you run an ADLI assessment, the AI coach reviews your process documentation and
+                scores each of the four dimensions from 0 to 100.
               </p>
 
               {/* What it evaluates */}
               <div>
-                <h4 className="text-sm font-semibold text-nia-dark mb-2">What each dimension measures</h4>
+                <h4 className="text-sm font-semibold text-nia-dark mb-2">
+                  What each dimension measures
+                </h4>
                 <div className="space-y-3">
                   <div className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "#f79935" }}>A</span>
+                    <span
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: '#f79935' }}
+                    >
+                      A
+                    </span>
                     <div>
                       <span className="font-medium text-nia-dark">Approach</span>
-                      <p className="text-text-tertiary mt-0.5">Is there a documented, repeatable method? Does it have a clear rationale and evidence behind it?</p>
+                      <p className="text-text-tertiary mt-0.5">
+                        Is there a documented, repeatable method? Does it have a clear rationale and
+                        evidence behind it?
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "#55787c" }}>D</span>
+                    <span
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: '#55787c' }}
+                    >
+                      D
+                    </span>
                     <div>
                       <span className="font-medium text-nia-dark">Deployment</span>
-                      <p className="text-text-tertiary mt-0.5">Is the approach applied consistently? Are the scope, roles, and training defined?</p>
+                      <p className="text-text-tertiary mt-0.5">
+                        Is the approach applied consistently? Are the scope, roles, and training
+                        defined?
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "#b1bd37" }}>L</span>
+                    <span
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: '#b1bd37' }}
+                    >
+                      L
+                    </span>
                     <div>
                       <span className="font-medium text-nia-dark">Learning</span>
-                      <p className="text-text-tertiary mt-0.5">Is the process measured and improved over time? Are there metrics, review cycles, and documented changes?</p>
+                      <p className="text-text-tertiary mt-0.5">
+                        Is the process measured and improved over time? Are there metrics, review
+                        cycles, and documented changes?
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "#324a4d" }}>I</span>
+                    <span
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: '#324a4d' }}
+                    >
+                      I
+                    </span>
                     <div>
                       <span className="font-medium text-nia-dark">Integration</span>
-                      <p className="text-text-tertiary mt-0.5">Does the process connect to NIA&apos;s strategic goals? Does it link to related processes and shared measures?</p>
+                      <p className="text-text-tertiary mt-0.5">
+                        Does the process connect to NIA&apos;s strategic goals? Does it link to
+                        related processes and shared measures?
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -109,31 +155,52 @@ export default function AdliScoringInfo() {
                 <ul className="space-y-1.5 ml-1">
                   <li className="flex gap-2">
                     <span className="text-nia-orange mt-0.5">&#9679;</span>
-                    <span><strong className="text-nia-dark">Charter &amp; ADLI sections</strong> &mdash; the core documentation you&apos;ve written for this process</span>
+                    <span>
+                      <strong className="text-nia-dark">Charter &amp; ADLI sections</strong> &mdash;
+                      the core documentation you&apos;ve written for this process
+                    </span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-nia-orange mt-0.5">&#9679;</span>
-                    <span><strong className="text-nia-dark">Linked metrics</strong> &mdash; values, targets, trends, and whether metrics are current or overdue</span>
+                    <span>
+                      <strong className="text-nia-dark">Linked metrics</strong> &mdash; values,
+                      targets, trends, and whether metrics are current or overdue
+                    </span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-nia-orange mt-0.5">&#9679;</span>
-                    <span><strong className="text-nia-dark">Survey results</strong> &mdash; stakeholder feedback scores from any process surveys</span>
+                    <span>
+                      <strong className="text-nia-dark">Survey results</strong> &mdash; stakeholder
+                      feedback scores from any process surveys
+                    </span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-nia-orange mt-0.5">&#9679;</span>
-                    <span><strong className="text-nia-dark">Improvement history</strong> &mdash; recent changes so the AI knows what&apos;s already been addressed</span>
+                    <span>
+                      <strong className="text-nia-dark">Improvement history</strong> &mdash; recent
+                      changes so the AI knows what&apos;s already been addressed
+                    </span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-nia-orange mt-0.5">&#9679;</span>
-                    <span><strong className="text-nia-dark">Asana project data</strong> &mdash; task completion, sections, and progress from your linked project</span>
+                    <span>
+                      <strong className="text-nia-dark">Asana project data</strong> &mdash; task
+                      completion, sections, and progress from your linked project
+                    </span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-nia-orange mt-0.5">&#9679;</span>
-                    <span><strong className="text-nia-dark">Uploaded files</strong> &mdash; any documents or images you&apos;ve attached to this process</span>
+                    <span>
+                      <strong className="text-nia-dark">Uploaded files</strong> &mdash; any
+                      documents or images you&apos;ve attached to this process
+                    </span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-nia-orange mt-0.5">&#9679;</span>
-                    <span><strong className="text-nia-dark">Key requirements</strong> &mdash; stakeholder needs linked to this process</span>
+                    <span>
+                      <strong className="text-nia-dark">Key requirements</strong> &mdash;
+                      stakeholder needs linked to this process
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -144,30 +211,50 @@ export default function AdliScoringInfo() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-surface-subtle rounded-lg px-3 py-2">
                     <span className="text-xs font-semibold text-nia-red">0 &ndash; 25%</span>
-                    <p className="text-xs text-text-tertiary mt-0.5">Reacting &mdash; no systematic approach yet</p>
+                    <p className="text-xs text-text-tertiary mt-0.5">
+                      Reacting &mdash; no systematic approach yet
+                    </p>
                   </div>
                   <div className="bg-surface-subtle rounded-lg px-3 py-2">
                     <span className="text-xs font-semibold text-nia-orange">30 &ndash; 45%</span>
-                    <p className="text-xs text-text-tertiary mt-0.5">Early Systematic &mdash; starting to document</p>
+                    <p className="text-xs text-text-tertiary mt-0.5">
+                      Early Systematic &mdash; starting to document
+                    </p>
                   </div>
                   <div className="bg-surface-subtle rounded-lg px-3 py-2">
                     <span className="text-xs font-semibold text-nia-green">50 &ndash; 65%</span>
-                    <p className="text-xs text-text-tertiary mt-0.5">Aligned &mdash; consistent and documented</p>
+                    <p className="text-xs text-text-tertiary mt-0.5">
+                      Aligned &mdash; consistent and documented
+                    </p>
                   </div>
                   <div className="bg-surface-subtle rounded-lg px-3 py-2">
                     <span className="text-xs font-semibold text-nia-dark">70 &ndash; 100%</span>
-                    <p className="text-xs text-text-tertiary mt-0.5">Integrated &mdash; measured and strategic</p>
+                    <p className="text-xs text-text-tertiary mt-0.5">
+                      Integrated &mdash; measured and strategic
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Tips */}
               <div className="bg-nia-orange/5 border border-nia-orange/15 rounded-lg px-4 py-3">
-                <h4 className="text-sm font-semibold text-nia-dark mb-1">Tips to improve your scores</h4>
+                <h4 className="text-sm font-semibold text-nia-dark mb-1">
+                  Tips to improve your scores
+                </h4>
                 <ul className="space-y-1 text-xs text-text-tertiary">
-                  <li>&bull; <strong className="text-text-secondary">Learning scores low?</strong> Link metrics and create a survey &mdash; the AI needs evidence of measurement.</li>
-                  <li>&bull; <strong className="text-text-secondary">Integration scores low?</strong> Link key requirements and Baldrige connections to show strategic alignment.</li>
-                  <li>&bull; <strong className="text-text-secondary">Scores not changing?</strong> The AI only sees what&apos;s written &mdash; update your ADLI sections to reflect actual practice.</li>
+                  <li>
+                    &bull; <strong className="text-text-secondary">Learning scores low?</strong>{' '}
+                    Link metrics and create a survey &mdash; the AI needs evidence of measurement.
+                  </li>
+                  <li>
+                    &bull; <strong className="text-text-secondary">Integration scores low?</strong>{' '}
+                    Link key requirements and Baldrige connections to show strategic alignment.
+                  </li>
+                  <li>
+                    &bull; <strong className="text-text-secondary">Scores not changing?</strong> The
+                    AI only sees what&apos;s written &mdash; update your ADLI sections to reflect
+                    actual practice.
+                  </li>
                 </ul>
               </div>
             </div>

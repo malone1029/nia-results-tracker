@@ -1,23 +1,20 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState, useMemo } from "react";
-import { DashboardSkeleton } from "@/components/skeleton";
-import { Card, Badge, Button, Select } from "@/components/ui";
-import HealthRing from "@/components/health-ring";
-import HelpTip from "@/components/help-tip";
-import SectionIntro from "@/components/section-intro";
-import {
-  getHealthLevel,
-  type HealthResult,
-} from "@/lib/process-health";
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { DashboardSkeleton } from '@/components/skeleton';
+import { Card, Badge, Button, Select } from '@/components/ui';
+import HealthRing from '@/components/health-ring';
+import HelpTip from '@/components/help-tip';
+import SectionIntro from '@/components/section-intro';
+import { getHealthLevel, type HealthResult } from '@/lib/process-health';
 import {
   fetchHealthData,
   type ProcessWithCategory,
   type CategoryRow,
   type HealthData,
-} from "@/lib/fetch-health-data";
-import { supabase } from "@/lib/supabase";
-import Link from "next/link";
+} from '@/lib/fetch-health-data';
+import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 import {
   LineChart,
   Line,
@@ -27,15 +24,15 @@ import {
   Tooltip,
   ReferenceLine,
   ResponsiveContainer,
-} from "recharts";
+} from 'recharts';
 
 // ── Dimension metadata ───────────────────────────────────────
-const DIMENSION_CONFIG: { key: keyof HealthResult["dimensions"]; label: string; max: number }[] = [
-  { key: "documentation", label: "Documentation", max: 25 },
-  { key: "maturity", label: "Maturity", max: 25 },
-  { key: "measurement", label: "Measurement", max: 20 },
-  { key: "operations", label: "Operations", max: 15 },
-  { key: "freshness", label: "Freshness", max: 15 },
+const DIMENSION_CONFIG: { key: keyof HealthResult['dimensions']; label: string; max: number }[] = [
+  { key: 'documentation', label: 'Documentation', max: 25 },
+  { key: 'maturity', label: 'Maturity', max: 25 },
+  { key: 'measurement', label: 'Measurement', max: 20 },
+  { key: 'operations', label: 'Operations', max: 15 },
+  { key: 'freshness', label: 'Freshness', max: 15 },
 ];
 
 interface Snapshot {
@@ -55,7 +52,7 @@ export default function ReadinessPage() {
   const [loading, setLoading] = useState(true);
 
   // Owner filter state
-  const [selectedOwner, setSelectedOwner] = useState<string>("__all__");
+  const [selectedOwner, setSelectedOwner] = useState<string>('__all__');
   const [owners, setOwners] = useState<string[]>([]);
 
   // Snapshot state
@@ -69,11 +66,12 @@ export default function ReadinessPage() {
   // Auto-snapshot: silently save today's scores in the background
   async function autoTakeSnapshot(data: HealthData, existingSnaps: Snapshot[]) {
     // Compute org score from fresh data
-    let wSum = 0, wTot = 0;
+    let wSum = 0,
+      wTot = 0;
     for (const proc of data.processes) {
       const h = data.healthScores.get(proc.id);
       if (!h) continue;
-      const w = proc.process_type === "key" ? 2 : 1;
+      const w = proc.process_type === 'key' ? 2 : 1;
       wSum += h.total * w;
       wTot += w;
     }
@@ -88,13 +86,15 @@ export default function ReadinessPage() {
     for (const cat of data.categories) {
       const catProcs = data.processes.filter((p) => p.category_id === cat.id);
       const scores = catProcs.map((p) => data.healthScores.get(p.id)?.total ?? 0);
-      catScores[String(cat.id)] = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      catScores[String(cat.id)] =
+        scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
     }
 
     // Dimension scores
     const dimScores: Record<string, number> = {};
     for (const dim of DIMENSION_CONFIG) {
-      let total = 0, count = 0;
+      let total = 0,
+        count = 0;
       for (const proc of data.processes) {
         const h = data.healthScores.get(proc.id);
         if (!h) continue;
@@ -105,9 +105,9 @@ export default function ReadinessPage() {
       dimScores[dim.key] = dim.max > 0 ? Math.round((avg / dim.max) * 100) : 0;
     }
 
-    const res = await fetch("/api/readiness", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/readiness', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_score: oScore,
         category_scores: catScores,
@@ -135,12 +135,12 @@ export default function ReadinessPage() {
   const autoSnapshotRef = useRef(false);
 
   useEffect(() => {
-    document.title = "Readiness | NIA Excellence Hub";
+    document.title = 'Readiness | NIA Excellence Hub';
 
     async function load() {
       const [data, snapRes, userRes] = await Promise.all([
         fetchHealthData(),
-        fetch("/api/readiness").then((r) => r.ok ? r.json() : []),
+        fetch('/api/readiness').then((r) => (r.ok ? r.json() : [])),
         supabase.auth.getUser(),
       ]);
       setProcesses(data.processes);
@@ -155,11 +155,9 @@ export default function ReadinessPage() {
       }
       const sortedOwners = [...ownerSet].sort();
       setOwners(sortedOwners);
-      const fullName = userRes.data?.user?.user_metadata?.full_name || "";
+      const fullName = userRes.data?.user?.user_metadata?.full_name || '';
       if (fullName) {
-        const match = sortedOwners.find(
-          (o) => o.toLowerCase() === fullName.toLowerCase()
-        );
+        const match = sortedOwners.find((o) => o.toLowerCase() === fullName.toLowerCase());
         if (match) setSelectedOwner(match);
       }
 
@@ -168,7 +166,7 @@ export default function ReadinessPage() {
       // Auto-snapshot: save one if none exists for today
       if (!autoSnapshotRef.current && data.processes.length > 0) {
         autoSnapshotRef.current = true;
-        const today = new Date().toISOString().split("T")[0];
+        const today = new Date().toISOString().split('T')[0];
         const snaps = snapRes as Snapshot[];
         const hasToday = snaps.some((s) => s.snapshot_date === today);
         if (!hasToday) {
@@ -177,13 +175,13 @@ export default function ReadinessPage() {
       }
     }
     load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Owner filtering (must be before early return) ─────────
-  const isFiltered = selectedOwner !== "__all__";
+  const isFiltered = selectedOwner !== '__all__';
   const filteredProcesses = useMemo(
-    () => isFiltered ? processes.filter((p) => p.owner === selectedOwner) : processes,
+    () => (isFiltered ? processes.filter((p) => p.owner === selectedOwner) : processes),
     [processes, selectedOwner, isFiltered]
   );
 
@@ -195,7 +193,7 @@ export default function ReadinessPage() {
   for (const proc of processes) {
     const health = healthScores.get(proc.id);
     if (!health) continue;
-    const weight = proc.process_type === "key" ? 2 : 1;
+    const weight = proc.process_type === 'key' ? 2 : 1;
     orgWeightedSum += health.total * weight;
     orgWeightTotal += weight;
   }
@@ -207,7 +205,7 @@ export default function ReadinessPage() {
   for (const proc of filteredProcesses) {
     const health = healthScores.get(proc.id);
     if (!health) continue;
-    const weight = proc.process_type === "key" ? 2 : 1;
+    const weight = proc.process_type === 'key' ? 2 : 1;
     weightedSum += health.total * weight;
     weightTotal += weight;
   }
@@ -219,10 +217,14 @@ export default function ReadinessPage() {
     return h && h.total >= 80;
   }).length;
 
-  const keyProcesses = filteredProcesses.filter((p) => p.process_type === "key");
-  const keyAvg = keyProcesses.length > 0
-    ? Math.round(keyProcesses.reduce((sum, p) => sum + (healthScores.get(p.id)?.total ?? 0), 0) / keyProcesses.length)
-    : null;
+  const keyProcesses = filteredProcesses.filter((p) => p.process_type === 'key');
+  const keyAvg =
+    keyProcesses.length > 0
+      ? Math.round(
+          keyProcesses.reduce((sum, p) => sum + (healthScores.get(p.id)?.total ?? 0), 0) /
+            keyProcesses.length
+        )
+      : null;
 
   // ── Category breakdown ─────────────────────────────────────
   interface CategoryData {
@@ -238,9 +240,10 @@ export default function ReadinessPage() {
         .filter((p) => p.category_id === cat.id)
         .map((p) => ({ ...p, health: healthScores.get(p.id)! }))
         .filter((p) => p.health);
-      const avg = catProcs.length > 0
-        ? Math.round(catProcs.reduce((s, p) => s + p.health.total, 0) / catProcs.length)
-        : 0;
+      const avg =
+        catProcs.length > 0
+          ? Math.round(catProcs.reduce((s, p) => s + p.health.total, 0) / catProcs.length)
+          : 0;
       const ready = catProcs.filter((p) => p.health.total >= 80).length;
       return { category: cat, procs: catProcs, avgScore: avg, readyCount: ready };
     })
@@ -262,15 +265,18 @@ export default function ReadinessPage() {
   }).sort((a, b) => a.pct - b.pct); // weakest first
 
   // ── Top 5 actions ──────────────────────────────────────────
-  const actionMap = new Map<string, { label: string; totalPoints: number; count: number; href?: string }>();
+  const actionMap = new Map<
+    string,
+    { label: string; totalPoints: number; count: number; href?: string }
+  >();
   for (const proc of filteredProcesses) {
     const h = healthScores.get(proc.id);
     if (!h) continue;
     for (const action of h.nextActions) {
       const normalized = action.label
-        .replace(/\s+for this process/i, "")
-        .replace(/\s+to this process/i, "")
-        .replace(/\s+\(last updated \d+ days ago\)/i, "")
+        .replace(/\s+for this process/i, '')
+        .replace(/\s+to this process/i, '')
+        .replace(/\s+\(last updated \d+ days ago\)/i, '')
         .trim();
       const existing = actionMap.get(normalized);
       if (existing) {
@@ -307,9 +313,9 @@ export default function ReadinessPage() {
       dimScores[dim.key] = dim.pct;
     }
 
-    const res = await fetch("/api/readiness", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/readiness', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_score: orgScore,
         category_scores: catScores,
@@ -331,22 +337,24 @@ export default function ReadinessPage() {
         }
         return [...prev, saved].sort((a, b) => a.snapshot_date.localeCompare(b.snapshot_date));
       });
-      setSnapshotMsg("Snapshot saved!");
+      setSnapshotMsg('Snapshot saved!');
       setTimeout(() => setSnapshotMsg(null), 3000);
     } else {
-      setSnapshotMsg("Failed to save snapshot");
+      setSnapshotMsg('Failed to save snapshot');
     }
     setSnapshotSaving(false);
   }
 
   // ── Chart data ─────────────────────────────────────────────
-  const spansMultipleYears = snapshots.length > 1 &&
-    new Date(snapshots[0].snapshot_date).getFullYear() !== new Date(snapshots[snapshots.length - 1].snapshot_date).getFullYear();
+  const spansMultipleYears =
+    snapshots.length > 1 &&
+    new Date(snapshots[0].snapshot_date).getFullYear() !==
+      new Date(snapshots[snapshots.length - 1].snapshot_date).getFullYear();
   const chartData = snapshots.map((s) => ({
-    date: new Date(s.snapshot_date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      ...(spansMultipleYears ? { year: "2-digit" as const } : {}),
+    date: new Date(s.snapshot_date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      ...(spansMultipleYears ? { year: '2-digit' as const } : {}),
     }),
     score: s.org_score,
     ready: s.ready_count,
@@ -359,12 +367,13 @@ export default function ReadinessPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-foreground font-display">
-            Baldrige Readiness<HelpTip text="Weighted average of all health scores. Key processes count 2x." />
+            Baldrige Readiness
+            <HelpTip text="Weighted average of all health scores. Key processes count 2x." />
           </h1>
           <p className="text-text-tertiary mt-1">
             {isFiltered
               ? `${selectedOwner}\u2019s process readiness vs. organization`
-              : "Organization-wide readiness for a Baldrige Excellence application"}
+              : 'Organization-wide readiness for a Baldrige Excellence application'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -376,20 +385,19 @@ export default function ReadinessPage() {
             >
               <option value="__all__">All Owners</option>
               {owners.map((o) => (
-                <option key={o} value={o}>{o}</option>
+                <option key={o} value={o}>
+                  {o}
+                </option>
               ))}
             </Select>
           )}
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={takeSnapshot}
-            disabled={snapshotSaving}
-          >
-            {snapshotSaving ? "Saving..." : "Refresh Snapshot"}
+          <Button variant="primary" size="sm" onClick={takeSnapshot} disabled={snapshotSaving}>
+            {snapshotSaving ? 'Saving...' : 'Refresh Snapshot'}
           </Button>
           {snapshotMsg && (
-            <span className={`text-sm font-medium ${snapshotMsg.includes("Failed") ? "text-nia-red" : "text-nia-green"}`}>
+            <span
+              className={`text-sm font-medium ${snapshotMsg.includes('Failed') ? 'text-nia-red' : 'text-nia-green'}`}
+            >
               {snapshotMsg}
             </span>
           )}
@@ -397,7 +405,8 @@ export default function ReadinessPage() {
       </div>
 
       <SectionIntro storageKey="intro-readiness">
-        This dashboard shows your organization&apos;s Baldrige readiness. Scores are weighted averages — Key processes count 2x.
+        This dashboard shows your organization&apos;s Baldrige readiness. Scores are weighted
+        averages — Key processes count 2x.
       </SectionIntro>
 
       {/* ── Section A: Readiness Score ────────────────────────── */}
@@ -415,23 +424,30 @@ export default function ReadinessPage() {
               {displayLevel.label}
             </div>
             <div className="text-3xl font-bold text-foreground mt-1">
-              {displayScore}<span className="text-lg text-text-muted font-normal">/100</span>
+              {displayScore}
+              <span className="text-lg text-text-muted font-normal">/100</span>
               {isFiltered && (
                 <span className="ml-3 text-sm font-normal text-text-muted">
                   Org: <span className="font-medium text-foreground">{orgScore}</span>
-                  {displayScore > orgScore && <span className="text-nia-green ml-1">+{displayScore - orgScore}</span>}
-                  {displayScore < orgScore && <span className="text-nia-orange ml-1">{displayScore - orgScore}</span>}
+                  {displayScore > orgScore && (
+                    <span className="text-nia-green ml-1">+{displayScore - orgScore}</span>
+                  )}
+                  {displayScore < orgScore && (
+                    <span className="text-nia-orange ml-1">{displayScore - orgScore}</span>
+                  )}
                 </span>
               )}
             </div>
             <div className="text-sm text-text-tertiary mt-2 space-y-1">
               <div>
-                {readyCount} of {filteredProcesses.length} processes are{" "}
-                <span className="font-medium" style={{ color: "#b1bd37" }}>Baldrige Ready</span>
+                {readyCount} of {filteredProcesses.length} processes are{' '}
+                <span className="font-medium" style={{ color: '#b1bd37' }}>
+                  Baldrige Ready
+                </span>
               </div>
               {keyAvg !== null && keyProcesses.length > 0 && (
                 <div>
-                  {keyProcesses.length} Key Process{keyProcesses.length !== 1 ? "es" : ""} avg:{" "}
+                  {keyProcesses.length} Key Process{keyProcesses.length !== 1 ? 'es' : ''} avg:{' '}
                   <span className="font-medium text-foreground">{keyAvg}%</span>
                 </div>
               )}
@@ -453,27 +469,27 @@ export default function ReadinessPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 12, fill: "var(--text-muted)" }}
+                  tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
                   tickLine={false}
-                  axisLine={{ stroke: "var(--grid-line)" }}
+                  axisLine={{ stroke: 'var(--grid-line)' }}
                 />
                 <YAxis
                   domain={[0, 100]}
-                  tick={{ fontSize: 12, fill: "var(--text-muted)" }}
+                  tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
                   tickLine={false}
                   axisLine={false}
                   ticks={[0, 20, 40, 60, 80, 100]}
                 />
                 <Tooltip
                   contentStyle={{
-                    borderRadius: "8px",
-                    border: "1px solid var(--border)",
-                    backgroundColor: "var(--card)",
-                    color: "var(--foreground)",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                    fontSize: "13px",
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--card)',
+                    color: 'var(--foreground)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    fontSize: '13px',
                   }}
-                  formatter={(value) => [`${value ?? 0}%`, "Readiness"]}
+                  formatter={(value) => [`${value ?? 0}%`, 'Readiness']}
                   labelFormatter={(label) => label}
                 />
                 {/* Baldrige target line at 80% */}
@@ -482,9 +498,9 @@ export default function ReadinessPage() {
                   stroke="#b1bd37"
                   strokeDasharray="6 4"
                   label={{
-                    value: "Target: 80%",
-                    position: "right",
-                    fill: "#b1bd37",
+                    value: 'Target: 80%',
+                    position: 'right',
+                    fill: '#b1bd37',
                     fontSize: 11,
                     fontWeight: 600,
                   }}
@@ -494,8 +510,13 @@ export default function ReadinessPage() {
                   dataKey="score"
                   stroke="var(--nia-dark)"
                   strokeWidth={2.5}
-                  dot={{ fill: "var(--nia-dark)", r: 4, strokeWidth: 2, stroke: "var(--card)" }}
-                  activeDot={{ r: 6, strokeWidth: 2, stroke: "var(--nia-dark)", fill: "var(--card)" }}
+                  dot={{ fill: 'var(--nia-dark)', r: 4, strokeWidth: 2, stroke: 'var(--card)' }}
+                  activeDot={{
+                    r: 6,
+                    strokeWidth: 2,
+                    stroke: 'var(--nia-dark)',
+                    fill: 'var(--card)',
+                  }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -505,7 +526,10 @@ export default function ReadinessPage() {
                 Org Readiness
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-0.5 inline-block rounded" style={{ backgroundColor: "#b1bd37", borderTop: "1px dashed #b1bd37" }} />
+                <span
+                  className="w-3 h-0.5 inline-block rounded"
+                  style={{ backgroundColor: '#b1bd37', borderTop: '1px dashed #b1bd37' }}
+                />
                 Baldrige Target
               </span>
             </div>
@@ -531,12 +555,12 @@ export default function ReadinessPage() {
                     </div>
                     <div className="text-xs text-text-muted">
                       {procs.length === 0
-                        ? "No processes"
+                        ? 'No processes'
                         : `${catReady} of ${procs.length} Baldrige Ready`}
                     </div>
                   </div>
                   <Badge
-                    color={avgScore >= 80 ? "green" : avgScore >= 60 ? "gray" : "orange"}
+                    color={avgScore >= 80 ? 'green' : avgScore >= 60 ? 'gray' : 'orange'}
                     size="sm"
                   >
                     {catLevel.label}
@@ -559,8 +583,8 @@ export default function ReadinessPage() {
                         >
                           <div className="flex-1 min-w-0">
                             <div className="text-sm text-foreground group-hover:text-nia-orange transition-colors truncate">
-                              {proc.process_type === "key" && (
-                                <span className="text-nia-orange mr-1">{"\u2605"}</span>
+                              {proc.process_type === 'key' && (
+                                <span className="text-nia-orange mr-1">{'\u2605'}</span>
                               )}
                               {proc.name}
                             </div>
@@ -611,7 +635,14 @@ export default function ReadinessPage() {
                       if (!h) return null;
                       const d = h.dimensions[dim.key];
                       const pct = dim.max > 0 ? Math.round((d.score / dim.max) * 100) : 0;
-                      return { name: p.name, id: p.id, score: d.score, max: dim.max, pct, color: pct >= 80 ? "#b1bd37" : pct >= 50 ? "#55787c" : "#f79935" };
+                      return {
+                        name: p.name,
+                        id: p.id,
+                        score: d.score,
+                        max: dim.max,
+                        pct,
+                        color: pct >= 80 ? '#b1bd37' : pct >= 50 ? '#55787c' : '#f79935',
+                      };
                     })
                     .filter(Boolean)
                     .sort((a, b) => a!.pct - b!.pct) // weakest first
@@ -625,14 +656,22 @@ export default function ReadinessPage() {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <span className={`section-chevron text-text-muted text-xs ${isExpanded ? "open" : ""}`}>{"\u25B6"}</span>
-                        <span className="text-sm font-medium text-foreground group-hover:text-nia-orange transition-colors">{dim.label}</span>
+                        <span
+                          className={`section-chevron text-text-muted text-xs ${isExpanded ? 'open' : ''}`}
+                        >
+                          {'\u25B6'}
+                        </span>
+                        <span className="text-sm font-medium text-foreground group-hover:text-nia-orange transition-colors">
+                          {dim.label}
+                        </span>
                         {dim.isGap && (
-                          <Badge color="orange" size="xs">Gap</Badge>
+                          <Badge color="orange" size="xs">
+                            Gap
+                          </Badge>
                         )}
                       </div>
                       <span className="text-sm text-text-tertiary">
-                        {dim.avg}/{dim.max}{" "}
+                        {dim.avg}/{dim.max}{' '}
                         <span className="text-xs text-text-muted">({dim.pct}%)</span>
                       </span>
                     </div>
@@ -641,37 +680,44 @@ export default function ReadinessPage() {
                         className="h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${dim.pct}%`,
-                          backgroundColor: dim.pct >= 80 ? "#b1bd37" : dim.pct >= 50 ? "#55787c" : "#f79935",
+                          backgroundColor:
+                            dim.pct >= 80 ? '#b1bd37' : dim.pct >= 50 ? '#55787c' : '#f79935',
                         }}
                       />
                     </div>
                   </button>
                   {/* Drill-down: per-process scores for this dimension */}
-                  <div className={`section-body ${isExpanded ? "open" : ""}`}>
+                  <div className={`section-body ${isExpanded ? 'open' : ''}`}>
                     <div>
                       <div className="mt-3 ml-5 space-y-1.5">
-                        {procScores.map((p) => p && (
-                          <Link
-                            key={p.id}
-                            href={`/processes/${p.id}`}
-                            className="flex items-center gap-2 group/proc"
-                          >
-                            <span className="text-xs text-foreground group-hover/proc:text-nia-orange transition-colors truncate flex-1 min-w-0">
-                              {p.name}
-                            </span>
-                            <div className="w-16 flex-shrink-0">
-                              <div className="h-1.5 bg-surface-subtle rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full"
-                                  style={{ width: `${p.pct}%`, backgroundColor: p.color }}
-                                />
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-medium w-10 text-right flex-shrink-0" style={{ color: p.color }}>
-                              {p.score}/{p.max}
-                            </span>
-                          </Link>
-                        ))}
+                        {procScores.map(
+                          (p) =>
+                            p && (
+                              <Link
+                                key={p.id}
+                                href={`/processes/${p.id}`}
+                                className="flex items-center gap-2 group/proc"
+                              >
+                                <span className="text-xs text-foreground group-hover/proc:text-nia-orange transition-colors truncate flex-1 min-w-0">
+                                  {p.name}
+                                </span>
+                                <div className="w-16 flex-shrink-0">
+                                  <div className="h-1.5 bg-surface-subtle rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full"
+                                      style={{ width: `${p.pct}%`, backgroundColor: p.color }}
+                                    />
+                                  </div>
+                                </div>
+                                <span
+                                  className="text-[10px] font-medium w-10 text-right flex-shrink-0"
+                                  style={{ color: p.color }}
+                                >
+                                  {p.score}/{p.max}
+                                </span>
+                              </Link>
+                            )
+                        )}
                       </div>
                     </div>
                   </div>
@@ -698,13 +744,11 @@ export default function ReadinessPage() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-foreground">{action.label}</div>
                   <div className="text-xs text-text-muted">
-                    Applies to {action.count} process{action.count !== 1 ? "es" : ""}
+                    Applies to {action.count} process{action.count !== 1 ? 'es' : ''}
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-sm font-bold text-nia-orange">
-                    +{action.totalPoints} pts
-                  </div>
+                  <div className="text-sm font-bold text-nia-orange">+{action.totalPoints} pts</div>
                 </div>
               </div>
             ))}

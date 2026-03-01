@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { FormSkeleton } from "@/components/skeleton";
-import Link from "next/link";
-import { Card, Button, Input, Textarea, Select } from "@/components/ui";
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { FormSkeleton } from '@/components/skeleton';
+import Link from 'next/link';
+import { Card, Button, Input, Textarea, Select } from '@/components/ui';
 
 interface ProcessOption {
   id: number;
@@ -31,25 +31,25 @@ export default function NewMetricPage() {
 function NewMetricContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const preselectedProcessId = searchParams.get("processId");
+  const preselectedProcessId = searchParams.get('processId');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [processes, setProcesses] = useState<ProcessOption[]>([]);
 
   // Form fields
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [selectedProcessIds, setSelectedProcessIds] = useState<Set<number>>(
     preselectedProcessId ? new Set([Number(preselectedProcessId)]) : new Set()
   );
-  const [cadence, setCadence] = useState("quarterly");
-  const [targetValue, setTargetValue] = useState("");
-  const [comparisonValue, setComparisonValue] = useState("");
-  const [comparisonSource, setComparisonSource] = useState("");
-  const [dataSource, setDataSource] = useState("");
-  const [collectionMethod, setCollectionMethod] = useState("");
-  const [unit, setUnit] = useState("%");
+  const [cadence, setCadence] = useState('quarterly');
+  const [targetValue, setTargetValue] = useState('');
+  const [comparisonValue, setComparisonValue] = useState('');
+  const [comparisonSource, setComparisonSource] = useState('');
+  const [dataSource, setDataSource] = useState('');
+  const [collectionMethod, setCollectionMethod] = useState('');
+  const [unit, setUnit] = useState('%');
   const [isHigherBetter, setIsHigherBetter] = useState(true);
   const [allRequirements, setAllRequirements] = useState<RequirementOption[]>([]);
   const [selectedReqIds, setSelectedReqIds] = useState<Set<number>>(new Set());
@@ -57,12 +57,14 @@ function NewMetricContent() {
   useEffect(() => {
     async function fetch() {
       const { data: processData } = await supabase
-        .from("processes")
-        .select(`
+        .from('processes')
+        .select(
+          `
           id, name,
           categories!inner ( display_name )
-        `)
-        .order("name");
+        `
+        )
+        .order('name');
 
       if (processData) {
         setProcesses(
@@ -76,9 +78,9 @@ function NewMetricContent() {
 
       // Fetch all key requirements
       const { data: reqData } = await supabase
-        .from("key_requirements")
-        .select("id, stakeholder_segment, stakeholder_group, requirement")
-        .order("sort_order");
+        .from('key_requirements')
+        .select('id, stakeholder_segment, stakeholder_group, requirement')
+        .order('sort_order');
       if (reqData) setAllRequirements(reqData);
 
       setLoading(false);
@@ -89,13 +91,13 @@ function NewMetricContent() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (selectedProcessIds.size === 0) {
-      alert("Please select at least one process");
+      alert('Please select at least one process');
       return;
     }
     setSaving(true);
 
     const { data, error } = await supabase
-      .from("metrics")
+      .from('metrics')
       .insert({
         name,
         description: description || null,
@@ -108,11 +110,11 @@ function NewMetricContent() {
         unit,
         is_higher_better: isHigherBetter,
       })
-      .select("id")
+      .select('id')
       .single();
 
     if (error) {
-      alert("Failed to create metric: " + error.message);
+      alert('Failed to create metric: ' + error.message);
       setSaving(false);
       return;
     }
@@ -120,7 +122,7 @@ function NewMetricContent() {
     if (data) {
       // Save process links via junction table
       if (selectedProcessIds.size > 0) {
-        await supabase.from("metric_processes").insert(
+        await supabase.from('metric_processes').insert(
           Array.from(selectedProcessIds).map((pid) => ({
             metric_id: data.id,
             process_id: pid,
@@ -130,7 +132,7 @@ function NewMetricContent() {
 
       // Save requirement links
       if (selectedReqIds.size > 0) {
-        await supabase.from("metric_requirements").insert(
+        await supabase.from('metric_requirements').insert(
           Array.from(selectedReqIds).map((reqId) => ({
             metric_id: data.id,
             requirement_id: reqId,
@@ -138,7 +140,9 @@ function NewMetricContent() {
         );
       }
 
-      router.push(preselectedProcessId ? `/processes/${preselectedProcessId}` : `/metric/${data.id}`);
+      router.push(
+        preselectedProcessId ? `/processes/${preselectedProcessId}` : `/metric/${data.id}`
+      );
     }
     setSaving(false);
   }
@@ -149,163 +153,232 @@ function NewMetricContent() {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Breadcrumb */}
       <div className="text-sm text-text-tertiary">
-        <Link href="/" className="hover:text-nia-grey-blue">Dashboard</Link>
+        <Link href="/" className="hover:text-nia-grey-blue">
+          Dashboard
+        </Link>
         {preselectedProcessId && (
           <>
-            {" / "}
-            <Link href={`/processes/${preselectedProcessId}`} className="hover:text-nia-grey-blue">Process</Link>
+            {' / '}
+            <Link href={`/processes/${preselectedProcessId}`} className="hover:text-nia-grey-blue">
+              Process
+            </Link>
           </>
         )}
-        {" / "}
+        {' / '}
         <span className="text-nia-dark">Add Metric</span>
       </div>
 
       <h1 className="text-3xl font-bold text-nia-dark">Add New Metric</h1>
 
       <form onSubmit={handleSave}>
-      <Card padding="lg" className="space-y-5">
-        <Input label="Name *" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Employee Engagement Score" />
-        <Textarea label="Description" hint="optional" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="What does this metric measure and why does it matter?" />
+        <Card padding="lg" className="space-y-5">
+          <Input
+            label="Name *"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g., Employee Engagement Score"
+          />
+          <Textarea
+            label="Description"
+            hint="optional"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={2}
+            placeholder="What does this metric measure and why does it matter?"
+          />
 
-        {/* Processes (multi-select checkboxes) */}
-        <div className="bg-nia-grey-blue/5 border border-nia-grey-blue/20 rounded-lg p-4 space-y-3">
-          <div>
-            <span className="font-medium text-nia-dark">Linked Processes *</span>
-            <p className="text-xs text-text-tertiary mt-1">
-              Select the processes this metric provides evidence for. A metric can be linked to multiple processes.
-            </p>
-          </div>
-          {(() => {
-            const groups = new Map<string, ProcessOption[]>();
-            for (const p of processes) {
-              if (!groups.has(p.category_display_name)) groups.set(p.category_display_name, []);
-              groups.get(p.category_display_name)!.push(p);
-            }
-            return Array.from(groups.entries()).map(([cat, procs]) => (
-              <div key={cat}>
-                <div className="text-xs font-medium uppercase tracking-wider text-text-muted mb-1">
-                  {cat}
-                </div>
-                <div className="space-y-1 ml-1">
-                  {procs.map((p) => (
-                    <label key={p.id} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedProcessIds.has(p.id)}
-                        onChange={() => {
-                          setSelectedProcessIds((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(p.id)) next.delete(p.id);
-                            else next.add(p.id);
-                            return next;
-                          });
-                        }}
-                        className="w-4 h-4 accent-nia-green"
-                      />
-                      <span className="text-sm text-nia-dark">{p.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ));
-          })()}
-          {selectedProcessIds.size > 0 && (
-            <div className="text-xs text-nia-green font-medium mt-2">
-              {selectedProcessIds.size} process{selectedProcessIds.size !== 1 ? "es" : ""} selected
+          {/* Processes (multi-select checkboxes) */}
+          <div className="bg-nia-grey-blue/5 border border-nia-grey-blue/20 rounded-lg p-4 space-y-3">
+            <div>
+              <span className="font-medium text-nia-dark">Linked Processes *</span>
+              <p className="text-xs text-text-tertiary mt-1">
+                Select the processes this metric provides evidence for. A metric can be linked to
+                multiple processes.
+              </p>
             </div>
-          )}
-        </div>
-
-        <Select label="Cadence *" required value={cadence} onChange={(e) => setCadence(e.target.value)}>
-          <option value="monthly">Monthly</option>
-          <option value="quarterly">Quarterly</option>
-          <option value="semi-annual">Semi-Annual</option>
-          <option value="annual">Annual</option>
-        </Select>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Select label="Unit" value={unit} onChange={(e) => setUnit(e.target.value)}>
-            <option value="%">% (Percentage)</option>
-            <option value="score">Score</option>
-            <option value="count">Count</option>
-            <option value="currency">Currency ($)</option>
-            <option value="days">Days</option>
-            <option value="rate">Rate</option>
-          </Select>
-          <Select label="Trend Direction" value={isHigherBetter ? "higher" : "lower"} onChange={(e) => setIsHigherBetter(e.target.value === "higher")}>
-            <option value="higher">Higher is better (e.g., satisfaction score)</option>
-            <option value="lower">Lower is better (e.g., phishing click rate)</option>
-          </Select>
-        </div>
-
-        <Input label="Target Value" hint="for LeTCI Levels" type="number" step="any" value={targetValue} onChange={(e) => setTargetValue(e.target.value)} placeholder="Leave blank if TBD" />
-
-        <div className="grid grid-cols-2 gap-4">
-          <Input label="Comparison Value" hint="for LeTCI Comparisons" type="number" step="any" value={comparisonValue} onChange={(e) => setComparisonValue(e.target.value)} placeholder="Benchmark or peer value" />
-          <Input label="Comparison Source" value={comparisonSource} onChange={(e) => setComparisonSource(e.target.value)} placeholder="e.g., National average, Studer benchmark" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Input label="Data Source" value={dataSource} onChange={(e) => setDataSource(e.target.value)} placeholder="e.g., Studer EE Survey" />
-          <Input label="Collection Method" value={collectionMethod} onChange={(e) => setCollectionMethod(e.target.value)} placeholder="e.g., Semi-annual survey" />
-        </div>
-
-        {/* Key Requirements (LeTCI Integration) */}
-        <div className="bg-nia-grey-blue/5 border border-nia-grey-blue/20 rounded-lg p-4 space-y-3">
-          <div>
-            <span className="font-medium text-nia-dark">Key Requirements (LeTCI Integration)</span>
-            <p className="text-xs text-text-tertiary mt-1">
-              Select the stakeholder requirements this metric provides evidence for.
-              Linking to at least one requirement marks this metric as Integrated (LeTCI).
-            </p>
-          </div>
-          {(() => {
-            const groups = new Map<string, RequirementOption[]>();
-            for (const req of allRequirements) {
-              if (!groups.has(req.stakeholder_group)) groups.set(req.stakeholder_group, []);
-              groups.get(req.stakeholder_group)!.push(req);
-            }
-            return Array.from(groups.entries()).map(([group, reqs]) => (
-              <div key={group}>
-                <div className="text-xs font-medium uppercase tracking-wider text-text-muted mb-1">
-                  {reqs[0].stakeholder_segment} — {group}
+            {(() => {
+              const groups = new Map<string, ProcessOption[]>();
+              for (const p of processes) {
+                if (!groups.has(p.category_display_name)) groups.set(p.category_display_name, []);
+                groups.get(p.category_display_name)!.push(p);
+              }
+              return Array.from(groups.entries()).map(([cat, procs]) => (
+                <div key={cat}>
+                  <div className="text-xs font-medium uppercase tracking-wider text-text-muted mb-1">
+                    {cat}
+                  </div>
+                  <div className="space-y-1 ml-1">
+                    {procs.map((p) => (
+                      <label key={p.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedProcessIds.has(p.id)}
+                          onChange={() => {
+                            setSelectedProcessIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(p.id)) next.delete(p.id);
+                              else next.add(p.id);
+                              return next;
+                            });
+                          }}
+                          className="w-4 h-4 accent-nia-green"
+                        />
+                        <span className="text-sm text-nia-dark">{p.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-1 ml-1">
-                  {reqs.map((req) => (
-                    <label key={req.id} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedReqIds.has(req.id)}
-                        onChange={() => {
-                          setSelectedReqIds((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(req.id)) next.delete(req.id);
-                            else next.add(req.id);
-                            return next;
-                          });
-                        }}
-                        className="w-4 h-4 accent-nia-green"
-                      />
-                      <span className="text-sm text-nia-dark">{req.requirement}</span>
-                    </label>
-                  ))}
-                </div>
+              ));
+            })()}
+            {selectedProcessIds.size > 0 && (
+              <div className="text-xs text-nia-green font-medium mt-2">
+                {selectedProcessIds.size} process{selectedProcessIds.size !== 1 ? 'es' : ''}{' '}
+                selected
               </div>
-            ));
-          })()}
-          {selectedReqIds.size > 0 && (
-            <div className="text-xs text-nia-green font-medium mt-2">
-              {selectedReqIds.size} requirement{selectedReqIds.size !== 1 ? "s" : ""} linked — Integration: Yes
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 pt-2">
-          <Button type="submit" loading={saving}>{saving ? "Creating..." : "Create Metric"}</Button>
-          <Button variant="ghost" href={preselectedProcessId ? `/processes/${preselectedProcessId}` : "/"}>Cancel</Button>
-        </div>
-      </Card>
+          <Select
+            label="Cadence *"
+            required
+            value={cadence}
+            onChange={(e) => setCadence(e.target.value)}
+          >
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="semi-annual">Semi-Annual</option>
+            <option value="annual">Annual</option>
+          </Select>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Select label="Unit" value={unit} onChange={(e) => setUnit(e.target.value)}>
+              <option value="%">% (Percentage)</option>
+              <option value="score">Score</option>
+              <option value="count">Count</option>
+              <option value="currency">Currency ($)</option>
+              <option value="days">Days</option>
+              <option value="rate">Rate</option>
+            </Select>
+            <Select
+              label="Trend Direction"
+              value={isHigherBetter ? 'higher' : 'lower'}
+              onChange={(e) => setIsHigherBetter(e.target.value === 'higher')}
+            >
+              <option value="higher">Higher is better (e.g., satisfaction score)</option>
+              <option value="lower">Lower is better (e.g., phishing click rate)</option>
+            </Select>
+          </div>
+
+          <Input
+            label="Target Value"
+            hint="for LeTCI Levels"
+            type="number"
+            step="any"
+            value={targetValue}
+            onChange={(e) => setTargetValue(e.target.value)}
+            placeholder="Leave blank if TBD"
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Comparison Value"
+              hint="for LeTCI Comparisons"
+              type="number"
+              step="any"
+              value={comparisonValue}
+              onChange={(e) => setComparisonValue(e.target.value)}
+              placeholder="Benchmark or peer value"
+            />
+            <Input
+              label="Comparison Source"
+              value={comparisonSource}
+              onChange={(e) => setComparisonSource(e.target.value)}
+              placeholder="e.g., National average, Studer benchmark"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Data Source"
+              value={dataSource}
+              onChange={(e) => setDataSource(e.target.value)}
+              placeholder="e.g., Studer EE Survey"
+            />
+            <Input
+              label="Collection Method"
+              value={collectionMethod}
+              onChange={(e) => setCollectionMethod(e.target.value)}
+              placeholder="e.g., Semi-annual survey"
+            />
+          </div>
+
+          {/* Key Requirements (LeTCI Integration) */}
+          <div className="bg-nia-grey-blue/5 border border-nia-grey-blue/20 rounded-lg p-4 space-y-3">
+            <div>
+              <span className="font-medium text-nia-dark">
+                Key Requirements (LeTCI Integration)
+              </span>
+              <p className="text-xs text-text-tertiary mt-1">
+                Select the stakeholder requirements this metric provides evidence for. Linking to at
+                least one requirement marks this metric as Integrated (LeTCI).
+              </p>
+            </div>
+            {(() => {
+              const groups = new Map<string, RequirementOption[]>();
+              for (const req of allRequirements) {
+                if (!groups.has(req.stakeholder_group)) groups.set(req.stakeholder_group, []);
+                groups.get(req.stakeholder_group)!.push(req);
+              }
+              return Array.from(groups.entries()).map(([group, reqs]) => (
+                <div key={group}>
+                  <div className="text-xs font-medium uppercase tracking-wider text-text-muted mb-1">
+                    {reqs[0].stakeholder_segment} — {group}
+                  </div>
+                  <div className="space-y-1 ml-1">
+                    {reqs.map((req) => (
+                      <label key={req.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedReqIds.has(req.id)}
+                          onChange={() => {
+                            setSelectedReqIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(req.id)) next.delete(req.id);
+                              else next.add(req.id);
+                              return next;
+                            });
+                          }}
+                          className="w-4 h-4 accent-nia-green"
+                        />
+                        <span className="text-sm text-nia-dark">{req.requirement}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
+            {selectedReqIds.size > 0 && (
+              <div className="text-xs text-nia-green font-medium mt-2">
+                {selectedReqIds.size} requirement{selectedReqIds.size !== 1 ? 's' : ''} linked —
+                Integration: Yes
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <Button type="submit" loading={saving}>
+              {saving ? 'Creating...' : 'Create Metric'}
+            </Button>
+            <Button
+              variant="ghost"
+              href={preselectedProcessId ? `/processes/${preselectedProcessId}` : '/'}
+            >
+              Cancel
+            </Button>
+          </div>
+        </Card>
       </form>
     </div>
   );

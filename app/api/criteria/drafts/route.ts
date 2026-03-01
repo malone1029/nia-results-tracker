@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isAdminRole } from "@/lib/auth-helpers";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isAdminRole } from '@/lib/auth-helpers';
 
 /**
  * Helper: check if current user is admin (admin or super_admin).
@@ -11,13 +11,9 @@ async function isAdmin(supabase: Awaited<ReturnType<typeof createSupabaseServer>
   } = await supabase.auth.getUser();
   if (!user) return false;
 
-  const { data } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
-    .single();
+  const { data } = await supabase.from('user_roles').select('role').eq('auth_id', user.id).single();
 
-  return isAdminRole(data?.role || "");
+  return isAdminRole(data?.role || '');
 }
 
 /**
@@ -29,18 +25,18 @@ async function isAdmin(supabase: Awaited<ReturnType<typeof createSupabaseServer>
 export async function GET(request: Request) {
   const supabase = await createSupabaseServer();
   const { searchParams } = new URL(request.url);
-  const tier = searchParams.get("tier") || "excellence_builder";
-  const itemId = searchParams.get("item_id");
+  const tier = searchParams.get('tier') || 'excellence_builder';
+  const itemId = searchParams.get('item_id');
 
   if (itemId) {
     const { data, error } = await supabase
-      .from("baldrige_drafts")
-      .select("*")
-      .eq("item_id", Number(itemId))
-      .eq("tier", tier)
+      .from('baldrige_drafts')
+      .select('*')
+      .eq('item_id', Number(itemId))
+      .eq('tier', tier)
       .single();
 
-    if (error && error.code !== "PGRST116") {
+    if (error && error.code !== 'PGRST116') {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json(data || null);
@@ -48,10 +44,10 @@ export async function GET(request: Request) {
 
   // All drafts for this tier
   const { data, error } = await supabase
-    .from("baldrige_drafts")
-    .select("*")
-    .eq("tier", tier)
-    .order("item_id");
+    .from('baldrige_drafts')
+    .select('*')
+    .eq('tier', tier)
+    .order('item_id');
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -69,24 +65,21 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
 
   if (!(await isAdmin(supabase))) {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
   }
 
   const body = await request.json();
   const {
     item_id,
     narrative_text,
-    tier = "excellence_builder",
+    tier = 'excellence_builder',
     status,
     figures,
     last_ai_generated_at,
   } = body;
 
   if (!item_id || narrative_text === undefined) {
-    return NextResponse.json(
-      { error: "item_id and narrative_text are required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'item_id and narrative_text are required' }, { status: 400 });
   }
 
   const wordCount = narrative_text.trim().split(/\s+/).filter(Boolean).length;
@@ -106,9 +99,9 @@ export async function POST(request: Request) {
   if (last_ai_generated_at) payload.last_ai_generated_at = last_ai_generated_at;
 
   const { data, error } = await supabase
-    .from("baldrige_drafts")
-    .upsert(payload, { onConflict: "item_id,tier" })
-    .select("*")
+    .from('baldrige_drafts')
+    .upsert(payload, { onConflict: 'item_id,tier' })
+    .select('*')
     .single();
 
   if (error) {

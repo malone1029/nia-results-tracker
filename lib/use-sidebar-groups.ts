@@ -1,14 +1,12 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 
-const STORAGE_KEY = "nia-sidebar-groups";
-const DEFAULT_EXPANDED = ["Overview", "Processes"];
+const STORAGE_KEY = 'nia-sidebar-groups';
+const DEFAULT_EXPANDED = ['Overview', 'Processes'];
 
 export function useSidebarGroups() {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    new Set(DEFAULT_EXPANDED)
-  );
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(DEFAULT_EXPANDED));
   const [hydrated, setHydrated] = useState(false);
 
   // On mount: read stored preference

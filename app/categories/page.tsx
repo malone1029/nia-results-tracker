@@ -1,12 +1,18 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { getReviewStatus, getStatusColor, getStatusLabel, formatDate, formatValue } from "@/lib/review-status";
-import { CategoryGridSkeleton } from "@/components/skeleton";
-import type { Metric } from "@/lib/types";
-import Link from "next/link";
-import { Card, Badge, Button } from "@/components/ui";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import {
+  getReviewStatus,
+  getStatusColor,
+  getStatusLabel,
+  formatDate,
+  formatValue,
+} from '@/lib/review-status';
+import { CategoryGridSkeleton } from '@/components/skeleton';
+import type { Metric } from '@/lib/types';
+import Link from 'next/link';
+import { Card, Badge, Button } from '@/components/ui';
 
 interface MetricRow extends Metric {
   process_id: number;
@@ -18,7 +24,7 @@ interface MetricRow extends Metric {
   category_sort_order: number;
   last_entry_date: string | null;
   last_entry_value: number | null;
-  review_status: "current" | "due-soon" | "overdue" | "no-data" | "scheduled";
+  review_status: 'current' | 'due-soon' | 'overdue' | 'no-data' | 'scheduled';
 }
 
 interface ProcessGroup {
@@ -72,22 +78,18 @@ function groupByCategory(rows: MetricRow[]): CategoryGroup[] {
     proc.total++;
     cat.totalMetrics++;
 
-    if (row.review_status !== "no-data") {
+    if (row.review_status !== 'no-data') {
       proc.withData++;
       cat.totalWithData++;
     }
   }
 
-  const sorted = Array.from(categoryMap.values()).sort(
-    (a, b) => a.sort_order - b.sort_order
-  );
+  const sorted = Array.from(categoryMap.values()).sort((a, b) => a.sort_order - b.sort_order);
   for (const cat of sorted) {
     cat.processes.sort((a, b) => a.name.localeCompare(b.name));
     for (const proc of cat.processes) {
-      const statusOrder = { overdue: 0, "no-data": 1, "due-soon": 2, current: 3, scheduled: 4 };
-      proc.metrics.sort(
-        (a, b) => statusOrder[a.review_status] - statusOrder[b.review_status]
-      );
+      const statusOrder = { overdue: 0, 'no-data': 1, 'due-soon': 2, current: 3, scheduled: 4 };
+      proc.metrics.sort((a, b) => statusOrder[a.review_status] - statusOrder[b.review_status]);
     }
   }
 
@@ -96,20 +98,22 @@ function groupByCategory(rows: MetricRow[]): CategoryGroup[] {
 
 export default function CategoriesPage() {
   const [allRows, setAllRows] = useState<MetricRow[]>([]);
-  const [dbCategories, setDbCategories] = useState<{ id: number; display_name: string; sort_order: number }[]>([]);
+  const [dbCategories, setDbCategories] = useState<
+    { id: number; display_name: string; sort_order: number }[]
+  >([]);
   const [loading, setLoading] = useState(true);
-  const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support">("all");
+  const [typeFilter, setTypeFilter] = useState<'all' | 'key' | 'support'>('all');
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const [expandedProcesses, setExpandedProcesses] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    document.title = "Categories | NIA Excellence Hub";
+    document.title = 'Categories | NIA Excellence Hub';
     async function fetch() {
       // Fetch all Baldrige categories from the table
       const { data: catData } = await supabase
-        .from("categories")
-        .select("id, display_name, sort_order")
-        .order("sort_order");
+        .from('categories')
+        .select('id, display_name, sort_order')
+        .order('sort_order');
 
       if (catData) {
         setDbCategories(catData);
@@ -117,23 +121,38 @@ export default function CategoriesPage() {
 
       // Fetch metrics, junction links, processes, and entries separately
       const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
-        supabase.from("metrics").select("*"),
-        supabase.from("metric_processes").select("metric_id, process_id"),
-        supabase.from("processes").select("id, name, process_type, categories!inner ( id, display_name, sort_order )"),
-        supabase.from("entries").select("metric_id, value, date").order("date", { ascending: false }),
+        supabase.from('metrics').select('*'),
+        supabase.from('metric_processes').select('metric_id, process_id'),
+        supabase
+          .from('processes')
+          .select('id, name, process_type, categories!inner ( id, display_name, sort_order )'),
+        supabase
+          .from('entries')
+          .select('metric_id, value, date')
+          .order('date', { ascending: false }),
       ]);
 
       const metricsData = metricsRes.data || [];
       const entriesData = entriesRes.data || [];
 
       // Build process lookup
-      const processMap = new Map<number, { id: number; name: string; process_type: string; category_id: number; category_display_name: string; category_sort_order: number }>();
+      const processMap = new Map<
+        number,
+        {
+          id: number;
+          name: string;
+          process_type: string;
+          category_id: number;
+          category_display_name: string;
+          category_sort_order: number;
+        }
+      >();
       for (const p of (processesRes.data || []) as Record<string, unknown>[]) {
         const cat = p.categories as Record<string, unknown>;
         processMap.set(p.id as number, {
           id: p.id as number,
           name: p.name as string,
-          process_type: (p.process_type as string) || "unclassified",
+          process_type: (p.process_type as string) || 'unclassified',
           category_id: cat.id as number,
           category_display_name: cat.display_name as string,
           category_sort_order: cat.sort_order as number,
@@ -170,14 +189,18 @@ export default function CategoriesPage() {
             ...(m as unknown as Metric),
             process_id: proc.id,
             process_name: proc.name,
-            is_key_process: (proc.process_type || "unclassified") === "key",
+            is_key_process: (proc.process_type || 'unclassified') === 'key',
             process_type: proc.process_type,
             category_id: proc.category_id,
             category_display_name: proc.category_display_name,
             category_sort_order: proc.category_sort_order,
             last_entry_date: latest?.date || null,
             last_entry_value: latest?.value || null,
-            review_status: getReviewStatus(m.cadence as string, latest?.date || null, m.next_entry_expected as string | null),
+            review_status: getReviewStatus(
+              m.cadence as string,
+              latest?.date || null,
+              m.next_entry_expected as string | null
+            ),
           });
         }
       }
@@ -189,11 +212,12 @@ export default function CategoriesPage() {
   }, []);
 
   // Derive categories from rows, applying key filter
-  const filteredRows = typeFilter === "key"
-    ? allRows.filter((r) => r.process_type === "key")
-    : typeFilter === "support"
-    ? allRows.filter((r) => r.process_type === "support")
-    : allRows;
+  const filteredRows =
+    typeFilter === 'key'
+      ? allRows.filter((r) => r.process_type === 'key')
+      : typeFilter === 'support'
+        ? allRows.filter((r) => r.process_type === 'support')
+        : allRows;
   const categoriesFromMetrics = groupByCategory(filteredRows);
 
   // Merge in empty categories from the database so all 6 Baldrige categories are visible
@@ -246,12 +270,17 @@ export default function CategoriesPage() {
           </p>
         </div>
         <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
-          {(["all", "key", "support"] as const).map((t) => (
-            <button key={t} onClick={() => setTypeFilter(t)}
+          {(['all', 'key', 'support'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                typeFilter === t ? "bg-card text-nia-dark shadow-sm" : "text-text-tertiary hover:text-text-secondary"
-              }`}>
-              {t === "all" ? "All" : t === "key" ? "\u2605 Key" : "Support"}
+                typeFilter === t
+                  ? 'bg-card text-nia-dark shadow-sm'
+                  : 'text-text-tertiary hover:text-text-secondary'
+              }`}
+            >
+              {t === 'all' ? 'All' : t === 'key' ? '\u2605 Key' : 'Support'}
             </button>
           ))}
         </div>
@@ -269,16 +298,21 @@ export default function CategoriesPage() {
                 return next;
               });
               setTimeout(() => {
-                document.getElementById(`cat-${cat.id}`)?.scrollIntoView({ behavior: "smooth" });
+                document.getElementById(`cat-${cat.id}`)?.scrollIntoView({ behavior: 'smooth' });
               }, 50);
             }}
-            className={`rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${cat.totalMetrics === 0 ? "" : ""}`}
-            style={{ backgroundColor: cat.totalMetrics === 0 ? "#dc262608" : "#324a4d08", borderTop: `3px solid ${cat.totalMetrics === 0 ? "#dc2626" : "#55787c"}` }}
+            className={`rounded-lg shadow p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${cat.totalMetrics === 0 ? '' : ''}`}
+            style={{
+              backgroundColor: cat.totalMetrics === 0 ? '#dc262608' : '#324a4d08',
+              borderTop: `3px solid ${cat.totalMetrics === 0 ? '#dc2626' : '#55787c'}`,
+            }}
           >
-            <div className="text-xs text-text-muted uppercase mb-1">
-              Category {cat.sort_order}
+            <div className="text-xs text-text-muted uppercase mb-1">Category {cat.sort_order}</div>
+            <div
+              className={`font-bold text-sm ${cat.totalMetrics === 0 ? 'text-nia-red' : 'text-nia-dark'}`}
+            >
+              {cat.display_name}
             </div>
-            <div className={`font-bold text-sm ${cat.totalMetrics === 0 ? "text-nia-red" : "text-nia-dark"}`}>{cat.display_name}</div>
             {cat.totalMetrics === 0 ? (
               <div className="mt-2">
                 <div className="text-lg font-bold text-nia-red">0</div>
@@ -287,9 +321,7 @@ export default function CategoriesPage() {
             ) : (
               <>
                 <div className="mt-2">
-                  <span className="text-lg font-bold text-nia-dark">
-                    {cat.totalWithData}
-                  </span>
+                  <span className="text-lg font-bold text-nia-dark">{cat.totalWithData}</span>
                   <span className="text-text-muted text-sm"> / {cat.totalMetrics}</span>
                 </div>
                 <div className="text-xs text-text-muted">metrics with data</div>
@@ -301,7 +333,7 @@ export default function CategoriesPage() {
                 className="h-full rounded-full"
                 style={{
                   width: `${cat.totalMetrics > 0 ? (cat.totalWithData / cat.totalMetrics) * 100 : 0}%`,
-                  backgroundColor: cat.totalWithData === cat.totalMetrics ? "#b1bd37" : "#f79935",
+                  backgroundColor: cat.totalWithData === cat.totalMetrics ? '#b1bd37' : '#f79935',
                 }}
               />
             </div>
@@ -321,15 +353,13 @@ export default function CategoriesPage() {
               className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-hover transition-colors text-left"
             >
               <div className="flex items-center gap-3">
-                <span className="text-text-muted text-sm">
-                  {isCatExpanded ? "▼" : "▶"}
-                </span>
+                <span className="text-text-muted text-sm">{isCatExpanded ? '▼' : '▶'}</span>
                 <div>
                   <span className="text-lg font-bold text-nia-dark">
                     Category {cat.sort_order}: {cat.display_name}
                   </span>
                   <span className="text-sm text-text-muted ml-3">
-                    {cat.processes.length} process{cat.processes.length !== 1 ? "es" : ""} &middot;{" "}
+                    {cat.processes.length} process{cat.processes.length !== 1 ? 'es' : ''} &middot;{' '}
                     {cat.totalWithData} of {cat.totalMetrics} metrics with data
                   </span>
                 </div>
@@ -347,22 +377,25 @@ export default function CategoriesPage() {
                 {cat.processes.map((proc) => {
                   const isExpanded = expandedProcesses.has(proc.id);
                   const needsAttention = proc.metrics.filter(
-                    (m) => m.review_status === "overdue" || m.review_status === "no-data"
+                    (m) => m.review_status === 'overdue' || m.review_status === 'no-data'
                   ).length;
 
                   return (
-                    <div key={proc.id} className="bg-surface-hover rounded-lg overflow-hidden border border-border border-l-4 border-l-nia-orange">
+                    <div
+                      key={proc.id}
+                      className="bg-surface-hover rounded-lg overflow-hidden border border-border border-l-4 border-l-nia-orange"
+                    >
                       {/* Process header — clickable to expand */}
                       <button
                         onClick={() => toggleProcess(proc.id)}
                         className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-subtle transition-colors text-left"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-text-muted text-sm">
-                            {isExpanded ? "▼" : "▶"}
-                          </span>
+                          <span className="text-text-muted text-sm">{isExpanded ? '▼' : '▶'}</span>
                           <span className="font-medium text-nia-dark">
-                            {proc.process_type === "key" && <span className="text-nia-orange mr-1">&#9733;</span>}
+                            {proc.process_type === 'key' && (
+                              <span className="text-nia-orange mr-1">&#9733;</span>
+                            )}
                             {proc.name}
                           </span>
                           <span className="text-sm text-text-muted">
@@ -400,7 +433,15 @@ export default function CategoriesPage() {
                                 >
                                   <td className="px-4 py-2">
                                     <Badge
-                                      color={metric.review_status === "current" ? "green" : metric.review_status === "overdue" ? "red" : metric.review_status === "due-soon" ? "orange" : "gray"}
+                                      color={
+                                        metric.review_status === 'current'
+                                          ? 'green'
+                                          : metric.review_status === 'overdue'
+                                            ? 'red'
+                                            : metric.review_status === 'due-soon'
+                                              ? 'orange'
+                                              : 'gray'
+                                      }
                                       size="xs"
                                     >
                                       {getStatusLabel(metric.review_status)}
@@ -418,7 +459,7 @@ export default function CategoriesPage() {
                                     {metric.cadence}
                                   </td>
                                   <td className="px-4 py-2 text-text-muted">
-                                    {metric.data_source || "—"}
+                                    {metric.data_source || '—'}
                                   </td>
                                   <td className="px-4 py-2 text-right font-medium">
                                     {formatValue(metric.last_entry_value, metric.unit)}
@@ -426,7 +467,7 @@ export default function CategoriesPage() {
                                   <td className="px-4 py-2 text-right text-text-muted">
                                     {metric.target_value !== null
                                       ? formatValue(metric.target_value, metric.unit)
-                                      : "TBD"}
+                                      : 'TBD'}
                                   </td>
                                   <td className="px-4 py-2 text-right text-text-muted">
                                     {formatDate(metric.last_entry_date)}
@@ -447,7 +488,15 @@ export default function CategoriesPage() {
                                     {metric.name}
                                   </Link>
                                   <Badge
-                                    color={metric.review_status === "current" ? "green" : metric.review_status === "overdue" ? "red" : metric.review_status === "due-soon" ? "orange" : "gray"}
+                                    color={
+                                      metric.review_status === 'current'
+                                        ? 'green'
+                                        : metric.review_status === 'overdue'
+                                          ? 'red'
+                                          : metric.review_status === 'due-soon'
+                                            ? 'orange'
+                                            : 'gray'
+                                    }
                                     size="xs"
                                   >
                                     {getStatusLabel(metric.review_status)}
@@ -459,9 +508,12 @@ export default function CategoriesPage() {
                                   <span className="font-medium text-nia-dark">
                                     {metric.last_entry_value !== null
                                       ? formatValue(metric.last_entry_value, metric.unit)
-                                      : "No data"}
+                                      : 'No data'}
                                     {metric.target_value !== null && (
-                                      <span className="text-text-muted font-normal"> / {formatValue(metric.target_value, metric.unit)}</span>
+                                      <span className="text-text-muted font-normal">
+                                        {' '}
+                                        / {formatValue(metric.target_value, metric.unit)}
+                                      </span>
                                     )}
                                   </span>
                                   <span>{formatDate(metric.last_entry_date)}</span>

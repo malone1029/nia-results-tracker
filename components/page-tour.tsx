@@ -1,42 +1,47 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface TourStep {
-  target: string;       // data-tour attribute value
+  target: string; // data-tour attribute value
   title: string;
   description: string;
 }
 
 const TOUR_STEPS: TourStep[] = [
   {
-    target: "stat-cards",
-    title: "Stat Cards",
-    description: "Your at-a-glance health metrics. Readiness, Baldrige Ready count, attention items, overdue, and active tasks.",
+    target: 'stat-cards',
+    title: 'Stat Cards',
+    description:
+      'Your at-a-glance health metrics. Readiness, Baldrige Ready count, attention items, overdue, and active tasks.',
   },
   {
-    target: "task-hub",
-    title: "Task Hub",
-    description: "Your cross-process task queue. Tasks are grouped by urgency — overdue, due soon, and recently completed.",
+    target: 'task-hub',
+    title: 'Task Hub',
+    description:
+      'Your cross-process task queue. Tasks are grouped by urgency — overdue, due soon, and recently completed.',
   },
   {
-    target: "process-list",
-    title: "Process List",
-    description: "All processes with health scores. Click any process to see details, run assessments, and manage tasks.",
+    target: 'process-list',
+    title: 'Process List',
+    description:
+      'All processes with health scores. Click any process to see details, run assessments, and manage tasks.',
   },
   {
-    target: "ai-help",
-    title: "AI Help",
-    description: "Click anytime to ask a question about using the Hub. The AI knows all pages and features.",
+    target: 'ai-help',
+    title: 'AI Help',
+    description:
+      'Click anytime to ask a question about using the Hub. The AI knows all pages and features.',
   },
   {
-    target: "sidebar-nav",
-    title: "Sidebar Navigation",
-    description: "Jump between pages from the sidebar. On mobile, tap the hamburger menu to open it.",
+    target: 'sidebar-nav',
+    title: 'Sidebar Navigation',
+    description:
+      'Jump between pages from the sidebar. On mobile, tap the hamburger menu to open it.',
   },
 ];
 
-const STORAGE_KEY = "tour-completed";
+const STORAGE_KEY = 'tour-completed';
 
 export default function PageTour() {
   const [active, setActive] = useState(false);
@@ -51,22 +56,22 @@ export default function PageTour() {
 
     // Check if tour=true is in the URL
     const params = new URLSearchParams(window.location.search);
-    if (params.get("tour") === "true") {
+    if (params.get('tour') === 'true') {
       setActive(true);
       // Clean up the URL
-      params.delete("tour");
+      params.delete('tour');
       const newUrl = params.toString()
         ? `${window.location.pathname}?${params.toString()}`
         : window.location.pathname;
-      window.history.replaceState({}, "", newUrl);
+      window.history.replaceState({}, '', newUrl);
       return;
     }
 
     // Auto-start after onboarding
-    const onboardingDone = localStorage.getItem("onboarding-completed");
-    const tourPending = localStorage.getItem("tour-pending");
+    const onboardingDone = localStorage.getItem('onboarding-completed');
+    const tourPending = localStorage.getItem('tour-pending');
     if (onboardingDone && tourPending) {
-      localStorage.removeItem("tour-pending");
+      localStorage.removeItem('tour-pending');
       // Small delay to let the page render
       setTimeout(() => setActive(true), 500);
     }
@@ -86,11 +91,11 @@ export default function PageTour() {
 
   useEffect(() => {
     updateRect();
-    window.addEventListener("resize", updateRect);
-    window.addEventListener("scroll", updateRect);
+    window.addEventListener('resize', updateRect);
+    window.addEventListener('scroll', updateRect);
     return () => {
-      window.removeEventListener("resize", updateRect);
-      window.removeEventListener("scroll", updateRect);
+      window.removeEventListener('resize', updateRect);
+      window.removeEventListener('scroll', updateRect);
     };
   }, [updateRect]);
 
@@ -107,7 +112,7 @@ export default function PageTour() {
   }
 
   function finish() {
-    localStorage.setItem(STORAGE_KEY, "true");
+    localStorage.setItem(STORAGE_KEY, 'true');
     setActive(false);
     setStep(0);
   }
@@ -150,9 +155,9 @@ export default function PageTour() {
     tooltipStyle.left = left;
   } else {
     // Fallback: center of screen
-    tooltipStyle.top = "50%";
-    tooltipStyle.left = "50%";
-    tooltipStyle.transform = "translate(-50%, -50%)";
+    tooltipStyle.top = '50%';
+    tooltipStyle.left = '50%';
+    tooltipStyle.transform = 'translate(-50%, -50%)';
   }
 
   return (
@@ -193,7 +198,7 @@ export default function PageTour() {
             <div
               key={i}
               className={`w-2 h-2 rounded-full transition-colors ${
-                i === step ? "bg-nia-orange" : i < step ? "bg-nia-green" : "bg-surface-subtle"
+                i === step ? 'bg-nia-orange' : i < step ? 'bg-nia-green' : 'bg-surface-subtle'
               }`}
             />
           ))}
@@ -202,12 +207,8 @@ export default function PageTour() {
           </span>
         </div>
 
-        <h3 className="text-base font-semibold text-foreground mb-1">
-          {currentStep.title}
-        </h3>
-        <p className="text-sm text-text-muted mb-4">
-          {currentStep.description}
-        </p>
+        <h3 className="text-base font-semibold text-foreground mb-1">{currentStep.title}</h3>
+        <p className="text-sm text-text-muted mb-4">{currentStep.description}</p>
 
         {/* Navigation buttons */}
         <div className="flex items-center justify-between">
@@ -230,7 +231,7 @@ export default function PageTour() {
               onClick={next}
               className="px-3 py-1.5 text-sm font-medium text-white bg-nia-dark-solid hover:bg-nia-grey-blue rounded-lg transition-colors"
             >
-              {isLast ? "Done" : "Next"}
+              {isLast ? 'Done' : 'Next'}
             </button>
           </div>
         </div>

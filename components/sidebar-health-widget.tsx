@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import HealthRing from "@/components/health-ring";
+import Link from 'next/link';
+import HealthRing from '@/components/health-ring';
 
 export interface SidebarHealthData {
   score: number;
@@ -59,9 +59,7 @@ export default function SidebarHealthWidget({
           <div className="text-white/50 text-[10px] uppercase tracking-wide leading-none mb-0.5">
             NIA Average
           </div>
-          <div className="text-white text-lg font-bold leading-tight">
-            {score}
-          </div>
+          <div className="text-white text-lg font-bold leading-tight">{score}</div>
           <div className="text-xs font-medium" style={{ color }}>
             {level}
           </div>
@@ -71,11 +69,19 @@ export default function SidebarHealthWidget({
       {/* Top action */}
       {topAction && (
         <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-white/50 leading-tight">
-          <svg className="w-3 h-3 text-nia-orange flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.381z" clipRule="evenodd" />
+          <svg
+            className="w-3 h-3 text-nia-orange flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.381z"
+              clipRule="evenodd"
+            />
           </svg>
           <span className="truncate">
-            <span className="text-nia-orange font-medium">+{topAction.points} pts:</span>{" "}
+            <span className="text-nia-orange font-medium">+{topAction.points} pts:</span>{' '}
             {topAction.label}
           </span>
         </div>

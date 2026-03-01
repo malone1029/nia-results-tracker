@@ -1,8 +1,8 @@
 // Pure layout functions — calculate (x, y) positions from flow node data.
 // Returns plain objects compatible with @xyflow/react Node/Edge shapes.
 
-import type { MissionFlowData, ProcessMapFlowData } from "./flow-types";
-import { MarkerType } from "@xyflow/react";
+import type { MissionFlowData, ProcessMapFlowData } from './flow-types';
+import { MarkerType } from '@xyflow/react';
 
 // ── Shared layout constants ────────────────────────────────────────────────
 
@@ -21,21 +21,21 @@ const CAT_BETWEEN = 24;
 export const CAT_WIDTH = NODE_COLS * NODE_W + (NODE_COLS - 1) * GAP_X + CAT_PAD_X * 2;
 
 const BALDRIGE_NAMES = [
-  "1. Leadership",
-  "2. Strategy",
-  "3. Customers",
-  "4. Measurement",
-  "5. Workforce",
-  "6. Operations",
+  '1. Leadership',
+  '2. Strategy',
+  '3. Customers',
+  '4. Measurement',
+  '5. Workforce',
+  '6. Operations',
 ];
 
 const ADLI_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  integrated: { bg: "#324a4d", text: "#ffffff", border: "#2a3d40" },
-  aligned:    { bg: "#b1bd37", text: "#000000", border: "#9aab2c" },
-  early:      { bg: "#f79935", text: "#000000", border: "#e08820" },
-  reacting:   { bg: "#dc2626", text: "#ffffff", border: "#b91c1c" },
-  unscored:   { bg: "#9ca3af", text: "#ffffff", border: "#6b7280" },
-  gap:        { bg: "#fff7ed", text: "#92400e", border: "#f59e0b" },
+  integrated: { bg: '#324a4d', text: '#ffffff', border: '#2a3d40' },
+  aligned: { bg: '#b1bd37', text: '#000000', border: '#9aab2c' },
+  early: { bg: '#f79935', text: '#000000', border: '#e08820' },
+  reacting: { bg: '#dc2626', text: '#ffffff', border: '#b91c1c' },
+  unscored: { bg: '#9ca3af', text: '#ffffff', border: '#6b7280' },
+  gap: { bg: '#fff7ed', text: '#92400e', border: '#f59e0b' },
 };
 
 export function getAdliColor(cls: string) {
@@ -56,7 +56,7 @@ export interface RFNode {
   type: string;
   position: { x: number; y: number };
   parentId?: string;
-  extent?: "parent";
+  extent?: 'parent';
   data: Record<string, unknown>;
   style?: Record<string, unknown>;
   draggable?: boolean;
@@ -82,7 +82,7 @@ export function calculateMissionLayout(flowData: MissionFlowData): {
   const rfEdges: RFEdge[] = [];
 
   // Group nodes by category (1–6)
-  const nodesByCategory = new Map<number, MissionFlowData["nodes"]>();
+  const nodesByCategory = new Map<number, MissionFlowData['nodes']>();
   for (let i = 1; i <= 6; i++) nodesByCategory.set(i, []);
   for (const node of flowData.nodes) {
     const list = nodesByCategory.get(node.baldrigeCategory);
@@ -99,7 +99,7 @@ export function calculateMissionLayout(flowData: MissionFlowData): {
     // Category group node (background container)
     rfNodes.push({
       id: catId,
-      type: "categoryGroup",
+      type: 'categoryGroup',
       position: { x: 0, y: currentY },
       data: {
         label: BALDRIGE_NAMES[catNum - 1],
@@ -119,10 +119,10 @@ export function calculateMissionLayout(flowData: MissionFlowData): {
 
       rfNodes.push({
         id: node.id,
-        type: node.isGap ? "gapNode" : "processNode",
+        type: node.isGap ? 'gapNode' : 'processNode',
         position: { x: nodeX, y: nodeY },
         parentId: catId,
-        extent: "parent",
+        extent: 'parent',
         data: {
           label: node.label,
           adliClass: node.adliClass,
@@ -147,9 +147,9 @@ export function calculateMissionLayout(flowData: MissionFlowData): {
       source: edge.source,
       target: edge.target,
       label: edge.label,
-      type: "smoothstep",
-      style: { stroke: "#9ca3af", strokeWidth: 1.5 },
-      labelStyle: { fontSize: 10, fill: "#6b7280" },
+      type: 'smoothstep',
+      style: { stroke: '#9ca3af', strokeWidth: 1.5 },
+      labelStyle: { fontSize: 10, fill: '#6b7280' },
     });
   }
 
@@ -183,7 +183,7 @@ export function calculateProcessLayout(flowData: ProcessMapFlowData): {
   }
 
   // BFS from start node
-  const startNode = flowData.nodes.find((n) => n.type === "start");
+  const startNode = flowData.nodes.find((n) => n.type === 'start');
   const startId = startNode?.id ?? flowData.nodes[0]?.id;
 
   const levels = new Map<string, number>();
@@ -228,8 +228,8 @@ export function calculateProcessLayout(flowData: ProcessMapFlowData): {
   // Build React Flow nodes
   for (const node of flowData.nodes) {
     const pos = posMap.get(node.id) ?? { x: 0, y: 0 };
-    const isDecision = node.type === "decision";
-    const isStartEnd = node.type === "start" || node.type === "end";
+    const isDecision = node.type === 'decision';
+    const isStartEnd = node.type === 'start' || node.type === 'end';
     const w = isDecision ? PM_DECISION_W : isStartEnd ? PM_START_END_W : PM_STEP_W;
     const h = isDecision ? PM_DECISION_H : isStartEnd ? PM_START_END_H : PM_STEP_H;
 
@@ -253,10 +253,10 @@ export function calculateProcessLayout(flowData: ProcessMapFlowData): {
       source: edge.source,
       target: edge.target,
       label: edge.label,
-      type: "smoothstep",
+      type: 'smoothstep',
       markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#55787c", strokeWidth: 2 },
-      labelStyle: { fontSize: 11, fill: "#55787c", fontWeight: 500 },
+      style: { stroke: '#55787c', strokeWidth: 2 },
+      labelStyle: { fontSize: 11, fill: '#55787c', fontWeight: 500 },
     });
   }
 

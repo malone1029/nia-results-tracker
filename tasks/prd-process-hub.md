@@ -19,11 +19,11 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 
 ## Phases Overview
 
-| Phase | Focus | Key Features |
-|-------|-------|-------------|
+| Phase            | Focus                   | Key Features                                                                                       |
+| ---------------- | ----------------------- | -------------------------------------------------------------------------------------------------- |
 | **1 (this PRD)** | Core process management | CRUD, Quick/Full templates, status workflow, metrics linking, inventory dashboard, Obsidian import |
-| **2 (future)** | AI + collaboration | AI-guided process improvement, team review with auth, Asana XLSX import/export, comments |
-| **3 (future)** | Application readiness | Lincoln Award readiness view, handoff criteria tracking, category completeness scoring |
+| **2 (future)**   | AI + collaboration      | AI-guided process improvement, team review with auth, Asana XLSX import/export, comments           |
+| **3 (future)**   | Application readiness   | Lincoln Award readiness view, handoff criteria tracking, category completeness scoring             |
 
 ---
 
@@ -34,6 +34,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a developer, I need to extend the existing `processes` table with fields for process documentation so that the app can store full process details in Supabase.
 
 **Acceptance Criteria:**
+
 - [ ] Add new columns to the existing `processes` table via Supabase SQL migration:
   - `status` (text, default 'draft') — one of: 'draft', 'ready_for_review', 'in_review', 'revisions_needed', 'approved'
   - `template_type` (text, default 'quick') — one of: 'quick', 'full'
@@ -66,6 +67,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want the app to be called "NIA Excellence Hub" instead of "NIA Results Tracker" so the name reflects its expanded purpose.
 
 **Acceptance Criteria:**
+
 - [ ] Update the page title/metadata (HTML `<title>`, Open Graph tags if any) to "NIA Excellence Hub"
 - [ ] Update the header text in `layout.tsx` to "NIA Excellence Hub"
 - [ ] Update any references to "Results Tracker" in the UI to "Excellence Hub"
@@ -79,6 +81,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to see a "Processes" link in the navigation so I can access process management alongside the existing metrics features.
 
 **Acceptance Criteria:**
+
 - [ ] Add "Processes" link to the nav bar (between "Key Requirements" and "Categories")
 - [ ] Links to `/processes` route
 - [ ] Active state styling matches existing nav pattern (orange text when active)
@@ -93,6 +96,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to see all my processes in a list so I can quickly find and manage them.
 
 **Acceptance Criteria:**
+
 - [ ] Page at `/processes` shows all processes from the database
 - [ ] Each process row shows: name, Baldrige category, status badge, template type (Quick/Full), owner
 - [ ] Status badges use colored indicators matching the existing workflow:
@@ -118,6 +122,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to see which Baldrige categories have processes and which have gaps, so I know where to focus my effort.
 
 **Acceptance Criteria:**
+
 - [ ] At the top of the `/processes` page, show a 6-cell grid (one per Baldrige category 1-6)
 - [ ] Each cell shows: category name, number of processes, number approved
 - [ ] Color coding: green if at least 1 approved process, yellow if processes exist but none approved, red if zero processes
@@ -133,6 +138,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to create a new process using the Quick template so I can capture the basics without getting overwhelmed by the full ADLI framework.
 
 **Acceptance Criteria:**
+
 - [ ] "Create New Process" button on `/processes` navigates to `/processes/new`
 - [ ] Form fields:
   - Process name (required, text input)
@@ -158,6 +164,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to view a single process with all its details so I can read and understand the full documentation.
 
 **Acceptance Criteria:**
+
 - [ ] Page at `/processes/[id]` shows the full process document
 - [ ] Header section shows: process name, status badge, template type, Baldrige category & item, owner, reviewer
 - [ ] "Edit" button navigates to edit mode
@@ -178,6 +185,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to edit any field of a process so I can improve the documentation over time.
 
 **Acceptance Criteria:**
+
 - [ ] "Edit" button on process detail page navigates to `/processes/[id]/edit`
 - [ ] Pre-populates all form fields with current values
 - [ ] Same form layout as create, but with additional fields visible based on template type
@@ -195,6 +203,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to upgrade a Quick process to the Full ADLI template so I can add comprehensive documentation as the process matures.
 
 **Acceptance Criteria:**
+
 - [ ] On the edit page for a Quick-template process, show an "Upgrade to Full Template" button
 - [ ] Clicking it reveals the additional Full template sections: Charter, ADLI (4 sections), Workflow, Baldrige Connections
 - [ ] Existing Quick template data is preserved (description, steps, participants, etc.)
@@ -211,6 +220,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want structured editors for each ADLI section so I can document my process using the Baldrige framework without needing to know the JSON structure.
 
 **Acceptance Criteria:**
+
 - [ ] Each ADLI section (Approach, Deployment, Learning, Integration) has its own collapsible card on the edit page
 - [ ] **Approach** fields: evidence_base (textarea), key_steps (add/remove list), tools_used (add/remove list), key_requirements (textarea)
 - [ ] **Deployment** fields: teams (add/remove list), communication_plan (textarea), training_approach (textarea), consistency_mechanisms (textarea)
@@ -229,6 +239,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to link processes to key requirements so I can see which stakeholder needs each process addresses.
 
 **Acceptance Criteria:**
+
 - [ ] On the process detail/edit page, show a "Linked Key Requirements" section
 - [ ] Displays currently linked requirements with stakeholder group and requirement name
 - [ ] "Link Requirement" button opens a picker showing all key requirements from the database
@@ -246,8 +257,9 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to change a process's status with clear visual feedback so I can track where each process is in the review pipeline.
 
 **Acceptance Criteria:**
+
 - [ ] On the process detail page, show the status workflow as a horizontal stepper/progress bar:
-  Draft → Ready for Review → In Review → Revisions Needed → Approved
+      Draft → Ready for Review → In Review → Revisions Needed → Approved
 - [ ] Current status is highlighted; completed statuses are filled
 - [ ] "Advance Status" button moves to the next logical status
 - [ ] "Revisions Needed" button available during "In Review" status (sends back)
@@ -263,6 +275,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to fill out the Charter section for a Full-template process so I can document the process's purpose and scope.
 
 **Acceptance Criteria:**
+
 - [ ] Charter section appears as a collapsible card on the edit page (Full template only)
 - [ ] Fields: purpose (textarea), scope_includes (textarea), scope_excludes (textarea), stakeholders (add/remove list), mission_alignment (textarea)
 - [ ] Data saves as structured JSONB to the `charter` column
@@ -277,6 +290,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to document the detailed workflow for a Full-template process so I can capture inputs, steps, outputs, and quality controls.
 
 **Acceptance Criteria:**
+
 - [ ] Workflow section appears as a collapsible card on the edit page (Full template only)
 - [ ] Fields:
   - Inputs (add/remove list of text items)
@@ -295,6 +309,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to import my existing process documents from the Obsidian vault so I don't have to re-enter everything manually.
 
 **Acceptance Criteria:**
+
 - [ ] Admin page or script at `/processes/import` (doesn't need to be pretty — one-time use)
 - [ ] Upload or paste markdown content from an Obsidian process document
 - [ ] Parser extracts: process name, category, status, charter fields, ADLI sections, workflow steps, Baldrige Connections (questions addressed, evidence by ADLI dimension)
@@ -314,6 +329,7 @@ Phase 1 combines process documentation with the existing metrics tracker into on
 **Description:** As a user, I want to delete a process I created by mistake so I can keep my process list clean.
 
 **Acceptance Criteria:**
+
 - [ ] "Delete" button on process detail page (styled as destructive/red)
 - [ ] Confirmation dialog: "Are you sure you want to delete [process name]? This cannot be undone."
 - [ ] Deleting a process also removes its `process_requirements` links and `process_history` entries (cascade)

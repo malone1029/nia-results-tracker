@@ -3,15 +3,15 @@
  * Used by both single-process sync and admin bulk sync endpoints.
  */
 
-import { asanaFetch } from "./asana";
+import { asanaFetch } from './asana';
 import {
   fetchProjectSections,
   ADLI_TASK_PATTERNS,
   type TaskData,
   type SubtaskData,
-} from "./asana-helpers";
-import type { PdcaSection } from "./types";
-import type { SupabaseClient } from "@supabase/supabase-js";
+} from './asana-helpers';
+import type { PdcaSection } from './types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface SyncResult {
   processId: number;
@@ -29,9 +29,7 @@ export interface SyncResult {
  */
 function isAdliTask(taskName: string): boolean {
   const lower = taskName.toLowerCase().trim();
-  return Object.keys(ADLI_TASK_PATTERNS).some((pattern) =>
-    lower.startsWith(pattern)
-  );
+  return Object.keys(ADLI_TASK_PATTERNS).some((pattern) => lower.startsWith(pattern));
 }
 
 /**
@@ -40,12 +38,12 @@ function isAdliTask(taskName: string): boolean {
 function sectionToPdca(sectionName: string): PdcaSection {
   const lower = sectionName.toLowerCase().trim();
   const map: Record<string, PdcaSection> = {
-    plan: "plan",
-    execute: "execute",
-    evaluate: "evaluate",
-    improve: "improve",
+    plan: 'plan',
+    execute: 'execute',
+    evaluate: 'evaluate',
+    improve: 'improve',
   };
-  return map[lower] || "plan";
+  return map[lower] || 'plan';
 }
 
 /**
@@ -61,10 +59,7 @@ async function fetchAssigneeEmails(
 
   for (const gid of uniqueGids) {
     try {
-      const res = await asanaFetch(
-        token,
-        `/users/${gid}?opt_fields=email`
-      );
+      const res = await asanaFetch(token, `/users/${gid}?opt_fields=email`);
       if (res.data?.email) {
         emailMap.set(gid, res.data.email);
       }
@@ -147,10 +142,10 @@ export async function syncProcessTasks(
   // Hub-created tasks that were exported to Asana also have a GID — we
   // must match those too, otherwise sync creates duplicates.
   const { data: existingTasks } = await supabase
-    .from("process_tasks")
-    .select("id, asana_task_gid")
-    .eq("process_id", processId)
-    .not("asana_task_gid", "is", null);
+    .from('process_tasks')
+    .select('id, asana_task_gid')
+    .eq('process_id', processId)
+    .not('asana_task_gid', 'is', null);
 
   const existingByGid = new Map<string, number>();
   for (const t of existingTasks || []) {
@@ -169,18 +164,16 @@ export async function syncProcessTasks(
     const gid = task.gid;
     seenGids.add(gid);
 
-    const assigneeEmail = task.assignee_gid
-      ? emailMap.get(task.assignee_gid) || null
-      : null;
+    const assigneeEmail = task.assignee_gid ? emailMap.get(task.assignee_gid) || null : null;
 
     const row = {
       process_id: processId,
       title: task.name,
       description: task.notes || null,
       pdca_section: pdcaSection,
-      origin: "asana" as const,
-      source: "ai_suggestion" as const,
-      status: task.completed ? ("completed" as const) : ("active" as const),
+      origin: 'asana' as const,
+      source: 'ai_suggestion' as const,
+      status: task.completed ? ('completed' as const) : ('active' as const),
       assignee_name: task.assignee || null,
       assignee_email: assigneeEmail,
       assignee_asana_gid: task.assignee_gid || null,
@@ -199,27 +192,51 @@ export async function syncProcessTasks(
 
     if (existingByGid.has(gid)) {
       const existingId = existingByGid.get(gid)!;
-      const { title, description, status, assignee_name, assignee_email: ae,
-        assignee_asana_gid, start_date, due_date, completed, completed_at,
-        asana_section_name, asana_section_gid, parent_asana_gid,
-        is_subtask, asana_task_url, last_synced_at } = row;
+      const {
+        title,
+        description,
+        status,
+        assignee_name,
+        assignee_email: ae,
+        assignee_asana_gid,
+        start_date,
+        due_date,
+        completed,
+        completed_at,
+        asana_section_name,
+        asana_section_gid,
+        parent_asana_gid,
+        is_subtask,
+        asana_task_url,
+        last_synced_at,
+      } = row;
 
       await supabase
-        .from("process_tasks")
+        .from('process_tasks')
         .update({
-          title, description, status, assignee_name,
-          assignee_email: ae, assignee_asana_gid,
-          start_date, due_date, completed, completed_at,
-          asana_section_name, asana_section_gid,
-          parent_asana_gid, is_subtask, asana_task_url,
+          title,
+          description,
+          status,
+          assignee_name,
+          assignee_email: ae,
+          assignee_asana_gid,
+          start_date,
+          due_date,
+          completed,
+          completed_at,
+          asana_section_name,
+          asana_section_gid,
+          parent_asana_gid,
+          is_subtask,
+          asana_task_url,
           last_synced_at,
-          origin: "asana",
+          origin: 'asana',
         })
-        .eq("id", existingId);
+        .eq('id', existingId);
 
       updated++;
     } else {
-      await supabase.from("process_tasks").insert(row);
+      await supabase.from('process_tasks').insert(row);
       imported++;
     }
   }
@@ -228,7 +245,7 @@ export async function syncProcessTasks(
   let removed = 0;
   for (const [gid, id] of existingByGid) {
     if (!seenGids.has(gid)) {
-      await supabase.from("process_tasks").delete().eq("id", id);
+      await supabase.from('process_tasks').delete().eq('id', id);
       removed++;
     }
   }

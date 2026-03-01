@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { Card } from "@/components/ui";
+import { useState } from 'react';
+import Link from 'next/link';
+import { Card } from '@/components/ui';
 
 type ComputedMetrics = {
   techAvgResolution: number | null;
@@ -19,7 +19,7 @@ function defaultMonth() {
   const d = new Date();
   d.setDate(1);
   d.setMonth(d.getMonth() - 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function formatHours(h: number) {
@@ -40,34 +40,34 @@ type Row = {
 function metricsToRows(m: ComputedMetrics): Row[] {
   return [
     {
-      label: "Technology: Avg Resolution Time",
+      label: 'Technology: Avg Resolution Time',
       value: m.techAvgResolution,
-      display: m.techAvgResolution != null ? formatHours(m.techAvgResolution) : "—",
-      basis: `${m.techTicketCount} ticket${m.techTicketCount !== 1 ? "s" : ""}`,
+      display: m.techAvgResolution != null ? formatHours(m.techAvgResolution) : '—',
+      basis: `${m.techTicketCount} ticket${m.techTicketCount !== 1 ? 's' : ''}`,
       target: 24,
       isHigherBetter: false,
     },
     {
-      label: "Technology: Customer Satisfaction",
+      label: 'Technology: Customer Satisfaction',
       value: m.techSatisfaction,
-      display: m.techSatisfaction != null ? `${m.techSatisfaction}/5` : "—",
-      basis: `${m.techSentimentCount} response${m.techSentimentCount !== 1 ? "s" : ""}`,
+      display: m.techSatisfaction != null ? `${m.techSatisfaction}/5` : '—',
+      basis: `${m.techSentimentCount} response${m.techSentimentCount !== 1 ? 's' : ''}`,
       target: 4.5,
       isHigherBetter: true,
     },
     {
-      label: "HR: Avg Resolution Time",
+      label: 'HR: Avg Resolution Time',
       value: m.hrAvgResolution,
-      display: m.hrAvgResolution != null ? formatHours(m.hrAvgResolution) : "—",
-      basis: `${m.hrTicketCount} ticket${m.hrTicketCount !== 1 ? "s" : ""}`,
+      display: m.hrAvgResolution != null ? formatHours(m.hrAvgResolution) : '—',
+      basis: `${m.hrTicketCount} ticket${m.hrTicketCount !== 1 ? 's' : ''}`,
       target: 24,
       isHigherBetter: false,
     },
     {
-      label: "HR: Customer Satisfaction",
+      label: 'HR: Customer Satisfaction',
       value: m.hrSatisfaction,
-      display: m.hrSatisfaction != null ? `${m.hrSatisfaction}/5` : "—",
-      basis: `${m.hrSentimentCount} response${m.hrSentimentCount !== 1 ? "s" : ""}`,
+      display: m.hrSatisfaction != null ? `${m.hrSatisfaction}/5` : '—',
+      basis: `${m.hrSentimentCount} response${m.hrSentimentCount !== 1 ? 's' : ''}`,
       target: 4.5,
       isHigherBetter: true,
     },
@@ -75,11 +75,9 @@ function metricsToRows(m: ComputedMetrics): Row[] {
 }
 
 function statusColor(row: Row) {
-  if (row.value == null) return "text-text-tertiary";
-  const meetsTarget = row.isHigherBetter
-    ? row.value >= row.target
-    : row.value <= row.target;
-  return meetsTarget ? "text-nia-green" : "text-amber-500";
+  if (row.value == null) return 'text-text-tertiary';
+  const meetsTarget = row.isHigherBetter ? row.value >= row.target : row.value <= row.target;
+  return meetsTarget ? 'text-nia-green' : 'text-amber-500';
 }
 
 export default function ResolveSyncPage() {
@@ -99,7 +97,7 @@ export default function ResolveSyncPage() {
     const json = await res.json();
     setLoading(false);
     if (!res.ok) {
-      setErrorMsg(json.error ?? "Failed to load preview.");
+      setErrorMsg(json.error ?? 'Failed to load preview.');
       return;
     }
     setPreview(json.metrics);
@@ -109,22 +107,22 @@ export default function ResolveSyncPage() {
     setSyncing(true);
     setSuccessMsg(null);
     setErrorMsg(null);
-    const res = await fetch("/api/resolve/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/resolve/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ month }),
     });
     const json = await res.json();
     setSyncing(false);
     if (!res.ok) {
-      setErrorMsg(json.error ?? "Sync failed.");
+      setErrorMsg(json.error ?? 'Sync failed.');
       return;
     }
     if (json.synced === 0) {
-      setSuccessMsg("Nothing to sync — no data available for this month.");
+      setSuccessMsg('Nothing to sync — no data available for this month.');
     } else {
       setSuccessMsg(
-        `${json.synced} metric entr${json.synced !== 1 ? "ies" : "y"} written to Hub for ${month}.`
+        `${json.synced} metric entr${json.synced !== 1 ? 'ies' : 'y'} written to Hub for ${month}.`
       );
     }
   }
@@ -188,7 +186,7 @@ export default function ResolveSyncPage() {
               disabled={loading}
               className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
             >
-              {loading ? "Loading…" : "Preview"}
+              {loading ? 'Loading…' : 'Preview'}
             </button>
           </div>
         </Card>
@@ -211,10 +209,10 @@ export default function ResolveSyncPage() {
         {preview && (
           <Card padding="md" className="mb-4">
             <h2 className="text-sm font-semibold text-nia-dark mb-3">
-              Preview —{" "}
-              {new Date(`${month}-15`).toLocaleString("default", {
-                month: "long",
-                year: "numeric",
+              Preview —{' '}
+              {new Date(`${month}-15`).toLocaleString('default', {
+                month: 'long',
+                year: 'numeric',
               })}
             </h2>
             <table className="w-full text-sm">
@@ -248,7 +246,7 @@ export default function ResolveSyncPage() {
                 disabled={syncing}
                 className="mt-4 w-full py-2.5 bg-nia-dark-solid text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
-                {syncing ? "Syncing…" : `Sync ${month} to Hub`}
+                {syncing ? 'Syncing…' : `Sync ${month} to Hub`}
               </button>
             ) : (
               <p className="mt-4 text-xs text-text-tertiary text-center">
@@ -260,14 +258,16 @@ export default function ResolveSyncPage() {
 
         {/* Legend */}
         <div className="text-xs text-text-tertiary space-y-1.5 mt-2">
-          <p>• Resolution time uses tickets <em>created</em> this month that are already resolved.</p>
+          <p>
+            • Resolution time uses tickets <em>created</em> this month that are already resolved.
+          </p>
           <p>• Satisfaction uses survey responses on tickets created this month.</p>
           <p>• Re-syncing overwrites previous entries for the same month.</p>
           <p>
-            • View synced data on the{" "}
+            • View synced data on the{' '}
             <Link href="/processes" className="underline hover:text-nia-dark transition-colors">
               Processes
-            </Link>{" "}
+            </Link>{' '}
             page under Technology Support and HR Support.
           </p>
         </div>

@@ -1,8 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isAdminRole } from "@/lib/auth-helpers";
-import { checkRateLimit } from "@/lib/rate-limit";
+import Anthropic from '@anthropic-ai/sdk';
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isAdminRole } from '@/lib/auth-helpers';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 120;
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   let tier: string | null = null;
   try {
     const body = await request.json();
-    if (body.tier && ["excellence_builder", "full"].includes(body.tier)) {
+    if (body.tier && ['excellence_builder', 'full'].includes(body.tier)) {
       tier = body.tier;
     }
   } catch {
@@ -36,15 +36,15 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const { data: roleData } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
-  if (!isAdminRole(roleData?.role || "")) {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  if (!isAdminRole(roleData?.role || '')) {
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
   }
 
   // Rate limit check
@@ -53,18 +53,26 @@ export async function POST(request: Request) {
 
   // Fetch all questions + existing mappings
   const [questionsRes, mappingsRes, processesRes] = await Promise.all([
-    supabase.from("baldrige_questions").select("*, baldrige_items(item_code, item_name, category_name)").order("sort_order"),
-    supabase.from("process_question_mappings").select("question_id, process_id"),
-    supabase.from("processes").select("id, name, description, owner, baldrige_item, charter, adli_approach, adli_deployment, adli_learning, adli_integration").order("name"),
+    supabase
+      .from('baldrige_questions')
+      .select('*, baldrige_items(item_code, item_name, category_name)')
+      .order('sort_order'),
+    supabase.from('process_question_mappings').select('question_id, process_id'),
+    supabase
+      .from('processes')
+      .select(
+        'id, name, description, owner, baldrige_item, charter, adli_approach, adli_deployment, adli_learning, adli_integration'
+      )
+      .order('name'),
   ]);
 
   if (questionsRes.error || processesRes.error) {
-    return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
   }
 
   const processes = processesRes.data || [];
   if (processes.length === 0) {
-    return NextResponse.json({ error: "No processes found" }, { status: 400 });
+    return NextResponse.json({ error: 'No processes found' }, { status: 400 });
   }
 
   // Find unmapped questions (no primary mapping)
@@ -84,20 +92,22 @@ export async function POST(request: Request) {
   );
 
   if (unmappedQuestions.length === 0) {
-    return NextResponse.json({ results: [], message: "All questions are already mapped!" });
+    return NextResponse.json({ results: [], message: 'All questions are already mapped!' });
   }
 
   // Build compact process summaries
-  const processSummaries = processes.map((p) => {
-    const parts = [`[${p.id}] ${p.name}`];
-    if (p.description) parts.push(`Desc: ${String(p.description).slice(0, 100)}`);
-    if (p.baldrige_item) parts.push(`Baldrige: ${p.baldrige_item}`);
-    const charter = p.charter as Record<string, unknown> | null;
-    if (charter?.content) {
-      parts.push(`Charter: ${String(charter.content).slice(0, 150)}`);
-    }
-    return parts.join(" | ");
-  }).join("\n");
+  const processSummaries = processes
+    .map((p) => {
+      const parts = [`[${p.id}] ${p.name}`];
+      if (p.description) parts.push(`Desc: ${String(p.description).slice(0, 100)}`);
+      if (p.baldrige_item) parts.push(`Baldrige: ${p.baldrige_item}`);
+      const charter = p.charter as Record<string, unknown> | null;
+      if (charter?.content) {
+        parts.push(`Charter: ${String(charter.content).slice(0, 150)}`);
+      }
+      return parts.join(' | ');
+    })
+    .join('\n');
 
   // Process in batches of 5
   const BATCH_SIZE = 5;
@@ -107,7 +117,12 @@ export async function POST(request: Request) {
     question_text: string;
     area_label: string;
     item_code: string;
-    suggestions: { process_id: number; process_name: string; coverage: string; rationale: string }[];
+    suggestions: {
+      process_id: number;
+      process_name: string;
+      coverage: string;
+      rationale: string;
+    }[];
   }[] = [];
 
   for (let i = 0; i < unmappedQuestions.length; i += BATCH_SIZE) {
@@ -118,7 +133,7 @@ export async function POST(request: Request) {
         const item = q.baldrige_items as unknown as { item_code: string; item_name: string };
         return `[Q${q.id}] ${q.question_code} (${item.item_code} ${item.item_name}): ${q.question_text}`;
       })
-      .join("\n\n");
+      .join('\n\n');
 
     const systemPrompt = `You are a Baldrige Excellence Framework expert. For each question below, suggest 0-3 processes from the list that best answer it.
 
@@ -139,17 +154,19 @@ ${processSummaries}`;
 
     try {
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-6",
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
+        messages: [{ role: 'user', content: userPrompt }],
       });
 
-      const text =
-        response.content[0].type === "text" ? response.content[0].text : "";
+      const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
       // Parse the JSON response
-      let parsed: Record<string, { process_id: number; process_name: string; coverage: string; rationale: string }[]> = {};
+      let parsed: Record<
+        string,
+        { process_id: number; process_name: string; coverage: string; rationale: string }[]
+      > = {};
       try {
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);

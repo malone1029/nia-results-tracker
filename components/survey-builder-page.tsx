@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   QuestionInput,
   QuestionType,
@@ -11,8 +11,8 @@ import {
   RATING_SCALE_OPTIONS,
   DEFAULT_RATING_LABELS,
   createEmptyQuestion,
-} from "@/lib/survey-types";
-import { Button, Input, Badge, Textarea } from "@/components/ui";
+} from '@/lib/survey-types';
+import { Button, Input, Badge, Textarea } from '@/components/ui';
 
 /* ─── Types ─────────────────────────────────────────────────── */
 
@@ -49,61 +49,108 @@ interface SurveyBuilderPageProps {
 
 /* ─── Question type badge colors ─────────────────────────────── */
 
-const TYPE_BADGE_COLORS: Record<QuestionType, "orange" | "green" | "purple" | "blue" | "dark" | "red" | "yellow"> = {
-  rating: "orange",
-  yes_no: "green",
-  nps: "purple",
-  multiple_choice: "blue",
-  checkbox: "dark",
-  open_text: "yellow",
-  matrix: "red",
+const TYPE_BADGE_COLORS: Record<
+  QuestionType,
+  'orange' | 'green' | 'purple' | 'blue' | 'dark' | 'red' | 'yellow'
+> = {
+  rating: 'orange',
+  yes_no: 'green',
+  nps: 'purple',
+  multiple_choice: 'blue',
+  checkbox: 'dark',
+  open_text: 'yellow',
+  matrix: 'red',
 };
 
 /* ─── Icons (inline SVG) ─────────────────────────────────────── */
 
-function ChevronUpIcon({ className = "w-4 h-4" }: { className?: string }) {
+function ChevronUpIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
     </svg>
   );
 }
 
-function ChevronDownIcon({ className = "w-4 h-4" }: { className?: string }) {
+function ChevronDownIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
     </svg>
   );
 }
 
-function TrashIcon({ className = "w-4 h-4" }: { className?: string }) {
+function TrashIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+      />
     </svg>
   );
 }
 
-function PlusIcon({ className = "w-4 h-4" }: { className?: string }) {
+function PlusIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
     </svg>
   );
 }
 
-function GripIcon({ className = "w-4 h-4" }: { className?: string }) {
+function GripIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+      />
     </svg>
   );
 }
 
-function ArrowLeftIcon({ className = "w-4 h-4" }: { className?: string }) {
+function ArrowLeftIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
     </svg>
   );
@@ -116,7 +163,7 @@ function EditableList({
   onChange,
   placeholder,
   minItems = 2,
-  addLabel = "Add option",
+  addLabel = 'Add option',
 }: {
   items: string[];
   onChange: (items: string[]) => void;
@@ -136,17 +183,14 @@ function EditableList({
   }
 
   function addItem() {
-    onChange([...items, ""]);
+    onChange([...items, '']);
   }
 
-  function moveItem(index: number, direction: "up" | "down") {
-    if (
-      (direction === "up" && index === 0) ||
-      (direction === "down" && index === items.length - 1)
-    )
+  function moveItem(index: number, direction: 'up' | 'down') {
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === items.length - 1))
       return;
     const updated = [...items];
-    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
     [updated[index], updated[swapIndex]] = [updated[swapIndex], updated[index]];
     onChange(updated);
   }
@@ -164,7 +208,7 @@ function EditableList({
             className="flex-1 border border-border rounded-md px-2.5 py-1.5 text-sm text-foreground bg-card placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/40 focus:border-nia-grey-blue"
           />
           <button
-            onClick={() => moveItem(i, "up")}
+            onClick={() => moveItem(i, 'up')}
             disabled={i === 0}
             className="p-1 text-text-muted hover:text-text-secondary disabled:opacity-30"
             title="Move up"
@@ -172,7 +216,7 @@ function EditableList({
             <ChevronUpIcon className="w-3 h-3" />
           </button>
           <button
-            onClick={() => moveItem(i, "down")}
+            onClick={() => moveItem(i, 'down')}
             disabled={i === items.length - 1}
             className="p-1 text-text-muted hover:text-text-secondary disabled:opacity-30"
             title="Move down"
@@ -185,7 +229,13 @@ function EditableList({
               className="p-1 text-text-muted hover:text-nia-red"
               title="Remove"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -211,8 +261,8 @@ function ConditionBuilder({
   questions,
   currentIndex,
 }: {
-  condition: QuestionOptions["condition"];
-  onChange: (condition: QuestionOptions["condition"]) => void;
+  condition: QuestionOptions['condition'];
+  onChange: (condition: QuestionOptions['condition']) => void;
   onRemove: () => void;
   questions: QuestionInput[];
   currentIndex: number;
@@ -230,21 +280,19 @@ function ConditionBuilder({
     );
   }
 
-  const sourceQuestion = condition
-    ? questions[condition.question_index]
-    : null;
+  const sourceQuestion = condition ? questions[condition.question_index] : null;
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
       <span className="text-text-secondary font-medium">Show only if</span>
       <select
-        value={condition?.question_index ?? ""}
+        value={condition?.question_index ?? ''}
         onChange={(e) => {
           const idx = Number(e.target.value);
           onChange({
             question_index: idx,
-            operator: "equals",
-            value: "",
+            operator: 'equals',
+            value: '',
           });
         }}
         className="border border-border rounded-md px-2 py-1 text-xs bg-card text-text-secondary min-w-[120px]"
@@ -253,18 +301,18 @@ function ConditionBuilder({
         {availableQuestions.map((q) => (
           <option key={q.originalIndex} value={q.originalIndex}>
             Q{q.originalIndex + 1}: {q.question_text.slice(0, 40)}
-            {q.question_text.length > 40 ? "..." : ""}
+            {q.question_text.length > 40 ? '...' : ''}
           </option>
         ))}
       </select>
 
       <select
-        value={condition?.operator ?? "equals"}
+        value={condition?.operator ?? 'equals'}
         onChange={(e) =>
           condition &&
           onChange({
             ...condition,
-            operator: e.target.value as "equals" | "not_equals" | "greater_than" | "less_than",
+            operator: e.target.value as 'equals' | 'not_equals' | 'greater_than' | 'less_than',
           })
         }
         className="border border-border rounded-md px-2 py-1 text-xs bg-card text-text-secondary"
@@ -277,25 +325,21 @@ function ConditionBuilder({
       </select>
 
       {/* Value input — adapts based on source question type */}
-      {sourceQuestion?.question_type === "yes_no" ? (
+      {sourceQuestion?.question_type === 'yes_no' ? (
         <select
-          value={String(condition?.value ?? "")}
-          onChange={(e) =>
-            condition && onChange({ ...condition, value: e.target.value })
-          }
+          value={String(condition?.value ?? '')}
+          onChange={(e) => condition && onChange({ ...condition, value: e.target.value })}
           className="border border-border rounded-md px-2 py-1 text-xs bg-card text-text-secondary"
         >
           <option value="">Select...</option>
           <option value="yes">Yes</option>
           <option value="no">No</option>
         </select>
-      ) : sourceQuestion?.question_type === "multiple_choice" ||
-        sourceQuestion?.question_type === "checkbox" ? (
+      ) : sourceQuestion?.question_type === 'multiple_choice' ||
+        sourceQuestion?.question_type === 'checkbox' ? (
         <select
-          value={String(condition?.value ?? "")}
-          onChange={(e) =>
-            condition && onChange({ ...condition, value: e.target.value })
-          }
+          value={String(condition?.value ?? '')}
+          onChange={(e) => condition && onChange({ ...condition, value: e.target.value })}
           className="border border-border rounded-md px-2 py-1 text-xs bg-card text-text-secondary min-w-[120px]"
         >
           <option value="">Select...</option>
@@ -308,19 +352,18 @@ function ConditionBuilder({
       ) : (
         <input
           type={
-            sourceQuestion?.question_type === "rating" ||
-            sourceQuestion?.question_type === "nps"
-              ? "number"
-              : "text"
+            sourceQuestion?.question_type === 'rating' || sourceQuestion?.question_type === 'nps'
+              ? 'number'
+              : 'text'
           }
-          value={condition?.value ?? ""}
+          value={condition?.value ?? ''}
           onChange={(e) =>
             condition &&
             onChange({
               ...condition,
               value:
-                sourceQuestion?.question_type === "rating" ||
-                sourceQuestion?.question_type === "nps"
+                sourceQuestion?.question_type === 'rating' ||
+                sourceQuestion?.question_type === 'nps'
                   ? Number(e.target.value)
                   : e.target.value,
             })
@@ -335,7 +378,13 @@ function ConditionBuilder({
         className="text-xs text-text-muted hover:text-nia-red"
         title="Remove condition"
       >
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg
+          className="w-3.5 h-3.5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
@@ -356,7 +405,7 @@ function TypeOptionsPanel({
   const hasCustomLabels = options.labels && options.labels.length > 0;
 
   switch (question_type) {
-    case "rating":
+    case 'rating':
       return (
         <div className="space-y-3">
           {/* Scale size */}
@@ -373,16 +422,14 @@ function TypeOptionsPanel({
                       rating_scale_max: size,
                       options: {
                         ...options,
-                        labels: options.labels
-                          ? DEFAULT_RATING_LABELS[size] || []
-                          : undefined,
+                        labels: options.labels ? DEFAULT_RATING_LABELS[size] || [] : undefined,
                       },
                     })
                   }
                   className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
                     rating_scale_max === size
-                      ? "border-nia-dark bg-nia-dark/10 text-nia-dark font-medium"
-                      : "border-border text-text-secondary hover:border-text-muted"
+                      ? 'border-nia-dark bg-nia-dark/10 text-nia-dark font-medium'
+                      : 'border-border text-text-secondary hover:border-text-muted'
                   }`}
                 >
                   1-{size}
@@ -442,30 +489,28 @@ function TypeOptionsPanel({
         </div>
       );
 
-    case "yes_no":
+    case 'yes_no':
       return null;
 
-    case "nps":
+    case 'nps':
       return (
         <p className="text-xs text-text-muted">
-          Fixed 0-10 scale. Responses are automatically categorized as Promoters
-          (9-10), Passives (7-8), or Detractors (0-6).
+          Fixed 0-10 scale. Responses are automatically categorized as Promoters (9-10), Passives
+          (7-8), or Detractors (0-6).
         </p>
       );
 
-    case "multiple_choice":
-    case "checkbox":
+    case 'multiple_choice':
+    case 'checkbox':
       return (
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-medium text-text-secondary mb-1.5">
-              {question_type === "multiple_choice" ? "Choices" : "Options"}
+              {question_type === 'multiple_choice' ? 'Choices' : 'Options'}
             </label>
             <EditableList
-              items={options.choices || ["", ""]}
-              onChange={(choices) =>
-                onChange({ options: { ...options, choices } })
-              }
+              items={options.choices || ['', '']}
+              onChange={(choices) => onChange({ options: { ...options, choices } })}
               placeholder="Option"
               minItems={2}
               addLabel="Add option"
@@ -487,7 +532,7 @@ function TypeOptionsPanel({
         </div>
       );
 
-    case "open_text":
+    case 'open_text':
       return (
         <div className="space-y-3">
           <div>
@@ -495,16 +540,14 @@ function TypeOptionsPanel({
               Text Field Size
             </label>
             <div className="flex gap-2">
-              {(["short", "long"] as const).map((variant) => (
+              {(['short', 'long'] as const).map((variant) => (
                 <button
                   key={variant}
-                  onClick={() =>
-                    onChange({ options: { ...options, variant } })
-                  }
+                  onClick={() => onChange({ options: { ...options, variant } })}
                   className={`px-3 py-1.5 text-xs rounded-lg border transition-colors capitalize ${
-                    (options.variant || "short") === variant
-                      ? "border-nia-dark bg-nia-dark/10 text-nia-dark font-medium"
-                      : "border-border text-text-secondary hover:border-text-muted"
+                    (options.variant || 'short') === variant
+                      ? 'border-nia-dark bg-nia-dark/10 text-nia-dark font-medium'
+                      : 'border-border text-text-secondary hover:border-text-muted'
                   }`}
                 >
                   {variant}
@@ -514,19 +557,16 @@ function TypeOptionsPanel({
           </div>
           <div>
             <label className="block text-xs font-medium text-text-secondary mb-1">
-              Max Character Limit{" "}
-              <span className="text-text-muted font-normal">(optional)</span>
+              Max Character Limit <span className="text-text-muted font-normal">(optional)</span>
             </label>
             <input
               type="number"
-              value={options.max_length ?? ""}
+              value={options.max_length ?? ''}
               onChange={(e) =>
                 onChange({
                   options: {
                     ...options,
-                    max_length: e.target.value
-                      ? Number(e.target.value)
-                      : undefined,
+                    max_length: e.target.value ? Number(e.target.value) : undefined,
                   },
                 })
               }
@@ -538,7 +578,7 @@ function TypeOptionsPanel({
         </div>
       );
 
-    case "matrix":
+    case 'matrix':
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -546,10 +586,8 @@ function TypeOptionsPanel({
               Row Labels
             </label>
             <EditableList
-              items={options.rows || ["", ""]}
-              onChange={(rows) =>
-                onChange({ options: { ...options, rows } })
-              }
+              items={options.rows || ['', '']}
+              onChange={(rows) => onChange({ options: { ...options, rows } })}
               placeholder="Row"
               minItems={2}
               addLabel="Add row"
@@ -560,10 +598,8 @@ function TypeOptionsPanel({
               Column Labels
             </label>
             <EditableList
-              items={options.columns || ["", ""]}
-              onChange={(columns) =>
-                onChange({ options: { ...options, columns } })
-              }
+              items={options.columns || ['', '']}
+              onChange={(columns) => onChange({ options: { ...options, columns } })}
               placeholder="Column"
               minItems={2}
               addLabel="Add column"
@@ -598,7 +634,7 @@ function QuestionCard({
   expanded: boolean;
   onToggle: () => void;
   onChange: (updates: Partial<QuestionInput>) => void;
-  onMove: (direction: "up" | "down") => void;
+  onMove: (direction: 'up' | 'down') => void;
   onDelete: () => void;
   onAddSectionBreak: () => void;
   allQuestions: QuestionInput[];
@@ -610,7 +646,7 @@ function QuestionCard({
   return (
     <div>
       {/* Section break */}
-      {question.section_label !== undefined && question.section_label !== "" && (
+      {question.section_label !== undefined && question.section_label !== '' && (
         <div className="mb-2 flex items-center gap-2">
           <div className="flex-1 border-t border-border" />
           <input
@@ -621,11 +657,17 @@ function QuestionCard({
             className="text-sm font-semibold text-nia-dark bg-transparent border-none focus:outline-none text-center min-w-[120px]"
           />
           <button
-            onClick={() => onChange({ section_label: "" })}
+            onClick={() => onChange({ section_label: '' })}
             className="text-text-muted hover:text-nia-red"
             title="Remove section break"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -640,9 +682,7 @@ function QuestionCard({
           onClick={onToggle}
           className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-subtle/50 transition-colors"
         >
-          <span className="text-xs text-text-muted font-mono w-6 flex-shrink-0">
-            {index + 1}
-          </span>
+          <span className="text-xs text-text-muted font-mono w-6 flex-shrink-0">{index + 1}</span>
           <GripIcon className="w-4 h-4 text-text-muted flex-shrink-0" />
           <span className="flex-1 text-sm text-foreground truncate">
             {question.question_text || (
@@ -653,7 +693,9 @@ function QuestionCard({
             {typeInfo?.icon} {typeInfo?.label}
           </Badge>
           {!question.is_required && (
-            <Badge color="gray" size="xs">Optional</Badge>
+            <Badge color="gray" size="xs">
+              Optional
+            </Badge>
           )}
           {expanded ? (
             <ChevronUpIcon className="w-4 h-4 text-text-muted flex-shrink-0" />
@@ -690,21 +732,21 @@ function QuestionCard({
                     onClick={() => {
                       const newOptions: QuestionOptions = {};
                       // Set defaults based on new type
-                      if (type.value === "multiple_choice" || type.value === "checkbox") {
+                      if (type.value === 'multiple_choice' || type.value === 'checkbox') {
                         newOptions.choices = question.options.choices?.length
                           ? question.options.choices
-                          : ["", ""];
+                          : ['', ''];
                       }
-                      if (type.value === "open_text") {
-                        newOptions.variant = "short";
+                      if (type.value === 'open_text') {
+                        newOptions.variant = 'short';
                       }
-                      if (type.value === "matrix") {
+                      if (type.value === 'matrix') {
                         newOptions.rows = question.options.rows?.length
                           ? question.options.rows
-                          : ["", ""];
+                          : ['', ''];
                         newOptions.columns = question.options.columns?.length
                           ? question.options.columns
-                          : ["", ""];
+                          : ['', ''];
                       }
                       // Preserve condition if it existed
                       if (question.options.condition) {
@@ -714,17 +756,17 @@ function QuestionCard({
                         question_type: type.value,
                         options: newOptions,
                         rating_scale_max:
-                          type.value === "rating"
+                          type.value === 'rating'
                             ? question.rating_scale_max
-                            : type.value === "nps"
-                            ? 10
-                            : 5,
+                            : type.value === 'nps'
+                              ? 10
+                              : 5,
                       });
                     }}
                     className={`px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
                       question.question_type === type.value
-                        ? "border-nia-dark bg-nia-dark/10 text-nia-dark font-medium"
-                        : "border-border text-text-secondary hover:border-text-muted"
+                        ? 'border-nia-dark bg-nia-dark/10 text-nia-dark font-medium'
+                        : 'border-border text-text-secondary hover:border-text-muted'
                     }`}
                   >
                     {type.icon} {type.label}
@@ -734,16 +776,12 @@ function QuestionCard({
             </div>
 
             {/* Type-specific options */}
-            <TypeOptionsPanel
-              question={question}
-              onChange={(updates) => onChange(updates)}
-            />
+            <TypeOptionsPanel question={question} onChange={(updates) => onChange(updates)} />
 
             {/* Help text */}
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1">
-                Help Text{" "}
-                <span className="text-text-muted font-normal">(optional)</span>
+                Help Text <span className="text-text-muted font-normal">(optional)</span>
               </label>
               <input
                 type="text"
@@ -768,16 +806,14 @@ function QuestionCard({
               </label>
 
               {/* Metric link (hidden for open_text) */}
-              {question.question_type !== "open_text" && (
+              {question.question_type !== 'open_text' && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-text-muted">Link to metric:</span>
                   <select
-                    value={question.metric_id || ""}
+                    value={question.metric_id || ''}
                     onChange={(e) =>
                       onChange({
-                        metric_id: e.target.value
-                          ? Number(e.target.value)
-                          : null,
+                        metric_id: e.target.value ? Number(e.target.value) : null,
                       })
                     }
                     className="text-xs border border-border rounded-md px-2 py-1 text-text-secondary bg-card max-w-[200px]"
@@ -817,8 +853,8 @@ function QuestionCard({
                           ...question.options,
                           condition: {
                             question_index: 0,
-                            operator: "equals",
-                            value: "",
+                            operator: 'equals',
+                            value: '',
                           },
                         },
                       })
@@ -834,7 +870,7 @@ function QuestionCard({
             {/* Action buttons */}
             <div className="flex items-center gap-2 pt-2 border-t border-border-light">
               <button
-                onClick={() => onMove("up")}
+                onClick={() => onMove('up')}
                 disabled={index === 0}
                 className="p-1.5 text-text-muted hover:text-text-secondary disabled:opacity-30 rounded hover:bg-surface-subtle"
                 title="Move up"
@@ -842,7 +878,7 @@ function QuestionCard({
                 <ChevronUpIcon className="w-4 h-4" />
               </button>
               <button
-                onClick={() => onMove("down")}
+                onClick={() => onMove('down')}
                 disabled={index === total - 1}
                 className="p-1.5 text-text-muted hover:text-text-secondary disabled:opacity-30 rounded hover:bg-surface-subtle"
                 title="Move down"
@@ -924,16 +960,20 @@ export default function SurveyBuilderPage({
       : [createEmptyQuestion(0)];
 
   // Form state
-  const [title, setTitle] = useState(existingSurvey?.title || "");
-  const [description, setDescription] = useState(existingSurvey?.description || "");
+  const [title, setTitle] = useState(existingSurvey?.title || '');
+  const [description, setDescription] = useState(existingSurvey?.description || '');
   const [isAnonymous, setIsAnonymous] = useState(existingSurvey?.is_anonymous ?? true);
-  const [welcomeMessage, setWelcomeMessage] = useState(existingSurvey?.welcome_message || "");
-  const [thankYouMessage, setThankYouMessage] = useState(existingSurvey?.thank_you_message || "");
+  const [welcomeMessage, setWelcomeMessage] = useState(existingSurvey?.welcome_message || '');
+  const [thankYouMessage, setThankYouMessage] = useState(existingSurvey?.thank_you_message || '');
   const [responseTarget, setResponseTarget] = useState<string>(
-    existingSurvey?.response_target ? String(existingSurvey.response_target) : ""
+    existingSurvey?.response_target ? String(existingSurvey.response_target) : ''
   );
-  const [recurrenceEnabled, setRecurrenceEnabled] = useState(existingSurvey?.recurrence_enabled ?? false);
-  const [recurrenceCadence, setRecurrenceCadence] = useState(existingSurvey?.recurrence_cadence || "monthly");
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(
+    existingSurvey?.recurrence_enabled ?? false
+  );
+  const [recurrenceCadence, setRecurrenceCadence] = useState(
+    existingSurvey?.recurrence_cadence || 'monthly'
+  );
   const [recurrenceDurationDays, setRecurrenceDurationDays] = useState(
     existingSurvey?.recurrence_duration_days ?? 14
   );
@@ -944,12 +984,12 @@ export default function SurveyBuilderPage({
     startingQuestions.length === 1 ? 0 : null
   );
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
-  const [templateName, setTemplateName] = useState("");
-  const [templateCategory, setTemplateCategory] = useState("Custom");
+  const [templateName, setTemplateName] = useState('');
+  const [templateCategory, setTemplateCategory] = useState('Custom');
   const [savingTemplate, setSavingTemplate] = useState(false);
-  const [templateSuccess, setTemplateSuccess] = useState("");
+  const [templateSuccess, setTemplateSuccess] = useState('');
 
   /* ── Question CRUD ──────────────────────────────────────── */
 
@@ -959,16 +999,13 @@ export default function SurveyBuilderPage({
     setExpandedIndex(questions.length);
   }, [questions.length]);
 
-  const updateQuestion = useCallback(
-    (index: number, updates: Partial<QuestionInput>) => {
-      setQuestions((prev) => {
-        const updated = [...prev];
-        updated[index] = { ...updated[index], ...updates };
-        return updated;
-      });
-    },
-    []
-  );
+  const updateQuestion = useCallback((index: number, updates: Partial<QuestionInput>) => {
+    setQuestions((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], ...updates };
+      return updated;
+    });
+  }, []);
 
   const deleteQuestion = useCallback(
     (index: number) => {
@@ -984,25 +1021,22 @@ export default function SurveyBuilderPage({
   );
 
   const moveQuestion = useCallback(
-    (index: number, direction: "up" | "down") => {
+    (index: number, direction: 'up' | 'down') => {
       if (
-        (direction === "up" && index === 0) ||
-        (direction === "down" && index === questions.length - 1)
+        (direction === 'up' && index === 0) ||
+        (direction === 'down' && index === questions.length - 1)
       )
         return;
 
       setQuestions((prev) => {
         const updated = [...prev];
-        const swapIndex = direction === "up" ? index - 1 : index + 1;
-        [updated[index], updated[swapIndex]] = [
-          updated[swapIndex],
-          updated[index],
-        ];
+        const swapIndex = direction === 'up' ? index - 1 : index + 1;
+        [updated[index], updated[swapIndex]] = [updated[swapIndex], updated[index]];
         return updated;
       });
 
       // Track expanded state
-      const swapIndex = direction === "up" ? index - 1 : index + 1;
+      const swapIndex = direction === 'up' ? index - 1 : index + 1;
       if (expandedIndex === index) {
         setExpandedIndex(swapIndex);
       } else if (expandedIndex === swapIndex) {
@@ -1017,7 +1051,7 @@ export default function SurveyBuilderPage({
       const updated = [...prev];
       updated[index] = {
         ...updated[index],
-        section_label: updated[index].section_label || "New Section",
+        section_label: updated[index].section_label || 'New Section',
       };
       return updated;
     });
@@ -1028,16 +1062,16 @@ export default function SurveyBuilderPage({
   async function handleSaveAsTemplate() {
     if (!templateName.trim()) return;
     setSavingTemplate(true);
-    setTemplateSuccess("");
+    setTemplateSuccess('');
 
     try {
-      const res = await fetch("/api/surveys/templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/surveys/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: templateName,
           description: description || null,
-          category: templateCategory || "Custom",
+          category: templateCategory || 'Custom',
           questions,
           is_shared: false,
         }),
@@ -1045,15 +1079,15 @@ export default function SurveyBuilderPage({
 
       const data = await res.json();
       if (!res.ok || data.error) {
-        setError(data.error || "Failed to save template");
+        setError(data.error || 'Failed to save template');
       } else {
         setTemplateSuccess(`Saved as "${templateName}"`);
         setShowSaveTemplate(false);
-        setTemplateName("");
-        setTimeout(() => setTemplateSuccess(""), 4000);
+        setTemplateName('');
+        setTimeout(() => setTemplateSuccess(''), 4000);
       }
     } catch {
-      setError("Failed to save template");
+      setError('Failed to save template');
     } finally {
       setSavingTemplate(false);
     }
@@ -1062,16 +1096,16 @@ export default function SurveyBuilderPage({
   /* ── Save ───────────────────────────────────────────────── */
 
   async function handleSave() {
-    setError("");
+    setError('');
 
     if (!title.trim()) {
-      setError("Survey title is required");
+      setError('Survey title is required');
       return;
     }
 
     const validQuestions = questions.filter((q) => q.question_text.trim());
     if (validQuestions.length === 0) {
-      setError("At least one question with text is required");
+      setError('At least one question with text is required');
       return;
     }
 
@@ -1079,9 +1113,7 @@ export default function SurveyBuilderPage({
 
     try {
       const payload = {
-        ...(isEditMode
-          ? { id: existingSurvey!.id }
-          : { process_id: processId }),
+        ...(isEditMode ? { id: existingSurvey!.id } : { process_id: processId }),
         title: title.trim(),
         description: description.trim() || null,
         is_public: true,
@@ -1096,31 +1128,29 @@ export default function SurveyBuilderPage({
           ...q,
           sort_order: i,
           question_text: q.question_text.trim(),
-          help_text: q.help_text?.trim() || "",
-          section_label: q.section_label?.trim() || "",
+          help_text: q.help_text?.trim() || '',
+          section_label: q.section_label?.trim() || '',
         })),
       };
 
-      const res = await fetch("/api/surveys", {
-        method: isEditMode ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/surveys', {
+        method: isEditMode ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Failed to save survey");
+        setError(data.error || 'Failed to save survey');
         setSaving(false);
         return;
       }
 
       // Redirect back to process page
-      const targetProcessId = isEditMode
-        ? existingSurvey!.process_id
-        : processId;
+      const targetProcessId = isEditMode ? existingSurvey!.process_id : processId;
       router.push(`/processes/${targetProcessId}`);
     } catch {
-      setError("An unexpected error occurred");
+      setError('An unexpected error occurred');
       setSaving(false);
     }
   }
@@ -1134,33 +1164,27 @@ export default function SurveyBuilderPage({
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href={
-              isEditMode
-                ? `/processes/${existingSurvey!.process_id}`
-                : `/processes/${processId}`
+              isEditMode ? `/processes/${existingSurvey!.process_id}` : `/processes/${processId}`
             }
             className="p-1.5 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-subtle transition-colors"
           >
             <ArrowLeftIcon className="w-5 h-5" />
           </Link>
           <h1 className="text-lg font-semibold text-nia-dark flex-1">
-            {isEditMode ? "Edit Survey" : "Create Survey"}
+            {isEditMode ? 'Edit Survey' : 'Create Survey'}
           </h1>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() =>
-                router.push(
-                  `/processes/${
-                    isEditMode ? existingSurvey!.process_id : processId
-                  }`
-                )
+                router.push(`/processes/${isEditMode ? existingSurvey!.process_id : processId}`)
               }
             >
               Cancel
             </Button>
             <Button size="sm" loading={saving} onClick={handleSave}>
-              {isEditMode ? "Save Changes" : "Create Survey"}
+              {isEditMode ? 'Save Changes' : 'Create Survey'}
             </Button>
           </div>
         </div>
@@ -1191,10 +1215,7 @@ export default function SurveyBuilderPage({
 
           <div>
             <label className="block text-sm font-medium text-nia-dark mb-1">
-              Description{" "}
-              <span className="text-text-muted font-normal text-xs">
-                (optional)
-              </span>
+              Description <span className="text-text-muted font-normal text-xs">(optional)</span>
             </label>
             <Textarea
               value={description}
@@ -1205,10 +1226,7 @@ export default function SurveyBuilderPage({
           </div>
 
           {/* Welcome Message (collapsible) */}
-          <CollapsibleField
-            label="Welcome Message"
-            defaultOpen={!!welcomeMessage}
-          >
+          <CollapsibleField label="Welcome Message" defaultOpen={!!welcomeMessage}>
             <Textarea
               value={welcomeMessage}
               onChange={(e) => setWelcomeMessage(e.target.value)}
@@ -1238,7 +1256,7 @@ export default function SurveyBuilderPage({
               Questions
             </h2>
             <span className="text-xs text-text-muted">
-              {questions.length} question{questions.length !== 1 ? "s" : ""}
+              {questions.length} question{questions.length !== 1 ? 's' : ''}
             </span>
           </div>
 
@@ -1250,9 +1268,7 @@ export default function SurveyBuilderPage({
                 index={i}
                 total={questions.length}
                 expanded={expandedIndex === i}
-                onToggle={() =>
-                  setExpandedIndex(expandedIndex === i ? null : i)
-                }
+                onToggle={() => setExpandedIndex(expandedIndex === i ? null : i)}
                 onChange={(updates) => updateQuestion(i, updates)}
                 onMove={(direction) => moveQuestion(i, direction)}
                 onDelete={() => deleteQuestion(i)}
@@ -1275,10 +1291,7 @@ export default function SurveyBuilderPage({
         {/* ─── Footer Area ──────────────────────────────────── */}
         <div className="bg-card rounded-xl border border-border shadow-sm p-5 space-y-4">
           {/* Thank-you Message (collapsible) */}
-          <CollapsibleField
-            label="Thank-You Message"
-            defaultOpen={!!thankYouMessage}
-          >
+          <CollapsibleField label="Thank-You Message" defaultOpen={!!thankYouMessage}>
             <Textarea
               value={thankYouMessage}
               onChange={(e) => setThankYouMessage(e.target.value)}
@@ -1297,11 +1310,12 @@ export default function SurveyBuilderPage({
           {/* Response Target */}
           <div>
             <label className="block text-sm font-medium text-nia-dark mb-1">
-              Response Target{" "}
+              Response Target{' '}
               <span className="text-text-muted font-normal text-xs">(optional)</span>
             </label>
             <p className="text-xs text-text-muted mb-2">
-              Set a goal for how many responses you want per round. A progress bar will show on the survey card.
+              Set a goal for how many responses you want per round. A progress bar will show on the
+              survey card.
             </p>
             <input
               type="number"
@@ -1318,13 +1332,13 @@ export default function SurveyBuilderPage({
             <label className="flex items-center gap-3 cursor-pointer">
               <div
                 className={`relative w-10 h-5 rounded-full transition-colors ${
-                  recurrenceEnabled ? "bg-nia-green" : "bg-text-muted/30"
+                  recurrenceEnabled ? 'bg-nia-green' : 'bg-text-muted/30'
                 }`}
                 onClick={() => setRecurrenceEnabled(!recurrenceEnabled)}
               >
                 <div
                   className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow-sm transition-transform ${
-                    recurrenceEnabled ? "translate-x-5" : "translate-x-0.5"
+                    recurrenceEnabled ? 'translate-x-5' : 'translate-x-0.5'
                   }`}
                 />
               </div>
@@ -1381,9 +1395,7 @@ export default function SurveyBuilderPage({
             )}
             {showSaveTemplate ? (
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-nia-dark">
-                  Save as Template
-                </h3>
+                <h3 className="text-sm font-semibold text-nia-dark">Save as Template</h3>
                 <Input
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
@@ -1404,11 +1416,7 @@ export default function SurveyBuilderPage({
                   >
                     Save Template
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSaveTemplate(false)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setShowSaveTemplate(false)}>
                     Cancel
                   </Button>
                 </div>
@@ -1418,8 +1426,18 @@ export default function SurveyBuilderPage({
                 onClick={() => setShowSaveTemplate(true)}
                 className="flex items-center gap-2 text-sm text-text-secondary hover:text-nia-dark transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+                  />
                 </svg>
                 Save these questions as a reusable template
               </button>
@@ -1433,17 +1451,13 @@ export default function SurveyBuilderPage({
             variant="ghost"
             size="md"
             onClick={() =>
-              router.push(
-                `/processes/${
-                  isEditMode ? existingSurvey!.process_id : processId
-                }`
-              )
+              router.push(`/processes/${isEditMode ? existingSurvey!.process_id : processId}`)
             }
           >
             Cancel
           </Button>
           <Button size="md" loading={saving} onClick={handleSave}>
-            {isEditMode ? "Save Changes" : "Create Survey"}
+            {isEditMode ? 'Save Changes' : 'Create Survey'}
           </Button>
         </div>
       </div>

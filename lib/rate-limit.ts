@@ -1,5 +1,5 @@
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 // Rate limiter for expensive AI routes.
 // Requires UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN env vars.
@@ -14,8 +14,8 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
       token: process.env.UPSTASH_REDIS_REST_TOKEN,
     }),
     // 20 AI requests per 60-second window per user
-    limiter: Ratelimit.slidingWindow(20, "60 s"),
-    prefix: "nia-ai-ratelimit",
+    limiter: Ratelimit.slidingWindow(20, '60 s'),
+    prefix: 'nia-ai-ratelimit',
   });
 }
 
@@ -39,12 +39,12 @@ export async function checkRateLimit(
       return {
         success: false,
         response: Response.json(
-          { error: "Too many requests. Please wait a moment before trying again." },
+          { error: 'Too many requests. Please wait a moment before trying again.' },
           {
             status: 429,
             headers: {
-              "Retry-After": String(retryAfter),
-              "X-RateLimit-Remaining": String(remaining),
+              'Retry-After': String(retryAfter),
+              'X-RateLimit-Remaining': String(remaining),
             },
           }
         ),

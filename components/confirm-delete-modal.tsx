@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { Button } from "@/components/ui";
+import { useEffect } from 'react';
+import { Button } from '@/components/ui';
 
 interface ConfirmDeleteModalProps {
   title: string;
@@ -17,16 +17,16 @@ export default function ConfirmDeleteModal({
   description,
   onConfirm,
   onCancel,
-  confirmLabel = "Delete",
+  confirmLabel = 'Delete',
   loading = false,
 }: ConfirmDeleteModalProps) {
   // Close on Escape key
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onCancel();
+      if (e.key === 'Escape') onCancel();
     }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, [onCancel]);
 
   return (
@@ -47,8 +47,14 @@ export default function ConfirmDeleteModal({
           <Button variant="secondary" size="sm" onClick={onCancel} disabled={loading}>
             Cancel
           </Button>
-          <Button variant="danger" size="sm" onClick={onConfirm} disabled={loading} loading={loading}>
-            {loading ? "Deleting..." : confirmLabel}
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={onConfirm}
+            disabled={loading}
+            loading={loading}
+          >
+            {loading ? 'Deleting...' : confirmLabel}
           </Button>
         </div>
       </div>

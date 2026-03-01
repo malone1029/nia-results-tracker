@@ -1,7 +1,7 @@
 // PDCA (Plan-Do-Check-Act) constants and ADLI-to-PDCA mapping
 // Used across the app for task categorization, UI colors, and AI prompt generation.
 
-import type { PdcaSection, AdliDimension, TaskSource, TaskStatus, TaskOrigin } from "./types";
+import type { PdcaSection, AdliDimension, TaskSource, TaskStatus, TaskOrigin } from './types';
 
 // ── Section metadata ──────────────────────────────────────────
 
@@ -10,28 +10,28 @@ export const PDCA_SECTIONS: Record<
   { label: string; color: string; bgLight: string; description: string }
 > = {
   plan: {
-    label: "Plan",
-    color: "#55787c",      // nia-grey-blue
-    bgLight: "bg-[#55787c]/10",
-    description: "Design, document, and prepare",
+    label: 'Plan',
+    color: '#55787c', // nia-grey-blue
+    bgLight: 'bg-[#55787c]/10',
+    description: 'Design, document, and prepare',
   },
   execute: {
-    label: "Execute",
-    color: "#b1bd37",      // nia-green
-    bgLight: "bg-[#b1bd37]/10",
-    description: "Implement, train, and roll out",
+    label: 'Execute',
+    color: '#b1bd37', // nia-green
+    bgLight: 'bg-[#b1bd37]/10',
+    description: 'Implement, train, and roll out',
   },
   evaluate: {
-    label: "Evaluate",
-    color: "#f79935",      // nia-orange
-    bgLight: "bg-[#f79935]/10",
-    description: "Measure, review, and assess",
+    label: 'Evaluate',
+    color: '#f79935', // nia-orange
+    bgLight: 'bg-[#f79935]/10',
+    description: 'Measure, review, and assess',
   },
   improve: {
-    label: "Improve",
-    color: "#2d3436",      // nia-dark
-    bgLight: "bg-[#2d3436]/10",
-    description: "Refine, iterate, and enhance",
+    label: 'Improve',
+    color: '#2d3436', // nia-dark
+    bgLight: 'bg-[#2d3436]/10',
+    description: 'Refine, iterate, and enhance',
   },
 };
 
@@ -44,20 +44,20 @@ export const ADLI_TO_PDCA_MAP: Record<
   { primary: PdcaSection; secondary: PdcaSection }
 > = {
   approach: {
-    primary: "plan",       // Design/document the method
-    secondary: "execute",  // Implement the method
+    primary: 'plan', // Design/document the method
+    secondary: 'execute', // Implement the method
   },
   deployment: {
-    primary: "execute",    // Roll out, train, communicate
-    secondary: "plan",     // Design the rollout
+    primary: 'execute', // Roll out, train, communicate
+    secondary: 'plan', // Design the rollout
   },
   learning: {
-    primary: "evaluate",   // Measure, survey, review
-    secondary: "plan",     // Design the measurement
+    primary: 'evaluate', // Measure, survey, review
+    secondary: 'plan', // Design the measurement
   },
   integration: {
-    primary: "plan",       // Align with strategy, connect processes
-    secondary: "evaluate", // Assess alignment
+    primary: 'plan', // Align with strategy, connect processes
+    secondary: 'evaluate', // Assess alignment
   },
 };
 
@@ -68,14 +68,19 @@ export function getPdcaLabel(section: PdcaSection): string {
 }
 
 export function getPdcaColor(section: PdcaSection): string {
-  return PDCA_SECTIONS[section]?.color ?? "#6b7280";
+  return PDCA_SECTIONS[section]?.color ?? '#6b7280';
 }
 
-export const PDCA_SECTION_VALUES: PdcaSection[] = ["plan", "execute", "evaluate", "improve"];
-export const ADLI_DIMENSION_VALUES: AdliDimension[] = ["approach", "deployment", "learning", "integration"];
-export const TASK_SOURCE_VALUES: TaskSource[] = ["ai_suggestion", "ai_interview", "user_created"];
-export const TASK_STATUS_VALUES: TaskStatus[] = ["pending", "active", "completed", "exported"];
-export const TASK_ORIGIN_VALUES: TaskOrigin[] = ["asana", "hub_ai", "hub_manual"];
+export const PDCA_SECTION_VALUES: PdcaSection[] = ['plan', 'execute', 'evaluate', 'improve'];
+export const ADLI_DIMENSION_VALUES: AdliDimension[] = [
+  'approach',
+  'deployment',
+  'learning',
+  'integration',
+];
+export const TASK_SOURCE_VALUES: TaskSource[] = ['ai_suggestion', 'ai_interview', 'user_created'];
+export const TASK_STATUS_VALUES: TaskStatus[] = ['pending', 'active', 'completed', 'exported'];
+export const TASK_ORIGIN_VALUES: TaskOrigin[] = ['asana', 'hub_ai', 'hub_manual'];
 
 // ── AI Prompt Fragment ────────────────────────────────────────
 // Include this in the AI system prompt so it knows how to map tasks.

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import type { AppRole } from "@/lib/auth-helpers";
+import { useState, useEffect } from 'react';
+import type { AppRole } from '@/lib/auth-helpers';
 
 interface RoleState {
   role: AppRole;
@@ -14,7 +14,7 @@ interface RoleState {
 
 export function useRole(): RoleState {
   const [state, setState] = useState<RoleState>({
-    role: "member",
+    role: 'member',
     isAdmin: false,
     isSuperAdmin: false,
     isProxying: false,
@@ -25,7 +25,7 @@ export function useRole(): RoleState {
   useEffect(() => {
     async function fetchRole() {
       try {
-        const res = await fetch("/api/auth/role");
+        const res = await fetch('/api/auth/role');
         if (res.ok) {
           const data = await res.json();
           setState({

@@ -34,7 +34,7 @@ export interface DashboardTaskData {
 }
 
 export interface ActionItem {
-  type: "overdue" | "due-soon";
+  type: 'overdue' | 'due-soon';
   label: string;
   href: string;
   metricId?: number;

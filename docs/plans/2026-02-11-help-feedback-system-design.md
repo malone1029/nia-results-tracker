@@ -24,6 +24,7 @@ User is confused
 ```
 
 Cross-links between layers:
+
 - Help page has "Ask AI" button at top + "Submit Feedback" card at bottom
 - AI help can suggest "Submit this as feedback?" when it can't answer
 - Tooltips are standalone (no navigation)
@@ -36,19 +37,20 @@ Cross-links between layers:
 
 **Table: `feedback`**
 
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| id | serial | PK | — |
-| user_id | uuid | auth.uid() | FK to auth.users |
-| user_name | text | — | Denormalized display name |
-| type | text | — | CHECK: bug / idea / question |
-| description | text | — | The feedback content |
-| page_url | text | — | Auto-captured from window.location |
-| status | text | 'new' | CHECK: new / reviewed / done / dismissed |
-| admin_note | text | null | Admin response (visible to submitter) |
-| created_at | timestamptz | now() | — |
+| Column      | Type        | Default    | Notes                                    |
+| ----------- | ----------- | ---------- | ---------------------------------------- |
+| id          | serial      | PK         | —                                        |
+| user_id     | uuid        | auth.uid() | FK to auth.users                         |
+| user_name   | text        | —          | Denormalized display name                |
+| type        | text        | —          | CHECK: bug / idea / question             |
+| description | text        | —          | The feedback content                     |
+| page_url    | text        | —          | Auto-captured from window.location       |
+| status      | text        | 'new'      | CHECK: new / reviewed / done / dismissed |
+| admin_note  | text        | null       | Admin response (visible to submitter)    |
+| created_at  | timestamptz | now()      | —                                        |
 
 **RLS:**
+
 - Users can INSERT their own rows
 - Users can SELECT their own rows (see their submissions + admin responses)
 - Admins can SELECT all rows, UPDATE status + admin_note
@@ -87,16 +89,16 @@ Single page with search bar + accordion sections grouped by feature area.
 
 **Sections:**
 
-| Group | Example Topics |
-|-------|---------------|
-| Getting Started | What is the Hub? How do I navigate? What's admin vs member? |
-| Processes | Create, edit, Key vs Support, improvement stepper, process maps |
-| AI Coaching | How to use AI, suggestions, applying changes, task generation |
-| Metrics & Data | Logging data, overdue, linking metrics, bulk edit |
-| Surveys | Create survey, waves, sharing, auto-metrics, email invites |
-| Asana Integration | Connect, import, export, sync, bulk import |
-| Baldrige / EB | Criteria Map, gaps, classifications, application drafts |
-| Health & Readiness | Health score dimensions, readiness dashboard, milestones |
+| Group              | Example Topics                                                  |
+| ------------------ | --------------------------------------------------------------- |
+| Getting Started    | What is the Hub? How do I navigate? What's admin vs member?     |
+| Processes          | Create, edit, Key vs Support, improvement stepper, process maps |
+| AI Coaching        | How to use AI, suggestions, applying changes, task generation   |
+| Metrics & Data     | Logging data, overdue, linking metrics, bulk edit               |
+| Surveys            | Create survey, waves, sharing, auto-metrics, email invites      |
+| Asana Integration  | Connect, import, export, sync, bulk import                      |
+| Baldrige / EB      | Criteria Map, gaps, classifications, application drafts         |
+| Health & Readiness | Health score dimensions, readiness dashboard, milestones        |
 
 ### Features
 
@@ -121,10 +123,12 @@ Single page with search bar + accordion sections grouped by feature area.
 ### Component: `<HelpTip>`
 
 **Props:**
+
 - `text: string` — tooltip content (1-2 sentences max)
 - `position?: "top" | "bottom"` — default auto-detect based on viewport
 
 **Behavior:**
+
 - Renders as a small `?` circle icon (16px, muted color)
 - Desktop: hover to show popover
 - Mobile: tap to show, tap outside to dismiss
@@ -135,16 +139,16 @@ Single page with search bar + accordion sections grouped by feature area.
 
 ### Placement (high-value spots)
 
-| Location | Tooltip Text |
-|----------|-------------|
-| Health Score ring | "Scored across 5 dimensions: Documentation, Maturity, Measurement, Operations, Freshness. 80+ = Baldrige Ready." |
-| ADLI Radar | "Approach, Deployment, Learning, Integration — the Baldrige process maturity framework." |
-| Improvement Stepper | "Your 6-step guided improvement cycle. Complete each step to strengthen your process." |
-| Process Type badge | "Key processes directly serve your mission. Support processes enable Key ones." |
-| Readiness score | "Weighted average of all health scores. Key processes count 2x." |
-| Survey wave | "Each deployment is a 'wave' with its own share link and results." |
-| Metric cadence | "How often this metric should be updated: monthly, quarterly, annually, etc." |
-| PDCA columns (tasks) | "Plan-Do-Check-Act: a continuous improvement cycle for organizing tasks." |
+| Location             | Tooltip Text                                                                                                     |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Health Score ring    | "Scored across 5 dimensions: Documentation, Maturity, Measurement, Operations, Freshness. 80+ = Baldrige Ready." |
+| ADLI Radar           | "Approach, Deployment, Learning, Integration — the Baldrige process maturity framework."                         |
+| Improvement Stepper  | "Your 6-step guided improvement cycle. Complete each step to strengthen your process."                           |
+| Process Type badge   | "Key processes directly serve your mission. Support processes enable Key ones."                                  |
+| Readiness score      | "Weighted average of all health scores. Key processes count 2x."                                                 |
+| Survey wave          | "Each deployment is a 'wave' with its own share link and results."                                               |
+| Metric cadence       | "How often this metric should be updated: monthly, quarterly, annually, etc."                                    |
+| PDCA columns (tasks) | "Plan-Do-Check-Act: a continuous improvement cycle for organizing tasks."                                        |
 
 More can be added over time — start with these ~8 high-impact spots.
 
@@ -159,6 +163,7 @@ Repurpose the existing AI chat infrastructure with a separate "help" persona. Sa
 ### System Prompt
 
 The AI help assistant receives:
+
 - **App guide context:** condensed description of every page, key workflows, common gotchas
 - **Current page URL:** so it can give contextual answers ("On this page, you can...")
 - **User role:** so it knows whether to mention admin features
@@ -206,12 +211,12 @@ Application group:
 
 ## Implementation Order
 
-| Phase | Feature | Effort | Dependencies |
-|-------|---------|--------|-------------|
-| 1 | Feedback form + table + admin page | Medium | Migration, 2 API routes, modal + page |
-| 2 | Help page | Low | Static content, no API |
-| 3 | HelpTip component + placement | Low | Reusable component, sprinkle across pages |
-| 4 | AI help mode | Medium | New API route, global chat drawer |
+| Phase | Feature                            | Effort | Dependencies                              |
+| ----- | ---------------------------------- | ------ | ----------------------------------------- |
+| 1     | Feedback form + table + admin page | Medium | Migration, 2 API routes, modal + page     |
+| 2     | Help page                          | Low    | Static content, no API                    |
+| 3     | HelpTip component + placement      | Low    | Reusable component, sprinkle across pages |
+| 4     | AI help mode                       | Medium | New API route, global chat drawer         |
 
 Phases 1-3 can be built in a single session. Phase 4 is a separate session.
 

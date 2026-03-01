@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { getReviewStatus, formatDate, formatValue } from "@/lib/review-status";
-import { FormSkeleton } from "@/components/skeleton";
-import type { Metric } from "@/lib/types";
-import Link from "next/link";
-import { Card, CardHeader, CardBody, Button, Badge, Input, Select } from "@/components/ui";
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { getReviewStatus, formatDate, formatValue } from '@/lib/review-status';
+import { FormSkeleton } from '@/components/skeleton';
+import type { Metric } from '@/lib/types';
+import Link from 'next/link';
+import { Card, CardHeader, CardBody, Button, Badge, Input, Select } from '@/components/ui';
 
 interface MetricOption extends Metric {
   process_name: string;
   category_display_name: string;
   last_entry_date: string | null;
-  review_status: "current" | "due-soon" | "overdue" | "no-data" | "scheduled";
+  review_status: 'current' | 'due-soon' | 'overdue' | 'no-data' | 'scheduled';
 }
 
 export default function LogDataPage() {
@@ -26,46 +26,46 @@ export default function LogDataPage() {
 
 function LogDataContent() {
   const searchParams = useSearchParams();
-  const preselectedMetricId = searchParams.get("metricId");
+  const preselectedMetricId = searchParams.get('metricId');
 
   const [metrics, setMetrics] = useState<MetricOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<"single" | "bulk">("single");
+  const [mode, setMode] = useState<'single' | 'bulk'>('single');
 
   // Form state — pre-select from URL param if present
   const [selectedMetricId, setSelectedMetricId] = useState<number | null>(
     preselectedMetricId ? parseInt(preselectedMetricId, 10) : null
   );
-  const [value, setValue] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [noteAnalysis, setNoteAnalysis] = useState("");
-  const [noteCourseCorrection, setNoteCourseCorrection] = useState("");
-  const [nextExpected, setNextExpected] = useState("");
+  const [value, setValue] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [noteAnalysis, setNoteAnalysis] = useState('');
+  const [noteCourseCorrection, setNoteCourseCorrection] = useState('');
+  const [nextExpected, setNextExpected] = useState('');
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Bulk form state
-  const [bulkDate, setBulkDate] = useState(new Date().toISOString().split("T")[0]);
+  const [bulkDate, setBulkDate] = useState(new Date().toISOString().split('T')[0]);
   const [bulkValues, setBulkValues] = useState<Map<number, string>>(new Map());
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<Set<number>>(new Set());
   const [bulkStewards, setBulkStewards] = useState<Map<number, string>>(new Map());
   const [bulkNextExpected, setBulkNextExpected] = useState<Map<number, string>>(new Map());
-  const [bulkAssignSteward, setBulkAssignSteward] = useState<string>("");
+  const [bulkAssignSteward, setBulkAssignSteward] = useState<string>('');
   const [members, setMembers] = useState<{ gid: string; name: string; email: string }[]>([]);
 
   // Search/filter
-  const [search, setSearch] = useState("");
-  const [filterCadence, setFilterCadence] = useState<string>("all");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [search, setSearch] = useState('');
+  const [filterCadence, setFilterCadence] = useState<string>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
 
   async function fetchMetrics() {
     // Fetch metrics, junction links, and processes separately
     const [metricsRes, linksRes, processesRes, entriesRes] = await Promise.all([
-      supabase.from("metrics").select("*").order("name"),
-      supabase.from("metric_processes").select("metric_id, process_id"),
-      supabase.from("processes").select("id, name, categories!inner ( display_name )"),
-      supabase.from("entries").select("metric_id, date").order("date", { ascending: false }),
+      supabase.from('metrics').select('*').order('name'),
+      supabase.from('metric_processes').select('metric_id, process_id'),
+      supabase.from('processes').select('id, name, categories!inner ( display_name )'),
+      supabase.from('entries').select('metric_id, date').order('date', { ascending: false }),
     ]);
 
     // Build process lookup
@@ -100,10 +100,14 @@ function LogDataContent() {
       const lastDate = latestEntries.get(m.id as number) || null;
       return {
         ...(m as unknown as Metric),
-        process_name: proc?.name || "Unlinked",
-        category_display_name: proc?.category_display_name || "—",
+        process_name: proc?.name || 'Unlinked',
+        category_display_name: proc?.category_display_name || '—',
         last_entry_date: lastDate,
-        review_status: getReviewStatus(m.cadence as string, lastDate, m.next_entry_expected as string | null),
+        review_status: getReviewStatus(
+          m.cadence as string,
+          lastDate,
+          m.next_entry_expected as string | null
+        ),
       };
     });
 
@@ -112,16 +116,18 @@ function LogDataContent() {
   }
 
   useEffect(() => {
-    document.title = "Log Data | NIA Excellence Hub";
+    document.title = 'Log Data | NIA Excellence Hub';
     fetchMetrics();
     (async () => {
       try {
-        const res = await fetch("/api/asana/workspace-members");
+        const res = await fetch('/api/asana/workspace-members');
         if (res.ok) {
           const data = await res.json();
           setMembers(data.members || []);
         }
-      } catch { /* silent fail */ }
+      } catch {
+        /* silent fail */
+      }
     })();
   }, []);
 
@@ -129,7 +135,7 @@ function LogDataContent() {
 
   // Pre-fill nextExpected when metric selection changes
   useEffect(() => {
-    setNextExpected(selectedMetric?.next_entry_expected ?? "");
+    setNextExpected(selectedMetric?.next_entry_expected ?? '');
   }, [selectedMetricId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter metrics for the picker
@@ -138,24 +144,22 @@ function LogDataContent() {
       const q = search.toLowerCase();
       const matchesName = m.name.toLowerCase().includes(q);
       const matchesProcess = m.process_name.toLowerCase().includes(q);
-      const matchesSource = (m.data_source || "").toLowerCase().includes(q);
+      const matchesSource = (m.data_source || '').toLowerCase().includes(q);
       if (!matchesName && !matchesProcess && !matchesSource) return false;
     }
-    if (filterCadence !== "all" && m.cadence !== filterCadence) return false;
-    if (filterCategory !== "all" && m.category_display_name !== filterCategory) return false;
+    if (filterCadence !== 'all' && m.cadence !== filterCadence) return false;
+    if (filterCategory !== 'all' && m.category_display_name !== filterCategory) return false;
     return true;
   });
 
-  const categoryOptions = Array.from(
-    new Set(metrics.map((m) => m.category_display_name))
-  ).sort();
+  const categoryOptions = Array.from(new Set(metrics.map((m) => m.category_display_name))).sort();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedMetricId || !value) return;
 
     setSaving(true);
-    const { error } = await supabase.from("entries").insert({
+    const { error } = await supabase.from('entries').insert({
       metric_id: selectedMetricId,
       value: parseFloat(value),
       date,
@@ -164,25 +168,25 @@ function LogDataContent() {
     });
 
     if (error) {
-      alert("Failed to save: " + error.message);
+      alert('Failed to save: ' + error.message);
     } else {
       // If next_entry_expected changed, persist it on the metric
-      if (nextExpected !== (selectedMetric?.next_entry_expected ?? "")) {
+      if (nextExpected !== (selectedMetric?.next_entry_expected ?? '')) {
         await supabase
-          .from("metrics")
+          .from('metrics')
           .update({ next_entry_expected: nextExpected || null })
-          .eq("id", selectedMetricId);
+          .eq('id', selectedMetricId);
       }
-      const metricName = selectedMetric?.name || "metric";
+      const metricName = selectedMetric?.name || 'metric';
       setSuccessMessage(`Logged ${value} for ${metricName}`);
       // Reset form but keep the date
       setSelectedMetricId(null);
-      setValue("");
-      setNoteAnalysis("");
-      setNoteCourseCorrection("");
-      setNextExpected("");
+      setValue('');
+      setNoteAnalysis('');
+      setNoteCourseCorrection('');
+      setNextExpected('');
       await fetchMetrics();
-      setTimeout(() => setSuccessMessage(""), 4000);
+      setTimeout(() => setSuccessMessage(''), 4000);
     }
     setSaving(false);
   }
@@ -190,7 +194,7 @@ function LogDataContent() {
   // Bulk save
   async function handleBulkSave() {
     const entries = Array.from(bulkValues.entries())
-      .filter(([, val]) => val.trim() !== "")
+      .filter(([, val]) => val.trim() !== '')
       .map(([metricId, val]) => ({
         metric_id: metricId,
         value: parseFloat(val),
@@ -202,12 +206,12 @@ function LogDataContent() {
     if (entries.length === 0) return;
 
     setBulkSaving(true);
-    const { error } = await supabase.from("entries").insert(entries);
+    const { error } = await supabase.from('entries').insert(entries);
 
     if (error) {
-      alert("Failed to save: " + error.message);
+      alert('Failed to save: ' + error.message);
     } else {
-      setSuccessMessage(`Logged ${entries.length} value${entries.length !== 1 ? "s" : ""}`);
+      setSuccessMessage(`Logged ${entries.length} value${entries.length !== 1 ? 's' : ''}`);
 
       // Save steward + next_expected changes in parallel
       // Only process metrics where a value was actually entered
@@ -220,7 +224,7 @@ function LogDataContent() {
         if (steward !== undefined) updates.data_steward_email = steward || null;
         if (nextExp !== undefined) updates.next_entry_expected = nextExp || null;
         if (Object.keys(updates).length > 0) {
-          metricUpdates.push(supabase.from("metrics").update(updates).eq("id", metric.id));
+          metricUpdates.push(supabase.from('metrics').update(updates).eq('id', metric.id));
         }
       }
       if (metricUpdates.length > 0) await Promise.all(metricUpdates);
@@ -232,7 +236,7 @@ function LogDataContent() {
       setBulkSelected(new Set());
 
       await fetchMetrics();
-      setTimeout(() => setSuccessMessage(""), 4000);
+      setTimeout(() => setSuccessMessage(''), 4000);
     }
     setBulkSaving(false);
   }
@@ -241,19 +245,22 @@ function LogDataContent() {
     if (!bulkAssignSteward || bulkSelected.size === 0) return;
     const ids = Array.from(bulkSelected);
     await supabase
-      .from("metrics")
+      .from('metrics')
       .update({ data_steward_email: bulkAssignSteward || null })
-      .in("id", ids);
+      .in('id', ids);
     const next = new Map(bulkStewards);
     for (const id of ids) next.set(id, bulkAssignSteward);
     setBulkStewards(next);
-    setBulkAssignSteward("");
+    setBulkAssignSteward('');
     setBulkSelected(new Set());
   }
 
   // Metrics that need review (for bulk mode)
   const dueMetrics = metrics.filter(
-    (m) => m.review_status === "overdue" || m.review_status === "due-soon" || m.review_status === "no-data"
+    (m) =>
+      m.review_status === 'overdue' ||
+      m.review_status === 'due-soon' ||
+      m.review_status === 'no-data'
   );
 
   if (loading) return <FormSkeleton fields={3} />;
@@ -264,27 +271,33 @@ function LogDataContent() {
         <div>
           <h1 className="text-3xl font-bold text-nia-dark">Log Data</h1>
           <p className="text-text-tertiary mt-1">
-            {mode === "single" ? "Search for a metric and log a new value" : "Log values for all due metrics at once"}
+            {mode === 'single'
+              ? 'Search for a metric and log a new value'
+              : 'Log values for all due metrics at once'}
           </p>
         </div>
         <div className="flex bg-surface-muted rounded-lg p-0.5">
           <button
-            onClick={() => setMode("single")}
+            onClick={() => setMode('single')}
             className={`text-sm px-3 py-1.5 rounded-md transition-colors ${
-              mode === "single" ? "bg-card text-nia-dark shadow-sm font-medium" : "text-text-tertiary"
+              mode === 'single'
+                ? 'bg-card text-nia-dark shadow-sm font-medium'
+                : 'text-text-tertiary'
             }`}
           >
             Single
           </button>
           <button
-            onClick={() => setMode("bulk")}
+            onClick={() => setMode('bulk')}
             className={`text-sm px-3 py-1.5 rounded-md transition-colors ${
-              mode === "bulk" ? "bg-card text-nia-dark shadow-sm font-medium" : "text-text-tertiary"
+              mode === 'bulk' ? 'bg-card text-nia-dark shadow-sm font-medium' : 'text-text-tertiary'
             }`}
           >
             Bulk Review
             {dueMetrics.length > 0 && (
-              <Badge color="orange" size="xs" className="ml-1.5">{dueMetrics.length}</Badge>
+              <Badge color="orange" size="xs" className="ml-1.5">
+                {dueMetrics.length}
+              </Badge>
             )}
           </button>
         </div>
@@ -301,21 +314,19 @@ function LogDataContent() {
       )}
 
       {/* Bulk Review mode */}
-      {mode === "bulk" && (
+      {mode === 'bulk' && (
         <div className="space-y-4">
           {dueMetrics.length === 0 ? (
             <div className="bg-nia-green/10 border border-nia-green/30 rounded-lg px-6 py-8 text-center">
               <div className="text-2xl mb-2">All caught up!</div>
-              <p className="text-nia-dark text-sm">
-                No metrics are due for review right now.
-              </p>
+              <p className="text-nia-dark text-sm">No metrics are due for review right now.</p>
             </div>
           ) : (
             <>
               <Card accent="orange" padding="sm">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-bold text-nia-dark">
-                    {dueMetrics.length} metric{dueMetrics.length !== 1 ? "s" : ""} due for review
+                    {dueMetrics.length} metric{dueMetrics.length !== 1 ? 's' : ''} due for review
                   </h2>
                   <div className="flex items-center gap-3">
                     <Input
@@ -344,7 +355,7 @@ function LogDataContent() {
                       }}
                       className="rounded"
                     />
-                    {bulkSelected.size === 0 ? "Select all" : `${bulkSelected.size} selected`}
+                    {bulkSelected.size === 0 ? 'Select all' : `${bulkSelected.size} selected`}
                   </label>
                   {bulkSelected.size > 0 && (
                     <>
@@ -355,7 +366,9 @@ function LogDataContent() {
                       >
                         <option value="">Assign steward…</option>
                         {members.map((m) => (
-                          <option key={m.gid} value={m.email}>{m.name}</option>
+                          <option key={m.gid} value={m.email}>
+                            {m.name}
+                          </option>
                         ))}
                       </Select>
                       <Button
@@ -378,7 +391,10 @@ function LogDataContent() {
 
                 <div className="space-y-2">
                   {dueMetrics.map((metric) => (
-                    <div key={metric.id} className="py-3 border-b border-border-light last:border-b-0">
+                    <div
+                      key={metric.id}
+                      className="py-3 border-b border-border-light last:border-b-0"
+                    >
                       <div className="flex items-start gap-3">
                         {/* Checkbox */}
                         <input
@@ -401,7 +417,7 @@ function LogDataContent() {
                             {metric.name}
                           </Link>
                           <div className="text-xs text-text-muted mt-0.5">
-                            {metric.category_display_name} &middot; {metric.process_name} &middot;{" "}
+                            {metric.category_display_name} &middot; {metric.process_name} &middot;{' '}
                             <span className="capitalize">{metric.cadence}</span>
                             {metric.target_value !== null && (
                               <> &middot; Target: {formatValue(metric.target_value, metric.unit)}</>
@@ -417,7 +433,7 @@ function LogDataContent() {
                               value={
                                 bulkStewards.has(metric.id)
                                   ? bulkStewards.get(metric.id)!
-                                  : metric.data_steward_email || ""
+                                  : metric.data_steward_email || ''
                               }
                               onChange={(e) => {
                                 const next = new Map(bulkStewards);
@@ -427,7 +443,9 @@ function LogDataContent() {
                             >
                               <option value="">— No steward —</option>
                               {members.map((m) => (
-                                <option key={m.gid} value={m.email}>{m.name}</option>
+                                <option key={m.gid} value={m.email}>
+                                  {m.name}
+                                </option>
                               ))}
                             </Select>
                             <Input
@@ -436,7 +454,7 @@ function LogDataContent() {
                               value={
                                 bulkNextExpected.has(metric.id)
                                   ? bulkNextExpected.get(metric.id)!
-                                  : metric.next_entry_expected || ""
+                                  : metric.next_entry_expected || ''
                               }
                               onChange={(e) => {
                                 const next = new Map(bulkNextExpected);
@@ -454,7 +472,7 @@ function LogDataContent() {
                             step="any"
                             size="sm"
                             className="w-24"
-                            value={bulkValues.get(metric.id) || ""}
+                            value={bulkValues.get(metric.id) || ''}
                             onChange={(e) => {
                               const next = new Map(bulkValues);
                               next.set(metric.id, e.target.value);
@@ -471,12 +489,15 @@ function LogDataContent() {
 
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-sm text-text-muted">
-                    {Array.from(bulkValues.values()).filter((v) => v.trim() !== "").length} of{" "}
+                    {Array.from(bulkValues.values()).filter((v) => v.trim() !== '').length} of{' '}
                     {dueMetrics.length} filled in
                   </span>
                   <Button
                     onClick={handleBulkSave}
-                    disabled={bulkSaving || Array.from(bulkValues.values()).filter((v) => v.trim() !== "").length === 0}
+                    disabled={
+                      bulkSaving ||
+                      Array.from(bulkValues.values()).filter((v) => v.trim() !== '').length === 0
+                    }
                     loading={bulkSaving}
                   >
                     Save All
@@ -489,190 +510,191 @@ function LogDataContent() {
       )}
 
       {/* Single mode */}
-      {mode === "single" && (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Metric picker */}
-        <div className="space-y-4">
-          <Card padding="sm">
-            <h2 className="font-bold text-nia-dark mb-3">1. Select a Metric</h2>
+      {mode === 'single' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left: Metric picker */}
+          <div className="space-y-4">
+            <Card padding="sm">
+              <h2 className="font-bold text-nia-dark mb-3">1. Select a Metric</h2>
 
-            {/* Search */}
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, process, or data source..."
-              className="mb-3"
-            />
+              {/* Search */}
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, process, or data source..."
+                className="mb-3"
+              />
 
-            {/* Filters */}
-            <div className="flex gap-3 mb-3">
-              <Select
-                size="sm"
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-auto"
-              >
-                <option value="all">All Categories</option>
-                {categoryOptions.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                size="sm"
-                value={filterCadence}
-                onChange={(e) => setFilterCadence(e.target.value)}
-                className="w-auto"
-              >
-                <option value="all">All Cadences</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="semi-annual">Semi-Annual</option>
-                <option value="annual">Annual</option>
-              </Select>
-            </div>
+              {/* Filters */}
+              <div className="flex gap-3 mb-3">
+                <Select
+                  size="sm"
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-auto"
+                >
+                  <option value="all">All Categories</option>
+                  {categoryOptions.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  size="sm"
+                  value={filterCadence}
+                  onChange={(e) => setFilterCadence(e.target.value)}
+                  className="w-auto"
+                >
+                  <option value="all">All Cadences</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="semi-annual">Semi-Annual</option>
+                  <option value="annual">Annual</option>
+                </Select>
+              </div>
 
-            {/* Metric list */}
-            <div className="max-h-96 overflow-y-auto border border-border rounded-lg">
-              {filtered.length === 0 ? (
-                <div className="p-4 text-text-muted text-sm text-center">
-                  No metrics match your search
+              {/* Metric list */}
+              <div className="max-h-96 overflow-y-auto border border-border rounded-lg">
+                {filtered.length === 0 ? (
+                  <div className="p-4 text-text-muted text-sm text-center">
+                    No metrics match your search
+                  </div>
+                ) : (
+                  filtered.map((metric) => (
+                    <button
+                      key={metric.id}
+                      onClick={() => setSelectedMetricId(metric.id)}
+                      className={`w-full text-left px-4 py-3 border-b border-border-light hover:bg-surface-hover transition-colors ${
+                        selectedMetricId === metric.id
+                          ? 'bg-nia-grey-blue/10 border-l-4 border-l-nia-grey-blue'
+                          : ''
+                      }`}
+                    >
+                      <div className="font-medium text-nia-dark text-sm">{metric.name}</div>
+                      <div className="text-xs text-text-muted mt-0.5">
+                        {metric.category_display_name} &middot; {metric.process_name} &middot;{' '}
+                        <span className="capitalize">{metric.cadence}</span>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+              <div className="text-xs text-text-muted mt-2">
+                {filtered.length} of {metrics.length} metrics shown
+              </div>
+            </Card>
+          </div>
+
+          {/* Right: Entry form */}
+          <div>
+            <Card padding="sm">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-bold text-nia-dark">2. Enter Data</h2>
+                <a
+                  href="/help"
+                  className="text-xs text-text-muted hover:text-nia-orange transition-colors"
+                >
+                  Need help? View FAQ &rarr;
+                </a>
+              </div>
+
+              {!selectedMetric ? (
+                <div className="text-text-muted text-sm py-8 text-center">
+                  Select a metric from the list to log a value
                 </div>
               ) : (
-                filtered.map((metric) => (
-                  <button
-                    key={metric.id}
-                    onClick={() => setSelectedMetricId(metric.id)}
-                    className={`w-full text-left px-4 py-3 border-b border-border-light hover:bg-surface-hover transition-colors ${
-                      selectedMetricId === metric.id
-                        ? "bg-nia-grey-blue/10 border-l-4 border-l-nia-grey-blue"
-                        : ""
-                    }`}
-                  >
-                    <div className="font-medium text-nia-dark text-sm">{metric.name}</div>
-                    <div className="text-xs text-text-muted mt-0.5">
-                      {metric.category_display_name} &middot; {metric.process_name} &middot;{" "}
-                      <span className="capitalize">{metric.cadence}</span>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Selected metric info */}
+                  <div className="bg-nia-grey-blue/5 rounded-lg p-3 border border-nia-grey-blue/20">
+                    <div className="font-medium text-nia-dark">{selectedMetric.name}</div>
+                    <div className="text-xs text-text-tertiary mt-1">
+                      {selectedMetric.process_name} &middot;{' '}
+                      <span className="capitalize">{selectedMetric.cadence}</span> &middot; Unit:{' '}
+                      {selectedMetric.unit}
+                      {selectedMetric.target_value !== null && (
+                        <> &middot; Target: {selectedMetric.target_value}</>
+                      )}
                     </div>
-                  </button>
-                ))
-              )}
-            </div>
-            <div className="text-xs text-text-muted mt-2">
-              {filtered.length} of {metrics.length} metrics shown
-            </div>
-          </Card>
-        </div>
-
-        {/* Right: Entry form */}
-        <div>
-          <Card padding="sm">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-nia-dark">2. Enter Data</h2>
-              <a href="/help" className="text-xs text-text-muted hover:text-nia-orange transition-colors">
-                Need help? View FAQ &rarr;
-              </a>
-            </div>
-
-            {!selectedMetric ? (
-              <div className="text-text-muted text-sm py-8 text-center">
-                Select a metric from the list to log a value
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Selected metric info */}
-                <div className="bg-nia-grey-blue/5 rounded-lg p-3 border border-nia-grey-blue/20">
-                  <div className="font-medium text-nia-dark">{selectedMetric.name}</div>
-                  <div className="text-xs text-text-tertiary mt-1">
-                    {selectedMetric.process_name} &middot;{" "}
-                    <span className="capitalize">{selectedMetric.cadence}</span> &middot;{" "}
-                    Unit: {selectedMetric.unit}
-                    {selectedMetric.target_value !== null && (
-                      <> &middot; Target: {selectedMetric.target_value}</>
+                    {selectedMetric.data_source && (
+                      <div className="text-xs text-text-muted mt-1">
+                        Source: {selectedMetric.data_source}
+                      </div>
+                    )}
+                    {selectedMetric?.data_steward_email && (
+                      <p className="text-xs text-text-muted mt-1">
+                        Data steward:{' '}
+                        <span className="font-medium">{selectedMetric.data_steward_email}</span>
+                      </p>
                     )}
                   </div>
-                  {selectedMetric.data_source && (
-                    <div className="text-xs text-text-muted mt-1">
-                      Source: {selectedMetric.data_source}
+
+                  {/* Value and Date */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Input
+                        label="Value"
+                        type="number"
+                        step="any"
+                        required
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        placeholder="Enter value"
+                      />
+                      <span className="text-xs text-text-muted mt-0.5 block">
+                        {selectedMetric.unit}
+                      </span>
                     </div>
-                  )}
-                  {selectedMetric?.data_steward_email && (
-                    <p className="text-xs text-text-muted mt-1">
-                      Data steward: <span className="font-medium">{selectedMetric.data_steward_email}</span>
-                    </p>
-                  )}
-                </div>
-
-                {/* Value and Date */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
                     <Input
-                      label="Value"
-                      type="number"
-                      step="any"
+                      label="Date"
+                      type="date"
                       required
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                      placeholder="Enter value"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
                     />
-                    <span className="text-xs text-text-muted mt-0.5 block">
-                      {selectedMetric.unit}
-                    </span>
                   </div>
+
+                  {/* Analysis Note */}
                   <Input
-                    label="Date"
-                    type="date"
-                    required
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    label="Analysis Note"
+                    hint="Context or explanation"
+                    value={noteAnalysis}
+                    onChange={(e) => setNoteAnalysis(e.target.value)}
+                    placeholder="e.g., New survey methodology this cycle"
                   />
-                </div>
 
-                {/* Analysis Note */}
-                <Input
-                  label="Analysis Note"
-                  hint="Context or explanation"
-                  value={noteAnalysis}
-                  onChange={(e) => setNoteAnalysis(e.target.value)}
-                  placeholder="e.g., New survey methodology this cycle"
-                />
+                  {/* Course Correction */}
+                  <Input
+                    label="Course Correction"
+                    hint="Action taken if missing target"
+                    value={noteCourseCorrection}
+                    onChange={(e) => setNoteCourseCorrection(e.target.value)}
+                    placeholder="e.g., Added re-training for repeat offenders"
+                  />
 
-                {/* Course Correction */}
-                <Input
-                  label="Course Correction"
-                  hint="Action taken if missing target"
-                  value={noteCourseCorrection}
-                  onChange={(e) => setNoteCourseCorrection(e.target.value)}
-                  placeholder="e.g., Added re-training for repeat offenders"
-                />
+                  {/* Next Expected Date — for survey-driven metrics (MDS, BSS) */}
+                  <Input
+                    label="Next Expected Date"
+                    hint="When is the next survey result expected? Prevents false overdue alerts."
+                    type="date"
+                    value={nextExpected}
+                    onChange={(e) => setNextExpected(e.target.value)}
+                  />
 
-                {/* Next Expected Date — for survey-driven metrics (MDS, BSS) */}
-                <Input
-                  label="Next Expected Date"
-                  hint="When is the next survey result expected? Prevents false overdue alerts."
-                  type="date"
-                  value={nextExpected}
-                  onChange={(e) => setNextExpected(e.target.value)}
-                />
+                  {/* Submit */}
+                  <Button type="submit" disabled={saving} loading={saving} className="w-full">
+                    Save Entry
+                  </Button>
+                </form>
+              )}
+            </Card>
 
-                {/* Submit */}
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  loading={saving}
-                  className="w-full"
-                >
-                  Save Entry
-                </Button>
-              </form>
+            {/* Recent entries for selected metric */}
+            {selectedMetric && (
+              <RecentEntries metricId={selectedMetric.id} unit={selectedMetric.unit} />
             )}
-          </Card>
-
-          {/* Recent entries for selected metric */}
-          {selectedMetric && <RecentEntries metricId={selectedMetric.id} unit={selectedMetric.unit} />}
+          </div>
         </div>
-      </div>
       )}
     </div>
   );
@@ -686,10 +708,10 @@ function RecentEntries({ metricId, unit }: { metricId: number; unit: string }) {
   useEffect(() => {
     async function fetch() {
       const { data } = await supabase
-        .from("entries")
-        .select("id, value, date, note_analysis")
-        .eq("metric_id", metricId)
-        .order("date", { ascending: false })
+        .from('entries')
+        .select('id, value, date, note_analysis')
+        .eq('metric_id', metricId)
+        .order('date', { ascending: false })
         .limit(5);
       setEntries(data || []);
     }
@@ -703,11 +725,12 @@ function RecentEntries({ metricId, unit }: { metricId: number; unit: string }) {
       <h3 className="text-sm font-bold text-nia-dark mb-2">Recent Entries</h3>
       <div className="space-y-1">
         {entries.map((entry) => (
-          <div key={entry.id} className="flex justify-between text-sm py-1 border-b border-border-light">
+          <div
+            key={entry.id}
+            className="flex justify-between text-sm py-1 border-b border-border-light"
+          >
             <span className="text-text-tertiary">{formatDate(entry.date)}</span>
-            <span className="font-medium text-nia-dark">
-              {formatValue(entry.value, unit)}
-            </span>
+            <span className="font-medium text-nia-dark">{formatValue(entry.value, unit)}</span>
           </div>
         ))}
       </div>

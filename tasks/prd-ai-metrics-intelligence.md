@@ -5,6 +5,7 @@
 The AI coach currently sees which metrics are linked to a process (name, latest value, target) but has no awareness of metric trends, review status, or the broader metric catalog. This means it can suggest "you should track response times" as a generic task, but it can't say "there's already a Response Time metric in your system at 12 min against a 10 min target — link it to this process."
 
 This feature gives the AI full metrics awareness so it can:
+
 - Recommend linking existing metrics that match the process
 - Propose creating new metrics with editable defaults
 - Flag overdue, off-target, or declining metrics during ADLI assessments
@@ -22,9 +23,11 @@ This feature gives the AI full metrics awareness so it can:
 ## User Stories
 
 ### US-001: Enrich linked metrics context for AI
+
 **Description:** As a process owner, I want the AI to see metric trends and review status so that its coaching is grounded in actual data, not just the latest number.
 
 **Acceptance Criteria:**
+
 - [ ] `buildMetricsContext()` includes last 3 values per metric (chronological order)
 - [ ] Context includes review status: current, due-soon, overdue, or no-data
 - [ ] Context includes on-target status (above/below target, and whether higher is better)
@@ -32,9 +35,11 @@ This feature gives the AI full metrics awareness so it can:
 - [ ] Typecheck passes
 
 ### US-002: Send available metrics catalog to AI
+
 **Description:** As a process owner, I want the AI to know what metrics exist in the system so that it can recommend linking relevant ones instead of generic "track this" tasks.
 
 **Acceptance Criteria:**
+
 - [ ] AI context includes a "Available Metrics (Not Linked)" section
 - [ ] Lists up to 20 unlinked metrics with name, unit, cadence, and category
 - [ ] Grouped or annotated by Baldrige category for relevance matching
@@ -42,9 +47,11 @@ This feature gives the AI full metrics awareness so it can:
 - [ ] Typecheck passes
 
 ### US-003: AI system prompt — metric recommendations
+
 **Description:** As a process owner, I want the AI to proactively suggest relevant metrics during ADLI assessments so I don't miss measurement gaps.
 
 **Acceptance Criteria:**
+
 - [ ] System prompt instructs AI to check metrics during assessment and deep_dive steps
 - [ ] AI should flag: (a) processes with no linked metrics, (b) ADLI Learning section with no measurement plan, (c) unlinked metrics that match the process topic
 - [ ] AI uses a new structured block `metric-suggestions` for link/create recommendations
@@ -54,9 +61,11 @@ This feature gives the AI full metrics awareness so it can:
 - [ ] Typecheck passes
 
 ### US-004: Metric suggestion cards in AI chat panel
+
 **Description:** As a process owner, I want to see AI metric recommendations as actionable cards so I can link or create metrics with one click.
 
 **Acceptance Criteria:**
+
 - [ ] New `MetricSuggestionCard` component renders for `metric-suggestions` blocks
 - [ ] "Link existing" cards show: metric name, unit, cadence, latest value, and a "Link to Process" button
 - [ ] "Create new" cards show: proposed name, unit, cadence, target with inline editing before confirming
@@ -65,9 +74,11 @@ This feature gives the AI full metrics awareness so it can:
 - [ ] Verify in browser
 
 ### US-005: One-click link existing metric
+
 **Description:** As a process owner, I want to link a recommended metric to my process directly from the AI suggestion card so I don't have to navigate away.
 
 **Acceptance Criteria:**
+
 - [ ] "Link to Process" button on metric suggestion card calls the link API
 - [ ] Uses existing `metric_processes` junction table insert (same as the manual link flow)
 - [ ] Button shows loading state while linking
@@ -77,9 +88,11 @@ This feature gives the AI full metrics awareness so it can:
 - [ ] Verify in browser
 
 ### US-006: One-click create + link new metric
+
 **Description:** As a process owner, I want to create a new metric from an AI recommendation and link it to my process so I can start tracking it immediately.
 
 **Acceptance Criteria:**
+
 - [ ] "Create new" suggestion card shows editable fields: name, unit, cadence, target value
 - [ ] User can modify any field before confirming (inline editing, not a separate page)
 - [ ] "Create & Link" button inserts into `metrics` table + `metric_processes` junction
@@ -89,9 +102,11 @@ This feature gives the AI full metrics awareness so it can:
 - [ ] Verify in browser
 
 ### US-007: API endpoint for AI metric actions
+
 **Description:** As a developer, I need an API endpoint that handles both link-existing and create-new metric actions from AI suggestions.
 
 **Acceptance Criteria:**
+
 - [ ] New POST endpoint at `/api/ai/metrics` (or extend `/api/ai/apply`)
 - [ ] Accepts `{ processId, action: "link", metricId }` for linking existing
 - [ ] Accepts `{ processId, action: "create", metric: { name, unit, cadence, target_value } }` for creating new

@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import type { ProcessMapFlowData } from "@/lib/flow-types";
-import type { Charter } from "@/lib/types";
+import Anthropic from '@anthropic-ai/sdk';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import type { ProcessMapFlowData } from '@/lib/flow-types';
+import type { Charter } from '@/lib/types';
 
 export const maxDuration = 60;
 
@@ -12,7 +12,7 @@ const anthropic = new Anthropic({
 });
 
 interface ChatMessage {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
 }
 
@@ -27,44 +27,40 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response('Unauthorized', { status: 401 });
   }
 
-  const { messages, flowData, processId, processName, charter } =
-    (await request.json()) as {
-      messages: ChatMessage[];
-      flowData: ProcessMapFlowData | null;
-      processId: number;
-      processName: string;
-      charter: Charter | null;
-    };
+  const { messages, flowData, processId, processName, charter } = (await request.json()) as {
+    messages: ChatMessage[];
+    flowData: ProcessMapFlowData | null;
+    processId: number;
+    processName: string;
+    charter: Charter | null;
+  };
 
   // Build a compact charter summary to give the AI context
   const charterSummary = charter
     ? [
         charter.purpose && `Purpose: ${charter.purpose}`,
         charter.scope_includes && `Scope: ${charter.scope_includes}`,
-        charter.stakeholders?.length && `Stakeholders: ${charter.stakeholders.join(", ")}`,
+        charter.stakeholders?.length && `Stakeholders: ${charter.stakeholders.join(', ')}`,
         charter.content && !charter.purpose && `Content: ${charter.content.slice(0, 500)}`,
       ]
         .filter(Boolean)
-        .join("\n")
-    : "(No charter available)";
+        .join('\n')
+    : '(No charter available)';
 
   const nodeSummary = flowData
     ? flowData.nodes
-        .map(
-          (n) =>
-            `${n.id} [${n.type}] "${n.label}"${n.responsible ? ` (${n.responsible})` : ""}`
-        )
-        .join(", ")
-    : "(No diagram yet)";
+        .map((n) => `${n.id} [${n.type}] "${n.label}"${n.responsible ? ` (${n.responsible})` : ''}`)
+        .join(', ')
+    : '(No diagram yet)';
 
   const edgeSummary = flowData
     ? flowData.edges
-        .map((e) => `${e.source}→${e.target}${e.label ? ` (${e.label})` : ""}`)
-        .join(", ")
-    : "";
+        .map((e) => `${e.source}→${e.target}${e.label ? ` (${e.label})` : ''}`)
+        .join(', ')
+    : '';
 
   const systemPrompt = `You are a process improvement specialist helping NIA (Northwestern Illinois Association), a governmental special education cooperative, document and refine their process maps.
 
@@ -75,7 +71,7 @@ ${charterSummary}
 
 CURRENT PROCESS MAP:
 Nodes: ${nodeSummary}
-Connections: ${edgeSummary || "(none)"}
+Connections: ${edgeSummary || '(none)'}
 
 INSTRUCTIONS:
 - Answer questions about this specific process map — its steps, logic, responsible parties, and connections.
@@ -103,11 +99,11 @@ Edge rules:
 Only append ---DIAGRAM--- when actually modifying the diagram. For questions, respond with text only.`;
 
   const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-6",
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: systemPrompt,
     messages: messages.map((m) => ({
-      role: m.role as "user" | "assistant",
+      role: m.role as 'user' | 'assistant',
       content: m.content,
     })),
   });
@@ -117,22 +113,19 @@ Only append ---DIAGRAM--- when actually modifying the diagram. For questions, re
     async start(controller) {
       try {
         for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
             controller.enqueue(encoder.encode(event.delta.text));
           }
         }
         controller.close();
       } catch (err) {
-        console.error("map-chat stream error:", err);
+        console.error('map-chat stream error:', err);
         controller.error(err);
       }
     },
   });
 
   return new Response(readable, {
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
 }

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { useRole } from "@/lib/use-role";
-import { Card, Button } from "@/components/ui";
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { useRole } from '@/lib/use-role';
+import { Card, Button } from '@/components/ui';
 
 interface AsanaConnection {
   asana_user_name: string;
@@ -23,7 +23,7 @@ interface UserRow {
 }
 
 function relativeTime(dateStr: string | null): string {
-  if (!dateStr) return "Never";
+  if (!dateStr) return 'Never';
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -31,10 +31,10 @@ function relativeTime(dateStr: string | null): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return "Just now";
+  if (diffMins < 1) return 'Just now';
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
+  if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays}d ago`;
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
   return date.toLocaleDateString();
@@ -53,7 +53,9 @@ interface BulkSyncResult {
 function BulkSyncCard() {
   const [syncing, setSyncing] = useState(false);
   const [results, setResults] = useState<BulkSyncResult[] | null>(null);
-  const [summary, setSummary] = useState<{ total: number; synced: number; failed: number } | null>(null);
+  const [summary, setSummary] = useState<{ total: number; synced: number; failed: number } | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function handleBulkSync() {
@@ -63,18 +65,18 @@ function BulkSyncCard() {
     setError(null);
 
     try {
-      const res = await fetch("/api/asana/sync-all", { method: "POST" });
+      const res = await fetch('/api/asana/sync-all', { method: 'POST' });
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || data.message || "Sync failed");
+        setError(data.error || data.message || 'Sync failed');
         return;
       }
 
       setResults(data.results);
       setSummary(data.summary);
     } catch {
-      setError("Network error — please try again.");
+      setError('Network error — please try again.');
     } finally {
       setSyncing(false);
     }
@@ -82,15 +84,13 @@ function BulkSyncCard() {
 
   return (
     <Card padding="md">
-      <h2 className="text-xl font-semibold text-nia-dark mb-2">
-        Sync All Asana Tasks
-      </h2>
+      <h2 className="text-xl font-semibold text-nia-dark mb-2">Sync All Asana Tasks</h2>
       <p className="text-sm text-text-tertiary mb-4">
         Import and update tasks from all Asana-linked processes. This may take a few minutes.
       </p>
 
       <Button onClick={handleBulkSync} disabled={syncing} size="sm">
-        {syncing ? "Syncing..." : "Sync All Processes"}
+        {syncing ? 'Syncing...' : 'Sync All Processes'}
       </Button>
 
       {error && (
@@ -112,7 +112,7 @@ function BulkSyncCard() {
             <div
               key={r.processId}
               className={`flex items-center justify-between py-1 px-2 rounded ${
-                r.error ? "bg-nia-red/5" : "bg-card"
+                r.error ? 'bg-nia-red/5' : 'bg-card'
               }`}
             >
               <span className="text-nia-dark truncate mr-2">{r.processName}</span>
@@ -148,11 +148,31 @@ const DEFAULT_PREFS: NotifPref = {
 };
 
 const PREF_LABELS: { key: keyof NotifPref; label: string; description: string }[] = [
-  { key: "notify_on_assignment", label: "Assignment", description: "When someone assigns a task to you" },
-  { key: "notify_on_due_approaching", label: "Due date reminders", description: "When a task is due tomorrow" },
-  { key: "notify_on_completion", label: "Task completion", description: "When a task assigned to you is completed" },
-  { key: "notify_on_mention", label: "Mentions", description: "When someone @mentions you in a comment" },
-  { key: "notify_weekly_digest", label: "Weekly digest", description: "Monday summary of your tasks across all processes" },
+  {
+    key: 'notify_on_assignment',
+    label: 'Assignment',
+    description: 'When someone assigns a task to you',
+  },
+  {
+    key: 'notify_on_due_approaching',
+    label: 'Due date reminders',
+    description: 'When a task is due tomorrow',
+  },
+  {
+    key: 'notify_on_completion',
+    label: 'Task completion',
+    description: 'When a task assigned to you is completed',
+  },
+  {
+    key: 'notify_on_mention',
+    label: 'Mentions',
+    description: 'When someone @mentions you in a comment',
+  },
+  {
+    key: 'notify_weekly_digest',
+    label: 'Weekly digest',
+    description: 'Monday summary of your tasks across all processes',
+  },
 ];
 
 function NotificationPrefsCard() {
@@ -160,8 +180,8 @@ function NotificationPrefsCard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/notifications/preferences")
-      .then((r) => r.ok ? r.json() : DEFAULT_PREFS)
+    fetch('/api/notifications/preferences')
+      .then((r) => (r.ok ? r.json() : DEFAULT_PREFS))
       .then((data) => {
         setPrefs({ ...DEFAULT_PREFS, ...data });
         setLoading(false);
@@ -175,9 +195,9 @@ function NotificationPrefsCard() {
     setPrefs((prev) => ({ ...prev, [key]: newValue }));
 
     try {
-      const res = await fetch("/api/notifications/preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/notifications/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [key]: newValue }),
       });
       if (!res.ok) {
@@ -191,9 +211,7 @@ function NotificationPrefsCard() {
 
   return (
     <Card padding="md">
-      <h2 className="text-xl font-semibold text-nia-dark mb-2">
-        Email Notifications
-      </h2>
+      <h2 className="text-xl font-semibold text-nia-dark mb-2">Email Notifications</h2>
       <p className="text-sm text-text-tertiary mb-4">
         Choose which email notifications you&apos;d like to receive.
       </p>
@@ -214,12 +232,12 @@ function NotificationPrefsCard() {
                 aria-checked={prefs[key]}
                 onClick={() => toggle(key)}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                  prefs[key] ? "bg-nia-green" : "bg-border"
+                  prefs[key] ? 'bg-nia-green' : 'bg-border'
                 }`}
               >
                 <span
                   className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-                    prefs[key] ? "translate-x-4.5" : "translate-x-0.5"
+                    prefs[key] ? 'translate-x-4.5' : 'translate-x-0.5'
                   }`}
                 />
               </button>
@@ -234,18 +252,24 @@ function NotificationPrefsCard() {
 /** Human-friendly role labels */
 function roleLabel(role: string): string {
   switch (role) {
-    case "super_admin": return "Super Admin";
-    case "admin": return "Admin";
-    default: return "User";
+    case 'super_admin':
+      return 'Super Admin';
+    case 'admin':
+      return 'Admin';
+    default:
+      return 'User';
   }
 }
 
 /** Role badge color styles */
 function roleBadgeClass(role: string): string {
   switch (role) {
-    case "super_admin": return "bg-nia-orange/20 text-nia-orange";
-    case "admin": return "bg-nia-dark-solid text-white";
-    default: return "bg-border text-text-secondary";
+    case 'super_admin':
+      return 'bg-nia-orange/20 text-nia-orange';
+    case 'admin':
+      return 'bg-nia-dark-solid text-white';
+    default:
+      return 'bg-border text-text-secondary';
   }
 }
 
@@ -259,21 +283,21 @@ function SettingsContent() {
   // User management state (admin+ only)
   const [users, setUsers] = useState<UserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [currentUserId, setCurrentUserId] = useState<string>('');
   const [changingRoleFor, setChangingRoleFor] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
     authId: string;
     newRole: string;
     name: string;
   } | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string>("");
+  const [successMsg, setSuccessMsg] = useState<string>('');
   const [proxyingFor, setProxyingFor] = useState<string | null>(null);
 
-  const asanaConnected = searchParams.get("asana_connected");
-  const asanaError = searchParams.get("asana_error");
+  const asanaConnected = searchParams.get('asana_connected');
+  const asanaError = searchParams.get('asana_error');
 
   useEffect(() => {
-    document.title = "Settings | NIA Excellence Hub";
+    document.title = 'Settings | NIA Excellence Hub';
     fetchConnection();
   }, []);
 
@@ -287,7 +311,7 @@ function SettingsContent() {
   // Auto-dismiss success message
   useEffect(() => {
     if (successMsg) {
-      const timer = setTimeout(() => setSuccessMsg(""), 4000);
+      const timer = setTimeout(() => setSuccessMsg(''), 4000);
       return () => clearTimeout(timer);
     }
   }, [successMsg]);
@@ -299,9 +323,9 @@ function SettingsContent() {
     if (!user) return;
 
     const { data } = await supabase
-      .from("user_asana_tokens")
-      .select("asana_user_name, workspace_name, connected_at")
-      .eq("user_id", user.id)
+      .from('user_asana_tokens')
+      .select('asana_user_name, workspace_name, connected_at')
+      .eq('user_id', user.id)
       .single();
 
     if (data) setConnection(data);
@@ -311,11 +335,11 @@ function SettingsContent() {
   async function fetchUsers() {
     setUsersLoading(true);
     try {
-      const res = await fetch("/api/admin/users");
+      const res = await fetch('/api/admin/users');
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
-        setCurrentUserId(data.currentUserId || "");
+        setCurrentUserId(data.currentUserId || '');
       }
     } catch {
       // Silently fail — admin section just won't show data
@@ -325,7 +349,7 @@ function SettingsContent() {
 
   async function disconnect() {
     setDisconnecting(true);
-    const res = await fetch("/api/asana/disconnect", { method: "POST" });
+    const res = await fetch('/api/asana/disconnect', { method: 'POST' });
     if (res.ok) {
       setConnection(null);
     }
@@ -343,9 +367,9 @@ function SettingsContent() {
     setConfirmAction(null);
 
     try {
-      const res = await fetch("/api/admin/users", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           authId: confirmAction.authId,
           role: confirmAction.newRole,
@@ -356,9 +380,7 @@ function SettingsContent() {
         // Optimistic update
         setUsers((prev) =>
           prev.map((u) =>
-            u.auth_id === confirmAction.authId
-              ? { ...u, role: confirmAction.newRole }
-              : u
+            u.auth_id === confirmAction.authId ? { ...u, role: confirmAction.newRole } : u
           )
         );
         setSuccessMsg(`${confirmAction.name} changed to ${roleLabel(confirmAction.newRole)}`);
@@ -367,7 +389,7 @@ function SettingsContent() {
         setSuccessMsg(`Error: ${err.error}`);
       }
     } catch {
-      setSuccessMsg("Failed to update role");
+      setSuccessMsg('Failed to update role');
     }
 
     setChangingRoleFor(null);
@@ -375,13 +397,13 @@ function SettingsContent() {
 
   async function startProxy(authId: string, name: string) {
     setProxyingFor(authId);
-    const res = await fetch("/api/admin/proxy", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/admin/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ targetAuthId: authId }),
     });
     if (res.ok) {
-      window.location.href = "/";
+      window.location.href = '/';
     } else {
       const err = await res.json();
       setSuccessMsg(`Error: ${err.error}`);
@@ -404,17 +426,17 @@ function SettingsContent() {
           Asana connected successfully!
         </div>
       )}
-      {asanaError === "denied" && (
+      {asanaError === 'denied' && (
         <div className="bg-nia-red/10 border border-nia-red/30 rounded-lg p-3 text-sm text-nia-red">
           Asana connection was cancelled or denied.
         </div>
       )}
-      {asanaError === "token" && (
+      {asanaError === 'token' && (
         <div className="bg-nia-red/10 border border-nia-red/30 rounded-lg p-3 text-sm text-nia-red">
           Failed to get Asana access token. Please try again.
         </div>
       )}
-      {asanaError === "save" && (
+      {asanaError === 'save' && (
         <div className="bg-nia-red/10 border border-nia-red/30 rounded-lg p-3 text-sm text-nia-red">
           Connected to Asana but failed to save. Please try again.
         </div>
@@ -422,9 +444,7 @@ function SettingsContent() {
 
       {/* Connected Accounts */}
       <Card padding="md">
-        <h2 className="text-xl font-semibold text-nia-dark mb-4">
-          Connected Accounts
-        </h2>
+        <h2 className="text-xl font-semibold text-nia-dark mb-4">Connected Accounts</h2>
 
         {/* Asana */}
         <div className="flex items-center justify-between py-4">
@@ -443,11 +463,8 @@ function SettingsContent() {
                 <p className="text-sm text-text-muted">Checking connection...</p>
               ) : connection ? (
                 <p className="text-sm text-text-tertiary">
-                  Connected as{" "}
-                  <span className="font-medium">{connection.asana_user_name}</span>
-                  {connection.workspace_name && (
-                    <> in {connection.workspace_name}</>
-                  )}
+                  Connected as <span className="font-medium">{connection.asana_user_name}</span>
+                  {connection.workspace_name && <> in {connection.workspace_name}</>}
                 </p>
               ) : (
                 <p className="text-sm text-text-muted">Not connected</p>
@@ -482,27 +499,24 @@ function SettingsContent() {
       <NotificationPrefsCard />
 
       {/* Bulk Asana Sync — admin only */}
-      {!roleLoading && isAdmin && (
-        <BulkSyncCard />
-      )}
+      {!roleLoading && isAdmin && <BulkSyncCard />}
 
       {/* User Management — admin only */}
       {!roleLoading && isAdmin && (
         <Card padding="md">
-          <h2 className="text-xl font-semibold text-nia-dark mb-4">
-            User Management
-          </h2>
+          <h2 className="text-xl font-semibold text-nia-dark mb-4">User Management</h2>
           <p className="text-sm text-text-tertiary mb-4">
-            All NIA team members who have signed in. New users automatically get the &ldquo;member&rdquo; role.
+            All NIA team members who have signed in. New users automatically get the
+            &ldquo;member&rdquo; role.
           </p>
 
           {/* Role change success banner */}
           {successMsg && (
             <div
               className={`mb-4 rounded-lg p-3 text-sm ${
-                successMsg.startsWith("Error")
-                  ? "bg-nia-red/10 border border-nia-red/30 text-nia-red"
-                  : "bg-nia-green/20 border border-nia-green text-nia-dark"
+                successMsg.startsWith('Error')
+                  ? 'bg-nia-red/10 border border-nia-red/30 text-nia-red'
+                  : 'bg-nia-green/20 border border-nia-green text-nia-dark'
               }`}
             >
               {successMsg}
@@ -516,24 +530,17 @@ function SettingsContent() {
                 Change {confirmAction.name} to {roleLabel(confirmAction.newRole)}?
               </p>
               <p className="text-xs text-amber-600 mt-1">
-                {confirmAction.newRole === "super_admin"
-                  ? "Super Admins have full access including role management."
-                  : confirmAction.newRole === "admin"
-                  ? "Admins can map Baldrige criteria, access analytics, and manage all features."
-                  : "Users can only view and edit Processes, Classifications, and Categories."}
+                {confirmAction.newRole === 'super_admin'
+                  ? 'Super Admins have full access including role management.'
+                  : confirmAction.newRole === 'admin'
+                    ? 'Admins can map Baldrige criteria, access analytics, and manage all features.'
+                    : 'Users can only view and edit Processes, Classifications, and Categories.'}
               </p>
               <div className="flex gap-2 mt-3">
-                <Button
-                  size="xs"
-                  onClick={confirmRoleChange}
-                >
+                <Button size="xs" onClick={confirmRoleChange}>
                   Confirm
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => setConfirmAction(null)}
-                >
+                <Button variant="ghost" size="xs" onClick={() => setConfirmAction(null)}>
                   Cancel
                 </Button>
               </div>
@@ -570,11 +577,11 @@ function SettingsContent() {
                         <tr
                           key={u.auth_id}
                           className={`border-b border-border-light ${
-                            isCurrentUser ? "bg-nia-green/5" : ""
+                            isCurrentUser ? 'bg-nia-green/5' : ''
                           }`}
                         >
                           <td className="py-3 font-medium text-nia-dark">
-                            {u.full_name || "—"}
+                            {u.full_name || '—'}
                             {isCurrentUser && (
                               <span className="ml-2 text-xs text-text-muted">(you)</span>
                             )}
@@ -582,13 +589,17 @@ function SettingsContent() {
                           <td className="py-3 text-text-secondary">{u.email}</td>
                           <td className="py-3">
                             {isCurrentUser || !isSuperAdmin ? (
-                              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}>
+                              <span
+                                className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}
+                              >
                                 {roleLabel(u.role)}
                               </span>
                             ) : isChanging ? (
                               <span className="text-xs text-text-muted">Updating...</span>
-                            ) : u.role === "super_admin" ? (
-                              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}>
+                            ) : u.role === 'super_admin' ? (
+                              <span
+                                className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}
+                              >
                                 {roleLabel(u.role)}
                               </span>
                             ) : (
@@ -609,25 +620,34 @@ function SettingsContent() {
                               </select>
                             )}
                           </td>
-                          <td className="py-3 text-text-tertiary" title={u.last_login_at || ""}>
+                          <td className="py-3 text-text-tertiary" title={u.last_login_at || ''}>
                             {relativeTime(u.last_login_at)}
                           </td>
                           <td className="py-3 text-text-tertiary">
                             {new Date(u.created_at).toLocaleDateString()}
                           </td>
                           <td className="py-3">
-                            {!isCurrentUser && isSuperAdmin && u.role !== "super_admin" && (
+                            {!isCurrentUser && isSuperAdmin && u.role !== 'super_admin' && (
                               <button
                                 onClick={() => startProxy(u.auth_id, u.full_name || u.email)}
                                 disabled={proxyingFor === u.auth_id}
                                 className="text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
                                 title="View the app as this user"
                               >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
                                   <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
                                   <circle cx="12" cy="12" r="3" />
                                 </svg>
-                                {proxyingFor === u.auth_id ? "Starting..." : "View as"}
+                                {proxyingFor === u.auth_id ? 'Starting...' : 'View as'}
                               </button>
                             )}
                           </td>
@@ -648,37 +668,35 @@ function SettingsContent() {
                     <div
                       key={u.auth_id}
                       className={`border rounded-lg p-3 ${
-                        isCurrentUser
-                          ? "border-nia-green/30 bg-nia-green/5"
-                          : "border-border"
+                        isCurrentUser ? 'border-nia-green/30 bg-nia-green/5' : 'border-border'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-medium text-nia-dark text-sm">
-                          {u.full_name || "—"}
+                          {u.full_name || '—'}
                           {isCurrentUser && (
                             <span className="ml-1 text-xs text-text-muted">(you)</span>
                           )}
                         </span>
                         {isCurrentUser || !isSuperAdmin ? (
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}>
+                          <span
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}
+                          >
                             {roleLabel(u.role)}
                           </span>
                         ) : isChanging ? (
                           <span className="text-xs text-text-muted">Updating...</span>
-                        ) : u.role === "super_admin" ? (
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}>
+                        ) : u.role === 'super_admin' ? (
+                          <span
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleBadgeClass(u.role)}`}
+                          >
                             {roleLabel(u.role)}
                           </span>
                         ) : (
                           <select
                             value={u.role}
                             onChange={(e) =>
-                              handleRoleChange(
-                                u.auth_id,
-                                e.target.value,
-                                u.full_name || u.email
-                              )
+                              handleRoleChange(u.auth_id, e.target.value, u.full_name || u.email)
                             }
                             className="text-xs border border-border rounded-md px-2 py-1 bg-card"
                           >
@@ -690,20 +708,29 @@ function SettingsContent() {
                       </div>
                       <p className="text-xs text-text-tertiary">{u.email}</p>
                       <p className="text-xs text-text-muted mt-1">
-                        Last login: {relativeTime(u.last_login_at)} · Joined{" "}
+                        Last login: {relativeTime(u.last_login_at)} · Joined{' '}
                         {new Date(u.created_at).toLocaleDateString()}
                       </p>
-                      {!isCurrentUser && isSuperAdmin && u.role !== "super_admin" && (
+                      {!isCurrentUser && isSuperAdmin && u.role !== 'super_admin' && (
                         <button
                           onClick={() => startProxy(u.auth_id, u.full_name || u.email)}
                           disabled={proxyingFor === u.auth_id}
                           className="mt-2 text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
                             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
                             <circle cx="12" cy="12" r="3" />
                           </svg>
-                          {proxyingFor === u.auth_id ? "Starting..." : "View as"}
+                          {proxyingFor === u.auth_id ? 'Starting...' : 'View as'}
                         </button>
                       )}
                     </div>
@@ -712,7 +739,7 @@ function SettingsContent() {
               </div>
 
               <p className="text-xs text-text-muted mt-3">
-                {users.length} user{users.length !== 1 ? "s" : ""} registered
+                {users.length} user{users.length !== 1 ? 's' : ''} registered
               </p>
             </>
           )}

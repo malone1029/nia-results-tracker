@@ -1,7 +1,7 @@
-import { Card } from "@/components/ui";
-import AdliRadar from "@/components/adli-radar";
-import { DimBar } from "@/components/adli-bars";
-import EmptyState from "@/components/empty-state";
+import { Card } from '@/components/ui';
+import AdliRadar from '@/components/adli-radar';
+import { DimBar } from '@/components/adli-bars';
+import EmptyState from '@/components/empty-state';
 
 export default function AdliOverview({
   dimAvgs,
@@ -35,10 +35,7 @@ export default function AdliOverview({
             >
               {avgAdli}%
             </span>
-            <span
-              className="text-sm font-medium ml-2"
-              style={{ color: maturityLevel.color }}
-            >
+            <span className="text-sm font-medium ml-2" style={{ color: maturityLevel.color }}>
               {maturityLevel.label}
             </span>
           </div>

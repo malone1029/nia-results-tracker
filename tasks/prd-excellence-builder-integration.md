@@ -32,6 +32,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As a developer, I need to distinguish Excellence Builder questions from full framework questions so the system can filter by application tier.
 
 **Acceptance Criteria:**
+
 - [ ] Migration adds `tier TEXT NOT NULL DEFAULT 'full'` column to `baldrige_questions`
 - [ ] `tier` has CHECK constraint: `tier IN ('excellence_builder', 'full')`
 - [ ] Existing 98 questions remain with `tier = 'full'`
@@ -42,6 +43,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As an admin, I need the ~100 Excellence Builder questions in the database so AI can map processes to them.
 
 **Acceptance Criteria:**
+
 - [ ] SQL seed script inserts all EB questions from the 2023-2024 Excellence Builder PDF
 - [ ] Each question linked to correct `baldrige_items` row via matching `item_code` (P.1, P.2, 1.1-7.5)
 - [ ] All EB questions have `tier = 'excellence_builder'`
@@ -54,6 +56,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As an admin, I want AI to automatically scan all processes and suggest which EB questions each process helps answer, so I don't have to manually map them.
 
 **Acceptance Criteria:**
+
 - [ ] New API endpoint `/api/criteria/eb-scan` scans all processes against EB questions
 - [ ] AI reads each process's charter, ADLI content, and linked metrics to determine relevance
 - [ ] Returns suggestions with confidence level and rationale per process-question pair
@@ -68,6 +71,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As an admin, I want to filter the criteria map by question tier (Excellence Builder / Full Framework / Both) so I can focus on the 25-page application first.
 
 **Acceptance Criteria:**
+
 - [ ] Toggle/tabs at top of criteria map page: "Excellence Builder" | "Full Framework" | "All"
 - [ ] Default view is "Excellence Builder" (the simpler tier)
 - [ ] Coverage percentages recalculate per tier
@@ -81,6 +85,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As a process owner, I want the Baldrige Connections section on my process page to automatically show which EB questions my process answers, without me needing any Baldrige knowledge.
 
 **Acceptance Criteria:**
+
 - [ ] Process detail page: "Baldrige Connections" section replaced with "Excellence Builder Connections"
 - [ ] Section is read-only — no edit fields, no ListEditor, no TextAreaFields
 - [ ] Fetches mappings from `process_question_mappings` filtered by this process's ID
@@ -96,6 +101,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As a developer, I need to convert existing `baldrige_connections` JSONB content (from Obsidian imports) into structured `process_question_mappings` rows so legacy data isn't lost.
 
 **Acceptance Criteria:**
+
 - [ ] One-time conversion script (or API endpoint) reads all processes with non-null `baldrige_connections`
 - [ ] AI reads the `questions_addressed` array and `evidence_by_dimension` text to identify matching EB questions
 - [ ] Creates `process_question_mappings` rows with `mapped_by = 'ai_confirmed'`
@@ -108,6 +114,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As a developer, I need a database table to store narrative drafts per Baldrige item so admins can build the application incrementally.
 
 **Acceptance Criteria:**
+
 - [ ] Migration creates `baldrige_drafts` table with columns: `id`, `item_id` (FK to baldrige_items), `tier` (excellence_builder/full), `narrative_text`, `figures` (JSONB array), `word_count`, `status` (draft/review/final), `last_ai_generated_at`, `last_edited_at`, `created_at`, `updated_at`
 - [ ] Unique constraint on `(item_id, tier)` — one draft per item per tier
 - [ ] RLS: all authenticated users can read, admins can write
@@ -118,6 +125,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As an admin, I want a page where I can view and edit AI-generated narrative drafts for each Baldrige item, organized by category.
 
 **Acceptance Criteria:**
+
 - [ ] New page at `/application` (admin-only via `AdminGuard`)
 - [ ] Sidebar link in "Application" nav group (book icon)
 - [ ] Page shows all 19 Baldrige items organized by category accordion
@@ -133,6 +141,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As an admin, I want AI to generate a narrative draft for a Baldrige item by reading all processes mapped to it, so I have a starting point for the application.
 
 **Acceptance Criteria:**
+
 - [ ] "Generate Draft" button on each item's editor view
 - [ ] AI reads all processes mapped to this item (charter, ADLI, metrics, scores)
 - [ ] For categories 1-6: generates narrative following ADLI structure (Approach, Deployment, Learning, Integration)
@@ -150,6 +159,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As an admin, I want to export the complete application as a Word document so I can submit it or share with reviewers.
 
 **Acceptance Criteria:**
+
 - [ ] "Export to Word" button on the `/application` page
 - [ ] Generates .docx with: title page, table of contents, organizational profile (P.1, P.2), category sections (1-7) with item narratives
 - [ ] Each item section includes: item title, point value, narrative text
@@ -164,6 +174,7 @@ NIA's team is learning the Baldrige framework. Process owners maintain their pro
 **Description:** As an admin, I want to upload figures (charts, diagrams, screenshots) and attach them to specific narrative sections so the application includes visual evidence.
 
 **Acceptance Criteria:**
+
 - [ ] Each item's draft editor has a "Figures" section below the narrative
 - [ ] Upload button accepts images (PNG, JPG, SVG) and PDFs
 - [ ] Uploaded figures stored via existing `/api/ai/files` infrastructure (or new endpoint)

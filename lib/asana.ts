@@ -1,4 +1,4 @@
-import { createSupabaseServer } from "@/lib/supabase-server";
+import { createSupabaseServer } from '@/lib/supabase-server';
 
 /**
  * Get a valid Asana access token for the current user.
@@ -8,9 +8,9 @@ export async function getAsanaToken(userId: string): Promise<string | null> {
   const supabase = await createSupabaseServer();
 
   const { data: tokenRow } = await supabase
-    .from("user_asana_tokens")
-    .select("*")
-    .eq("user_id", userId)
+    .from('user_asana_tokens')
+    .select('*')
+    .eq('user_id', userId)
     .single();
 
   if (!tokenRow) return null;
@@ -22,11 +22,11 @@ export async function getAsanaToken(userId: string): Promise<string | null> {
 
   if (now - connectedAt > oneHour && tokenRow.refresh_token) {
     // Refresh the token
-    const res = await fetch("https://app.asana.com/-/oauth_token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    const res = await fetch('https://app.asana.com/-/oauth_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        grant_type: "refresh_token",
+        grant_type: 'refresh_token',
         client_id: process.env.ASANA_CLIENT_ID!,
         client_secret: process.env.ASANA_CLIENT_SECRET!,
         refresh_token: tokenRow.refresh_token,
@@ -37,13 +37,13 @@ export async function getAsanaToken(userId: string): Promise<string | null> {
       const data = await res.json();
       // Update stored token
       await supabase
-        .from("user_asana_tokens")
+        .from('user_asana_tokens')
         .update({
           access_token: data.access_token,
           refresh_token: data.refresh_token || tokenRow.refresh_token,
           connected_at: new Date().toISOString(),
         })
-        .eq("user_id", userId);
+        .eq('user_id', userId);
 
       return data.access_token;
     } else {
@@ -51,10 +51,7 @@ export async function getAsanaToken(userId: string): Promise<string | null> {
       // Preserve it on server errors or network issues so the user
       // doesn't lose their connection over a transient failure.
       if (res.status === 401 || res.status === 403) {
-        await supabase
-          .from("user_asana_tokens")
-          .delete()
-          .eq("user_id", userId);
+        await supabase.from('user_asana_tokens').delete().eq('user_id', userId);
       }
       return null;
     }
@@ -66,16 +63,12 @@ export async function getAsanaToken(userId: string): Promise<string | null> {
 /**
  * Make an authenticated Asana API request.
  */
-export async function asanaFetch(
-  token: string,
-  endpoint: string,
-  options?: RequestInit
-) {
+export async function asanaFetch(token: string, endpoint: string, options?: RequestInit) {
   const res = await fetch(`https://app.asana.com/api/1.0${endpoint}`, {
     ...options,
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       ...options?.headers,
     },
   });

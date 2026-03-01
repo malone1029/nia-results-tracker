@@ -1,6 +1,6 @@
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
 
 function createResolveClient() {
   return createClient(
@@ -12,14 +12,18 @@ function createResolveClient() {
 export async function GET() {
   // Require Hub authentication before exposing Resolve data
   const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const resolve = createResolveClient();
 
   const [ticketsRes, sentimentRes] = await Promise.all([
-    resolve.from("tickets").select("id, status, priority, created_at, resolved_at, departments(name)"),
-    resolve.from("sentiment_responses").select("rating, created_at"),
+    resolve
+      .from('tickets')
+      .select('id, status, priority, created_at, resolved_at, departments(name)'),
+    resolve.from('sentiment_responses').select('rating, created_at'),
   ]);
 
   const tickets = ticketsRes.data || [];
@@ -32,7 +36,7 @@ export async function GET() {
 
   // Open / active tickets
   const openTickets = tickets.filter(
-    (t) => t.status === "open" || t.status === "in_progress" || t.status === "waiting"
+    (t) => t.status === 'open' || t.status === 'in_progress' || t.status === 'waiting'
   ).length;
 
   // Avg resolution time (hours) across all resolved tickets
@@ -41,8 +45,13 @@ export async function GET() {
     resolved.length > 0
       ? Math.round(
           (resolved.reduce((sum, t) => {
-            return sum + (new Date(t.resolved_at!).getTime() - new Date(t.created_at).getTime()) / 3600000;
-          }, 0) / resolved.length) * 10
+            return (
+              sum +
+              (new Date(t.resolved_at!).getTime() - new Date(t.created_at).getTime()) / 3600000
+            );
+          }, 0) /
+            resolved.length) *
+            10
         ) / 10
       : null;
 
@@ -55,11 +64,11 @@ export async function GET() {
   // Breakdown by department
   const deptMap = new Map<string, { total: number; open: number }>();
   for (const t of tickets) {
-    const name = (t.departments as unknown as { name: string } | null)?.name || "Other";
+    const name = (t.departments as unknown as { name: string } | null)?.name || 'Other';
     if (!deptMap.has(name)) deptMap.set(name, { total: 0, open: 0 });
     const d = deptMap.get(name)!;
     d.total++;
-    if (t.status === "open" || t.status === "in_progress" || t.status === "waiting") d.open++;
+    if (t.status === 'open' || t.status === 'in_progress' || t.status === 'waiting') d.open++;
   }
   const byDepartment = Array.from(deptMap.entries()).map(([name, v]) => ({ name, ...v }));
 

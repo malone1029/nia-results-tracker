@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useRole } from "@/lib/use-role";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useRole } from '@/lib/use-role';
 
 /**
  * Wraps admin-only pages. Redirects non-admin users to the dashboard.
@@ -14,7 +14,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!loading && !isAdmin) {
-      router.replace("/");
+      router.replace('/');
     }
   }, [loading, isAdmin, router]);
 

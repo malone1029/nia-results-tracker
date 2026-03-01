@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { getAsanaToken, asanaFetch } from "@/lib/asana";
-import { PDCA_SECTION_VALUES, PDCA_SECTIONS } from "@/lib/pdca";
-import type { PdcaSection } from "@/lib/types";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { getAsanaToken, asanaFetch } from '@/lib/asana';
+import { PDCA_SECTION_VALUES, PDCA_SECTIONS } from '@/lib/pdca';
+import type { PdcaSection } from '@/lib/types';
 
 // ── Per-user rate limiter ──
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -41,12 +41,12 @@ export async function PATCH(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   if (!checkRateLimit(user.id)) {
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment." },
+      { error: 'Too many requests. Please wait a moment.' },
       { status: 429 }
     );
   }
@@ -55,21 +55,21 @@ export async function PATCH(request: Request) {
   const updates: ReorderUpdate[] = body.updates;
 
   if (!Array.isArray(updates) || updates.length === 0) {
-    return NextResponse.json(
-      { error: "updates array is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'updates array is required' }, { status: 400 });
   }
 
   // Validate all entries
   for (const u of updates) {
-    if (!u.id || typeof u.sort_order !== "number") {
+    if (!u.id || typeof u.sort_order !== 'number') {
       return NextResponse.json(
-        { error: "Each update requires id (number) and sort_order (number)" },
+        { error: 'Each update requires id (number) and sort_order (number)' },
         { status: 400 }
       );
     }
-    if (u.pdca_section !== undefined && !PDCA_SECTION_VALUES.includes(u.pdca_section as PdcaSection)) {
+    if (
+      u.pdca_section !== undefined &&
+      !PDCA_SECTION_VALUES.includes(u.pdca_section as PdcaSection)
+    ) {
       return NextResponse.json(
         { error: `Invalid pdca_section: ${u.pdca_section}` },
         { status: 400 }
@@ -86,10 +86,7 @@ export async function PATCH(request: Request) {
       fields.asana_section_name = PDCA_SECTIONS[u.pdca_section as PdcaSection].label;
     }
 
-    const { error } = await supabase
-      .from("process_tasks")
-      .update(fields)
-      .eq("id", u.id);
+    const { error } = await supabase.from('process_tasks').update(fields).eq('id', u.id);
 
     if (error) {
       errors.push(`Task ${u.id}: ${error.message}`);
@@ -104,18 +101,18 @@ export async function PATCH(request: Request) {
       // Fetch the tasks that changed to check which are Asana-origin
       const taskIds = sectionChanges.map((u) => u.id);
       const { data: asanaTasks } = await supabase
-        .from("process_tasks")
-        .select("id, origin, asana_task_gid, process_id")
-        .in("id", taskIds)
-        .eq("origin", "asana");
+        .from('process_tasks')
+        .select('id, origin, asana_task_gid, process_id')
+        .in('id', taskIds)
+        .eq('origin', 'asana');
 
       if (asanaTasks && asanaTasks.length > 0) {
         // Look up Asana project for the process
         const processId = asanaTasks[0].process_id;
         const { data: proc } = await supabase
-          .from("processes")
-          .select("asana_project_gid")
-          .eq("id", processId)
+          .from('processes')
+          .select('asana_project_gid')
+          .eq('id', processId)
           .single();
 
         if (proc?.asana_project_gid) {
@@ -133,11 +130,12 @@ export async function PATCH(request: Request) {
               const change = sectionChanges.find((u) => u.id === at.id);
               if (!change?.pdca_section || !at.asana_task_gid) continue;
 
-              const targetLabel = PDCA_SECTIONS[change.pdca_section as PdcaSection].label.toLowerCase();
+              const targetLabel =
+                PDCA_SECTIONS[change.pdca_section as PdcaSection].label.toLowerCase();
               const targetGid = sectionMap.get(targetLabel);
               if (targetGid) {
                 await asanaFetch(token, `/sections/${targetGid}/addTask`, {
-                  method: "POST",
+                  method: 'POST',
                   body: JSON.stringify({ data: { task: at.asana_task_gid } }),
                 }).catch(() => {
                   // Non-blocking — section move is best-effort
@@ -145,9 +143,9 @@ export async function PATCH(request: Request) {
 
                 // Update the section GID in Supabase
                 await supabase
-                  .from("process_tasks")
+                  .from('process_tasks')
                   .update({ asana_section_gid: targetGid })
-                  .eq("id", at.id);
+                  .eq('id', at.id);
               }
             }
           } catch {
@@ -159,10 +157,7 @@ export async function PATCH(request: Request) {
   }
 
   if (errors.length > 0) {
-    return NextResponse.json(
-      { error: errors.join("; "), partial: true },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errors.join('; '), partial: true }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

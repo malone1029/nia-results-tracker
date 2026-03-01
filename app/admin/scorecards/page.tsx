@@ -1,11 +1,11 @@
 // app/admin/scorecards/page.tsx
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRole } from "@/lib/use-role";
-import { Card } from "@/components/ui";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from 'react';
+import { useRole } from '@/lib/use-role';
+import { Card } from '@/components/ui';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Scorecard {
   auth_id: string | null;
@@ -21,10 +21,10 @@ interface Scorecard {
 }
 
 function relativeTime(dateStr: string | null): string {
-  if (!dateStr) return "Never";
+  if (!dateStr) return 'Never';
   const diffDays = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays}d ago`;
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
   return new Date(dateStr).toLocaleDateString();
@@ -38,9 +38,12 @@ export default function ScorecardsPage() {
 
   useEffect(() => {
     if (roleLoading) return;
-    if (!isAdmin) { router.push("/"); return; }
+    if (!isAdmin) {
+      router.push('/');
+      return;
+    }
 
-    fetch("/api/admin/scorecards")
+    fetch('/api/admin/scorecards')
       .then((r) => r.json())
       .then((d) => {
         setScorecards(d.scorecards ?? []);
@@ -65,7 +68,8 @@ export default function ScorecardsPage() {
       <div>
         <h1 className="text-3xl font-bold text-foreground">Process Owner Scorecards</h1>
         <p className="text-text-muted mt-1">
-          {compliantCount} of {scorecards.length} process owner{scorecards.length !== 1 ? "s" : ""} compliant
+          {compliantCount} of {scorecards.length} process owner{scorecards.length !== 1 ? 's' : ''}{' '}
+          compliant
         </p>
       </div>
 
@@ -88,23 +92,31 @@ export default function ScorecardsPage() {
               >
                 <td className="px-4 py-3">
                   <p className="font-medium text-foreground">{s.full_name ?? s.email}</p>
-                  <p className="text-xs text-text-muted capitalize">{s.role.replace(/_/g, " ")}</p>
+                  <p className="text-xs text-text-muted capitalize">{s.role.replace(/_/g, ' ')}</p>
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{s.processCount}</td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                    s.compliance.isCompliant
-                      ? "bg-nia-green/10 text-nia-green"
-                      : "bg-red-50 text-red-600"
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${
-                      s.compliance.isCompliant ? "bg-nia-green" : "bg-red-500"
-                    }`} />
-                    {s.compliance.isCompliant ? "Compliant" : "Not Compliant"}
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                      s.compliance.isCompliant
+                        ? 'bg-nia-green/10 text-nia-green'
+                        : 'bg-red-50 text-red-600'
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        s.compliance.isCompliant ? 'bg-nia-green' : 'bg-red-500'
+                      }`}
+                    />
+                    {s.compliance.isCompliant ? 'Compliant' : 'Not Compliant'}
                   </span>
                   {!s.compliance.isCompliant && (
                     <p className="text-xs text-text-muted mt-1">
-                      {Object.values(s.compliance.checks).filter((v) => !v).length} check{Object.values(s.compliance.checks).filter((v) => !v).length !== 1 ? "s" : ""} failing
+                      {Object.values(s.compliance.checks).filter((v) => !v).length} check
+                      {Object.values(s.compliance.checks).filter((v) => !v).length !== 1
+                        ? 's'
+                        : ''}{' '}
+                      failing
                     </p>
                   )}
                 </td>

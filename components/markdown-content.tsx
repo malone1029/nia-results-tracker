@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { marked } from "marked";
-import DOMPurify from "isomorphic-dompurify";
-import { useMemo, memo } from "react";
+import { marked } from 'marked';
+import DOMPurify from 'isomorphic-dompurify';
+import { useMemo, memo } from 'react';
 
 // Configure marked for GFM (tables, strikethrough, etc.)
 marked.setOptions({
@@ -14,7 +14,20 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
   const html = useMemo(() => {
     const raw = marked.parse(content) as string;
     return DOMPurify.sanitize(raw, {
-      ADD_TAGS: ["svg", "path", "circle", "rect", "line", "polyline", "polygon", "text", "g", "defs", "marker", "foreignObject"],
+      ADD_TAGS: [
+        'svg',
+        'path',
+        'circle',
+        'rect',
+        'line',
+        'polyline',
+        'polygon',
+        'text',
+        'g',
+        'defs',
+        'marker',
+        'foreignObject',
+      ],
     });
   }, [content]);
 

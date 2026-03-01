@@ -1,44 +1,47 @@
 // app/api/admin/scorecards/route.ts
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isAdminRole } from "@/lib/auth-helpers";
-import { computeCompliance } from "@/lib/compliance";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isAdminRole } from '@/lib/auth-helpers';
+import { computeCompliance } from '@/lib/compliance';
 
 export async function GET() {
   const supabase = await createSupabaseServer();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { data: myRole } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
 
-  if (!isAdminRole(myRole?.role ?? "member")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdminRole(myRole?.role ?? 'member')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const { data: users } = await supabase
-    .from("user_roles")
-    .select("auth_id, email, full_name, role, last_login_at, onboarding_completed_at")
-    .order("full_name");
+    .from('user_roles')
+    .select('auth_id, email, full_name, role, last_login_at, onboarding_completed_at')
+    .order('full_name');
 
   if (!users) return NextResponse.json({ scorecards: [] });
 
   const { data: allProcesses } = await supabase
-    .from("processes")
-    .select("id, name, status, updated_at, owner, owner_email");
+    .from('processes')
+    .select('id, name, status, updated_at, owner, owner_email');
 
   const processIds = (allProcesses ?? []).map((p) => p.id);
 
-  const { data: metricLinks } = processIds.length > 0
-    ? await supabase
-        .from("metric_processes")
-        .select("process_id, metrics(id, cadence, next_entry_expected)")
-        .in("process_id", processIds)
-    : { data: [] };
+  const { data: metricLinks } =
+    processIds.length > 0
+      ? await supabase
+          .from('metric_processes')
+          .select('process_id, metrics(id, cadence, next_entry_expected)')
+          .in('process_id', processIds)
+      : { data: [] };
 
   const metricIds = (metricLinks ?? [])
     .flatMap((ml) => {
@@ -48,13 +51,14 @@ export async function GET() {
     })
     .map((m) => m.id);
 
-  const { data: latestEntries } = metricIds.length > 0
-    ? await supabase
-        .from("entries")
-        .select("metric_id, date")
-        .in("metric_id", metricIds)
-        .order("date", { ascending: false })
-    : { data: [] };
+  const { data: latestEntries } =
+    metricIds.length > 0
+      ? await supabase
+          .from('entries')
+          .select('metric_id, date')
+          .in('metric_id', metricIds)
+          .order('date', { ascending: false })
+      : { data: [] };
 
   const latestByMetric = new Map<number, string>();
   for (const e of latestEntries ?? []) {
@@ -62,12 +66,13 @@ export async function GET() {
   }
 
   // Fetch ADLI scores for all processes — only need overall_score per process
-  const { data: adliScores } = processIds.length > 0
-    ? await supabase
-        .from("process_adli_scores")
-        .select("process_id, overall_score")
-        .in("process_id", processIds)
-    : { data: [] };
+  const { data: adliScores } =
+    processIds.length > 0
+      ? await supabase
+          .from('process_adli_scores')
+          .select('process_id, overall_score')
+          .in('process_id', processIds)
+      : { data: [] };
 
   // Build ADLI map: process_id → latest overall score
   const latestAdliByProcess = new Map<number, number>();
@@ -92,11 +97,13 @@ export async function GET() {
     const processHealthScores = userProcIds.map((id) => latestAdliByProcess.get(id) ?? 0);
 
     // Average ADLI across ALL owned processes (unassessed = 0) — used for Check 4
-    const avgAdliScore = userProcIds.length > 0
-      ? Math.round(
-          userProcIds.reduce((sum, id) => sum + (latestAdliByProcess.get(id) ?? 0), 0) / userProcIds.length
-        )
-      : 0;
+    const avgAdliScore =
+      userProcIds.length > 0
+        ? Math.round(
+            userProcIds.reduce((sum, id) => sum + (latestAdliByProcess.get(id) ?? 0), 0) /
+              userProcIds.length
+          )
+        : 0;
 
     const processesForCompliance = userProcesses.map((p) => {
       const pMetrics = (metricLinks ?? [])

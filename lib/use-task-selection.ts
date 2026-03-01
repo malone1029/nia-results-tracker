@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useRef } from "react";
-import type { ProcessTask } from "@/lib/types";
-import type { ContextMenuPosition } from "@/components/task-context-menu";
+import { useState, useCallback, useRef } from 'react';
+import type { ProcessTask } from '@/lib/types';
+import type { ContextMenuPosition } from '@/components/task-context-menu';
 
 interface UseTaskSelectionReturn {
   /** Set of currently selected task IDs */
@@ -39,10 +39,7 @@ export function useTaskSelection(): UseTaskSelectionReturn {
 
   const isAnySelected = selectedIds.size > 0;
 
-  const isSelected = useCallback(
-    (taskId: number) => selectedIds.has(taskId),
-    [selectedIds]
-  );
+  const isSelected = useCallback((taskId: number) => selectedIds.has(taskId), [selectedIds]);
 
   const toggleId = useCallback((taskId: number) => {
     setSelectedIds((prev) => {

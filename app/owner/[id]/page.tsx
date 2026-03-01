@@ -1,14 +1,14 @@
 // app/owner/[id]/page.tsx
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { useRole } from "@/lib/use-role";
-import { Card, Badge } from "@/components/ui";
-import { getStatusLabel } from "@/lib/review-status";
-import type { ReviewStatus } from "@/lib/review-status";
-import Link from "next/link";
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { useRole } from '@/lib/use-role';
+import { Card, Badge } from '@/components/ui';
+import { getStatusLabel } from '@/lib/review-status';
+import type { ReviewStatus } from '@/lib/review-status';
+import Link from 'next/link';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -54,13 +54,18 @@ interface ScorecardData {
 }
 // ── Helpers ───────────────────────────────────────────────────
 
-function reviewStatusColor(status: ReviewStatus): "green" | "orange" | "red" | "gray" | "blue" {
+function reviewStatusColor(status: ReviewStatus): 'green' | 'orange' | 'red' | 'gray' | 'blue' {
   switch (status) {
-    case "current":   return "green";
-    case "due-soon":  return "orange";
-    case "overdue":   return "red";
-    case "no-data":   return "gray";
-    case "scheduled": return "blue";
+    case 'current':
+      return 'green';
+    case 'due-soon':
+      return 'orange';
+    case 'overdue':
+      return 'red';
+    case 'no-data':
+      return 'gray';
+    case 'scheduled':
+      return 'blue';
   }
 }
 
@@ -70,17 +75,31 @@ function CheckRow({ label, passing, detail }: { label: string; passing: boolean;
   return (
     <div className="flex items-start gap-3 py-3 border-b border-border last:border-0">
       <div
-        aria-label={passing ? "Passing" : "Failing"}
+        aria-label={passing ? 'Passing' : 'Failing'}
         className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-          passing ? "bg-nia-green/20 text-nia-green" : "bg-red-100 text-red-600"
+          passing ? 'bg-nia-green/20 text-nia-green' : 'bg-red-100 text-red-600'
         }`}
       >
         {passing ? (
-          <svg aria-hidden="true" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <svg
+            aria-hidden="true"
+            className="w-3 h-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={3}
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         ) : (
-          <svg aria-hidden="true" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <svg
+            aria-hidden="true"
+            className="w-3 h-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={3}
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         )}
@@ -153,31 +172,32 @@ export default function OwnerScorecardPage() {
     );
   }
   const isSelf = currentUserId === targetId;
-  const isAdmin = role === "admin" || role === "super_admin";
+  const isAdmin = role === 'admin' || role === 'super_admin';
   const displayName = data.owner.full_name ?? data.owner.email;
-  const pageTitle = isSelf ? "My Scorecard" : `${displayName}'s Scorecard`;
+  const pageTitle = isSelf ? 'My Scorecard' : `${displayName}'s Scorecard`;
 
   const checks = data.compliance.checks;
   const checkItems = [
     {
-      key: "onboardingComplete" as const,
-      label: "Onboarding complete",
-      detail: "You’ve completed the orientation walkthrough.",
+      key: 'onboardingComplete' as const,
+      label: 'Onboarding complete',
+      detail: 'You’ve completed the orientation walkthrough.',
     },
     {
-      key: "metricsAllCurrent" as const,
-      label: "Metrics are current",
-      detail: "All linked metrics have been logged within their cadence window.",
+      key: 'metricsAllCurrent' as const,
+      label: 'Metrics are current',
+      detail: 'All linked metrics have been logged within their cadence window.',
     },
     {
-      key: "healthScoreGrowing" as const,
-      label: "Health score is on track",
-      detail: "At least one process has a health score of 60 or above.",
+      key: 'healthScoreGrowing' as const,
+      label: 'Health score is on track',
+      detail: 'At least one process has a health score of 60 or above.',
     },
     {
-      key: "adliImproving" as const,
-      label: "ADLI maturity is on track",
-      detail: "Your average ADLI score across all owned processes is 25 or above. Unassessed processes count as 0 — run AI assessments to raise your average.",
+      key: 'adliImproving' as const,
+      label: 'ADLI maturity is on track',
+      detail:
+        'Your average ADLI score across all owned processes is 25 or above. Unassessed processes count as 0 — run AI assessments to raise your average.',
     },
   ];
   return (
@@ -187,7 +207,7 @@ export default function OwnerScorecardPage() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">{pageTitle}</h1>
           <p className="text-text-muted mt-1">
-            {data.processes.length} process{data.processes.length !== 1 ? "es" : ""} owned
+            {data.processes.length} process{data.processes.length !== 1 ? 'es' : ''} owned
             {data.owner.last_login_at && (
               <> · Last active {new Date(data.owner.last_login_at).toLocaleDateString()}</>
             )}
@@ -195,12 +215,14 @@ export default function OwnerScorecardPage() {
         </div>
 
         {/* Overall compliance badge */}
-        <div className={`px-4 py-2 rounded-full text-sm font-semibold ${
-          data.compliance.isCompliant
-            ? "bg-nia-green/10 text-nia-green border border-nia-green/30"
-            : "bg-red-50 text-red-600 border border-red-200"
-        }`}>
-          {data.compliance.isCompliant ? "✓ Compliant" : "⚠ Not Compliant"}
+        <div
+          className={`px-4 py-2 rounded-full text-sm font-semibold ${
+            data.compliance.isCompliant
+              ? 'bg-nia-green/10 text-nia-green border border-nia-green/30'
+              : 'bg-red-50 text-red-600 border border-red-200'
+          }`}
+        >
+          {data.compliance.isCompliant ? '✓ Compliant' : '⚠ Not Compliant'}
         </div>
       </div>
 
@@ -209,7 +231,9 @@ export default function OwnerScorecardPage() {
         <div className="bg-nia-orange/10 border border-nia-orange/30 rounded-xl p-4 flex items-center justify-between">
           <div>
             <p className="font-medium text-foreground">Complete your onboarding</p>
-            <p className="text-sm text-text-muted">Learn how to use the Hub and what&apos;s expected of you as a process owner.</p>
+            <p className="text-sm text-text-muted">
+              Learn how to use the Hub and what&apos;s expected of you as a process owner.
+            </p>
           </div>
           <a
             href="/onboarding"
@@ -223,10 +247,17 @@ export default function OwnerScorecardPage() {
         {/* Compliance Panel */}
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-foreground mb-1">Growth Signals</h2>
-          <p className="text-xs text-text-muted mb-4">These signals measure whether your processes are actively growing.</p>
+          <p className="text-xs text-text-muted mb-4">
+            These signals measure whether your processes are actively growing.
+          </p>
           <div>
             {checkItems.map((item) => (
-              <CheckRow key={item.key} label={item.label} passing={checks[item.key]} detail={item.detail} />
+              <CheckRow
+                key={item.key}
+                label={item.label}
+                passing={checks[item.key]}
+                detail={item.detail}
+              />
             ))}
           </div>
         </Card>
@@ -238,7 +269,11 @@ export default function OwnerScorecardPage() {
             <div className="grid grid-cols-2 gap-3">
               <StatPill
                 label="Task Completion Rate"
-                value={data.growth.taskCompletionRate !== null ? `${data.growth.taskCompletionRate}%` : "—"}
+                value={
+                  data.growth.taskCompletionRate !== null
+                    ? `${data.growth.taskCompletionRate}%`
+                    : '—'
+                }
                 sub={`${data.growth.completedTasks} of ${data.growth.totalTasks} tasks`}
               />
               <StatPill
@@ -267,7 +302,7 @@ export default function OwnerScorecardPage() {
                         {p.name}
                       </p>
                       <p className="text-xs text-text-muted capitalize">
-                        {p.status.replace(/_/g, " ")} · {p.process_type}
+                        {p.status.replace(/_/g, ' ')} · {p.process_type}
                       </p>
                     </div>
                     {p.adliScore !== null && (
@@ -287,7 +322,9 @@ export default function OwnerScorecardPage() {
       {data.stewardedMetrics.length > 0 && (
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-foreground mb-1">Data Responsibilities</h2>
-          <p className="text-xs text-text-muted mb-4">Metrics where you&apos;re responsible for data entry</p>
+          <p className="text-xs text-text-muted mb-4">
+            Metrics where you&apos;re responsible for data entry
+          </p>
           <div className="space-y-2">
             {data.stewardedMetrics.map((m) => (
               <Link
@@ -299,9 +336,7 @@ export default function OwnerScorecardPage() {
                   <p className="text-sm font-medium text-foreground group-hover:text-nia-dark transition-colors">
                     {m.name}
                   </p>
-                  {m.data_source && (
-                    <p className="text-xs text-text-muted">{m.data_source}</p>
-                  )}
+                  {m.data_source && <p className="text-xs text-text-muted">{m.data_source}</p>}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                   <Badge color="gray" size="xs">
@@ -320,7 +355,10 @@ export default function OwnerScorecardPage() {
       {/* Admin-only: back to scorecards */}
       {isAdmin && (
         <div>
-          <Link href="/admin/scorecards" className="text-sm text-text-muted hover:text-foreground transition-colors">
+          <Link
+            href="/admin/scorecards"
+            className="text-sm text-text-muted hover:text-foreground transition-colors"
+          >
             ← Back to all scorecards
           </Link>
         </div>

@@ -3,7 +3,7 @@
  * Centralizes ADLI task detection and data types to avoid duplication.
  */
 
-import { asanaFetch } from "./asana";
+import { asanaFetch } from './asana';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -44,27 +44,26 @@ export interface SectionData {
 
 /** Prefix patterns used to identify ADLI documentation tasks in Asana */
 export const ADLI_TASK_PATTERNS: Record<string, string> = {
-  "[adli: approach]": "approach",
-  "[adli: deployment]": "deployment",
-  "[adli: learning]": "learning",
-  "[adli: integration]": "integration",
+  '[adli: approach]': 'approach',
+  '[adli: deployment]': 'deployment',
+  '[adli: learning]': 'learning',
+  '[adli: integration]': 'integration',
 };
-
 
 /** Canonical task names for export (what we create in Asana) */
 export const ADLI_TASK_NAMES: Record<string, string> = {
-  approach: "[ADLI: Approach] How We Do It",
-  deployment: "[ADLI: Deployment] How We Roll It Out",
-  learning: "[ADLI: Learning] How We Improve",
-  integration: "[ADLI: Integration] How It Connects",
+  approach: '[ADLI: Approach] How We Do It',
+  deployment: '[ADLI: Deployment] How We Roll It Out',
+  learning: '[ADLI: Learning] How We Improve',
+  integration: '[ADLI: Integration] How It Connects',
 };
 
 /** ADLI-to-PDCA section mapping for task placement in Asana */
 export const ADLI_TO_PDCA_SECTION: Record<string, string> = {
-  approach: "plan",
-  deployment: "execute",
-  learning: "evaluate",
-  integration: "improve",
+  approach: 'plan',
+  deployment: 'execute',
+  learning: 'evaluate',
+  integration: 'improve',
 };
 
 /**
@@ -99,14 +98,12 @@ export function findAdliTasks(
 async function fetchAllPages(token: string, endpoint: string): Promise<any[]> {
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const allData: any[] = [];
-  let url = endpoint.includes("?") ? `${endpoint}&limit=100` : `${endpoint}?limit=100`;
+  let url = endpoint.includes('?') ? `${endpoint}&limit=100` : `${endpoint}?limit=100`;
 
   while (url) {
     const res = await asanaFetch(token, url);
     allData.push(...(res.data || []));
-    url = res.next_page?.uri
-      ? res.next_page.uri.replace("https://app.asana.com/api/1.0", "")
-      : "";
+    url = res.next_page?.uri ? res.next_page.uri.replace('https://app.asana.com/api/1.0', '') : '';
   }
 
   return allData;
@@ -122,16 +119,14 @@ export async function fetchProjectSections(
   token: string,
   projectGid: string
 ): Promise<SectionData[]> {
-  const sectionsRes = await asanaFetch(
-    token,
-    `/projects/${projectGid}/sections?opt_fields=name`
-  );
+  const sectionsRes = await asanaFetch(token, `/projects/${projectGid}/sections?opt_fields=name`);
   const sections = sectionsRes.data;
 
   const sectionData: SectionData[] = [];
 
   for (const section of sections) {
-    const taskFields = "name,notes,completed,completed_at,assignee.name,assignee.gid,start_on,due_on,due_at,num_subtasks,permalink_url,custom_fields";
+    const taskFields =
+      'name,notes,completed,completed_at,assignee.name,assignee.gid,start_on,due_on,due_at,num_subtasks,permalink_url,custom_fields';
     const allTasks = await fetchAllPages(
       token,
       `/sections/${section.gid}/tasks?opt_fields=${taskFields}`
@@ -143,7 +138,8 @@ export async function fetchProjectSections(
       let subtasks: SubtaskData[] = [];
       if (t.num_subtasks > 0) {
         try {
-          const subtaskFields = "name,notes,completed,completed_at,assignee.name,assignee.gid,start_on,due_on";
+          const subtaskFields =
+            'name,notes,completed,completed_at,assignee.name,assignee.gid,start_on,due_on';
           const subData = await fetchAllPages(
             token,
             `/tasks/${t.gid}/subtasks?opt_fields=${subtaskFields}`
@@ -151,7 +147,7 @@ export async function fetchProjectSections(
           subtasks = subData.map((s: any) => ({
             gid: s.gid,
             name: s.name,
-            notes: s.notes || "",
+            notes: s.notes || '',
             completed: s.completed,
             assignee: s.assignee?.name || null,
             assignee_gid: s.assignee?.gid || null,
@@ -167,7 +163,7 @@ export async function fetchProjectSections(
       tasks.push({
         gid: t.gid,
         name: t.name,
-        notes: t.notes || "",
+        notes: t.notes || '',
         completed: t.completed,
         assignee: t.assignee?.name || null,
         assignee_gid: t.assignee?.gid || null,

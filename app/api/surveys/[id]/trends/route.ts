@@ -1,22 +1,19 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { calculateNpsScore } from "@/lib/survey-types";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { calculateNpsScore } from '@/lib/survey-types';
 
 // GET — returns aggregated results for ALL waves of a survey (for trend charts)
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createSupabaseServer();
   const { id } = await params;
   const surveyId = Number(id);
 
   // Fetch all waves for this survey
   const { data: waves, error: wavesError } = await supabase
-    .from("survey_waves")
-    .select("*")
-    .eq("survey_id", surveyId)
-    .order("wave_number", { ascending: true });
+    .from('survey_waves')
+    .select('*')
+    .eq('survey_id', surveyId)
+    .order('wave_number', { ascending: true });
 
   if (wavesError) {
     return NextResponse.json({ error: wavesError.message }, { status: 500 });
@@ -28,10 +25,10 @@ export async function GET(
 
   // Fetch questions for this survey
   const { data: questions } = await supabase
-    .from("survey_questions")
-    .select("id, question_text, question_type, sort_order, rating_scale_max, options")
-    .eq("survey_id", surveyId)
-    .order("sort_order", { ascending: true });
+    .from('survey_questions')
+    .select('id, question_text, question_type, sort_order, rating_scale_max, options')
+    .eq('survey_id', surveyId)
+    .order('sort_order', { ascending: true });
 
   if (!questions || questions.length === 0) {
     return NextResponse.json({ waves, questions: [] });
@@ -41,9 +38,9 @@ export async function GET(
   const waveResults = await Promise.all(
     waves.map(async (wave) => {
       const { data: responses } = await supabase
-        .from("survey_responses")
-        .select("id")
-        .eq("wave_id", wave.id);
+        .from('survey_responses')
+        .select('id')
+        .eq('wave_id', wave.id);
 
       const responseIds = (responses || []).map((r: { id: number }) => r.id);
 
@@ -64,9 +61,9 @@ export async function GET(
       }
 
       const { data: answers } = await supabase
-        .from("survey_answers")
-        .select("question_id, value_numeric")
-        .in("response_id", responseIds);
+        .from('survey_answers')
+        .select('question_id, value_numeric')
+        .in('response_id', responseIds);
 
       const allAnswers = answers || [];
 
@@ -80,10 +77,10 @@ export async function GET(
         let npsScore: number | null = null;
 
         if (numericValues.length > 0) {
-          if (q.question_type === "nps") {
+          if (q.question_type === 'nps') {
             npsScore = calculateNpsScore(numericValues);
             avgValue = npsScore;
-          } else if (q.question_type === "yes_no") {
+          } else if (q.question_type === 'yes_no') {
             avgValue = Math.round(
               (numericValues.filter((v) => v === 1).length / numericValues.length) * 100
             );

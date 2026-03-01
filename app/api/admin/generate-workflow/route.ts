@@ -1,8 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isSuperAdminRole } from "@/lib/auth-helpers";
-import type { MissionFlowData } from "@/lib/flow-types";
+import Anthropic from '@anthropic-ai/sdk';
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isSuperAdminRole } from '@/lib/auth-helpers';
+import type { MissionFlowData } from '@/lib/flow-types';
 
 export const maxDuration = 120;
 
@@ -66,20 +66,36 @@ KEY PARTNERS/COLLABORATORS: Universities (staff pipeline), Clinical/Medical Prov
 
 // All 7 Baldrige categories for context (exported so workflow-chat can reuse)
 export const BALDRIGE_CATEGORIES = [
-  { number: 1, name: "Leadership", description: "How senior leaders guide the organization" },
-  { number: 2, name: "Strategy", description: "How strategic objectives and action plans are developed" },
-  { number: 3, name: "Customers", description: "How customer and market needs are addressed" },
-  { number: 4, name: "Measurement", description: "How data drives decisions and knowledge management" },
-  { number: 5, name: "Workforce", description: "How workforce capability and engagement are built" },
-  { number: 6, name: "Operations", description: "How key work processes are designed, managed, improved" },
-  { number: 7, name: "Results", description: "Performance and outcomes (not shown in workflow)" },
+  { number: 1, name: 'Leadership', description: 'How senior leaders guide the organization' },
+  {
+    number: 2,
+    name: 'Strategy',
+    description: 'How strategic objectives and action plans are developed',
+  },
+  { number: 3, name: 'Customers', description: 'How customer and market needs are addressed' },
+  {
+    number: 4,
+    name: 'Measurement',
+    description: 'How data drives decisions and knowledge management',
+  },
+  {
+    number: 5,
+    name: 'Workforce',
+    description: 'How workforce capability and engagement are built',
+  },
+  {
+    number: 6,
+    name: 'Operations',
+    description: 'How key work processes are designed, managed, improved',
+  },
+  { number: 7, name: 'Results', description: 'Performance and outcomes (not shown in workflow)' },
 ] as const;
 
 export interface GapItem {
   name: string;
   baldrigeItem: string;
   baldrigeCategory: number; // 1–6 — which category subgraph to place the gap node in
-  priority: "high" | "medium" | "low";
+  priority: 'high' | 'medium' | 'low';
   rationale: string;
 }
 
@@ -98,34 +114,37 @@ export async function POST() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const { data: roleData } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
-  if (!isSuperAdminRole(roleData?.role || "")) {
-    return NextResponse.json({ error: "Super admin access required" }, { status: 403 });
+  if (!isSuperAdminRole(roleData?.role || '')) {
+    return NextResponse.json({ error: 'Super admin access required' }, { status: 403 });
   }
 
   // Fetch KEY processes only
   const { data: keyProcesses, error: procError } = await supabase
-    .from("processes")
+    .from('processes')
     .select(
       `id, name, baldrige_item, adli_integration,
        categories!inner(display_name, sort_order)`
     )
-    .eq("process_type", "key")
-    .order("name");
+    .eq('process_type', 'key')
+    .order('name');
 
   if (procError) {
-    return NextResponse.json({ error: "Failed to fetch processes" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch processes' }, { status: 500 });
   }
 
   if (!keyProcesses || keyProcesses.length === 0) {
     return NextResponse.json(
-      { error: "No key processes found. Use the Key Process Classifier above to assign key processes first." },
+      {
+        error:
+          'No key processes found. Use the Key Process Classifier above to assign key processes first.',
+      },
       { status: 400 }
     );
   }
@@ -133,9 +152,9 @@ export async function POST() {
   // Fetch ADLI scores for key processes
   const keyIds = keyProcesses.map((p) => p.id);
   const { data: scores } = await supabase
-    .from("process_adli_scores")
-    .select("process_id, overall_score")
-    .in("process_id", keyIds);
+    .from('process_adli_scores')
+    .select('process_id, overall_score')
+    .in('process_id', keyIds);
 
   const scoreMap = new Map<number, number>();
   for (const s of scores || []) {
@@ -143,26 +162,28 @@ export async function POST() {
   }
 
   // Build compact process list for the prompt
-  const processList = keyProcesses.map((p) => {
-    const cat = p.categories as unknown as { display_name: string; sort_order: number };
-    const score = scoreMap.get(p.id);
-    const integration = p.adli_integration as Record<string, unknown> | null;
-    const relatedRaw = integration?.related_processes;
-    const related = Array.isArray(relatedRaw)
-      ? (relatedRaw as string[]).slice(0, 2).join(", ")
-      : typeof relatedRaw === "string"
-      ? String(relatedRaw).slice(0, 80)
-      : "";
+  const processList = keyProcesses
+    .map((p) => {
+      const cat = p.categories as unknown as { display_name: string; sort_order: number };
+      const score = scoreMap.get(p.id);
+      const integration = p.adli_integration as Record<string, unknown> | null;
+      const relatedRaw = integration?.related_processes;
+      const related = Array.isArray(relatedRaw)
+        ? (relatedRaw as string[]).slice(0, 2).join(', ')
+        : typeof relatedRaw === 'string'
+          ? String(relatedRaw).slice(0, 80)
+          : '';
 
-    const parts = [
-      `[p${p.id}] ${p.name}`,
-      `  Category: ${cat.display_name}`,
-      p.baldrige_item ? `  Baldrige Item: ${p.baldrige_item}` : "",
-      score != null ? `  ADLI Score: ${score}%` : "  ADLI: Unscored",
-      related ? `  Related to: ${related}` : "",
-    ];
-    return parts.filter(Boolean).join("\n");
-  }).join("\n\n");
+      const parts = [
+        `[p${p.id}] ${p.name}`,
+        `  Category: ${cat.display_name}`,
+        p.baldrige_item ? `  Baldrige Item: ${p.baldrige_item}` : '',
+        score != null ? `  ADLI Score: ${score}%` : '  ADLI: Unscored',
+        related ? `  Related to: ${related}` : '',
+      ];
+      return parts.filter(Boolean).join('\n');
+    })
+    .join('\n\n');
 
   const systemPrompt = `You are a Baldrige Excellence Framework expert analyzing a special education cooperative.
 
@@ -240,15 +261,20 @@ Return ONLY the two sections with their delimiters. No other text.`;
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
+      model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       // NIA_ORG_PROFILE + Baldrige definitions = ~1,100 static tokens — cache them.
-      system: [{ type: "text" as const, text: systemPrompt, cache_control: { type: "ephemeral" as const } }],
-      messages: [{ role: "user", content: userPrompt }],
+      system: [
+        {
+          type: 'text' as const,
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' as const },
+        },
+      ],
+      messages: [{ role: 'user', content: userPrompt }],
     });
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text.trim() : "";
+    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
 
     // Parse the two delimited sections
     const flowMatch = text.match(/---FLOW---\s*([\s\S]*?)(?=---GAPS---|$)/);
@@ -261,13 +287,13 @@ Return ONLY the two sections with their delimiters. No other text.`;
       try {
         // Strip any accidental markdown fences
         const raw = flowMatch[1]
-          .replace(/^```json\s*/i, "")
-          .replace(/^```\s*/i, "")
-          .replace(/\s*```\s*$/, "")
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/\s*```\s*$/, '')
           .trim();
         flowData = JSON.parse(raw) as MissionFlowData;
       } catch {
-        console.warn("Failed to parse flow JSON");
+        console.warn('Failed to parse flow JSON');
       }
     }
 
@@ -278,12 +304,12 @@ Return ONLY the two sections with their delimiters. No other text.`;
           gaps = JSON.parse(jsonMatch[0]) as GapItem[];
         }
       } catch {
-        console.warn("Failed to parse gaps JSON");
+        console.warn('Failed to parse gaps JSON');
       }
     }
 
     if (!flowData) {
-      return NextResponse.json({ error: "AI did not return a valid diagram" }, { status: 500 });
+      return NextResponse.json({ error: 'AI did not return a valid diagram' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -293,7 +319,7 @@ Return ONLY the two sections with their delimiters. No other text.`;
       keyCount: keyProcesses.length,
     });
   } catch (err) {
-    console.error("Workflow generation error:", err);
-    return NextResponse.json({ error: "Failed to generate workflow diagram" }, { status: 500 });
+    console.error('Workflow generation error:', err);
+    return NextResponse.json({ error: 'Failed to generate workflow diagram' }, { status: 500 });
   }
 }

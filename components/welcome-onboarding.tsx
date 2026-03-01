@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
-import { Button } from "@/components/ui";
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
+import { Button } from '@/components/ui';
 
 /* ─── Types ─────────────────────────────────────────────────── */
 
@@ -20,8 +20,8 @@ function getStorageKey(userId: string) {
 }
 
 export function hasCompletedOnboarding(userId: string): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(getStorageKey(userId)) === "true";
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(getStorageKey(userId)) === 'true';
 }
 
 /* ─── Feature highlight data ────────────────────────────────── */
@@ -30,36 +30,69 @@ const FEATURES = [
   {
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
         <rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M9 12l2 2 4-4" stroke="#b1bd37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="M9 12l2 2 4-4"
+          stroke="#b1bd37"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     ),
-    label: "Process Documentation",
-    detail: "Charter, ADLI, and process maps aligned to Baldrige",
+    label: 'Process Documentation',
+    detail: 'Charter, ADLI, and process maps aligned to Baldrige',
   },
   {
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
         <circle cx="12" cy="12" r="3" fill="#f79935" opacity="0.3" />
         <circle cx="12" cy="12" r="3" stroke="#f79935" strokeWidth="1.5" />
-        <path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path
+          d="M12 2v4M12 18v4M2 12h4M18 12h4"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
     ),
-    label: "AI Coaching",
-    detail: "Guided improvement cycles with intelligent suggestions",
+    label: 'AI Coaching',
+    detail: 'Guided improvement cycles with intelligent suggestions',
   },
   {
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-        <path d="M3 3v18h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M7 14l4-4 3 3 6-6" stroke="#b1bd37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="M3 3v18h18"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M7 14l4-4 3 3 6-6"
+          stroke="#b1bd37"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         <circle cx="20" cy="7" r="2" fill="#b1bd37" opacity="0.4" />
       </svg>
     ),
-    label: "Health Scoring",
-    detail: "Track readiness across five dimensions toward Baldrige",
+    label: 'Health Scoring',
+    detail: 'Track readiness across five dimensions toward Baldrige',
   },
   {
     icon: (
@@ -67,11 +100,17 @@ const FEATURES = [
         <circle cx="12" cy="6" r="3.5" stroke="#f06a6a" strokeWidth="1.5" />
         <circle cx="5.5" cy="17" r="3.5" stroke="#f06a6a" strokeWidth="1.5" />
         <circle cx="18.5" cy="17" r="3.5" stroke="#f06a6a" strokeWidth="1.5" />
-        <path d="M8 8.5L6.5 13.5M16 8.5l1.5 5" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" opacity="0.4" />
+        <path
+          d="M8 8.5L6.5 13.5M16 8.5l1.5 5"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeDasharray="2 2"
+          opacity="0.4"
+        />
       </svg>
     ),
-    label: "Asana Integration",
-    detail: "Bidirectional sync keeps documentation and tasks aligned",
+    label: 'Asana Integration',
+    detail: 'Bidirectional sync keeps documentation and tasks aligned',
   },
 ];
 
@@ -85,7 +124,7 @@ export default function WelcomeOnboarding({
 }: WelcomeOnboardingProps) {
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
-  const [direction, setDirection] = useState<"forward" | "back">("forward");
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
 
   // Total steps: if Asana already connected, skip step 2 (index 1)
   const totalSteps = asanaConnected ? 2 : 3;
@@ -102,15 +141,15 @@ export default function WelcomeOnboarding({
   }, [userId, onComplete]);
 
   const markComplete = useCallback(() => {
-    localStorage.setItem(getStorageKey(userId), "true");
-    localStorage.setItem("onboarding-completed", "true");
-    localStorage.setItem("tour-pending", "true");
+    localStorage.setItem(getStorageKey(userId), 'true');
+    localStorage.setItem('onboarding-completed', 'true');
+    localStorage.setItem('tour-pending', 'true');
     setVisible(false);
     setTimeout(onComplete, 300);
   }, [userId, onComplete]);
 
   const nextStep = useCallback(() => {
-    setDirection("forward");
+    setDirection('forward');
     if (step >= totalSteps - 1) {
       markComplete();
     } else {
@@ -119,46 +158,50 @@ export default function WelcomeOnboarding({
   }, [step, totalSteps, markComplete]);
 
   const prevStep = useCallback(() => {
-    setDirection("back");
+    setDirection('back');
     if (step > 0) setStep((s) => s - 1);
   }, [step]);
 
   // Map logical step to content
   const getContentStep = () => {
     if (asanaConnected) {
-      return step === 0 ? "welcome" : "get-started";
+      return step === 0 ? 'welcome' : 'get-started';
     }
-    return step === 0 ? "welcome" : step === 1 ? "asana" : "get-started";
+    return step === 0 ? 'welcome' : step === 1 ? 'asana' : 'get-started';
   };
 
   const contentStep = getContentStep();
-  const firstName = userName.split(" ")[0] || "there";
+  const firstName = userName.split(' ')[0] || 'there';
 
   if (hasCompletedOnboarding(userId)) return null;
 
   return (
     <div
       className={`fixed inset-0 z-[100] flex items-center justify-center transition-opacity duration-300 ${
-        visible ? "opacity-100" : "opacity-0 pointer-events-none"
+        visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#2a3e41] via-[#324a4d] to-[#3d5a5e]">
         {/* Subtle geometric pattern */}
-        <div className="absolute inset-0 opacity-[0.04]" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-          backgroundSize: "32px 32px",
-        }} />
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+            backgroundSize: '32px 32px',
+          }}
+        />
         {/* Warm accent glow */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-[0.06]"
-          style={{ background: "radial-gradient(circle, #f79935 0%, transparent 70%)" }}
+        <div
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-[0.06]"
+          style={{ background: 'radial-gradient(circle, #f79935 0%, transparent 70%)' }}
         />
       </div>
 
       {/* Card */}
       <div
         className={`relative w-full max-w-lg mx-4 bg-card rounded-2xl shadow-2xl overflow-hidden transition-all duration-500 ${
-          visible ? "translate-y-0 scale-100" : "translate-y-4 scale-[0.98]"
+          visible ? 'translate-y-0 scale-100' : 'translate-y-4 scale-[0.98]'
         }`}
       >
         {/* Top accent bar */}
@@ -169,16 +212,12 @@ export default function WelcomeOnboarding({
           <div
             key={step}
             className={`px-8 pt-8 pb-6 ${
-              direction === "forward" ? "onboard-slide-in" : "onboard-slide-in-back"
+              direction === 'forward' ? 'onboard-slide-in' : 'onboard-slide-in-back'
             }`}
           >
-            {contentStep === "welcome" && (
-              <WelcomeStep firstName={firstName} />
-            )}
-            {contentStep === "asana" && (
-              <AsanaStep />
-            )}
-            {contentStep === "get-started" && (
+            {contentStep === 'welcome' && <WelcomeStep firstName={firstName} />}
+            {contentStep === 'asana' && <AsanaStep />}
+            {contentStep === 'get-started' && (
               <GetStartedStep asanaConnected={asanaConnected} onComplete={markComplete} />
             )}
           </div>
@@ -193,10 +232,10 @@ export default function WelcomeOnboarding({
                 key={i}
                 className={`rounded-full transition-all duration-300 ${
                   i === step
-                    ? "w-6 h-2 bg-gradient-to-r from-[#b1bd37] to-[#55787c]"
+                    ? 'w-6 h-2 bg-gradient-to-r from-[#b1bd37] to-[#55787c]'
                     : i < step
-                    ? "w-2 h-2 bg-[#b1bd37]"
-                    : "w-2 h-2 bg-surface-muted"
+                      ? 'w-2 h-2 bg-[#b1bd37]'
+                      : 'w-2 h-2 bg-surface-muted'
                 }`}
               />
             ))}
@@ -209,15 +248,19 @@ export default function WelcomeOnboarding({
                 Back
               </Button>
             )}
-            {contentStep === "welcome" && (
+            {contentStep === 'welcome' && (
               <Button variant="primary" size="md" onClick={nextStep}>
                 Get Started
                 <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 ml-0.5">
-                  <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </Button>
             )}
-            {contentStep === "asana" && (
+            {contentStep === 'asana' && (
               <>
                 <Button variant="ghost" size="sm" onClick={nextStep}>
                   Skip for now
@@ -225,7 +268,7 @@ export default function WelcomeOnboarding({
                 <a
                   href="/api/asana/authorize?returnTo=/?welcome=true"
                   className="inline-flex items-center justify-center font-medium transition-all text-sm px-4 py-2 rounded-lg gap-2 text-white shadow-md hover:shadow-lg hover:translate-y-[-1px]"
-                  style={{ background: "linear-gradient(135deg, #324a4d, #55787c)" }}
+                  style={{ background: 'linear-gradient(135deg, #324a4d, #55787c)' }}
                 >
                   <svg viewBox="0 0 20 20" fill="white" className="w-4 h-4">
                     <circle cx="10" cy="12" r="3" />
@@ -236,7 +279,7 @@ export default function WelcomeOnboarding({
                 </a>
               </>
             )}
-            {contentStep === "get-started" && (
+            {contentStep === 'get-started' && (
               <Button variant="ghost" size="sm" onClick={markComplete}>
                 Explore on my own
               </Button>
@@ -262,18 +305,15 @@ function WelcomeStep({ firstName }: { firstName: string }) {
           <h1 className="text-2xl font-bold font-display text-[#324a4d] leading-tight">
             Welcome, {firstName}
           </h1>
-          <p className="text-sm text-[#55787c] mt-0.5">
-            NIA Excellence Hub
-          </p>
+          <p className="text-sm text-[#55787c] mt-0.5">NIA Excellence Hub</p>
         </div>
       </div>
 
       {/* Value prop */}
       <p className="text-[15px] text-text-secondary leading-relaxed mb-6">
-        Your team&apos;s command center for{" "}
-        <span className="font-medium text-[#324a4d]">Baldrige Excellence</span>.
-        Document processes, track performance, and drive continuous improvement
-        &mdash; all in one place.
+        Your team&apos;s command center for{' '}
+        <span className="font-medium text-[#324a4d]">Baldrige Excellence</span>. Document processes,
+        track performance, and drive continuous improvement &mdash; all in one place.
       </p>
 
       {/* Feature grid */}
@@ -284,9 +324,7 @@ function WelcomeStep({ firstName }: { firstName: string }) {
             className="flex items-start gap-2.5 p-3 rounded-lg bg-surface-hover/80 border border-border-light"
             style={{ animationDelay: `${i * 80}ms` }}
           >
-            <div className="text-[#55787c] mt-0.5 flex-shrink-0">
-              {f.icon}
-            </div>
+            <div className="text-[#55787c] mt-0.5 flex-shrink-0">{f.icon}</div>
             <div className="min-w-0">
               <div className="text-xs font-semibold text-[#324a4d]">{f.label}</div>
               <div className="text-[11px] text-text-muted leading-snug mt-0.5">{f.detail}</div>
@@ -317,8 +355,23 @@ function AsanaStep() {
           <div className="flex items-center gap-1">
             <div className="w-8 h-[2px] bg-gradient-to-r from-[#F06A6A] to-[#55787c] rounded" />
             <svg viewBox="0 0 12 12" className="w-3 h-3 text-[#55787c]">
-              <path d="M2 2l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              <path d="M6 2l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.4" />
+              <path
+                d="M2 2l4 4-4 4"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+              <path
+                d="M6 2l4 4-4 4"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+                opacity="0.4"
+              />
             </svg>
           </div>
           <div className="w-14 h-14 rounded-xl overflow-hidden shadow-md ring-1 ring-border-light">
@@ -337,9 +390,9 @@ function AsanaStep() {
       {/* Benefits */}
       <div className="space-y-2.5">
         {[
-          { icon: "↓", text: "Import existing Asana projects as Excellence Hub processes" },
-          { icon: "↔", text: "Bidirectional sync — changes flow both ways automatically" },
-          { icon: "✓", text: "AI-generated tasks export directly to your Asana boards" },
+          { icon: '↓', text: 'Import existing Asana projects as Excellence Hub processes' },
+          { icon: '↔', text: 'Bidirectional sync — changes flow both ways automatically' },
+          { icon: '✓', text: 'AI-generated tasks export directly to your Asana boards' },
         ].map((b, i) => (
           <div key={i} className="flex items-start gap-3 px-3 py-2 rounded-lg bg-surface-hover/80">
             <span className="w-6 h-6 rounded-full bg-[#324a4d]/8 flex items-center justify-center text-[11px] font-bold text-[#55787c] flex-shrink-0 mt-px">
@@ -382,15 +435,25 @@ function GetStartedStep({
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#324a4d] to-[#55787c] flex items-center justify-center flex-shrink-0 shadow-sm">
                 <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
-                  <path d="M12 3v12M12 3l-4 4M12 3l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(180deg)", transformOrigin: "center" }} />
-                  <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path
+                    d="M12 3v12M12 3l-4 4M12 3l4 4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ transform: 'rotate(180deg)', transformOrigin: 'center' }}
+                  />
+                  <path
+                    d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-[#324a4d]">
-                    Import from Asana
-                  </span>
+                  <span className="text-sm font-semibold text-[#324a4d]">Import from Asana</span>
                   <span className="text-[10px] font-medium text-[#b1bd37] bg-[#b1bd37]/10 px-1.5 py-0.5 rounded">
                     RECOMMENDED
                   </span>
@@ -399,8 +462,16 @@ function GetStartedStep({
                   Select an existing Asana project to import
                 </span>
               </div>
-              <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-text-muted group-hover:text-[#324a4d] transition-colors">
-                <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-5 h-5 text-text-muted group-hover:text-[#324a4d] transition-colors"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
           </a>
@@ -415,21 +486,39 @@ function GetStartedStep({
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#f79935] to-[#e88a28] flex items-center justify-center flex-shrink-0 shadow-sm">
               <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
-                <path d="M12 2L14.5 9.5 22 12 14.5 14.5 12 22 9.5 14.5 2 12 9.5 9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="currentColor" opacity="0.3" />
-                <path d="M12 2L14.5 9.5 22 12 14.5 14.5 12 22 9.5 14.5 2 12 9.5 9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                <path
+                  d="M12 2L14.5 9.5 22 12 14.5 14.5 12 22 9.5 14.5 2 12 9.5 9.5z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                  fill="currentColor"
+                  opacity="0.3"
+                />
+                <path
+                  d="M12 2L14.5 9.5 22 12 14.5 14.5 12 22 9.5 14.5 2 12 9.5 9.5z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-semibold text-[#324a4d]">
-                Create with AI
-              </span>
+              <span className="text-sm font-semibold text-[#324a4d]">Create with AI</span>
               <br />
               <span className="text-xs text-text-muted">
                 Answer a few questions and AI builds your process
               </span>
             </div>
-            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-text-muted group-hover:text-[#f79935] transition-colors">
-              <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+            <svg
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="w-5 h-5 text-text-muted group-hover:text-[#f79935] transition-colors"
+            >
+              <path
+                fillRule="evenodd"
+                d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                clipRule="evenodd"
+              />
             </svg>
           </div>
         </a>
@@ -443,20 +532,29 @@ function GetStartedStep({
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-surface-subtle flex items-center justify-center flex-shrink-0">
               <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#55787c]">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-semibold text-[#324a4d]">
-                Create Manually
-              </span>
+              <span className="text-sm font-semibold text-[#324a4d]">Create Manually</span>
               <br />
-              <span className="text-xs text-text-muted">
-                Start from a blank template
-              </span>
+              <span className="text-xs text-text-muted">Start from a blank template</span>
             </div>
-            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-text-muted group-hover:text-text-tertiary transition-colors">
-              <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+            <svg
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="w-5 h-5 text-text-muted group-hover:text-text-tertiary transition-colors"
+            >
+              <path
+                fillRule="evenodd"
+                d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                clipRule="evenodd"
+              />
             </svg>
           </div>
         </a>

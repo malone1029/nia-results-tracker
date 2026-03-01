@@ -1,19 +1,24 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
-import AdminGuard from "@/components/admin-guard";
-import DraftPanel from "@/components/draft-panel";
+import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
+import AdminGuard from '@/components/admin-guard';
+import DraftPanel from '@/components/draft-panel';
 
 /* ---------- types ---------- */
 interface Mapping {
   id: number;
   process_id: number;
   question_id: number;
-  coverage: "primary" | "supporting" | "partial";
+  coverage: 'primary' | 'supporting' | 'partial';
   notes: string | null;
   mapped_by: string;
-  processes: { id: number; name: string; owner: string | null; baldrige_item: string | null } | null;
+  processes: {
+    id: number;
+    name: string;
+    owner: string | null;
+    baldrige_item: string | null;
+  } | null;
 }
 
 interface Question {
@@ -23,7 +28,7 @@ interface Question {
   area_label: string;
   question_text: string;
   question_type: string;
-  tier: "excellence_builder" | "full";
+  tier: 'excellence_builder' | 'full';
   mappings: Mapping[];
 }
 
@@ -43,15 +48,15 @@ interface Item {
 
 /* ---------- constants ---------- */
 const COVERAGE_COLORS = {
-  primary: "bg-nia-green text-nia-dark",
-  supporting: "bg-nia-grey-blue/15 text-nia-grey-blue",
-  partial: "bg-nia-orange/20 text-nia-orange",
+  primary: 'bg-nia-green text-nia-dark',
+  supporting: 'bg-nia-grey-blue/15 text-nia-grey-blue',
+  partial: 'bg-nia-orange/20 text-nia-orange',
 };
 
 const COVERAGE_BAR_COLORS: Record<string, string> = {
-  full: "bg-nia-green",
-  partial: "bg-nia-orange",
-  none: "bg-nia-red/30",
+  full: 'bg-nia-green',
+  partial: 'bg-nia-orange',
+  none: 'bg-nia-red/30',
 };
 
 function coverageBarColor(pct: number) {
@@ -64,7 +69,7 @@ function coverageBarColor(pct: number) {
 interface AiSuggestion {
   process_id: number;
   process_name: string;
-  coverage: "primary" | "supporting" | "partial";
+  coverage: 'primary' | 'supporting' | 'partial';
   rationale: string;
 }
 
@@ -79,23 +84,27 @@ export default function CriteriaMapPage() {
   const [suggestingFor, setSuggestingFor] = useState<number | null>(null); // question_id being analyzed
   const [suggestions, setSuggestions] = useState<Map<number, AiSuggestion[]>>(new Map());
   const [scanning, setScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState("");
+  const [scanProgress, setScanProgress] = useState('');
 
   // Tier filter — clear scan results when switching tiers
-  const [tierFilter, setTierFilterRaw] = useState<"excellence_builder" | "full" | "all">("excellence_builder");
-  function setTierFilter(tier: "excellence_builder" | "full" | "all") {
+  const [tierFilter, setTierFilterRaw] = useState<'excellence_builder' | 'full' | 'all'>(
+    'excellence_builder'
+  );
+  function setTierFilter(tier: 'excellence_builder' | 'full' | 'all') {
     setTierFilterRaw(tier);
     setSuggestions(new Map());
-    setScanProgress("");
+    setScanProgress('');
   }
 
   // Draft state
   const [draftPanel, setDraftPanel] = useState<Item | null>(null);
-  const [latestDrafts, setLatestDrafts] = useState<Map<number, { word_count: number; status: string }>>(new Map());
+  const [latestDrafts, setLatestDrafts] = useState<
+    Map<number, { word_count: number; status: string }>
+  >(new Map());
 
   const fetchDrafts = useCallback(async () => {
     try {
-      const tier = tierFilter !== "all" ? tierFilter : "excellence_builder";
+      const tier = tierFilter !== 'all' ? tierFilter : 'excellence_builder';
       const res = await fetch(`/api/criteria/drafts?tier=${tier}`);
       if (res.ok) {
         const data = await res.json();
@@ -105,15 +114,14 @@ export default function CriteriaMapPage() {
         }
         setLatestDrafts(map);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, [tierFilter]);
 
   const fetchData = useCallback(async () => {
     try {
-      const [criteriaRes] = await Promise.all([
-        fetch("/api/criteria"),
-        fetchDrafts(),
-      ]);
+      const [criteriaRes] = await Promise.all([fetch('/api/criteria'), fetchDrafts()]);
       if (criteriaRes.ok) {
         const data = await criteriaRes.json();
         setItems(data);
@@ -124,25 +132,31 @@ export default function CriteriaMapPage() {
   }, [fetchDrafts]);
 
   useEffect(() => {
-    document.title = "Criteria Map | NIA Excellence Hub";
+    document.title = 'Criteria Map | NIA Excellence Hub';
     fetchData();
   }, [fetchData]);
 
   // Filter items by tier (filter questions within each item, recompute stats)
-  const filteredItems = tierFilter === "all" ? items : items.map((item) => {
-    const questions = item.questions.filter((q) => q.tier === tierFilter);
-    const totalQuestions = questions.length;
-    const mappedQuestions = questions.filter((q) =>
-      q.mappings.some((m) => m.coverage === "primary")
-    ).length;
-    return {
-      ...item,
-      questions,
-      totalQuestions,
-      mappedQuestions,
-      coveragePct: totalQuestions > 0 ? Math.round((mappedQuestions / totalQuestions) * 100) : 0,
-    };
-  }).filter((item) => item.totalQuestions > 0); // Hide items with 0 questions in this tier
+  const filteredItems =
+    tierFilter === 'all'
+      ? items
+      : items
+          .map((item) => {
+            const questions = item.questions.filter((q) => q.tier === tierFilter);
+            const totalQuestions = questions.length;
+            const mappedQuestions = questions.filter((q) =>
+              q.mappings.some((m) => m.coverage === 'primary')
+            ).length;
+            return {
+              ...item,
+              questions,
+              totalQuestions,
+              mappedQuestions,
+              coveragePct:
+                totalQuestions > 0 ? Math.round((mappedQuestions / totalQuestions) * 100) : 0,
+            };
+          })
+          .filter((item) => item.totalQuestions > 0); // Hide items with 0 questions in this tier
 
   // Group items by category
   const categories = filteredItems.reduce(
@@ -210,7 +224,7 @@ export default function CriteriaMapPage() {
 
   async function removeMapping(mappingId: number) {
     const res = await fetch(`/api/criteria/mappings?id=${mappingId}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
     if (res.ok) fetchData();
   }
@@ -220,9 +234,9 @@ export default function CriteriaMapPage() {
     // Also expand the question
     setExpandedQuestions((prev) => new Set([...prev, questionId]));
     try {
-      const res = await fetch("/api/criteria/ai-suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/criteria/ai-suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question_id: questionId }),
       });
       if (res.ok) {
@@ -239,15 +253,15 @@ export default function CriteriaMapPage() {
   }
 
   async function acceptSuggestion(questionId: number, suggestion: AiSuggestion) {
-    const res = await fetch("/api/criteria/mappings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/criteria/mappings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         process_id: suggestion.process_id,
         question_id: questionId,
         coverage: suggestion.coverage,
         notes: suggestion.rationale,
-        mapped_by: "ai_confirmed",
+        mapped_by: 'ai_confirmed',
       }),
     });
     if (res.ok) {
@@ -255,7 +269,10 @@ export default function CriteriaMapPage() {
       setSuggestions((prev) => {
         const next = new Map(prev);
         const current = next.get(questionId) || [];
-        next.set(questionId, current.filter((s) => s.process_id !== suggestion.process_id));
+        next.set(
+          questionId,
+          current.filter((s) => s.process_id !== suggestion.process_id)
+        );
         return next;
       });
       fetchData();
@@ -266,26 +283,31 @@ export default function CriteriaMapPage() {
     setSuggestions((prev) => {
       const next = new Map(prev);
       const current = next.get(questionId) || [];
-      next.set(questionId, current.filter((s) => s.process_id !== processId));
+      next.set(
+        questionId,
+        current.filter((s) => s.process_id !== processId)
+      );
       return next;
     });
   }
 
   async function runBulkScan() {
     setScanning(true);
-    setScanProgress("Scanning unmapped questions...");
+    setScanProgress('Scanning unmapped questions...');
     try {
-      const res = await fetch("/api/criteria/ai-scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(tierFilter !== "all" ? { tier: tierFilter } : {}),
+      const res = await fetch('/api/criteria/ai-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tierFilter !== 'all' ? { tier: tierFilter } : {}),
       });
       if (res.ok) {
         const data = await res.json();
 
         // Handle "all already mapped" case
         if (data.results?.length === 0) {
-          setScanProgress(data.message || "All questions already have at least one process mapping in this tier.");
+          setScanProgress(
+            data.message || 'All questions already have at least one process mapping in this tier.'
+          );
           return;
         }
 
@@ -302,7 +324,7 @@ export default function CriteriaMapPage() {
         const noMatchCount = data.noMatch ?? 0;
         if (sugCount > 0) {
           setScanProgress(
-            `Found suggestions for ${sugCount} question${sugCount !== 1 ? "s" : ""}${noMatchCount > 0 ? ` (${noMatchCount} had no good match)` : ""}.`
+            `Found suggestions for ${sugCount} question${sugCount !== 1 ? 's' : ''}${noMatchCount > 0 ? ` (${noMatchCount} had no good match)` : ''}.`
           );
         } else {
           setScanProgress(
@@ -323,10 +345,10 @@ export default function CriteriaMapPage() {
         setExpandedItems((prev) => new Set([...prev, ...itemsWithSuggestions]));
         setExpandedQuestions((prev) => new Set([...prev, ...questionsWithSuggestions]));
       } else {
-        setScanProgress("Scan failed. Please try again.");
+        setScanProgress('Scan failed. Please try again.');
       }
     } catch {
-      setScanProgress("Scan failed. Please try again.");
+      setScanProgress('Scan failed. Please try again.');
     } finally {
       setScanning(false);
     }
@@ -335,15 +357,15 @@ export default function CriteriaMapPage() {
   async function acceptAllSuggestions() {
     for (const [questionId, qSuggestions] of suggestions) {
       for (const suggestion of qSuggestions) {
-        await fetch("/api/criteria/mappings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        await fetch('/api/criteria/mappings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             process_id: suggestion.process_id,
             question_id: questionId,
             coverage: suggestion.coverage,
             notes: suggestion.rationale,
-            mapped_by: "ai_confirmed",
+            mapped_by: 'ai_confirmed',
           }),
         });
       }
@@ -374,25 +396,30 @@ export default function CriteriaMapPage() {
             <h1 className="text-2xl font-bold text-nia-dark">Baldrige Criteria Map</h1>
             <p className="text-text-tertiary mt-1">
               Map your processes to Baldrige criteria questions
-              <a href="/help" className="ml-2 text-xs text-text-muted hover:text-nia-orange transition-colors">
+              <a
+                href="/help"
+                className="ml-2 text-xs text-text-muted hover:text-nia-orange transition-colors"
+              >
                 Need help? View FAQ &rarr;
               </a>
             </p>
           </div>
           {/* Tier filter toggle */}
           <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1">
-            {([
-              { key: "excellence_builder", label: "Excellence Builder" },
-              { key: "full", label: "Full Framework" },
-              { key: "all", label: "All" },
-            ] as const).map(({ key, label }) => (
+            {(
+              [
+                { key: 'excellence_builder', label: 'Excellence Builder' },
+                { key: 'full', label: 'Full Framework' },
+                { key: 'all', label: 'All' },
+              ] as const
+            ).map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setTierFilter(key)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                   tierFilter === key
-                    ? "bg-card text-nia-dark shadow-sm"
-                    : "text-text-tertiary hover:text-text-secondary"
+                    ? 'bg-card text-nia-dark shadow-sm'
+                    : 'text-text-tertiary hover:text-text-secondary'
                 }`}
               >
                 {label}
@@ -408,22 +435,43 @@ export default function CriteriaMapPage() {
             >
               {scanning ? (
                 <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
               ) : (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
                 </svg>
               )}
-              {scanning ? "Scanning..." : "AI Scan All"}
+              {scanning ? 'Scanning...' : 'AI Scan All'}
             </button>
             <Link
               href="/criteria/gaps"
               className="inline-flex items-center gap-2 px-4 py-2 bg-nia-orange text-white rounded-lg text-sm font-medium hover:bg-nia-orange/90 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
               View Gaps
             </Link>
@@ -452,12 +500,14 @@ export default function CriteriaMapPage() {
           </div>
           <div className="bg-card rounded-xl border p-4">
             <div className="text-2xl font-bold text-nia-dark">
-              {filteredItems.filter((i) => i.coveragePct === 0 && i.item_type !== "profile").length}
+              {filteredItems.filter((i) => i.coveragePct === 0 && i.item_type !== 'profile').length}
             </div>
             <div className="text-xs text-text-tertiary">Items with Zero Coverage</div>
           </div>
           <div className="bg-card rounded-xl border p-4">
-            <div className={`text-2xl font-bold ${estPages > 25 ? "text-nia-red" : "text-nia-dark"}`}>
+            <div
+              className={`text-2xl font-bold ${estPages > 25 ? 'text-nia-red' : 'text-nia-dark'}`}
+            >
               {estPages}
               <span className="text-lg text-text-muted font-normal">/25</span>
             </div>
@@ -469,16 +519,33 @@ export default function CriteriaMapPage() {
 
         {/* Scan progress / Accept All banner */}
         {scanProgress && (
-          <div className={`rounded-lg px-4 py-3 flex items-center justify-between ${
-            suggestions.size > 0
-              ? "bg-nia-green/10 border border-nia-green/20"
-              : "bg-nia-grey-blue/10 border border-nia-grey-blue/20"
-          }`}>
+          <div
+            className={`rounded-lg px-4 py-3 flex items-center justify-between ${
+              suggestions.size > 0
+                ? 'bg-nia-green/10 border border-nia-green/20'
+                : 'bg-nia-grey-blue/10 border border-nia-grey-blue/20'
+            }`}
+          >
             <div className="flex items-center gap-2">
               {scanning && (
-                <svg className="w-4 h-4 animate-spin text-nia-dark flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                <svg
+                  className="w-4 h-4 animate-spin text-nia-dark flex-shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
               )}
               <span className="text-sm text-foreground">{scanProgress}</span>
@@ -489,12 +556,16 @@ export default function CriteriaMapPage() {
                   onClick={acceptAllSuggestions}
                   className="text-xs px-3 py-1 bg-nia-green text-nia-dark rounded font-medium hover:bg-nia-green/80"
                 >
-                  Accept All ({[...suggestions.values()].reduce((s, a) => s + a.length, 0)} suggestions)
+                  Accept All ({[...suggestions.values()].reduce((s, a) => s + a.length, 0)}{' '}
+                  suggestions)
                 </button>
               )}
               {!scanning && (
                 <button
-                  onClick={() => { setScanProgress(""); setSuggestions(new Map()); }}
+                  onClick={() => {
+                    setScanProgress('');
+                    setSuggestions(new Map());
+                  }}
                   className="text-xs text-text-tertiary hover:text-foreground"
                 >
                   Dismiss
@@ -521,7 +592,7 @@ export default function CriteriaMapPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <h2 className="font-semibold text-nia-dark">
-                          {cat.number === 0 ? "P" : cat.number}. {cat.name}
+                          {cat.number === 0 ? 'P' : cat.number}. {cat.name}
                         </h2>
                         <div className="text-xs text-text-tertiary mt-0.5">
                           {cat.mappedQuestions}/{cat.totalQuestions} questions mapped
@@ -556,12 +627,17 @@ export default function CriteriaMapPage() {
                           >
                             <div className="flex items-center gap-3">
                               <svg
-                                className={`w-4 h-4 text-text-muted transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                                className={`w-4 h-4 text-text-muted transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
                               >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 5l7 7-7 7"
+                                />
                               </svg>
                               <div>
                                 <span className="font-medium text-nia-dark">
@@ -576,7 +652,7 @@ export default function CriteriaMapPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               {/* Draft badge — only for process items with mappings */}
-                              {item.item_type === "process" && item.mappedQuestions > 0 && (
+                              {item.item_type === 'process' && item.mappedQuestions > 0 && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -584,12 +660,19 @@ export default function CriteriaMapPage() {
                                   }}
                                   className={`text-xs px-1.5 py-0.5 rounded font-medium transition-colors ${
                                     latestDrafts.has(item.id)
-                                      ? "bg-nia-green/20 text-nia-dark hover:bg-nia-green/40"
-                                      : "bg-surface-subtle text-text-muted hover:bg-surface-muted"
+                                      ? 'bg-nia-green/20 text-nia-dark hover:bg-nia-green/40'
+                                      : 'bg-surface-subtle text-text-muted hover:bg-surface-muted'
                                   }`}
-                                  title={latestDrafts.has(item.id) ? `${latestDrafts.get(item.id)!.word_count} words` : "No draft yet"}
+                                  title={
+                                    latestDrafts.has(item.id)
+                                      ? `${latestDrafts.get(item.id)!.word_count} words`
+                                      : 'No draft yet'
+                                  }
                                 >
-                                  {latestDrafts.has(item.id) ? latestDrafts.get(item.id)!.status.charAt(0).toUpperCase() + latestDrafts.get(item.id)!.status.slice(1) : "Draft"}
+                                  {latestDrafts.has(item.id)
+                                    ? latestDrafts.get(item.id)!.status.charAt(0).toUpperCase() +
+                                      latestDrafts.get(item.id)!.status.slice(1)
+                                    : 'Draft'}
                                 </button>
                               )}
                               <div className="w-16 h-1.5 bg-surface-muted rounded-full overflow-hidden">
@@ -608,22 +691,39 @@ export default function CriteriaMapPage() {
                           {isExpanded && (
                             <div className="px-5 pb-4 pl-12 space-y-2">
                               {/* Draft Narrative button — for process items only */}
-                              {item.item_type === "process" && (
+                              {item.item_type === 'process' && (
                                 <div className="flex items-center justify-between pb-2 mb-1 border-b border-border-light">
                                   <span className="text-xs text-text-muted">
                                     {item.questions.length} questions
                                     {latestDrafts.has(item.id) && (
-                                      <> &middot; {latestDrafts.get(item.id)!.word_count.toLocaleString()} words ({latestDrafts.get(item.id)!.status})</>
+                                      <>
+                                        {' '}
+                                        &middot;{' '}
+                                        {latestDrafts
+                                          .get(item.id)!
+                                          .word_count.toLocaleString()}{' '}
+                                        words ({latestDrafts.get(item.id)!.status})
+                                      </>
                                     )}
                                   </span>
                                   <button
                                     onClick={() => setDraftPanel(item)}
                                     className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-nia-dark-solid text-white rounded-md font-medium hover:bg-nia-dark-solid/90 transition-colors"
                                   >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    <svg
+                                      className="w-3.5 h-3.5"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={1.5}
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                      />
                                     </svg>
-                                    {latestDrafts.has(item.id) ? "View Draft" : "Draft Narrative"}
+                                    {latestDrafts.has(item.id) ? 'View Draft' : 'Draft Narrative'}
                                   </button>
                                 </div>
                               )}
@@ -637,8 +737,8 @@ export default function CriteriaMapPage() {
                                     key={q.id}
                                     className={`rounded-lg border p-3 ${
                                       hasMappings
-                                        ? "border-nia-green/30 bg-nia-green/5"
-                                        : "border-border bg-card"
+                                        ? 'border-nia-green/30 bg-nia-green/5'
+                                        : 'border-border bg-card'
                                     }`}
                                   >
                                     <button
@@ -691,7 +791,8 @@ export default function CriteriaMapPage() {
                                                     href={`/processes/${m.process_id}`}
                                                     className="text-sm font-medium text-nia-dark hover:underline"
                                                   >
-                                                    {(m.processes as unknown as { name: string })?.name || `Process #${m.process_id}`}
+                                                    {(m.processes as unknown as { name: string })
+                                                      ?.name || `Process #${m.process_id}`}
                                                   </Link>
                                                   <span
                                                     className={`text-xs px-2 py-0.5 rounded-full ${COVERAGE_COLORS[m.coverage]}`}
@@ -737,13 +838,19 @@ export default function CriteriaMapPage() {
                                                   </div>
                                                   <div className="flex gap-1 flex-shrink-0">
                                                     <button
-                                                      onClick={(e) => { e.stopPropagation(); acceptSuggestion(q.id, s); }}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        acceptSuggestion(q.id, s);
+                                                      }}
                                                       className="text-xs px-2 py-1 bg-nia-green text-nia-dark rounded font-medium hover:bg-nia-green/80"
                                                     >
                                                       Accept
                                                     </button>
                                                     <button
-                                                      onClick={(e) => { e.stopPropagation(); dismissSuggestion(q.id, s.process_id); }}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        dismissSuggestion(q.id, s.process_id);
+                                                      }}
                                                       className="text-xs px-2 py-1 text-text-muted hover:text-text-secondary"
                                                     >
                                                       Dismiss
@@ -758,11 +865,16 @@ export default function CriteriaMapPage() {
                                         {/* Action buttons */}
                                         <div className="flex gap-2 pt-1">
                                           <button
-                                            onClick={(e) => { e.stopPropagation(); suggestMappings(q.id); }}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              suggestMappings(q.id);
+                                            }}
                                             disabled={suggestingFor === q.id}
                                             className="text-xs px-3 py-1.5 bg-nia-dark/10 text-nia-dark rounded-md font-medium hover:bg-nia-dark/20 transition-colors disabled:opacity-50"
                                           >
-                                            {suggestingFor === q.id ? "Analyzing..." : "Suggest Mappings"}
+                                            {suggestingFor === q.id
+                                              ? 'Analyzing...'
+                                              : 'Suggest Mappings'}
                                           </button>
                                           <Link
                                             href={`/processes/new?baldrige_question_id=${q.id}`}
@@ -800,7 +912,7 @@ export default function CriteriaMapPage() {
       {draftPanel && (
         <DraftPanel
           item={draftPanel}
-          tier={tierFilter !== "all" ? tierFilter : "excellence_builder"}
+          tier={tierFilter !== 'all' ? tierFilter : 'excellence_builder'}
           onClose={() => setDraftPanel(null)}
           onDraftSaved={fetchDrafts}
         />

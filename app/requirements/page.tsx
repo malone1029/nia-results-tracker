@@ -1,24 +1,24 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { useRole } from "@/lib/use-role";
-import { getTrendDirection } from "@/lib/review-status";
-import { ListPageSkeleton } from "@/components/skeleton";
-import type { KeyRequirementWithStatus } from "@/lib/types";
-import Link from "next/link";
-import { Card, Badge, Button, Input } from "@/components/ui";
-import EmptyState from "@/components/empty-state";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useRole } from '@/lib/use-role';
+import { getTrendDirection } from '@/lib/review-status';
+import { ListPageSkeleton } from '@/components/skeleton';
+import type { KeyRequirementWithStatus } from '@/lib/types';
+import Link from 'next/link';
+import { Card, Badge, Button, Input } from '@/components/ui';
+import EmptyState from '@/components/empty-state';
 
 // The display order for stakeholder groups
 const GROUP_ORDER = [
-  "Member & Partner Districts",
-  "Workforce",
-  "NIA Executive Board",
-  "ISBE",
-  "USDOE",
-  "HHS / OCR",
-  "Illinois Dept of Labor",
+  'Member & Partner Districts',
+  'Workforce',
+  'NIA Executive Board',
+  'ISBE',
+  'USDOE',
+  'HHS / OCR',
+  'Illinois Dept of Labor',
 ];
 
 interface AllMetric {
@@ -40,30 +40,37 @@ interface EnrichedRequirement extends KeyRequirementWithStatus {
 
 export default function RequirementsPage() {
   const { role } = useRole();
-  const isSuperAdmin = role === "super_admin";
+  const isSuperAdmin = role === 'super_admin';
   const [requirements, setRequirements] = useState<EnrichedRequirement[]>([]);
   const [allMetrics, setAllMetrics] = useState<AllMetric[]>([]);
-  const [allCategories, setAllCategories] = useState<{ display_name: string; sort_order: number }[]>([]);
+  const [allCategories, setAllCategories] = useState<
+    { display_name: string; sort_order: number }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [addingTo, setAddingTo] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [editingReq, setEditingReq] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ requirement: "", stakeholder_segment: "", stakeholder_group: "", description: "" });
+  const [editForm, setEditForm] = useState({
+    requirement: '',
+    stakeholder_segment: '',
+    stakeholder_group: '',
+    description: '',
+  });
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [addingToGroup, setAddingToGroup] = useState<string | null>(null);
-  const [newReqForm, setNewReqForm] = useState({ requirement: "", description: "" });
+  const [newReqForm, setNewReqForm] = useState({ requirement: '', description: '' });
 
   useEffect(() => {
-    document.title = "Key Requirements | NIA Excellence Hub";
+    document.title = 'Key Requirements | NIA Excellence Hub';
 
     async function fetchData() {
       // Fetch all Baldrige categories
       const { data: catData } = await supabase
-        .from("categories")
-        .select("display_name, sort_order")
-        .order("sort_order");
+        .from('categories')
+        .select('display_name, sort_order')
+        .order('sort_order');
 
       if (catData) {
         setAllCategories(catData);
@@ -71,14 +78,12 @@ export default function RequirementsPage() {
 
       // Fetch all key requirements
       const { data: reqData } = await supabase
-        .from("key_requirements")
-        .select("*")
-        .order("sort_order");
+        .from('key_requirements')
+        .select('*')
+        .order('sort_order');
 
       // Fetch all metric-requirement links with metric info
-      const { data: linkData } = await supabase
-        .from("metric_requirements")
-        .select(`
+      const { data: linkData } = await supabase.from('metric_requirements').select(`
           requirement_id,
           metric_id,
           metrics!inner (
@@ -88,9 +93,9 @@ export default function RequirementsPage() {
 
       // Fetch all metrics for the "Add Metric" picker, using junction table
       const [allMetricsRes, allLinksRes, allProcessesRes] = await Promise.all([
-        supabase.from("metrics").select("id, name").order("name"),
-        supabase.from("metric_processes").select("metric_id, process_id"),
-        supabase.from("processes").select("id, name, categories!inner ( display_name )"),
+        supabase.from('metrics').select('id, name').order('name'),
+        supabase.from('metric_processes').select('metric_id, process_id'),
+        supabase.from('processes').select('id, name, categories!inner ( display_name )'),
       ]);
 
       // Build process lookup for metrics picker
@@ -118,17 +123,15 @@ export default function RequirementsPage() {
             return {
               id: m.id as number,
               name: m.name as string,
-              process_name: proc?.name || "Unlinked",
-              category_display_name: proc?.category_display_name || "—",
+              process_name: proc?.name || 'Unlinked',
+              category_display_name: proc?.category_display_name || '—',
             };
           })
         );
       }
 
       // Fetch process-requirement links with process info
-      const { data: procLinkData } = await supabase
-        .from("process_requirements")
-        .select(`
+      const { data: procLinkData } = await supabase.from('process_requirements').select(`
           requirement_id,
           processes!inner ( id, name, process_type )
         `);
@@ -137,23 +140,27 @@ export default function RequirementsPage() {
       const procsByReq = new Map<number, LinkedProcess[]>();
       if (procLinkData) {
         for (const link of procLinkData) {
-          const proc = link.processes as unknown as { id: number; name: string; process_type: string | null };
+          const proc = link.processes as unknown as {
+            id: number;
+            name: string;
+            process_type: string | null;
+          };
           if (!procsByReq.has(link.requirement_id)) {
             procsByReq.set(link.requirement_id, []);
           }
           procsByReq.get(link.requirement_id)!.push({
             id: proc.id,
             name: proc.name,
-            process_type: proc.process_type || "unclassified",
+            process_type: proc.process_type || 'unclassified',
           });
         }
       }
 
       // Fetch all entries for trend/value calculations
       const { data: entriesData } = await supabase
-        .from("entries")
-        .select("metric_id, value, date")
-        .order("date", { ascending: true });
+        .from('entries')
+        .select('metric_id, value, date')
+        .order('date', { ascending: true });
 
       // Group entries by metric
       const entriesByMetric = new Map<number, { value: number; date: string }[]>();
@@ -215,18 +222,18 @@ export default function RequirementsPage() {
         });
 
         // Calculate health
-        let health: "green" | "yellow" | "red" | "no-data" = "no-data";
+        let health: 'green' | 'yellow' | 'red' | 'no-data' = 'no-data';
         if (linkedMetrics.length > 0) {
           const withTargets = linkedMetrics.filter((m) => m.on_target !== null);
           if (withTargets.length === 0) {
             // Has metrics but no targets set — yellow
-            health = "yellow";
+            health = 'yellow';
           } else {
             const onTargetCount = withTargets.filter((m) => m.on_target).length;
             const ratio = onTargetCount / withTargets.length;
-            if (ratio === 1) health = "green";
-            else if (ratio >= 0.5) health = "yellow";
-            else health = "red";
+            if (ratio === 1) health = 'green';
+            else if (ratio >= 0.5) health = 'yellow';
+            else health = 'red';
           }
         }
 
@@ -255,7 +262,7 @@ export default function RequirementsPage() {
   }
 
   async function handleAddMetric(requirementId: number, metricId: number) {
-    await supabase.from("metric_requirements").insert({
+    await supabase.from('metric_requirements').insert({
       metric_id: metricId,
       requirement_id: requirementId,
     });
@@ -265,10 +272,10 @@ export default function RequirementsPage() {
 
   async function handleUnlinkMetric(requirementId: number, metricId: number) {
     await supabase
-      .from("metric_requirements")
+      .from('metric_requirements')
       .delete()
-      .eq("metric_id", metricId)
-      .eq("requirement_id", requirementId);
+      .eq('metric_id', metricId)
+      .eq('requirement_id', requirementId);
     setRefreshKey((k) => k + 1);
   }
 
@@ -278,24 +285,27 @@ export default function RequirementsPage() {
       requirement: req.requirement,
       stakeholder_segment: req.stakeholder_segment,
       stakeholder_group: req.stakeholder_group,
-      description: req.description || "",
+      description: req.description || '',
     });
   }
 
   async function saveEdit(id: number) {
-    await supabase.from("key_requirements").update({
-      requirement: editForm.requirement,
-      stakeholder_segment: editForm.stakeholder_segment,
-      stakeholder_group: editForm.stakeholder_group,
-      description: editForm.description || null,
-    }).eq("id", id);
+    await supabase
+      .from('key_requirements')
+      .update({
+        requirement: editForm.requirement,
+        stakeholder_segment: editForm.stakeholder_segment,
+        stakeholder_group: editForm.stakeholder_group,
+        description: editForm.description || null,
+      })
+      .eq('id', id);
     setEditingReq(null);
     setRefreshKey((k) => k + 1);
   }
 
   async function handleDelete(id: number) {
-    await supabase.from("metric_requirements").delete().eq("requirement_id", id);
-    await supabase.from("key_requirements").delete().eq("id", id);
+    await supabase.from('metric_requirements').delete().eq('requirement_id', id);
+    await supabase.from('key_requirements').delete().eq('id', id);
     setDeleteConfirm(null);
     setRefreshKey((k) => k + 1);
   }
@@ -303,7 +313,7 @@ export default function RequirementsPage() {
   async function handleAddRequirement(segment: string, group: string) {
     if (!newReqForm.requirement.trim()) return;
     const maxSort = Math.max(...requirements.map((r) => r.sort_order), 0);
-    await supabase.from("key_requirements").insert({
+    await supabase.from('key_requirements').insert({
       stakeholder_segment: segment,
       stakeholder_group: group,
       requirement: newReqForm.requirement.trim(),
@@ -311,7 +321,7 @@ export default function RequirementsPage() {
       sort_order: maxSort + 1,
     });
     setAddingToGroup(null);
-    setNewReqForm({ requirement: "", description: "" });
+    setNewReqForm({ requirement: '', description: '' });
     setRefreshKey((k) => k + 1);
   }
 
@@ -321,7 +331,7 @@ export default function RequirementsPage() {
   const total = requirements.length;
   const withMetrics = requirements.filter((r) => r.linked_metrics.length > 0).length;
   const gaps = total - withMetrics;
-  const meetingTargets = requirements.filter((r) => r.health === "green").length;
+  const meetingTargets = requirements.filter((r) => r.health === 'green').length;
 
   // Group requirements by segment then group, in GROUP_ORDER
   const grouped = new Map<string, EnrichedRequirement[]>();
@@ -334,37 +344,53 @@ export default function RequirementsPage() {
 
   const healthColor = (h: string) => {
     switch (h) {
-      case "green": return "#b1bd37";
-      case "yellow": return "#f79935";
-      case "red": return "#dc2626";
-      default: return "var(--grid-line)";
+      case 'green':
+        return '#b1bd37';
+      case 'yellow':
+        return '#f79935';
+      case 'red':
+        return '#dc2626';
+      default:
+        return 'var(--grid-line)';
     }
   };
 
   const healthLabel = (h: string) => {
     switch (h) {
-      case "green": return "On Target";
-      case "yellow": return "Mixed";
-      case "red": return "Below Target";
-      default: return "No Metrics";
+      case 'green':
+        return 'On Target';
+      case 'yellow':
+        return 'Mixed';
+      case 'red':
+        return 'Below Target';
+      default:
+        return 'No Metrics';
     }
   };
 
   const trendIcon = (dir: string) => {
     switch (dir) {
-      case "improving": return "\u2191";
-      case "declining": return "\u2193";
-      case "flat": return "\u2192";
-      default: return "\u2014";
+      case 'improving':
+        return '\u2191';
+      case 'declining':
+        return '\u2193';
+      case 'flat':
+        return '\u2192';
+      default:
+        return '\u2014';
     }
   };
 
   const trendColor = (dir: string) => {
     switch (dir) {
-      case "improving": return "#b1bd37";
-      case "declining": return "#dc2626";
-      case "flat": return "#55787c";
-      default: return "var(--text-muted)";
+      case 'improving':
+        return '#b1bd37';
+      case 'declining':
+        return '#dc2626';
+      case 'flat':
+        return '#55787c';
+      default:
+        return 'var(--text-muted)';
     }
   };
 
@@ -372,21 +398,27 @@ export default function RequirementsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-        <h1 className="text-3xl font-bold text-nia-dark">Key Requirements</h1>
-        <p className="text-text-tertiary mt-1">
-          Stakeholder needs from the Organizational Profile — linked to metrics that provide evidence
-        </p>
-        <p className="text-xs text-text-muted mt-1">
-          Source: NIA Organizational Profile, Figure P-6
-        </p>
+          <h1 className="text-3xl font-bold text-nia-dark">Key Requirements</h1>
+          <p className="text-text-tertiary mt-1">
+            Stakeholder needs from the Organizational Profile — linked to metrics that provide
+            evidence
+          </p>
+          <p className="text-xs text-text-muted mt-1">
+            Source: NIA Organizational Profile, Figure P-6
+          </p>
         </div>
         {isSuperAdmin && (
           <Button
-            variant={editMode ? "primary" : "ghost"}
+            variant={editMode ? 'primary' : 'ghost'}
             size="sm"
-            onClick={() => { setEditMode(!editMode); setEditingReq(null); setDeleteConfirm(null); setAddingToGroup(null); }}
+            onClick={() => {
+              setEditMode(!editMode);
+              setEditingReq(null);
+              setDeleteConfirm(null);
+              setAddingToGroup(null);
+            }}
           >
-            {editMode ? "Done Editing" : "Edit Requirements"}
+            {editMode ? 'Done Editing' : 'Edit Requirements'}
           </Button>
         )}
       </div>
@@ -394,13 +426,23 @@ export default function RequirementsPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { val: total, label: "Total Requirements", color: "#324a4d" },
-          { val: withMetrics, label: "With Metrics Linked", color: withMetrics > 0 ? "#b1bd37" : "#dc2626" },
-          { val: gaps, label: "Gaps (No Metrics)", color: gaps > 0 ? "#f79935" : "#b1bd37" },
-          { val: meetingTargets, label: "Meeting Targets", color: meetingTargets > 0 ? "#b1bd37" : "var(--text-muted)" },
+          { val: total, label: 'Total Requirements', color: '#324a4d' },
+          {
+            val: withMetrics,
+            label: 'With Metrics Linked',
+            color: withMetrics > 0 ? '#b1bd37' : '#dc2626',
+          },
+          { val: gaps, label: 'Gaps (No Metrics)', color: gaps > 0 ? '#f79935' : '#b1bd37' },
+          {
+            val: meetingTargets,
+            label: 'Meeting Targets',
+            color: meetingTargets > 0 ? '#b1bd37' : 'var(--text-muted)',
+          },
         ].map(({ val, label, color }) => (
           <Card key={label} variant="interactive" padding="sm" className="text-center">
-            <div className="text-2xl font-bold font-display number-pop" style={{ color }}>{val}</div>
+            <div className="text-2xl font-bold font-display number-pop" style={{ color }}>
+              {val}
+            </div>
             <div className="text-xs text-text-muted">{label}</div>
           </Card>
         ))}
@@ -413,7 +455,7 @@ export default function RequirementsPage() {
             illustration="document"
             title="No key requirements defined yet"
             description="Key requirements capture what your stakeholders need. Add them to connect metrics and show Baldrige integration."
-            action={{ label: "Learn more", href: "/help" }}
+            action={{ label: 'Learn more', href: '/help' }}
           />
         </Card>
       )}
@@ -453,14 +495,23 @@ export default function RequirementsPage() {
         return (
           <Card padding="sm">
             <h2 className="text-xl font-bold text-nia-dark mb-3">Coverage Heatmap</h2>
-            <p className="text-xs text-text-muted mb-3">Metric coverage by stakeholder group and Baldrige category</p>
+            <p className="text-xs text-text-muted mb-3">
+              Metric coverage by stakeholder group and Baldrige category
+            </p>
             <div className="overflow-x-auto">
               <table className="text-sm w-full">
                 <thead>
                   <tr>
-                    <th className="text-left px-3 py-2 text-xs text-text-muted font-medium">Stakeholder</th>
+                    <th className="text-left px-3 py-2 text-xs text-text-muted font-medium">
+                      Stakeholder
+                    </th>
                     {categoryNames.map((cat) => (
-                      <th key={cat} className="px-3 py-2 text-xs text-text-muted font-medium text-center">{cat}</th>
+                      <th
+                        key={cat}
+                        className="px-3 py-2 text-xs text-text-muted font-medium text-center"
+                      >
+                        {cat}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -472,20 +523,24 @@ export default function RequirementsPage() {
                         <td className="px-3 py-2 text-sm font-medium text-nia-dark">{groupName}</td>
                         {categoryNames.map((cat) => {
                           const count = catCounts.get(cat) || 0;
-                          const bgColor = count === 0
-                            ? "bg-surface-subtle"
-                            : count <= 2
-                              ? "bg-nia-orange/20"
-                              : "bg-nia-green/20";
-                          const textColor = count === 0
-                            ? "text-text-muted"
-                            : count <= 2
-                              ? "text-nia-orange-dark"
-                              : "text-[#6b7a1a]";
+                          const bgColor =
+                            count === 0
+                              ? 'bg-surface-subtle'
+                              : count <= 2
+                                ? 'bg-nia-orange/20'
+                                : 'bg-nia-green/20';
+                          const textColor =
+                            count === 0
+                              ? 'text-text-muted'
+                              : count <= 2
+                                ? 'text-nia-orange-dark'
+                                : 'text-[#6b7a1a]';
                           return (
                             <td key={cat} className="px-3 py-2 text-center">
-                              <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold ${bgColor} ${textColor}`}>
-                                {count === 0 ? "\u2014" : count}
+                              <span
+                                className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold ${bgColor} ${textColor}`}
+                              >
+                                {count === 0 ? '\u2014' : count}
                               </span>
                             </td>
                           );
@@ -519,10 +574,7 @@ export default function RequirementsPage() {
               const isGap = req.linked_metrics.length === 0;
 
               return (
-                <Card
-                  key={req.id}
-                  accent="orange"
-                >
+                <Card key={req.id} accent="orange">
                   {/* Inline edit form */}
                   {editMode && editingReq === req.id ? (
                     <div className="px-4 py-3 space-y-2 bg-surface-hover">
@@ -539,8 +591,12 @@ export default function RequirementsPage() {
                         size="sm"
                       />
                       <div className="flex gap-2">
-                        <Button size="xs" onClick={() => saveEdit(req.id)}>Save</Button>
-                        <Button variant="ghost" size="xs" onClick={() => setEditingReq(null)}>Cancel</Button>
+                        <Button size="xs" onClick={() => saveEdit(req.id)}>
+                          Save
+                        </Button>
+                        <Button variant="ghost" size="xs" onClick={() => setEditingReq(null)}>
+                          Cancel
+                        </Button>
                       </div>
                     </div>
                   ) : deleteConfirm === req.id ? (
@@ -548,12 +604,24 @@ export default function RequirementsPage() {
                       <p className="text-sm text-nia-red mb-2">
                         Delete &quot;{req.requirement}&quot;?
                         {req.linked_metrics.length > 0 && (
-                          <> This will unlink <strong>{req.linked_metrics.length} metric{req.linked_metrics.length !== 1 ? "s" : ""}</strong>.</>
+                          <>
+                            {' '}
+                            This will unlink{' '}
+                            <strong>
+                              {req.linked_metrics.length} metric
+                              {req.linked_metrics.length !== 1 ? 's' : ''}
+                            </strong>
+                            .
+                          </>
                         )}
                       </p>
                       <div className="flex gap-2">
-                        <Button variant="danger" size="xs" onClick={() => handleDelete(req.id)}>Delete</Button>
-                        <Button variant="ghost" size="xs" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+                        <Button variant="danger" size="xs" onClick={() => handleDelete(req.id)}>
+                          Delete
+                        </Button>
+                        <Button variant="ghost" size="xs" onClick={() => setDeleteConfirm(null)}>
+                          Cancel
+                        </Button>
                       </div>
                     </div>
                   ) : (
@@ -565,25 +633,33 @@ export default function RequirementsPage() {
                       <div className="flex items-center gap-3">
                         {!editMode && (
                           <span className="text-text-muted text-sm">
-                            {isExpanded ? "\u25BC" : "\u25B6"}
+                            {isExpanded ? '\u25BC' : '\u25B6'}
                           </span>
                         )}
                         <span className="font-medium text-nia-dark">{req.requirement}</span>
                         {isGap && !editMode && (
-                          <Badge color="orange" size="xs">No metrics linked</Badge>
+                          <Badge color="orange" size="xs">
+                            No metrics linked
+                          </Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-3">
                         {editMode ? (
                           <>
                             <button
-                              onClick={(e) => { e.stopPropagation(); startEdit(req); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEdit(req);
+                              }}
                               className="text-xs text-nia-grey-blue hover:text-nia-dark"
                             >
                               Edit
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); setDeleteConfirm(req.id); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirm(req.id);
+                              }}
                               className="text-xs text-nia-red/60 hover:text-nia-red"
                             >
                               Delete
@@ -593,7 +669,8 @@ export default function RequirementsPage() {
                           <>
                             {!isGap && (
                               <span className="text-xs text-text-muted">
-                                {req.linked_metrics.length} metric{req.linked_metrics.length !== 1 ? "s" : ""}
+                                {req.linked_metrics.length} metric
+                                {req.linked_metrics.length !== 1 ? 's' : ''}
                               </span>
                             )}
                             <div
@@ -623,7 +700,9 @@ export default function RequirementsPage() {
                                 href={`/processes/${proc.id}`}
                                 className="inline-flex items-center gap-1 text-sm bg-nia-grey-blue/10 text-nia-dark px-3 py-1 rounded-full hover:bg-nia-grey-blue/20 transition-colors"
                               >
-                                {proc.process_type === "key" && <span className="text-nia-orange">&#9733;</span>}
+                                {proc.process_type === 'key' && (
+                                  <span className="text-nia-orange">&#9733;</span>
+                                )}
                                 {proc.name}
                               </Link>
                             ))}
@@ -647,43 +726,43 @@ export default function RequirementsPage() {
                             Metrics
                           </span>
                           <div className="space-y-1 mt-1">
-                          {req.linked_metrics.map((m) => (
-                            <div
-                              key={m.id}
-                              className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors group"
-                            >
-                              <Link
-                                href={`/metric/${m.id}`}
-                                className="text-sm text-nia-dark hover:text-nia-orange transition-colors"
+                            {req.linked_metrics.map((m) => (
+                              <div
+                                key={m.id}
+                                className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors group"
                               >
-                                {m.name}
-                              </Link>
-                              <div className="flex items-center gap-3 text-sm">
-                                <span className="text-text-tertiary">
-                                  {m.latest_value !== null ? m.latest_value : "\u2014"}
-                                </span>
-                                {m.target_value !== null && m.latest_value !== null && (
-                                  <Badge color={m.on_target ? "green" : "red"} size="xs">
-                                    {m.on_target ? "On Target" : "Below"}
-                                  </Badge>
-                                )}
-                                <span
-                                  className="font-bold"
-                                  style={{ color: trendColor(m.trend_direction) }}
-                                  title={m.trend_direction}
+                                <Link
+                                  href={`/metric/${m.id}`}
+                                  className="text-sm text-nia-dark hover:text-nia-orange transition-colors"
                                 >
-                                  {trendIcon(m.trend_direction)}
-                                </span>
-                                <button
-                                  onClick={() => handleUnlinkMetric(req.id, m.id)}
-                                  className="opacity-0 group-hover:opacity-100 text-nia-red/60 hover:text-nia-red text-xs transition-opacity"
-                                  title="Unlink metric"
-                                >
-                                  ✕
-                                </button>
+                                  {m.name}
+                                </Link>
+                                <div className="flex items-center gap-3 text-sm">
+                                  <span className="text-text-tertiary">
+                                    {m.latest_value !== null ? m.latest_value : '\u2014'}
+                                  </span>
+                                  {m.target_value !== null && m.latest_value !== null && (
+                                    <Badge color={m.on_target ? 'green' : 'red'} size="xs">
+                                      {m.on_target ? 'On Target' : 'Below'}
+                                    </Badge>
+                                  )}
+                                  <span
+                                    className="font-bold"
+                                    style={{ color: trendColor(m.trend_direction) }}
+                                    title={m.trend_direction}
+                                  >
+                                    {trendIcon(m.trend_direction)}
+                                  </span>
+                                  <button
+                                    onClick={() => handleUnlinkMetric(req.id, m.id)}
+                                    className="opacity-0 group-hover:opacity-100 text-nia-red/60 hover:text-nia-red text-xs transition-opacity"
+                                    title="Unlink metric"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
                           </div>
                         </div>
                       )}
@@ -698,7 +777,9 @@ export default function RequirementsPage() {
                               if (e.target.value) handleAddMetric(req.id, Number(e.target.value));
                             }}
                           >
-                            <option value="" disabled>Select a metric to link...</option>
+                            <option value="" disabled>
+                              Select a metric to link...
+                            </option>
                             {(() => {
                               const linkedIds = new Set(req.linked_metrics.map((m) => m.id));
                               const available = allMetrics.filter((m) => !linkedIds.has(m.id));
@@ -741,8 +822,8 @@ export default function RequirementsPage() {
             })}
 
             {/* Add Requirement button (edit mode only) */}
-            {editMode && (
-              addingToGroup === groupName ? (
+            {editMode &&
+              (addingToGroup === groupName ? (
                 <Card padding="sm" className="space-y-2">
                   <Input
                     value={newReqForm.requirement}
@@ -757,8 +838,19 @@ export default function RequirementsPage() {
                     size="sm"
                   />
                   <div className="flex gap-2">
-                    <Button size="xs" onClick={() => handleAddRequirement(segment, groupName)}>Add</Button>
-                    <Button variant="ghost" size="xs" onClick={() => { setAddingToGroup(null); setNewReqForm({ requirement: "", description: "" }); }}>Cancel</Button>
+                    <Button size="xs" onClick={() => handleAddRequirement(segment, groupName)}>
+                      Add
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => {
+                        setAddingToGroup(null);
+                        setNewReqForm({ requirement: '', description: '' });
+                      }}
+                    >
+                      Cancel
+                    </Button>
                   </div>
                 </Card>
               ) : (
@@ -768,8 +860,7 @@ export default function RequirementsPage() {
                 >
                   + Add Requirement
                 </button>
-              )
-            )}
+              ))}
           </div>
         );
       })}

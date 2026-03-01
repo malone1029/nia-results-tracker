@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import MarkdownContent from "@/components/markdown-content";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import MarkdownContent from '@/components/markdown-content';
 
 interface DraftRecord {
   id: number;
@@ -32,13 +32,18 @@ interface DraftPanelProps {
   onDraftSaved: () => void;
 }
 
-export default function DraftPanel({ item, tier = "excellence_builder", onClose, onDraftSaved }: DraftPanelProps) {
+export default function DraftPanel({
+  item,
+  tier = 'excellence_builder',
+  onClose,
+  onDraftSaved,
+}: DraftPanelProps) {
   const [draft, setDraft] = useState<DraftRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [streaming, setStreaming] = useState(false);
-  const [streamContent, setStreamContent] = useState("");
+  const [streamContent, setStreamContent] = useState('');
   const [editing, setEditing] = useState(false);
-  const [editContent, setEditContent] = useState("");
+  const [editContent, setEditContent] = useState('');
   const [saving, setSaving] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const streamEndRef = useRef<HTMLDivElement>(null);
@@ -72,42 +77,42 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
   // Auto-scroll during streaming
   useEffect(() => {
     if (streaming && streamEndRef.current) {
-      streamEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      streamEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }, [streamContent, streaming]);
 
   async function generateDraft() {
     setStreaming(true);
-    setStreamContent("");
+    setStreamContent('');
     setEditing(false);
 
     const controller = new AbortController();
     abortRef.current = controller;
 
     try {
-      const res = await fetch("/api/criteria/draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/criteria/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ item_id: item.id, tier }),
         signal: controller.signal,
       });
 
       if (!res.ok) {
         const err = await res.json();
-        setStreamContent(`*Error: ${err.error || "Failed to generate draft"}*`);
+        setStreamContent(`*Error: ${err.error || 'Failed to generate draft'}*`);
         setStreaming(false);
         return;
       }
 
       const reader = res.body?.getReader();
       if (!reader) {
-        setStreamContent("*Error: No response stream*");
+        setStreamContent('*Error: No response stream*');
         setStreaming(false);
         return;
       }
 
       const decoder = new TextDecoder();
-      let accumulated = "";
+      let accumulated = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -118,8 +123,8 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
 
       setStreamContent(accumulated);
     } catch (err) {
-      if ((err as Error).name === "AbortError") return;
-      setStreamContent("*Error: AI request failed. Please try again.*");
+      if ((err as Error).name === 'AbortError') return;
+      setStreamContent('*Error: AI request failed. Please try again.*');
     } finally {
       setStreaming(false);
       abortRef.current = null;
@@ -138,18 +143,18 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
         payload.last_ai_generated_at = new Date().toISOString();
       }
 
-      const res = await fetch("/api/criteria/drafts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/criteria/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       if (res.ok) {
         const saved = await res.json();
         setDraft(saved);
-        setStreamContent("");
+        setStreamContent('');
         setEditing(false);
-        setEditContent("");
+        setEditContent('');
         onDraftSaved();
       }
     } finally {
@@ -177,34 +182,29 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
   function cancelEditing() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     setEditing(false);
-    setEditContent("");
+    setEditContent('');
   }
 
   // The content to display
-  const displayContent = editing
-    ? editContent
-    : streamContent || draft?.narrative_text || "";
+  const displayContent = editing ? editContent : streamContent || draft?.narrative_text || '';
   const wordCount = displayContent.trim().split(/\s+/).filter(Boolean).length;
 
   const statusLabel = draft?.status
     ? draft.status.charAt(0).toUpperCase() + draft.status.slice(1)
-    : "No Draft";
+    : 'No Draft';
 
   const statusColor = !draft
-    ? "bg-surface-subtle text-text-tertiary"
-    : draft.status === "final"
-    ? "bg-nia-green/20 text-nia-dark"
-    : draft.status === "review"
-    ? "bg-nia-grey-blue/10 text-nia-grey-blue"
-    : "bg-nia-orange/20 text-nia-orange";
+    ? 'bg-surface-subtle text-text-tertiary'
+    : draft.status === 'final'
+      ? 'bg-nia-green/20 text-nia-dark'
+      : draft.status === 'review'
+        ? 'bg-nia-grey-blue/10 text-nia-grey-blue'
+        : 'bg-nia-orange/20 text-nia-orange';
 
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/30 z-40"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
 
       {/* Panel */}
       <div className="fixed top-0 right-0 h-full w-full sm:w-[60%] bg-card z-50 shadow-2xl flex flex-col sidebar-enter">
@@ -221,19 +221,28 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
                   {statusLabel}
                 </span>
               </div>
-              <h2 className="text-lg font-bold text-nia-dark mt-0.5 truncate">
-                {item.item_name}
-              </h2>
+              <h2 className="text-lg font-bold text-nia-dark mt-0.5 truncate">{item.item_name}</h2>
               <p className="text-xs text-text-tertiary mt-0.5">
-                {item.category_name} &middot; {item.mappedQuestions}/{item.totalQuestions} questions mapped
+                {item.category_name} &middot; {item.mappedQuestions}/{item.totalQuestions} questions
+                mapped
               </p>
             </div>
             <button
               onClick={onClose}
               className="flex-shrink-0 p-1.5 rounded-lg hover:bg-surface-subtle transition-colors"
             >
-              <svg className="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5 text-text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -242,14 +251,10 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
           <div className="flex items-center gap-3 mt-3 text-xs text-text-muted">
             <span>{wordCount.toLocaleString()} words</span>
             {draft?.last_edited_at && (
-              <span>
-                Last edited {new Date(draft.last_edited_at).toLocaleDateString()}
-              </span>
+              <span>Last edited {new Date(draft.last_edited_at).toLocaleDateString()}</span>
             )}
             {draft?.last_ai_generated_at && (
-              <span>
-                AI generated {new Date(draft.last_ai_generated_at).toLocaleDateString()}
-              </span>
+              <span>AI generated {new Date(draft.last_ai_generated_at).toLocaleDateString()}</span>
             )}
           </div>
         </div>
@@ -266,8 +271,18 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
             /* Empty state */
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-16 h-16 rounded-full bg-nia-green/10 flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-nia-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  className="w-8 h-8 text-nia-green"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
               </div>
               <h3 className="font-semibold text-nia-dark mb-1">No Draft Yet</h3>
@@ -281,12 +296,20 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
                   className="inline-flex items-center gap-2 px-4 py-2 bg-nia-dark-solid text-white rounded-lg text-sm font-medium hover:bg-nia-dark-solid/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
                   </svg>
                   Generate AI Draft
                 </button>
                 <button
-                  onClick={() => { setEditContent(""); setEditing(true); }}
+                  onClick={() => {
+                    setEditContent('');
+                    setEditing(true);
+                  }}
                   className="px-4 py-2 border border-border text-text-secondary rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
                 >
                   Write Manually
@@ -312,8 +335,19 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
               {streaming && (
                 <div className="flex items-center gap-2 mb-3 text-sm text-nia-dark">
                   <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
                   </svg>
                   Generating narrative...
                 </div>
@@ -341,7 +375,7 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
                   disabled={saving || !editContent.trim()}
                   className="px-4 py-1.5 bg-nia-green text-nia-dark rounded-lg text-sm font-medium hover:bg-nia-green/80 transition-colors disabled:opacity-50"
                 >
-                  {saving ? "Saving..." : "Save Draft"}
+                  {saving ? 'Saving...' : 'Save Draft'}
                 </button>
                 <button
                   onClick={cancelEditing}
@@ -359,7 +393,7 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
                     disabled={saving}
                     className="px-4 py-1.5 bg-nia-green text-nia-dark rounded-lg text-sm font-medium hover:bg-nia-green/80 transition-colors disabled:opacity-50"
                   >
-                    {saving ? "Saving..." : "Save Draft"}
+                    {saving ? 'Saving...' : 'Save Draft'}
                   </button>
                 )}
                 <button
@@ -373,7 +407,7 @@ export default function DraftPanel({ item, tier = "excellence_builder", onClose,
                   disabled={item.mappedQuestions === 0}
                   className="px-3 py-1.5 text-sm border border-border text-text-secondary rounded-lg hover:bg-surface-hover transition-colors disabled:opacity-50"
                 >
-                  {draft?.narrative_text ? "Regenerate" : "Generate AI Draft"}
+                  {draft?.narrative_text ? 'Regenerate' : 'Generate AI Draft'}
                 </button>
               </>
             )}

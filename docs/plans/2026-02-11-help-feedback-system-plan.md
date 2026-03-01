@@ -15,6 +15,7 @@
 ### Task 1: Database Migration
 
 **Files:**
+
 - Create: `supabase/migrations/20260211_feedback.sql`
 
 **Step 1: Write the migration**
@@ -76,13 +77,14 @@ git commit -m "feat: add feedback table migration"
 ### Task 2: Feedback API Route
 
 **Files:**
+
 - Create: `app/api/feedback/route.ts`
 
 **Step 1: Write the API route**
 
 ```tsx
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
 
 // ============ GET ============
 // Members: own feedback. Admins: all feedback.
@@ -90,9 +92,9 @@ export async function GET() {
   const supabase = await createSupabaseServer();
   // RLS handles filtering — users see own rows, admins see all
   const { data, error } = await supabase
-    .from("feedback")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from('feedback')
+    .select('*')
+    .order('created_at', { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -105,39 +107,41 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
   const body = await request.json();
 
-  const VALID_TYPES = ["bug", "idea", "question"];
+  const VALID_TYPES = ['bug', 'idea', 'question'];
   if (!body.description?.trim()) {
-    return NextResponse.json({ error: "Description is required" }, { status: 400 });
+    return NextResponse.json({ error: 'Description is required' }, { status: 400 });
   }
   if (!VALID_TYPES.includes(body.type)) {
     return NextResponse.json(
-      { error: `Type must be one of: ${VALID_TYPES.join(", ")}` },
+      { error: `Type must be one of: ${VALID_TYPES.join(', ')}` },
       { status: 400 }
     );
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   // Get display name from user_roles
   const { data: roleRow } = await supabase
-    .from("user_roles")
-    .select("full_name")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('full_name')
+    .eq('auth_id', user.id)
     .single();
 
   const { data, error } = await supabase
-    .from("feedback")
+    .from('feedback')
     .insert({
       user_id: user.id,
-      user_name: roleRow?.full_name || user.email || "Unknown",
+      user_name: roleRow?.full_name || user.email || 'Unknown',
       type: body.type,
       description: body.description.trim(),
       page_url: body.page_url || null,
     })
-    .select("id")
+    .select('id')
     .single();
 
   if (error) {
@@ -153,15 +157,15 @@ export async function PATCH(request: Request) {
   const body = await request.json();
 
   if (!body.id) {
-    return NextResponse.json({ error: "id is required" }, { status: 400 });
+    return NextResponse.json({ error: 'id is required' }, { status: 400 });
   }
 
-  const VALID_STATUSES = ["new", "reviewed", "done", "dismissed"];
+  const VALID_STATUSES = ['new', 'reviewed', 'done', 'dismissed'];
   const updates: Record<string, unknown> = {};
   if (body.status !== undefined) {
     if (!VALID_STATUSES.includes(body.status)) {
       return NextResponse.json(
-        { error: `Status must be one of: ${VALID_STATUSES.join(", ")}` },
+        { error: `Status must be one of: ${VALID_STATUSES.join(', ')}` },
         { status: 400 }
       );
     }
@@ -172,14 +176,11 @@ export async function PATCH(request: Request) {
   }
 
   if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
   }
 
   // RLS ensures only admins can UPDATE
-  const { error } = await supabase
-    .from("feedback")
-    .update(updates)
-    .eq("id", body.id);
+  const { error } = await supabase.from('feedback').update(updates).eq('id', body.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -200,6 +201,7 @@ git commit -m "feat: add feedback API route (GET/POST/PATCH)"
 ### Task 3: Feedback Modal Component
 
 **Files:**
+
 - Create: `components/feedback-modal.tsx`
 
 **Step 1: Write the modal component**
@@ -207,11 +209,13 @@ git commit -m "feat: add feedback API route (GET/POST/PATCH)"
 A self-contained modal that captures feedback type, description, and auto-detects page URL. Used from the sidebar link.
 
 Props:
+
 - `open: boolean` — whether to show the modal
 - `onClose: () => void` — close handler
 - `onSuccess?: () => void` — called after successful submission
 
 Features:
+
 - Three type pill buttons (Bug, Idea, Question) with distinct accent colors
 - Description textarea (required, min 10 chars)
 - Auto-captured page URL shown as muted text
@@ -219,6 +223,7 @@ Features:
 - Success confirmation with auto-close after 2 seconds
 
 UI matches existing modal pattern:
+
 - `fixed inset-0 z-50 flex items-center justify-center bg-black/40`
 - Inner card: `bg-card rounded-xl shadow-xl w-full max-w-md mx-4`
 - `onClick={e => e.stopPropagation()}` on inner card
@@ -236,6 +241,7 @@ git commit -m "feat: add feedback submission modal"
 ### Task 4: Sidebar — Add Help & Feedback Links
 
 **Files:**
+
 - Modify: `components/sidebar.tsx`
 
 **Step 1: Add two new icons to NavIcon**
@@ -243,6 +249,7 @@ git commit -m "feat: add feedback submission modal"
 Add cases for `"help"` (book-open icon) and `"message"` (message-circle icon) in the NavIcon switch statement.
 
 `help` icon — book-open SVG:
+
 ```tsx
 case "help":
   return (
@@ -253,6 +260,7 @@ case "help":
 ```
 
 `message` icon — message-circle SVG:
+
 ```tsx
 case "message":
   return (
@@ -267,22 +275,27 @@ case "message":
 Replace the existing bottom section (lines 253-267) to include Help link, Feedback button, and Settings:
 
 ```tsx
-{/* Bottom — Help, Feedback, Settings */}
+{
+  /* Bottom — Help, Feedback, Settings */
+}
 <div className="px-3 py-3 border-t border-white/10 space-y-0.5">
   <Link
     href="/help"
     onClick={onClose}
     className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
-      isActive("/help")
-        ? "bg-white/15 text-white font-medium nav-link-active"
-        : "text-white/60 hover:text-white hover:bg-white/8"
+      isActive('/help')
+        ? 'bg-white/15 text-white font-medium nav-link-active'
+        : 'text-white/60 hover:text-white hover:bg-white/8'
     }`}
   >
     <NavIcon icon="help" className="w-4 h-4 flex-shrink-0" />
     Help
   </Link>
   <button
-    onClick={() => { onClose?.(); onFeedbackClick?.(); }}
+    onClick={() => {
+      onClose?.();
+      onFeedbackClick?.();
+    }}
     className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all text-white/60 hover:text-white hover:bg-white/8"
   >
     <NavIcon icon="message" className="w-4 h-4 flex-shrink-0" />
@@ -292,15 +305,15 @@ Replace the existing bottom section (lines 253-267) to include Help link, Feedba
     href="/settings"
     onClick={onClose}
     className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
-      isActive("/settings")
-        ? "bg-white/15 text-white font-medium nav-link-active"
-        : "text-white/60 hover:text-white hover:bg-white/8"
+      isActive('/settings')
+        ? 'bg-white/15 text-white font-medium nav-link-active'
+        : 'text-white/60 hover:text-white hover:bg-white/8'
     }`}
   >
     <NavIcon icon="settings" className="w-4 h-4 flex-shrink-0" />
     Settings
   </Link>
-</div>
+</div>;
 ```
 
 **Step 3: Add props and state wiring**
@@ -311,6 +324,7 @@ Replace the existing bottom section (lines 253-267) to include Help link, Feedba
 **Step 4: Add Feedback link to admin nav group**
 
 In the `adminNavGroups` array, add to the Application group:
+
 ```tsx
 { href: "/feedback", label: "Feedback", icon: "message" },
 ```
@@ -327,6 +341,7 @@ git commit -m "feat: add Help and Feedback links to sidebar"
 ### Task 5: Admin Feedback Page
 
 **Files:**
+
 - Create: `app/feedback/page.tsx`
 
 **Step 1: Build the admin feedback page**
@@ -371,6 +386,7 @@ Users will see their own past submissions on the help page (built in Phase 2).
 ### Task 7: Help Content Data File
 
 **Files:**
+
 - Create: `lib/help-content.ts`
 
 **Step 1: Write the help content as a typed data structure**
@@ -390,17 +406,19 @@ export interface HelpSection {
 
 export const helpSections: HelpSection[] = [
   {
-    title: "Getting Started",
-    icon: "rocket",
+    title: 'Getting Started',
+    icon: 'rocket',
     questions: [
       {
-        question: "What is the NIA Excellence Hub?",
-        answer: "The Hub is your central tool for managing organizational processes, tracking metrics, and preparing for Baldrige-based assessments. It connects to Asana for task management and uses AI to coach you through process improvement.",
+        question: 'What is the NIA Excellence Hub?',
+        answer:
+          'The Hub is your central tool for managing organizational processes, tracking metrics, and preparing for Baldrige-based assessments. It connects to Asana for task management and uses AI to coach you through process improvement.',
       },
       {
         question: "What's the difference between admin and member roles?",
-        answer: "Members can view and edit processes, log metrics, and use AI coaching. Admins can additionally manage users, run AI classifications, edit Baldrige criteria mappings, and view all feedback submissions.",
-        linkTo: "/settings",
+        answer:
+          'Members can view and edit processes, log metrics, and use AI coaching. Admins can additionally manage users, run AI classifications, edit Baldrige criteria mappings, and view all feedback submissions.',
+        linkTo: '/settings',
       },
       // ... more Q&A entries
     ],
@@ -424,11 +442,13 @@ git commit -m "feat: add help content data file"
 ### Task 8: Help Page
 
 **Files:**
+
 - Create: `app/help/page.tsx`
 
 **Step 1: Build the help page**
 
 Layout:
+
 - `max-w-4xl mx-auto`
 - Header: "Help Center" title + "How can we help?" subtitle
 - Search bar at top — filters questions by keyword match across question + answer text
@@ -459,24 +479,25 @@ git commit -m "feat: add help page with searchable FAQ"
 ### Task 9: HelpTip Component
 
 **Files:**
+
 - Create: `components/help-tip.tsx`
 - Modify: `app/globals.css` (add tooltip styles)
 
 **Step 1: Write the HelpTip component**
 
 ```tsx
-"use client";
+'use client';
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from 'react';
 
 interface HelpTipProps {
   text: string;
-  position?: "top" | "bottom";
+  position?: 'top' | 'bottom';
 }
 
 export default function HelpTip({ text, position }: HelpTipProps) {
   const [show, setShow] = useState(false);
-  const [pos, setPos] = useState<"top" | "bottom">(position || "top");
+  const [pos, setPos] = useState<'top' | 'bottom'>(position || 'top');
   const tipRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -484,7 +505,7 @@ export default function HelpTip({ text, position }: HelpTipProps) {
   useEffect(() => {
     if (show && !position && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setPos(rect.top < 120 ? "bottom" : "top");
+      setPos(rect.top < 120 ? 'bottom' : 'top');
     }
   }, [show, position]);
 
@@ -492,13 +513,17 @@ export default function HelpTip({ text, position }: HelpTipProps) {
   useEffect(() => {
     if (!show) return;
     const handler = (e: MouseEvent) => {
-      if (tipRef.current && !tipRef.current.contains(e.target as Node) &&
-          triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
+      if (
+        tipRef.current &&
+        !tipRef.current.contains(e.target as Node) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target as Node)
+      ) {
         setShow(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [show]);
 
   return (
@@ -516,7 +541,7 @@ export default function HelpTip({ text, position }: HelpTipProps) {
       {show && (
         <div
           ref={tipRef}
-          className={`help-tip-popover ${pos === "top" ? "help-tip-top" : "help-tip-bottom"}`}
+          className={`help-tip-popover ${pos === 'top' ? 'help-tip-top' : 'help-tip-bottom'}`}
         >
           {text}
         </div>
@@ -564,7 +589,7 @@ export default function HelpTip({ text, position }: HelpTipProps) {
   color: var(--foreground);
   background: var(--card);
   border: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 50;
   animation: tooltip-enter 150ms ease-out;
 }
@@ -576,8 +601,14 @@ export default function HelpTip({ text, position }: HelpTipProps) {
 }
 
 @keyframes tooltip-enter {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 ```
 
@@ -593,6 +624,7 @@ git commit -m "feat: add HelpTip tooltip component"
 ### Task 10: Place Tooltips Across the App
 
 **Files:**
+
 - Modify: `app/processes/[id]/page.tsx` (health ring, ADLI radar, stepper, process type)
 - Modify: `app/readiness/page.tsx` (readiness score)
 - Modify: `components/task-review-panel.tsx` (PDCA columns)
@@ -604,6 +636,7 @@ git commit -m "feat: add HelpTip tooltip component"
 Each placement is a single `<HelpTip text="..." />` next to an existing heading or label. No structural changes.
 
 Example placements:
+
 - Health ring section header: `Health Score <HelpTip text="Scored across 5 dimensions: Documentation, Maturity, Measurement, Operations, Freshness. 80+ = Baldrige Ready." />`
 - ADLI radar header: `ADLI Maturity <HelpTip text="Approach, Deployment, Learning, Integration — the Baldrige process maturity framework." />`
 - Stepper area: `Improvement Cycle <HelpTip text="Your 6-step guided cycle. Complete each step to strengthen your process documentation." />`
@@ -626,6 +659,7 @@ git commit -m "feat: add contextual help tooltips across key pages"
 ### Task 11: AI Help System Prompt
 
 **Files:**
+
 - Create: `lib/help-ai-context.ts`
 
 **Step 1: Write the app guide context**
@@ -644,7 +678,7 @@ export function buildHelpSystemPrompt(currentPageUrl: string, isAdmin: boolean):
 
 ## The User
 - Current page: ${currentPageUrl}
-- Role: ${isAdmin ? "Admin (can access all features)" : "Member (standard access)"}
+- Role: ${isAdmin ? 'Admin (can access all features)' : 'Member (standard access)'}
 
 ## App Pages & Features
 
@@ -713,6 +747,7 @@ git commit -m "feat: add AI help system prompt with app guide context"
 ### Task 12: AI Help API Route
 
 **Files:**
+
 - Create: `app/api/ai/help/route.ts`
 
 **Step 1: Write the help chat API route**
@@ -720,10 +755,10 @@ git commit -m "feat: add AI help system prompt with app guide context"
 Same streaming pattern as `/api/ai/chat` but simpler — no process context, no structured blocks, just conversational text.
 
 ```tsx
-import Anthropic from "@anthropic-ai/sdk";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { buildHelpSystemPrompt } from "@/lib/help-ai-context";
-import { checkRateLimit } from "@/lib/rate-limit";
+import Anthropic from '@anthropic-ai/sdk';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { buildHelpSystemPrompt } from '@/lib/help-ai-context';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 60; // Help responses are shorter, 60s is plenty
 
@@ -735,9 +770,11 @@ const anthropic = new Anthropic({
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response('Unauthorized', { status: 401 });
   }
 
   await checkRateLimit(user.id);
@@ -746,20 +783,20 @@ export async function POST(request: Request) {
 
   // Check admin status for context
   const { data: roleRow } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
-  const isAdmin = roleRow?.role === "admin";
+  const isAdmin = roleRow?.role === 'admin';
 
-  const systemPrompt = buildHelpSystemPrompt(pageUrl || "/", isAdmin);
+  const systemPrompt = buildHelpSystemPrompt(pageUrl || '/', isAdmin);
 
   const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-5-20250929",
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1024, // Short responses for help
     system: systemPrompt,
     messages: messages.map((m: { role: string; content: string }) => ({
-      role: m.role as "user" | "assistant",
+      role: m.role as 'user' | 'assistant',
       content: m.content,
     })),
   });
@@ -770,7 +807,7 @@ export async function POST(request: Request) {
     async start(controller) {
       try {
         for await (const event of stream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
             controller.enqueue(encoder.encode(event.delta.text));
           }
         }
@@ -782,7 +819,7 @@ export async function POST(request: Request) {
   });
 
   return new Response(readable, {
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
 }
 ```
@@ -799,6 +836,7 @@ git commit -m "feat: add AI help chat API route"
 ### Task 13: AI Help Chat Drawer
 
 **Files:**
+
 - Create: `components/ai-help-panel.tsx`
 
 **Step 1: Build the help chat drawer**
@@ -829,6 +867,7 @@ git commit -m "feat: add AI help chat drawer component"
 ### Task 14: Wire AI Help Into App Shell
 
 **Files:**
+
 - Modify: `components/app-shell.tsx`
 
 **Step 1: Add help panel state and rendering**
@@ -839,14 +878,16 @@ git commit -m "feat: add AI help chat drawer component"
 - Add floating help button in bottom-right corner (visible on all pages):
 
 ```tsx
-{/* Floating help button */}
+{
+  /* Floating help button */
+}
 <button
   onClick={() => setHelpOpen(true)}
   className="fixed bottom-6 right-6 z-30 w-12 h-12 rounded-full bg-nia-grey-blue text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center text-lg font-bold"
   aria-label="Get help"
 >
   ?
-</button>
+</button>;
 ```
 
 - Help page "Ask AI" button also sets `helpOpen(true)` — wire via callback or URL param `?askAI=true`
@@ -891,22 +932,22 @@ git commit -m "feat: complete help & feedback system — all 4 layers"
 
 ## Summary
 
-| Task | Feature | Files |
-|------|---------|-------|
-| 1 | Feedback migration | `supabase/migrations/20260211_feedback.sql` |
-| 2 | Feedback API | `app/api/feedback/route.ts` |
-| 3 | Feedback modal | `components/feedback-modal.tsx` |
-| 4 | Sidebar links | `components/sidebar.tsx`, `components/app-shell.tsx` |
-| 5 | Admin feedback page | `app/feedback/page.tsx` |
-| 7 | Help content data | `lib/help-content.ts` |
-| 8 | Help page | `app/help/page.tsx` |
-| 9 | HelpTip component | `components/help-tip.tsx`, `app/globals.css` |
-| 10 | Tooltip placement | ~5 existing page files |
-| 11 | AI help prompt | `lib/help-ai-context.ts` |
-| 12 | AI help API | `app/api/ai/help/route.ts` |
-| 13 | AI help drawer | `components/ai-help-panel.tsx` |
-| 14 | App shell wiring | `components/app-shell.tsx` |
-| 15 | Build & deploy | — |
+| Task | Feature             | Files                                                |
+| ---- | ------------------- | ---------------------------------------------------- |
+| 1    | Feedback migration  | `supabase/migrations/20260211_feedback.sql`          |
+| 2    | Feedback API        | `app/api/feedback/route.ts`                          |
+| 3    | Feedback modal      | `components/feedback-modal.tsx`                      |
+| 4    | Sidebar links       | `components/sidebar.tsx`, `components/app-shell.tsx` |
+| 5    | Admin feedback page | `app/feedback/page.tsx`                              |
+| 7    | Help content data   | `lib/help-content.ts`                                |
+| 8    | Help page           | `app/help/page.tsx`                                  |
+| 9    | HelpTip component   | `components/help-tip.tsx`, `app/globals.css`         |
+| 10   | Tooltip placement   | ~5 existing page files                               |
+| 11   | AI help prompt      | `lib/help-ai-context.ts`                             |
+| 12   | AI help API         | `app/api/ai/help/route.ts`                           |
+| 13   | AI help drawer      | `components/ai-help-panel.tsx`                       |
+| 14   | App shell wiring    | `components/app-shell.tsx`                           |
+| 15   | Build & deploy      | —                                                    |
 
 **New files:** 9
 **Modified files:** ~8

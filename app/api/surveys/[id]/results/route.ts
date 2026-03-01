@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { calculateNpsScore } from "@/lib/survey-types";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { calculateNpsScore } from '@/lib/survey-types';
 
 interface AnswerRow {
   question_id: number;
@@ -20,37 +20,34 @@ interface QuestionRow {
 }
 
 // GET ?waveId=N — returns aggregated results for a survey wave
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createSupabaseServer();
   const { id } = await params;
   const { searchParams } = new URL(request.url);
-  const waveId = searchParams.get("waveId");
+  const waveId = searchParams.get('waveId');
 
   if (!waveId) {
-    return NextResponse.json({ error: "waveId is required" }, { status: 400 });
+    return NextResponse.json({ error: 'waveId is required' }, { status: 400 });
   }
 
   // Fetch wave info
   const { data: wave, error: waveError } = await supabase
-    .from("survey_waves")
-    .select("*")
-    .eq("id", Number(waveId))
-    .eq("survey_id", Number(id))
+    .from('survey_waves')
+    .select('*')
+    .eq('id', Number(waveId))
+    .eq('survey_id', Number(id))
     .single();
 
   if (waveError || !wave) {
-    return NextResponse.json({ error: "Wave not found" }, { status: 404 });
+    return NextResponse.json({ error: 'Wave not found' }, { status: 404 });
   }
 
   // Fetch questions for this survey (include options for choice labels + matrix config)
   const { data: questions } = await supabase
-    .from("survey_questions")
-    .select("id, question_text, question_type, sort_order, rating_scale_max, options")
-    .eq("survey_id", Number(id))
-    .order("sort_order", { ascending: true });
+    .from('survey_questions')
+    .select('id, question_text, question_type, sort_order, rating_scale_max, options')
+    .eq('survey_id', Number(id))
+    .order('sort_order', { ascending: true });
 
   if (!questions || questions.length === 0) {
     return NextResponse.json({ wave, questions: [], comments: [] });
@@ -58,9 +55,9 @@ export async function GET(
 
   // Fetch all responses for this wave
   const { data: responses } = await supabase
-    .from("survey_responses")
-    .select("id")
-    .eq("wave_id", Number(waveId));
+    .from('survey_responses')
+    .select('id')
+    .eq('wave_id', Number(waveId));
 
   const responseIds = (responses || []).map((r: { id: number }) => r.id);
 
@@ -74,9 +71,9 @@ export async function GET(
 
   // Fetch all answers for these responses (include value_json for checkbox/matrix)
   const { data: answers } = await supabase
-    .from("survey_answers")
-    .select("question_id, value_numeric, value_text, value_json, response_id")
-    .in("response_id", responseIds);
+    .from('survey_answers')
+    .select('question_id, value_numeric, value_text, value_json, response_id')
+    .in('response_id', responseIds);
 
   const allAnswers = (answers || []) as AnswerRow[];
 
@@ -114,23 +111,36 @@ function buildEmptyResult(q: QuestionRow) {
   };
 
   switch (q.question_type) {
-    case "rating": {
+    case 'rating': {
       const max = q.rating_scale_max || 5;
       return { ...base, distribution: new Array(max).fill(0) };
     }
-    case "nps":
-      return { ...base, distribution: new Array(11).fill(0), nps_score: 0, nps_segments: { detractors: 0, passives: 0, promoters: 0 } };
-    case "multiple_choice":
-    case "checkbox": {
+    case 'nps':
+      return {
+        ...base,
+        distribution: new Array(11).fill(0),
+        nps_score: 0,
+        nps_segments: { detractors: 0, passives: 0, promoters: 0 },
+      };
+    case 'multiple_choice':
+    case 'checkbox': {
       const choices = ((q.options as Record<string, unknown>)?.choices as string[]) || [];
       return { ...base, option_counts: choices.map(() => 0), option_labels: choices };
     }
-    case "open_text":
+    case 'open_text':
       return { ...base, text_responses: [] };
-    case "matrix": {
+    case 'matrix': {
       const rows = ((q.options as Record<string, unknown>)?.rows as string[]) || [];
       const columns = ((q.options as Record<string, unknown>)?.columns as string[]) || [];
-      return { ...base, matrix_rows: rows.map((r) => ({ row_label: r, avg_value: 0, distribution: columns.map(() => 0) })), column_labels: columns };
+      return {
+        ...base,
+        matrix_rows: rows.map((r) => ({
+          row_label: r,
+          avg_value: 0,
+          distribution: columns.map(() => 0),
+        })),
+        column_labels: columns,
+      };
     }
     default:
       return { ...base, distribution: [] };
@@ -153,11 +163,12 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
   };
 
   switch (q.question_type) {
-    case "rating": {
+    case 'rating': {
       const max = q.rating_scale_max || 5;
-      const avg = numericValues.length > 0
-        ? numericValues.reduce((s, v) => s + v, 0) / numericValues.length
-        : 0;
+      const avg =
+        numericValues.length > 0
+          ? numericValues.reduce((s, v) => s + v, 0) / numericValues.length
+          : 0;
       const distribution = new Array(max).fill(0);
       for (const v of numericValues) {
         const bucket = Math.round(v) - 1;
@@ -166,18 +177,20 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
       return { ...base, avg_value: avg, distribution };
     }
 
-    case "yes_no": {
-      const avg = numericValues.length > 0
-        ? numericValues.reduce((s, v) => s + v, 0) / numericValues.length
-        : 0;
+    case 'yes_no': {
+      const avg =
+        numericValues.length > 0
+          ? numericValues.reduce((s, v) => s + v, 0) / numericValues.length
+          : 0;
       return { ...base, avg_value: avg, distribution: [] };
     }
 
-    case "nps": {
+    case 'nps': {
       const npsScore = calculateNpsScore(numericValues);
-      const avg = numericValues.length > 0
-        ? numericValues.reduce((s, v) => s + v, 0) / numericValues.length
-        : 0;
+      const avg =
+        numericValues.length > 0
+          ? numericValues.reduce((s, v) => s + v, 0) / numericValues.length
+          : 0;
       const distribution = new Array(11).fill(0);
       for (const v of numericValues) {
         if (v >= 0 && v <= 10) distribution[v]++;
@@ -194,7 +207,7 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
       };
     }
 
-    case "multiple_choice": {
+    case 'multiple_choice': {
       const choices = ((q.options as Record<string, unknown>)?.choices as string[]) || [];
       const optionCounts = choices.map(() => 0);
       let otherCount = 0;
@@ -220,7 +233,7 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
       };
     }
 
-    case "checkbox": {
+    case 'checkbox': {
       const choices = ((q.options as Record<string, unknown>)?.choices as string[]) || [];
       const optionCounts = choices.map(() => 0);
       let otherCount = 0;
@@ -240,9 +253,8 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
         }
       }
       // Avg = average number of selections per respondent
-      const avgSelections = qAnswers.length > 0
-        ? numericValues.reduce((s, v) => s + v, 0) / qAnswers.length
-        : 0;
+      const avgSelections =
+        qAnswers.length > 0 ? numericValues.reduce((s, v) => s + v, 0) / qAnswers.length : 0;
       return {
         ...base,
         avg_value: avgSelections,
@@ -254,7 +266,7 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
       };
     }
 
-    case "open_text": {
+    case 'open_text': {
       const textResponses = qAnswers
         .filter((a) => a.value_text && a.value_text.trim())
         .map((a) => a.value_text as string);
@@ -266,7 +278,7 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
       };
     }
 
-    case "matrix": {
+    case 'matrix': {
       const rows = ((q.options as Record<string, unknown>)?.rows as string[]) || [];
       const columns = ((q.options as Record<string, unknown>)?.columns as string[]) || [];
       const matrixRows = rows.map((rowLabel, rowIdx) => {
@@ -277,9 +289,8 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
         const rowNumerics = rowAnswers
           .filter((a) => a.value_numeric !== null)
           .map((a) => a.value_numeric as number);
-        const rowAvg = rowNumerics.length > 0
-          ? rowNumerics.reduce((s, v) => s + v, 0) / rowNumerics.length
-          : 0;
+        const rowAvg =
+          rowNumerics.length > 0 ? rowNumerics.reduce((s, v) => s + v, 0) / rowNumerics.length : 0;
         const distribution = columns.map(() => 0);
         for (const v of rowNumerics) {
           if (v >= 0 && v < columns.length) distribution[v]++;
@@ -292,9 +303,10 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
         };
       });
       // Overall matrix avg (average of row averages)
-      const overallAvg = matrixRows.length > 0
-        ? matrixRows.reduce((s, r) => s + r.avg_value, 0) / matrixRows.length
-        : 0;
+      const overallAvg =
+        matrixRows.length > 0
+          ? matrixRows.reduce((s, r) => s + r.avg_value, 0) / matrixRows.length
+          : 0;
       return {
         ...base,
         avg_value: overallAvg,
@@ -304,9 +316,10 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
     }
 
     default: {
-      const avg = numericValues.length > 0
-        ? numericValues.reduce((s, v) => s + v, 0) / numericValues.length
-        : 0;
+      const avg =
+        numericValues.length > 0
+          ? numericValues.reduce((s, v) => s + v, 0) / numericValues.length
+          : 0;
       return { ...base, avg_value: avg, distribution: [] };
     }
   }
@@ -320,34 +333,34 @@ async function addTrendComparison(
   questionResults: { question_id: number; question_type: string; previous_avg: number | null }[]
 ) {
   const { data: prevWave } = await supabase
-    .from("survey_waves")
-    .select("id")
-    .eq("survey_id", surveyId)
-    .eq("wave_number", currentWaveNumber - 1)
+    .from('survey_waves')
+    .select('id')
+    .eq('survey_id', surveyId)
+    .eq('wave_number', currentWaveNumber - 1)
     .single();
 
   if (!prevWave) return;
 
   const { data: prevResponses } = await supabase
-    .from("survey_responses")
-    .select("id")
-    .eq("wave_id", prevWave.id);
+    .from('survey_responses')
+    .select('id')
+    .eq('wave_id', prevWave.id);
 
   const prevResponseIds = (prevResponses || []).map((r: { id: number }) => r.id);
   if (prevResponseIds.length === 0) return;
 
   const { data: prevAnswers } = await supabase
-    .from("survey_answers")
-    .select("question_id, value_numeric, value_json")
-    .in("response_id", prevResponseIds);
+    .from('survey_answers')
+    .select('question_id, value_numeric, value_json')
+    .in('response_id', prevResponseIds);
 
   if (!prevAnswers) return;
 
   for (const qr of questionResults) {
     // Skip types where trend comparison doesn't make sense
-    if (["open_text", "multiple_choice", "checkbox"].includes(qr.question_type)) continue;
+    if (['open_text', 'multiple_choice', 'checkbox'].includes(qr.question_type)) continue;
 
-    if (qr.question_type === "nps") {
+    if (qr.question_type === 'nps') {
       const prevNpsValues = prevAnswers
         .filter((a) => a.question_id === qr.question_id && a.value_numeric !== null)
         .map((a) => a.value_numeric as number);

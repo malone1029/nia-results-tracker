@@ -5,6 +5,7 @@
 NIA leaders need to do a huge amount of process work — documenting charters, writing ADLI narratives, linking Asana projects, logging metric data, running improvement cycles. The Hub only works if people **keep coming back** to update their processes.
 
 Right now, there's no way to answer basic questions like:
+
 - "How ready are we for a Baldrige application?"
 - "Which processes need the most attention?"
 - "Am I making progress, or am I stuck?"
@@ -23,27 +24,30 @@ This isn't about points, badges, or leaderboards. NIA leaders are professionals 
 
 Every process gets a **Health Score** from 0-100 based on five dimensions:
 
-| Dimension | Weight | What it measures |
-|-----------|--------|-----------------|
-| **Documentation** | 25% | Are charter + all 4 ADLI sections written? How detailed? |
-| **Maturity** | 25% | ADLI assessment score (already exists as 0-100) |
-| **Measurement** | 20% | Are metrics linked? Do they have recent data? LeTCI coverage? |
-| **Operations** | 15% | Is this linked to Asana? Are tasks exported? Is it actively managed? |
-| **Freshness** | 15% | When was this last updated? Has an improvement cycle run recently? |
+| Dimension         | Weight | What it measures                                                     |
+| ----------------- | ------ | -------------------------------------------------------------------- |
+| **Documentation** | 25%    | Are charter + all 4 ADLI sections written? How detailed?             |
+| **Maturity**      | 25%    | ADLI assessment score (already exists as 0-100)                      |
+| **Measurement**   | 20%    | Are metrics linked? Do they have recent data? LeTCI coverage?        |
+| **Operations**    | 15%    | Is this linked to Asana? Are tasks exported? Is it actively managed? |
+| **Freshness**     | 15%    | When was this last updated? Has an improvement cycle run recently?   |
 
 ### Scoring Details
 
 **Documentation (0-25 points)**
+
 - Charter exists and has content: 5 pts
 - Each ADLI section filled (4 sections): 4 pts each = 16 pts
 - Workflow documented: 2 pts
 - Baldrige connections mapped: 2 pts
 
 **Maturity (0-25 points)**
+
 - Direct map from existing ADLI score: `overall_score * 0.25`
 - Already calculated and stored in `process_adli_scores`
 
 **Measurement (0-20 points)**
+
 - Has 1+ linked metrics: 5 pts
 - Has 3+ linked metrics: +3 pts (bonus)
 - Linked metrics have recent data (within cadence): 4 pts
@@ -51,12 +55,14 @@ Every process gets a **Health Score** from 0-100 based on five dimensions:
 - At least one metric has a comparison value: 4 pts
 
 **Operations (0-15 points)**
+
 - Linked to Asana project: 5 pts
 - ADLI tasks exported to Asana: 4 pts
 - Has queued/exported improvement tasks: 3 pts
 - Status is "approved" (not draft): 3 pts
 
 **Freshness (0-15 points)**
+
 - Updated in last 30 days: 15 pts
 - Updated in last 60 days: 10 pts
 - Updated in last 90 days: 5 pts
@@ -65,12 +71,12 @@ Every process gets a **Health Score** from 0-100 based on five dimensions:
 
 ### Health Levels (same language as ADLI maturity)
 
-| Score | Level | Color | Meaning |
-|-------|-------|-------|---------|
-| 80-100 | **Baldrige Ready** | NIA Green (#b1bd37) | Could be included in an application today |
-| 60-79 | **On Track** | NIA Teal (#55787c) | Good progress, some gaps to close |
-| 40-59 | **Developing** | NIA Orange (#f79935) | Foundation in place, needs significant work |
-| 0-39 | **Getting Started** | Red (#dc2626) | Early stage, needs attention |
+| Score  | Level               | Color                | Meaning                                     |
+| ------ | ------------------- | -------------------- | ------------------------------------------- |
+| 80-100 | **Baldrige Ready**  | NIA Green (#b1bd37)  | Could be included in an application today   |
+| 60-79  | **On Track**        | NIA Teal (#55787c)   | Good progress, some gaps to close           |
+| 40-59  | **Developing**      | NIA Orange (#f79935) | Foundation in place, needs significant work |
+| 0-39   | **Getting Started** | Red (#dc2626)        | Early stage, needs attention                |
 
 ---
 
@@ -311,12 +317,12 @@ As an NIA leader, I see how org readiness has changed over time so I know if we'
 
 ## Implementation Priority
 
-| Layer | Stories | Impact | Effort | Do When |
-|-------|---------|--------|--------|---------|
-| **Layer 1** | 1-3 | Very High | Medium | **First** — foundation for everything else |
-| **Layer 2** | 4-6 | Very High | Medium | **Second** — the "Phase 3" Lincoln Award view |
-| **Layer 3** | 7-8 | High | Small | **Third** — quick wins on existing pages |
-| **Layer 4** | 9-10 | Medium | Small-Medium | **Fourth** — polish and long-term tracking |
+| Layer       | Stories | Impact    | Effort       | Do When                                       |
+| ----------- | ------- | --------- | ------------ | --------------------------------------------- |
+| **Layer 1** | 1-3     | Very High | Medium       | **First** — foundation for everything else    |
+| **Layer 2** | 4-6     | Very High | Medium       | **Second** — the "Phase 3" Lincoln Award view |
+| **Layer 3** | 7-8     | High      | Small        | **Third** — quick wins on existing pages      |
+| **Layer 4** | 9-10    | Medium    | Small-Medium | **Fourth** — polish and long-term tracking    |
 
 ## Technical Notes
 

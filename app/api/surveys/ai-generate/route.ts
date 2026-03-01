@@ -1,5 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { createSupabaseServer } from "@/lib/supabase-server";
+import Anthropic from '@anthropic-ai/sdk';
+import { createSupabaseServer } from '@/lib/supabase-server';
 
 export const maxDuration = 60;
 
@@ -45,32 +45,31 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
   const body = await request.json();
   const { description, processId } = body;
 
-  if (!description || typeof description !== "string") {
-    return new Response(
-      JSON.stringify({ error: "description is required" }),
-      { status: 400 }
-    );
+  if (!description || typeof description !== 'string') {
+    return new Response(JSON.stringify({ error: 'description is required' }), { status: 400 });
   }
 
   // Optionally fetch process context
-  let processContext = "";
+  let processContext = '';
   if (processId) {
     const { data: proc } = await supabase
-      .from("processes")
-      .select("name, description, owner, charter")
-      .eq("id", Number(processId))
+      .from('processes')
+      .select('name, description, owner, charter')
+      .eq('id', Number(processId))
       .single();
 
     if (proc) {
-      processContext = `\n\nProcess context:\n- Name: ${proc.name}\n- Description: ${proc.description || "N/A"}\n- Owner: ${proc.owner || "N/A"}`;
+      processContext = `\n\nProcess context:\n- Name: ${proc.name}\n- Description: ${proc.description || 'N/A'}\n- Owner: ${proc.owner || 'N/A'}`;
       if (proc.charter?.purpose) {
         processContext += `\n- Purpose: ${(proc.charter as Record<string, string>).purpose}`;
       }
@@ -81,35 +80,32 @@ export async function POST(request: Request) {
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
+      model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userMessage }],
+      messages: [{ role: 'user', content: userMessage }],
     });
 
     const text = response.content
-      .filter((c): c is Anthropic.TextBlock => c.type === "text")
+      .filter((c): c is Anthropic.TextBlock => c.type === 'text')
       .map((c) => c.text)
-      .join("");
+      .join('');
 
     // Parse — handle both clean JSON and markdown-fenced JSON
     let cleaned = text.trim();
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
     }
 
     const questions = JSON.parse(cleaned);
 
     if (!Array.isArray(questions)) {
-      return new Response(
-        JSON.stringify({ error: "AI returned invalid format" }),
-        { status: 500 }
-      );
+      return new Response(JSON.stringify({ error: 'AI returned invalid format' }), { status: 500 });
     }
 
     return new Response(JSON.stringify({ questions }));
   } catch (err) {
-    const message = err instanceof Error ? err.message : "AI generation failed";
+    const message = err instanceof Error ? err.message : 'AI generation failed';
     return new Response(JSON.stringify({ error: message }), { status: 500 });
   }
 }

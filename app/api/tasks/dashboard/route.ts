@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
 
 /**
  * GET /api/tasks/dashboard — Cross-process task data for the dashboard.
@@ -15,77 +15,74 @@ export async function GET(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);
-  const ownerFilter = searchParams.get("owner");
+  const ownerFilter = searchParams.get('owner');
 
   // Today at midnight for date comparisons
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = today.toISOString().split('T')[0];
 
   // 14 days from now
   const futureDate = new Date(today);
   futureDate.setDate(futureDate.getDate() + 14);
-  const futureDateStr = futureDate.toISOString().split("T")[0];
+  const futureDateStr = futureDate.toISOString().split('T')[0];
 
   // Select fields we need, joining process name and owner
   const selectFields =
-    "id, process_id, title, pdca_section, origin, assignee_name, due_date, completed, completed_at, processes!inner(name, owner)";
+    'id, process_id, title, pdca_section, origin, assignee_name, due_date, completed, completed_at, processes!inner(name, owner)';
 
   // ── Overdue tasks: not completed, due_date < today ──
   let overdueQuery = supabase
-    .from("process_tasks")
+    .from('process_tasks')
     .select(selectFields)
-    .neq("status", "pending")
-    .eq("completed", false)
-    .lt("due_date", todayStr)
-    .not("due_date", "is", null)
-    .order("due_date", { ascending: true })
+    .neq('status', 'pending')
+    .eq('completed', false)
+    .lt('due_date', todayStr)
+    .not('due_date', 'is', null)
+    .order('due_date', { ascending: true })
     .limit(10);
 
   if (ownerFilter) {
-    overdueQuery = overdueQuery.eq("processes.owner", ownerFilter);
+    overdueQuery = overdueQuery.eq('processes.owner', ownerFilter);
   }
 
   // ── Upcoming tasks: not completed, due_date between today and +14 days ──
   let upcomingQuery = supabase
-    .from("process_tasks")
+    .from('process_tasks')
     .select(selectFields)
-    .neq("status", "pending")
-    .eq("completed", false)
-    .gte("due_date", todayStr)
-    .lte("due_date", futureDateStr)
-    .order("due_date", { ascending: true })
+    .neq('status', 'pending')
+    .eq('completed', false)
+    .gte('due_date', todayStr)
+    .lte('due_date', futureDateStr)
+    .order('due_date', { ascending: true })
     .limit(10);
 
   if (ownerFilter) {
-    upcomingQuery = upcomingQuery.eq("processes.owner", ownerFilter);
+    upcomingQuery = upcomingQuery.eq('processes.owner', ownerFilter);
   }
 
   // ── Recently completed tasks ──
   let completedQuery = supabase
-    .from("process_tasks")
+    .from('process_tasks')
     .select(selectFields)
-    .eq("completed", true)
-    .not("completed_at", "is", null)
-    .order("completed_at", { ascending: false })
+    .eq('completed', true)
+    .not('completed_at', 'is', null)
+    .order('completed_at', { ascending: false })
     .limit(5);
 
   if (ownerFilter) {
-    completedQuery = completedQuery.eq("processes.owner", ownerFilter);
+    completedQuery = completedQuery.eq('processes.owner', ownerFilter);
   }
 
   // ── Stats: count all non-pending tasks ──
-  let statsBaseQuery = supabase
-    .from("process_tasks")
-    .select(selectFields)
-    .neq("status", "pending");
+  let statsBaseQuery = supabase.from('process_tasks').select(selectFields).neq('status', 'pending');
 
   if (ownerFilter) {
-    statsBaseQuery = statsBaseQuery.eq("processes.owner", ownerFilter);
+    statsBaseQuery = statsBaseQuery.eq('processes.owner', ownerFilter);
   }
 
   // Run all queries in parallel
@@ -141,9 +138,7 @@ export async function GET(request: Request) {
   ).length;
   const total = totalActive + totalCompleted;
   const completionRate = total > 0 ? Math.round((totalCompleted / total) * 100) : 0;
-  const unassignedCount = allTasks.filter(
-    (t) => !t.completed && !t.assignee_name
-  ).length;
+  const unassignedCount = allTasks.filter((t) => !t.completed && !t.assignee_name).length;
 
   return NextResponse.json({
     overdue,

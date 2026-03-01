@@ -1,8 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { ADLI_TO_PDCA_PROMPT } from "@/lib/pdca";
-import { getReviewStatus } from "@/lib/review-status";
-import { checkRateLimit } from "@/lib/rate-limit";
+import Anthropic from '@anthropic-ai/sdk';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { ADLI_TO_PDCA_PROMPT } from '@/lib/pdca';
+import { getReviewStatus } from '@/lib/review-status';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Allow up to 120 seconds for AI streaming responses (requires Vercel Pro)
 export const maxDuration = 120;
@@ -19,18 +19,18 @@ function buildProcessContext(process: Record<string, unknown>): string {
 
   lines.push(`## Process: ${process.name}`);
   lines.push(`- **Status:** ${process.status}`);
-  lines.push(`- **Baldrige Category:** ${process.category_display_name || "Unknown"}`);
+  lines.push(`- **Baldrige Category:** ${process.category_display_name || 'Unknown'}`);
   if (process.baldrige_item) lines.push(`- **Baldrige Item:** ${process.baldrige_item}`);
   if (process.owner) lines.push(`- **Owner:** ${process.owner}`);
-  if (process.process_type === "key") lines.push(`- **Process Type:** Key`);
-  else if (process.process_type === "support") lines.push(`- **Process Type:** Support`);
+  if (process.process_type === 'key') lines.push(`- **Process Type:** Key`);
+  else if (process.process_type === 'support') lines.push(`- **Process Type:** Support`);
   if (process.guided_step) lines.push(`- **Guided Step:** ${process.guided_step}`);
-  lines.push("");
+  lines.push('');
 
   if (process.description) {
     lines.push(`### Description`);
     lines.push(String(process.description));
-    lines.push("");
+    lines.push('');
   }
 
   // Charter (cap at 2000 chars to keep context lean — AI can request full text if needed)
@@ -39,25 +39,31 @@ function buildProcessContext(process: Record<string, unknown>): string {
     lines.push(`### Charter`);
     if (charter.content) {
       const charterText = String(charter.content);
-      lines.push(charterText.length > 2000 ? charterText.slice(0, 2000) + "\n\n*[Charter truncated — full text available in process]*" : charterText);
+      lines.push(
+        charterText.length > 2000
+          ? charterText.slice(0, 2000) +
+              '\n\n*[Charter truncated — full text available in process]*'
+          : charterText
+      );
     } else {
       if (charter.purpose) lines.push(`**Purpose:** ${charter.purpose}`);
       if (charter.scope_includes) lines.push(`**Scope (Includes):** ${charter.scope_includes}`);
       if (charter.scope_excludes) lines.push(`**Scope (Excludes):** ${charter.scope_excludes}`);
-      if (charter.mission_alignment) lines.push(`**Mission Alignment:** ${charter.mission_alignment}`);
+      if (charter.mission_alignment)
+        lines.push(`**Mission Alignment:** ${charter.mission_alignment}`);
       if (Array.isArray(charter.stakeholders) && charter.stakeholders.length > 0) {
-        lines.push(`**Stakeholders:** ${charter.stakeholders.join(", ")}`);
+        lines.push(`**Stakeholders:** ${charter.stakeholders.join(', ')}`);
       }
     }
-    lines.push("");
+    lines.push('');
   }
 
   // ADLI sections
   const adliSections = [
-    { key: "adli_approach", label: "Approach" },
-    { key: "adli_deployment", label: "Deployment" },
-    { key: "adli_learning", label: "Learning" },
-    { key: "adli_integration", label: "Integration" },
+    { key: 'adli_approach', label: 'Approach' },
+    { key: 'adli_deployment', label: 'Deployment' },
+    { key: 'adli_learning', label: 'Learning' },
+    { key: 'adli_integration', label: 'Integration' },
   ];
 
   for (const section of adliSections) {
@@ -66,19 +72,19 @@ function buildProcessContext(process: Record<string, unknown>): string {
       lines.push(`### ADLI: ${section.label}`);
       if (data.content) {
         const adliText = String(data.content);
-        lines.push(adliText.length > 1500 ? adliText.slice(0, 1500) + "\n*[Truncated]*" : adliText);
+        lines.push(adliText.length > 1500 ? adliText.slice(0, 1500) + '\n*[Truncated]*' : adliText);
       } else {
         for (const [key, value] of Object.entries(data)) {
-          if (key === "content" || !value) continue;
-          const label = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+          if (key === 'content' || !value) continue;
+          const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
           if (Array.isArray(value) && value.length > 0) {
-            lines.push(`**${label}:** ${value.join(", ")}`);
-          } else if (typeof value === "string") {
+            lines.push(`**${label}:** ${value.join(', ')}`);
+          } else if (typeof value === 'string') {
             lines.push(`**${label}:** ${value}`);
           }
         }
       }
-      lines.push("");
+      lines.push('');
     }
   }
 
@@ -89,29 +95,30 @@ function buildProcessContext(process: Record<string, unknown>): string {
     if (workflow.content) {
       lines.push(String(workflow.content));
     }
-    lines.push("");
+    lines.push('');
   }
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 function computeTrend(values: number[], isHigherBetter: boolean): string {
-  if (values.length < 2) return "insufficient data";
+  if (values.length < 2) return 'insufficient data';
   const improving = isHigherBetter
     ? values.every((v, i) => i === 0 || v >= values[i - 1])
     : values.every((v, i) => i === 0 || v <= values[i - 1]);
   const declining = isHigherBetter
     ? values.every((v, i) => i === 0 || v <= values[i - 1])
     : values.every((v, i) => i === 0 || v >= values[i - 1]);
-  if (improving) return "improving";
-  if (declining) return "declining";
-  return "mixed";
+  if (improving) return 'improving';
+  if (declining) return 'declining';
+  return 'mixed';
 }
 
 function buildMetricsContext(metrics: Record<string, unknown>[]): string {
-  if (metrics.length === 0) return "\n### Linked Metrics\nNo metrics linked to this process yet. Consider linking relevant metrics to strengthen the Learning dimension.\n";
+  if (metrics.length === 0)
+    return '\n### Linked Metrics\nNo metrics linked to this process yet. Consider linking relevant metrics to strengthen the Learning dimension.\n';
 
-  const lines = ["\n### Linked Metrics"];
+  const lines = ['\n### Linked Metrics'];
   for (const m of metrics) {
     const lastValue = m.last_value as number | null;
     const target = m.target_value as number | null;
@@ -120,10 +127,10 @@ function buildMetricsContext(metrics: Record<string, unknown>[]): string {
     const recentValues = (m.recent_values || []) as number[];
     const reviewStatus = m.review_status as string;
 
-    let valuePart = lastValue !== null ? `${lastValue} ${unit}` : "No data yet";
+    let valuePart = lastValue !== null ? `${lastValue} ${unit}` : 'No data yet';
     if (target !== null && lastValue !== null) {
       const onTarget = isHigherBetter ? lastValue >= target : lastValue <= target;
-      valuePart += ` (target: ${target} ${unit}, ${onTarget ? "on target" : "OFF TARGET"})`;
+      valuePart += ` (target: ${target} ${unit}, ${onTarget ? 'on target' : 'OFF TARGET'})`;
     } else if (target !== null) {
       valuePart += ` (target: ${target} ${unit})`;
     }
@@ -132,21 +139,27 @@ function buildMetricsContext(metrics: Record<string, unknown>[]): string {
 
     if (recentValues.length >= 2) {
       const trend = computeTrend(recentValues, isHigherBetter);
-      lines.push(`  Trend (last ${recentValues.length}): ${recentValues.join(" → ")} ${unit} — ${trend}`);
+      lines.push(
+        `  Trend (last ${recentValues.length}): ${recentValues.join(' → ')} ${unit} — ${trend}`
+      );
     }
 
-    if (reviewStatus && reviewStatus !== "current") {
-      lines.push(`  Review status: **${reviewStatus.replace("-", " ")}**`);
+    if (reviewStatus && reviewStatus !== 'current') {
+      lines.push(`  Review status: **${reviewStatus.replace('-', ' ')}**`);
     }
   }
-  return lines.join("\n") + "\n";
+  return lines.join('\n') + '\n';
 }
 
-function buildAvailableMetricsContext(metrics: { id: number; name: string; unit: string; cadence: string; category: string }[]): string {
-  if (metrics.length === 0) return "";
+function buildAvailableMetricsContext(
+  metrics: { id: number; name: string; unit: string; cadence: string; category: string }[]
+): string {
+  if (metrics.length === 0) return '';
 
-  const lines = ["\n### Available Metrics (Not Linked to This Process)"];
-  lines.push("These metrics exist in the system and could be linked to this process if relevant. Sorted by relevance: same Baldrige category first, then other categories, then unlinked:\n");
+  const lines = ['\n### Available Metrics (Not Linked to This Process)'];
+  lines.push(
+    'These metrics exist in the system and could be linked to this process if relevant. Sorted by relevance: same Baldrige category first, then other categories, then unlinked:\n'
+  );
 
   let charCount = 0;
   const MAX_CHARS = 1500;
@@ -160,7 +173,7 @@ function buildAvailableMetricsContext(metrics: { id: number; name: string; unit:
     }
     lines.push(line);
   }
-  return lines.join("\n") + "\n";
+  return lines.join('\n') + '\n';
 }
 
 interface SurveyContextData {
@@ -180,24 +193,26 @@ interface SurveyContextData {
 }
 
 function buildSurveyContext(surveys: SurveyContextData[]): string {
-  if (surveys.length === 0) return "\n### Process Surveys\nNo surveys created yet. Consider creating a micro-survey to collect stakeholder feedback — this strengthens the Learning dimension.\n";
+  if (surveys.length === 0)
+    return '\n### Process Surveys\nNo surveys created yet. Consider creating a micro-survey to collect stakeholder feedback — this strengthens the Learning dimension.\n';
 
-  const lines = ["\n### Process Surveys"];
+  const lines = ['\n### Process Surveys'];
   let charCount = 0;
   const MAX_CHARS = 1000;
 
   for (const s of surveys) {
     const wavePart = s.latest_wave
       ? `Wave ${s.latest_wave.wave_number} (${s.latest_wave.status}, ${s.latest_wave.response_count} responses)`
-      : "Not deployed yet";
+      : 'Not deployed yet';
     lines.push(`- **${s.title}** — ${s.question_count} questions, ${wavePart}`);
     charCount += 80;
 
     if (s.results.length > 0) {
       for (const r of s.results) {
-        const valStr = r.question_type === "yes_no"
-          ? `${Math.round(r.avg_value * 100)}% Yes`
-          : `${r.avg_value.toFixed(1)}/5`;
+        const valStr =
+          r.question_type === 'yes_no'
+            ? `${Math.round(r.avg_value * 100)}% Yes`
+            : `${r.avg_value.toFixed(1)}/5`;
         const line = `  - "${r.question_text}" — ${valStr} (${r.response_count} responses)`;
         charCount += line.length;
         if (charCount > MAX_CHARS) break;
@@ -206,7 +221,7 @@ function buildSurveyContext(surveys: SurveyContextData[]): string {
     }
     if (charCount > MAX_CHARS) break;
   }
-  return lines.join("\n") + "\n";
+  return lines.join('\n') + '\n';
 }
 
 interface TaskContextRow {
@@ -224,7 +239,7 @@ interface TaskContextRow {
 }
 
 function buildTaskContext(tasks: TaskContextRow[]): string {
-  if (tasks.length === 0) return "\n### Process Tasks\nNo tasks exist for this process yet.\n";
+  if (tasks.length === 0) return '\n### Process Tasks\nNo tasks exist for this process yet.\n';
 
   const today = new Date().toISOString().slice(0, 10);
   const active = tasks.filter((t) => !t.completed);
@@ -233,14 +248,20 @@ function buildTaskContext(tasks: TaskContextRow[]): string {
   const withAssignee = tasks.filter((t) => t.assignee_name);
   const withDueDate = tasks.filter((t) => t.due_date);
 
-  const highPriority = active.filter((t) => t.priority === "high");
-  const lowPriority = active.filter((t) => t.priority === "low");
+  const highPriority = active.filter((t) => t.priority === 'high');
+  const lowPriority = active.filter((t) => t.priority === 'low');
 
-  const lines: string[] = ["\n### Process Tasks"];
-  lines.push(`**Summary:** ${tasks.length} total — ${active.length} active, ${completed.length} completed, ${overdue.length} overdue`);
-  lines.push(`**Priority:** ${highPriority.length} high, ${active.length - highPriority.length - lowPriority.length} medium, ${lowPriority.length} low`);
-  lines.push(`**Coverage:** ${withAssignee.length}/${tasks.length} have assignees, ${withDueDate.length}/${tasks.length} have due dates`);
-  lines.push("");
+  const lines: string[] = ['\n### Process Tasks'];
+  lines.push(
+    `**Summary:** ${tasks.length} total — ${active.length} active, ${completed.length} completed, ${overdue.length} overdue`
+  );
+  lines.push(
+    `**Priority:** ${highPriority.length} high, ${active.length - highPriority.length - lowPriority.length} medium, ${lowPriority.length} low`
+  );
+  lines.push(
+    `**Coverage:** ${withAssignee.length}/${tasks.length} have assignees, ${withDueDate.length}/${tasks.length} have due dates`
+  );
+  lines.push('');
 
   // Cap at ~4000 chars
   let charCount = 0;
@@ -248,27 +269,31 @@ function buildTaskContext(tasks: TaskContextRow[]): string {
 
   // Active and overdue tasks — full detail
   if (active.length > 0) {
-    lines.push("**Active Tasks:**");
+    lines.push('**Active Tasks:**');
     for (const t of active) {
-      const assignee = t.assignee_name ? ` [${t.assignee_name}]` : "";
-      const due = t.due_date ? ` due ${t.due_date}` : "";
+      const assignee = t.assignee_name ? ` [${t.assignee_name}]` : '';
+      const due = t.due_date ? ` due ${t.due_date}` : '';
       const isOverdue = t.due_date && t.due_date < today;
-      const overdueFlag = isOverdue ? " **OVERDUE**" : "";
-      const section = t.asana_section_name || t.pdca_section || "";
-      const sectionPart = section ? ` (${section})` : "";
-      const origin = t.origin === "asana" ? " [Asana]" : "";
-      const priorityFlag = t.priority === "high" ? " **[HIGH]**" : t.priority === "low" ? " [low]" : "";
+      const overdueFlag = isOverdue ? ' **OVERDUE**' : '';
+      const section = t.asana_section_name || t.pdca_section || '';
+      const sectionPart = section ? ` (${section})` : '';
+      const origin = t.origin === 'asana' ? ' [Asana]' : '';
+      const priorityFlag =
+        t.priority === 'high' ? ' **[HIGH]**' : t.priority === 'low' ? ' [low]' : '';
 
       let line = `- ${t.title}${priorityFlag}${assignee}${due}${overdueFlag}${sectionPart}${origin}`;
       if (t.description) {
-        const desc = t.description.length > 150 ? t.description.slice(0, 150) + "..." : t.description;
+        const desc =
+          t.description.length > 150 ? t.description.slice(0, 150) + '...' : t.description;
         line += `\n  ${desc}`;
       }
-      line += "\n";
+      line += '\n';
 
       charCount += line.length;
       if (charCount > MAX_CHARS) {
-        lines.push(`  ...and ${active.length - lines.filter((l) => l.startsWith("- ")).length} more active tasks\n`);
+        lines.push(
+          `  ...and ${active.length - lines.filter((l) => l.startsWith('- ')).length} more active tasks\n`
+        );
         break;
       }
       lines.push(line);
@@ -277,7 +302,7 @@ function buildTaskContext(tasks: TaskContextRow[]): string {
 
   // Completed tasks — titles only
   if (completed.length > 0 && charCount < MAX_CHARS) {
-    lines.push("**Completed Tasks:**");
+    lines.push('**Completed Tasks:**');
     for (const t of completed) {
       const line = `- ~~${t.title}~~\n`;
       charCount += line.length;
@@ -289,38 +314,49 @@ function buildTaskContext(tasks: TaskContextRow[]): string {
     }
   }
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 function buildRequirementsContext(requirements: Record<string, unknown>[]): string {
-  if (requirements.length === 0) return "\n### Linked Key Requirements\nNo key requirements linked yet.\n";
+  if (requirements.length === 0)
+    return '\n### Linked Key Requirements\nNo key requirements linked yet.\n';
 
-  const lines = ["\n### Linked Key Requirements"];
+  const lines = ['\n### Linked Key Requirements'];
   for (const r of requirements) {
     lines.push(`- **${r.requirement}** (${r.stakeholder_group})`);
   }
-  return lines.join("\n") + "\n";
+  return lines.join('\n') + '\n';
 }
 
-function buildStrategicObjectivesContext(objectives: { title: string; bsc_perspective: string; target_value: number | null; target_unit: string | null; target_year: number | null }[]): string {
-  if (objectives.length === 0) return "\n### Linked Strategic Objectives\nThis process has not been linked to any FY26 strategic objectives yet.\n";
+function buildStrategicObjectivesContext(
+  objectives: {
+    title: string;
+    bsc_perspective: string;
+    target_value: number | null;
+    target_unit: string | null;
+    target_year: number | null;
+  }[]
+): string {
+  if (objectives.length === 0)
+    return '\n### Linked Strategic Objectives\nThis process has not been linked to any FY26 strategic objectives yet.\n';
 
   const perspectiveLabel: Record<string, string> = {
-    financial: "Financial Stability",
-    org_capacity: "Organizational Capacity",
-    internal_process: "Internal Processes",
-    customer: "Customer Satisfaction",
+    financial: 'Financial Stability',
+    org_capacity: 'Organizational Capacity',
+    internal_process: 'Internal Processes',
+    customer: 'Customer Satisfaction',
   };
 
-  const lines = ["\n### Linked Strategic Objectives"];
+  const lines = ['\n### Linked Strategic Objectives'];
   for (const o of objectives) {
     const perspective = perspectiveLabel[o.bsc_perspective] ?? o.bsc_perspective;
-    const target = o.target_value !== null
-      ? ` — Target: ${o.target_value}${o.target_unit ? ` ${o.target_unit}` : ""}${o.target_year ? ` by FY${String(o.target_year).slice(2)}` : ""}`
-      : "";
+    const target =
+      o.target_value !== null
+        ? ` — Target: ${o.target_value}${o.target_unit ? ` ${o.target_unit}` : ''}${o.target_year ? ` by FY${String(o.target_year).slice(2)}` : ''}`
+        : '';
     lines.push(`- **${o.title}** (${perspective})${target}`);
   }
-  return lines.join("\n") + "\n";
+  return lines.join('\n') + '\n';
 }
 
 const SYSTEM_PROMPT = `You are a process improvement coach for NIA (a healthcare organization) that uses the Malcolm Baldrige Excellence Framework. You're a supportive coach, not an auditor — you focus on the most impactful next step, not everything that could be better.
@@ -681,14 +717,13 @@ export async function POST(request: Request) {
     const { processId, messages } = await request.json();
 
     if (!processId || !messages || !Array.isArray(messages)) {
-      return Response.json(
-        { error: "processId and messages array are required" },
-        { status: 400 }
-      );
+      return Response.json({ error: 'processId and messages array are required' }, { status: 400 });
     }
 
     // Rate limit check — uses auth user ID as key
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
     if (authUser) {
       const rl = await checkRateLimit(authUser.id);
       if (!rl.success) return rl.response;
@@ -696,16 +731,13 @@ export async function POST(request: Request) {
 
     // Load process data from Supabase
     const { data: procData, error: procError } = await supabase
-      .from("processes")
+      .from('processes')
       .select(`*, categories!inner ( display_name )`)
-      .eq("id", processId)
+      .eq('id', processId)
       .single();
 
     if (procError || !procData) {
-      return Response.json(
-        { error: "Process not found" },
-        { status: 404 }
-      );
+      return Response.json({ error: 'Process not found' }, { status: 404 });
     }
 
     // Add category display name to flat object
@@ -714,26 +746,39 @@ export async function POST(request: Request) {
 
     // Load linked metrics via junction table
     const { data: metricLinks } = await supabase
-      .from("metric_processes")
-      .select("metric_id")
-      .eq("process_id", processId);
+      .from('metric_processes')
+      .select('metric_id')
+      .eq('process_id', processId);
 
     const metricIds = (metricLinks || []).map((l: { metric_id: number }) => l.metric_id);
 
-    const { data: metricsData } = metricIds.length > 0
-      ? await supabase
-          .from("metrics")
-          .select("id, name, unit, cadence, target_value, is_higher_better")
-          .in("id", metricIds)
-      : { data: [] as { id: number; name: string; unit: string; cadence: string; target_value: number | null; is_higher_better: boolean }[] };
+    const { data: metricsData } =
+      metricIds.length > 0
+        ? await supabase
+            .from('metrics')
+            .select('id, name, unit, cadence, target_value, is_higher_better')
+            .in('id', metricIds)
+        : {
+            data: [] as {
+              id: number;
+              name: string;
+              unit: string;
+              cadence: string;
+              target_value: number | null;
+              is_higher_better: boolean;
+            }[],
+          };
 
     let metricsWithValues: Record<string, unknown>[] = [];
     if (metricsData && metricsData.length > 0) {
       const { data: entries } = await supabase
-        .from("entries")
-        .select("metric_id, value, date")
-        .in("metric_id", metricsData.map((m) => m.id))
-        .order("date", { ascending: false });
+        .from('entries')
+        .select('metric_id, value, date')
+        .in(
+          'metric_id',
+          metricsData.map((m) => m.id)
+        )
+        .order('date', { ascending: false });
 
       // Build last 3 values (chronological) and latest date per metric
       const recentByMetric = new Map<number, { values: number[]; latestDate: string | null }>();
@@ -762,9 +807,9 @@ export async function POST(request: Request) {
 
     // Load linked requirements
     const { data: reqLinks } = await supabase
-      .from("process_requirements")
+      .from('process_requirements')
       .select(`requirement_id, key_requirements!inner ( id, requirement, stakeholder_group )`)
-      .eq("process_id", processId);
+      .eq('process_id', processId);
 
     const requirements = (reqLinks || []).map((link) => {
       const req = link.key_requirements as unknown as Record<string, unknown>;
@@ -773,9 +818,11 @@ export async function POST(request: Request) {
 
     // Load linked strategic objectives
     const { data: objLinks } = await supabase
-      .from("process_objectives")
-      .select(`objective_id, strategic_objectives!inner ( title, bsc_perspective, target_value, target_unit, target_year )`)
-      .eq("process_id", processId);
+      .from('process_objectives')
+      .select(
+        `objective_id, strategic_objectives!inner ( title, bsc_perspective, target_value, target_unit, target_year )`
+      )
+      .eq('process_id', processId);
 
     const strategicObjectives = (objLinks || []).map((link) => {
       return link.strategic_objectives as unknown as {
@@ -789,18 +836,18 @@ export async function POST(request: Request) {
 
     // Load available (unlinked) metrics for AI recommendation context
     const { data: allMetricsData } = await supabase
-      .from("metrics")
-      .select("id, name, unit, cadence")
-      .order("name");
+      .from('metrics')
+      .select('id, name, unit, cadence')
+      .order('name');
 
     // Get category for each metric via junction + process lookup
     const { data: allLinks } = await supabase
-      .from("metric_processes")
-      .select("metric_id, process_id");
+      .from('metric_processes')
+      .select('metric_id, process_id');
 
     const { data: allProcesses } = await supabase
-      .from("processes")
-      .select("id, categories!inner ( display_name )");
+      .from('processes')
+      .select('id, categories!inner ( display_name )');
 
     // Build process → category map
     const processCategoryMap = new Map<number, string>();
@@ -826,41 +873,40 @@ export async function POST(request: Request) {
         name: m.name,
         unit: m.unit,
         cadence: m.cadence,
-        category: metricCategoryMap.get(m.id) || "Unlinked",
+        category: metricCategoryMap.get(m.id) || 'Unlinked',
       }))
       .sort((a, b) => {
         // Priority: same Baldrige category first, then other linked, then unlinked, alphabetical within groups
-        const aScore = a.category === currentProcessCategory ? 0 : a.category === "Unlinked" ? 2 : 1;
-        const bScore = b.category === currentProcessCategory ? 0 : b.category === "Unlinked" ? 2 : 1;
+        const aScore =
+          a.category === currentProcessCategory ? 0 : a.category === 'Unlinked' ? 2 : 1;
+        const bScore =
+          b.category === currentProcessCategory ? 0 : b.category === 'Unlinked' ? 2 : 1;
         if (aScore !== bScore) return aScore - bScore;
         return a.name.localeCompare(b.name);
       });
 
     // Load uploaded files for this process
     const { data: filesData } = await supabase
-      .from("process_files")
-      .select("file_name, file_type, content")
-      .eq("process_id", processId);
+      .from('process_files')
+      .select('file_name, file_type, content')
+      .eq('process_id', processId);
 
     // Build file context (text files only — images handled separately)
-    let filesContext = "";
+    let filesContext = '';
     const imageFiles: { fileName: string; base64: string; mediaType: string }[] = [];
 
     if (filesData && filesData.length > 0) {
-      const textFiles = filesData.filter(
-        (f) => !f.content.startsWith("data:image/")
-      );
-      const imgFiles = filesData.filter(
-        (f) => f.content.startsWith("data:image/")
-      );
+      const textFiles = filesData.filter((f) => !f.content.startsWith('data:image/'));
+      const imgFiles = filesData.filter((f) => f.content.startsWith('data:image/'));
 
       if (textFiles.length > 0) {
-        filesContext = "\n### Uploaded Files\n";
+        filesContext = '\n### Uploaded Files\n';
         for (const f of textFiles) {
           // Truncate very large files to avoid exceeding context limits
-          const truncated = f.content.length > 10000
-            ? f.content.slice(0, 10000) + "\n\n[...file truncated at 10,000 characters]"
-            : f.content;
+          const truncated =
+            f.content.length > 10000
+              ? f.content.slice(0, 10000) + '\n\n[...file truncated at 10,000 characters]'
+              : f.content;
           filesContext += `\n**${f.file_name}** (${f.file_type}):\n\`\`\`\n${truncated}\n\`\`\`\n`;
         }
       }
@@ -880,46 +926,51 @@ export async function POST(request: Request) {
 
     // Load improvement journal (user-authored entries) + edit log count
     const { data: journalData } = await supabase
-      .from("improvement_journal")
-      .select("title, description, status, created_at")
-      .eq("process_id", processId)
-      .order("created_at", { ascending: false })
+      .from('improvement_journal')
+      .select('title, description, status, created_at')
+      .eq('process_id', processId)
+      .order('created_at', { ascending: false })
       .limit(10);
 
     const { count: editLogCount } = await supabase
-      .from("process_improvements")
-      .select("id", { count: "exact", head: true })
-      .eq("process_id", processId);
+      .from('process_improvements')
+      .select('id', { count: 'exact', head: true })
+      .eq('process_id', processId);
 
-    let improvementsContext = "";
+    let improvementsContext = '';
     if (journalData && journalData.length > 0) {
-      improvementsContext = "\n### Improvement Journal\n";
+      improvementsContext = '\n### Improvement Journal\n';
       for (const j of journalData) {
         const date = new Date(j.created_at).toLocaleDateString();
-        improvementsContext += `- **${j.title}** (${j.status === "completed" ? "completed" : "in progress"}) — ${date}\n`;
+        improvementsContext += `- **${j.title}** (${j.status === 'completed' ? 'completed' : 'in progress'}) — ${date}\n`;
         if (j.description) improvementsContext += `  ${j.description}\n`;
       }
     }
     if (editLogCount && editLogCount >= 3 && (!journalData || journalData.length === 0)) {
-      improvementsContext += "\n*Note: This process has " + editLogCount + " edits in the edit log but no entries in the Improvement Journal. Consider nudging the user to record what they've actually improved.*\n";
+      improvementsContext +=
+        '\n*Note: This process has ' +
+        editLogCount +
+        " edits in the edit log but no entries in the Improvement Journal. Consider nudging the user to record what they've actually improved.*\n";
     }
 
     // Load process tasks for AI context (excludes pending AI suggestions)
     const { data: taskRows } = await supabase
-      .from("process_tasks")
-      .select("title, description, status, pdca_section, adli_dimension, assignee_name, due_date, completed, origin, asana_section_name, priority")
-      .eq("process_id", processId)
-      .neq("status", "pending")
-      .order("completed", { ascending: true })
-      .order("due_date", { ascending: true });
+      .from('process_tasks')
+      .select(
+        'title, description, status, pdca_section, adli_dimension, assignee_name, due_date, completed, origin, asana_section_name, priority'
+      )
+      .eq('process_id', processId)
+      .neq('status', 'pending')
+      .order('completed', { ascending: true })
+      .order('due_date', { ascending: true });
 
     const taskContext = buildTaskContext((taskRows || []) as TaskContextRow[]);
 
     // Load survey data for this process — batch queries to avoid N+1
     const { data: surveysRaw } = await supabase
-      .from("surveys")
-      .select("id, title")
-      .eq("process_id", processId);
+      .from('surveys')
+      .select('id, title')
+      .eq('process_id', processId);
 
     const surveyContextData: SurveyContextData[] = [];
 
@@ -929,15 +980,15 @@ export async function POST(request: Request) {
       // Batch: fetch all questions, waves, responses, and answers in parallel
       const [questionsResult, wavesResult] = await Promise.all([
         supabase
-          .from("survey_questions")
-          .select("id, survey_id, question_text, question_type, sort_order")
-          .in("survey_id", surveyIds)
-          .order("sort_order", { ascending: true }),
+          .from('survey_questions')
+          .select('id, survey_id, question_text, question_type, sort_order')
+          .in('survey_id', surveyIds)
+          .order('sort_order', { ascending: true }),
         supabase
-          .from("survey_waves")
-          .select("id, survey_id, wave_number, status, response_count")
-          .in("survey_id", surveyIds)
-          .order("wave_number", { ascending: false }),
+          .from('survey_waves')
+          .select('id, survey_id, wave_number, status, response_count')
+          .in('survey_id', surveyIds)
+          .order('wave_number', { ascending: false }),
       ]);
 
       const allQuestions = questionsResult.data || [];
@@ -960,18 +1011,25 @@ export async function POST(request: Request) {
       }
 
       // Collect wave IDs that have responses for a single batch fetch
-      const wavesWithResponses = [...latestWaveBySurvey.values()].filter((w) => w.response_count > 0);
+      const wavesWithResponses = [...latestWaveBySurvey.values()].filter(
+        (w) => w.response_count > 0
+      );
       const waveIds = wavesWithResponses.map((w) => w.id);
 
       // Fetch responses + answers in parallel (if any waves have responses)
-      let allAnswers: { response_id: number; question_id: number; value_numeric: number | null; wave_id?: number }[] = [];
+      let allAnswers: {
+        response_id: number;
+        question_id: number;
+        value_numeric: number | null;
+        wave_id?: number;
+      }[] = [];
       let responsesByWave = new Map<number, number[]>();
 
       if (waveIds.length > 0) {
         const { data: responses } = await supabase
-          .from("survey_responses")
-          .select("id, wave_id")
-          .in("wave_id", waveIds);
+          .from('survey_responses')
+          .select('id, wave_id')
+          .in('wave_id', waveIds);
 
         if (responses && responses.length > 0) {
           // Group response IDs by wave
@@ -983,9 +1041,9 @@ export async function POST(request: Request) {
 
           const allResponseIds = responses.map((r) => r.id);
           const { data: answersData } = await supabase
-            .from("survey_answers")
-            .select("response_id, question_id, value_numeric")
-            .in("response_id", allResponseIds);
+            .from('survey_answers')
+            .select('response_id, question_id, value_numeric')
+            .in('response_id', allResponseIds);
 
           allAnswers = answersData || [];
         }
@@ -996,7 +1054,7 @@ export async function POST(request: Request) {
         const questions = questionsBySurvey.get(s.id) || [];
         const latestWave = latestWaveBySurvey.get(s.id) || null;
 
-        let results: SurveyContextData["results"] = [];
+        let results: SurveyContextData['results'] = [];
 
         if (latestWave && latestWave.response_count > 0) {
           const waveResponseIds = new Set(responsesByWave.get(latestWave.id) || []);
@@ -1008,9 +1066,8 @@ export async function POST(request: Request) {
             const qAnswers = waveAnswers
               .filter((a) => a.question_id === q.id && a.value_numeric !== null)
               .map((a) => a.value_numeric as number);
-            const avg = qAnswers.length > 0
-              ? qAnswers.reduce((sum, v) => sum + v, 0) / qAnswers.length
-              : 0;
+            const avg =
+              qAnswers.length > 0 ? qAnswers.reduce((sum, v) => sum + v, 0) / qAnswers.length : 0;
             return {
               question_text: q.question_text,
               question_type: q.question_type,
@@ -1032,10 +1089,10 @@ export async function POST(request: Request) {
     const surveyContext = buildSurveyContext(surveyContextData);
 
     // Build Asana context if raw data exists
-    let asanaContext = "";
+    let asanaContext = '';
     const rawAsana = procData.asana_raw_data as Record<string, unknown> | null;
     if (rawAsana) {
-      asanaContext = "\n### Asana Project Data\n";
+      asanaContext = '\n### Asana Project Data\n';
       const proj = rawAsana.project as Record<string, unknown> | undefined;
       if (proj) {
         if (proj.name) asanaContext += `**Project:** ${proj.name}\n`;
@@ -1044,23 +1101,40 @@ export async function POST(request: Request) {
         const owner = proj.owner as Record<string, unknown> | undefined;
         if (owner?.name) asanaContext += `**Owner:** ${owner.name}\n`;
       }
-      const sections = rawAsana.sections as { name: string; tasks: { name: string; completed: boolean; assignee: string | null; due_on: string | null; notes: string; subtasks?: { name: string; completed: boolean; assignee: string | null; due_on: string | null }[] }[] }[] | undefined;
+      const sections = rawAsana.sections as
+        | {
+            name: string;
+            tasks: {
+              name: string;
+              completed: boolean;
+              assignee: string | null;
+              due_on: string | null;
+              notes: string;
+              subtasks?: {
+                name: string;
+                completed: boolean;
+                assignee: string | null;
+                due_on: string | null;
+              }[];
+            }[];
+          }[]
+        | undefined;
       if (sections) {
         let charCount = 0;
         const MAX_ASANA_CHARS = 3000;
         for (const section of sections) {
           if (charCount > MAX_ASANA_CHARS) {
-            asanaContext += "\n*[Asana data truncated for context limits]*\n";
+            asanaContext += '\n*[Asana data truncated for context limits]*\n';
             break;
           }
-          if (!section.name || section.name === "(no section)") continue;
+          if (!section.name || section.name === '(no section)') continue;
           const completed = section.tasks.filter((t) => t.completed).length;
           const totalSubs = section.tasks.reduce((n, t) => n + (t.subtasks?.length || 0), 0);
-          asanaContext += `\n**${section.name}** (${completed}/${section.tasks.length} done${totalSubs ? `, ${totalSubs} subtasks` : ""})\n`;
+          asanaContext += `\n**${section.name}** (${completed}/${section.tasks.length} done${totalSubs ? `, ${totalSubs} subtasks` : ''})\n`;
           for (const task of section.tasks.slice(0, 8)) {
-            const status = task.completed ? "done" : "open";
-            const assignee = task.assignee ? ` [${task.assignee}]` : "";
-            const subCount = task.subtasks?.length ? ` (${task.subtasks.length} subtasks)` : "";
+            const status = task.completed ? 'done' : 'open';
+            const assignee = task.assignee ? ` [${task.assignee}]` : '';
+            const subCount = task.subtasks?.length ? ` (${task.subtasks.length} subtasks)` : '';
             const line = `- ${task.name} (${status}${assignee}${subCount})\n`;
             asanaContext += line;
             charCount += line.length;
@@ -1073,17 +1147,23 @@ export async function POST(request: Request) {
     }
 
     // Build snapshot comparison context (changes since last Asana refresh)
-    let snapshotContext = "";
+    let snapshotContext = '';
     const prevRaw = procData.asana_raw_data_previous as Record<string, unknown> | null;
     if (rawAsana && prevRaw) {
-      snapshotContext = "\n### Changes Since Last Asana Refresh\n";
-      const prevSections = (prevRaw.sections || []) as { name: string; tasks: { name: string; completed: boolean }[] }[];
-      const currSections = (rawAsana.sections || []) as { name: string; tasks: { name: string; completed: boolean }[] }[];
+      snapshotContext = '\n### Changes Since Last Asana Refresh\n';
+      const prevSections = (prevRaw.sections || []) as {
+        name: string;
+        tasks: { name: string; completed: boolean }[];
+      }[];
+      const currSections = (rawAsana.sections || []) as {
+        name: string;
+        tasks: { name: string; completed: boolean }[];
+      }[];
 
       // Build maps of section → { total, completed } for prev and curr
       const prevCounts = new Map<string, { total: number; completed: number }>();
       for (const s of prevSections) {
-        if (!s.name || s.name === "(no section)") continue;
+        if (!s.name || s.name === '(no section)') continue;
         prevCounts.set(s.name, {
           total: s.tasks.length,
           completed: s.tasks.filter((t) => t.completed).length,
@@ -1092,7 +1172,7 @@ export async function POST(request: Request) {
 
       let hasChanges = false;
       for (const s of currSections) {
-        if (!s.name || s.name === "(no section)") continue;
+        if (!s.name || s.name === '(no section)') continue;
         const prev = prevCounts.get(s.name);
         const currCompleted = s.tasks.filter((t) => t.completed).length;
 
@@ -1107,20 +1187,20 @@ export async function POST(request: Request) {
           if (newTasks > 0) changes.push(`${newTasks} new tasks added`);
           if (newTasks < 0) changes.push(`${Math.abs(newTasks)} tasks removed`);
           if (changes.length > 0) {
-            snapshotContext += `- **${s.name}**: ${changes.join(", ")} (${currCompleted}/${s.tasks.length} done)\n`;
+            snapshotContext += `- **${s.name}**: ${changes.join(', ')} (${currCompleted}/${s.tasks.length} done)\n`;
             hasChanges = true;
           }
         }
       }
 
       if (!hasChanges) {
-        snapshotContext += "No significant changes detected since last refresh.\n";
+        snapshotContext += 'No significant changes detected since last refresh.\n';
       }
 
       const prevFetched = prevRaw.fetched_at as string | undefined;
-      const currFetched = (rawAsana.fetched_at as string) || "";
+      const currFetched = (rawAsana.fetched_at as string) || '';
       if (prevFetched) {
-        snapshotContext += `\n*Previous refresh: ${new Date(prevFetched).toLocaleDateString()} → Current: ${currFetched ? new Date(currFetched).toLocaleDateString() : "now"}*\n`;
+        snapshotContext += `\n*Previous refresh: ${new Date(prevFetched).toLocaleDateString()} → Current: ${currFetched ? new Date(currFetched).toLocaleDateString() : 'now'}*\n`;
       }
     }
 
@@ -1138,12 +1218,12 @@ export async function POST(request: Request) {
     // Block 2: Per-process context (NOT CACHED) — changes every call.
     const systemBlocks = [
       {
-        type: "text" as const,
+        type: 'text' as const,
         text: SYSTEM_PROMPT,
-        cache_control: { type: "ephemeral" as const },
+        cache_control: { type: 'ephemeral' as const },
       },
       {
-        type: "text" as const,
+        type: 'text' as const,
         text: `---
 
 ## Current Process Data
@@ -1169,42 +1249,45 @@ ${filesContext}`,
         try {
           // Build messages, injecting images into the first user message if any
           /* eslint-disable @typescript-eslint/no-explicit-any */
-          const builtMessages: any[] = messages.map((m: { role: string; content: string }, idx: number) => {
-            if (idx === 0 && m.role === "user" && imageFiles.length > 0) {
-              // Include uploaded images in the first user message via Claude vision
-              const content: any[] = [];
-              for (const img of imageFiles) {
-                content.push({
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: img.mediaType,
-                    data: img.base64,
-                  },
-                });
+          const builtMessages: any[] = messages.map(
+            (m: { role: string; content: string }, idx: number) => {
+              if (idx === 0 && m.role === 'user' && imageFiles.length > 0) {
+                // Include uploaded images in the first user message via Claude vision
+                const content: any[] = [];
+                for (const img of imageFiles) {
+                  content.push({
+                    type: 'image',
+                    source: {
+                      type: 'base64',
+                      media_type: img.mediaType,
+                      data: img.base64,
+                    },
+                  });
+                }
+                content.push({ type: 'text', text: m.content });
+                return { role: m.role, content };
               }
-              content.push({ type: "text", text: m.content });
-              return { role: m.role, content };
+              return { role: m.role, content: m.content };
             }
-            return { role: m.role, content: m.content };
-          });
+          );
           /* eslint-enable @typescript-eslint/no-explicit-any */
 
           const stream = anthropic.messages.stream({
-            model: "claude-sonnet-4-6",
+            model: 'claude-sonnet-4-6',
             max_tokens: 4096,
             system: systemBlocks,
             messages: builtMessages,
           });
 
-          stream.on("text", (text) => {
+          stream.on('text', (text) => {
             controller.enqueue(encoder.encode(text));
           });
 
-          stream.on("error", (error) => {
-            console.error("Anthropic stream error:", error);
+          stream.on('error', (error) => {
+            console.error('Anthropic stream error:', error);
             // Send error message as final chunk so user sees something useful
-            const errMsg = "\n\n*Connection to AI was interrupted. Please try again or simplify your request.*";
+            const errMsg =
+              '\n\n*Connection to AI was interrupted. Please try again or simplify your request.*';
             controller.enqueue(encoder.encode(errMsg));
             controller.close();
           });
@@ -1212,10 +1295,10 @@ ${filesContext}`,
           await stream.finalMessage();
           controller.close();
         } catch (err) {
-          console.error("Stream setup error:", err);
+          console.error('Stream setup error:', err);
           // Try to send a useful error message as the stream content
           try {
-            const errMsg = "\n\n*AI request failed. Please try again.*";
+            const errMsg = '\n\n*AI request failed. Please try again.*';
             controller.enqueue(encoder.encode(errMsg));
             controller.close();
           } catch {
@@ -1227,16 +1310,13 @@ ${filesContext}`,
 
     return new Response(readableStream, {
       headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "X-Accel-Buffering": "no", // Disable proxy buffering (nginx, Vercel edge)
-        "Cache-Control": "no-cache, no-transform", // Prevent CDN from holding chunks
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Accel-Buffering': 'no', // Disable proxy buffering (nginx, Vercel edge)
+        'Cache-Control': 'no-cache, no-transform', // Prevent CDN from holding chunks
       },
     });
   } catch (error) {
-    console.error("AI chat error:", error);
-    return Response.json(
-      { error: "Failed to process AI request" },
-      { status: 500 }
-    );
+    console.error('AI chat error:', error);
+    return Response.json({ error: 'Failed to process AI request' }, { status: 500 });
   }
 }
