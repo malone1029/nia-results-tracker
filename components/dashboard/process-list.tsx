@@ -79,11 +79,13 @@ export default function ProcessList({
                 </div>
               </div>
               {score && (
-                <div className="grid grid-cols-4 gap-2">
-                  <MiniBar label="A" score={score.approach_score} />
-                  <MiniBar label="D" score={score.deployment_score} />
-                  <MiniBar label="L" score={score.learning_score} />
-                  <MiniBar label="I" score={score.integration_score} />
+                <div className="overflow-x-auto">
+                  <div className="grid grid-cols-4 gap-2 min-w-[200px]">
+                    <MiniBar label="A" score={score.approach_score} />
+                    <MiniBar label="D" score={score.deployment_score} />
+                    <MiniBar label="L" score={score.learning_score} />
+                    <MiniBar label="I" score={score.integration_score} />
+                  </div>
                 </div>
               )}
               <div className="text-[10px] text-text-muted mt-1">
