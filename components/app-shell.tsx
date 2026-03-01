@@ -116,7 +116,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         healthLoading={healthLoading}
       />
 
-      <div className="flex-1 flex flex-col lg:ml-60 min-w-0">
+      <div className="flex-1 flex flex-col md:ml-16 lg:ml-60 min-w-0">
         <ProxyBanner />
         <header>
           <TopBar onMenuClick={() => setSidebarOpen(true)} user={user} />

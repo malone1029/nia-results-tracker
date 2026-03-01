@@ -878,7 +878,7 @@ export default function AiChatPanel({
 
           {/* Panel */}
           <div
-            className={`fixed right-0 top-0 h-full w-full bg-card shadow-2xl z-50 flex flex-col transition-all duration-200 ${isExpanded ? 'sm:w-[720px]' : 'sm:w-[420px]'}`}
+            className={`fixed right-0 top-0 h-full w-full max-w-[calc(100vw-2rem)] bg-card shadow-2xl z-50 flex flex-col transition-all duration-200 ${isExpanded ? 'sm:w-[720px]' : 'sm:w-[420px]'}`}
           >
             {/* Header */}
             <div className="bg-nia-dark-solid text-white px-4 py-3 flex items-center justify-between flex-shrink-0">

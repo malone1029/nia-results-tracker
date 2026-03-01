@@ -215,30 +215,32 @@ export default function ResolveSyncPage() {
                 year: 'numeric',
               })}
             </h2>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-text-tertiary border-b border-border-subtle">
-                  <th className="pb-2 font-medium">Metric</th>
-                  <th className="pb-2 font-medium text-right">Value</th>
-                  <th className="pb-2 font-medium text-right">Target</th>
-                  <th className="pb-2 font-medium text-right">Data</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-subtle">
-                {rows.map((row) => (
-                  <tr key={row.label}>
-                    <td className="py-2.5 text-text-secondary">{row.label}</td>
-                    <td className={`py-2.5 text-right font-semibold ${statusColor(row)}`}>
-                      {row.display}
-                    </td>
-                    <td className="py-2.5 text-right text-text-tertiary">
-                      {row.isHigherBetter ? `≥ ${row.target}` : `≤ ${row.target}h`}
-                    </td>
-                    <td className="py-2.5 text-right text-text-tertiary text-xs">{row.basis}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-text-tertiary border-b border-border-subtle">
+                    <th className="pb-2 font-medium">Metric</th>
+                    <th className="pb-2 font-medium text-right">Value</th>
+                    <th className="pb-2 font-medium text-right">Target</th>
+                    <th className="pb-2 font-medium text-right">Data</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border-subtle">
+                  {rows.map((row) => (
+                    <tr key={row.label}>
+                      <td className="py-2.5 text-text-secondary">{row.label}</td>
+                      <td className={`py-2.5 text-right font-semibold ${statusColor(row)}`}>
+                        {row.display}
+                      </td>
+                      <td className="py-2.5 text-right text-text-tertiary">
+                        {row.isHigherBetter ? `≥ ${row.target}` : `≤ ${row.target}h`}
+                      </td>
+                      <td className="py-2.5 text-right text-text-tertiary text-xs">{row.basis}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {hasData ? (
               <button
