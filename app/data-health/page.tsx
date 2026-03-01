@@ -15,11 +15,16 @@ import Link from 'next/link';
 import EmptyState from '@/components/empty-state';
 import { Card, CardHeader, CardBody, Badge, Button, Input, Select } from '@/components/ui';
 import { useRole } from '@/lib/use-role';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import dynamic from 'next/dynamic';
 import HelpTip from '@/components/help-tip';
+
+const Sparkline = dynamic(() => import('./data-health-charts').then((mod) => mod.Sparkline), {
+  ssr: false,
+  loading: () => <span className="w-20 h-10 inline-block" />,
+});
 import SectionIntro from '@/components/section-intro';
 import ContextualTip from '@/components/contextual-tip';
-import { NIA_COLORS, getHealthColor, getTrendColor } from '@/lib/colors';
+import { NIA_COLORS, getHealthColor } from '@/lib/colors';
 
 interface MetricRow extends Metric {
   process_names: string;
@@ -1149,35 +1154,5 @@ function BulkValueInput({
       placeholder={`Enter ${fieldDef.label.toLowerCase()}...`}
       className="text-sm border border-border rounded-lg px-3 py-2 w-48 focus:outline-none focus:ring-2 focus:ring-nia-grey-blue"
     />
-  );
-}
-
-function Sparkline({ values, isHigherBetter }: { values: number[]; isHigherBetter: boolean }) {
-  if (values.length < 2) {
-    return <span className="text-text-muted text-xs w-16 text-center inline-block">&mdash;</span>;
-  }
-
-  const first = values[0];
-  const last = values[values.length - 1];
-  const trend = last > first ? 'up' : last < first ? 'down' : 'flat';
-  const improving = (trend === 'up' && isHigherBetter) || (trend === 'down' && !isHigherBetter);
-  const color = getTrendColor(improving, trend);
-  const data = values.map((v, i) => ({ i, v }));
-
-  return (
-    <div className="w-20 h-10 flex-shrink-0">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
-          <Line
-            type="monotone"
-            dataKey="v"
-            stroke={color}
-            strokeWidth={1.5}
-            dot={false}
-            isAnimationActive={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
   );
 }

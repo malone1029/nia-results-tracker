@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
+import Image from 'next/image';
 import type { QuestionType, QuestionOptions, ConditionRule } from '@/lib/survey-types';
 import { DEFAULT_RATING_LABELS } from '@/lib/survey-types';
 
@@ -457,7 +458,13 @@ export default function SurveyRespondPage() {
         <div className="max-w-2xl mx-auto px-4 py-4 sm:py-6">
           <div className="flex items-center justify-between gap-3 mb-1">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="NIA" className="h-7 sm:h-8 w-auto" />
+              <Image
+                src="/logo.png"
+                alt="NIA"
+                width={32}
+                height={32}
+                className="h-7 sm:h-8 w-auto"
+              />
               <span className="text-xs text-text-muted uppercase tracking-wider font-medium hidden sm:inline">
                 Process Survey
               </span>
