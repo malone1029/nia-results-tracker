@@ -462,11 +462,12 @@ export default function Sidebar({
 
     return (
       <div key={group.label}>
+        {/* Group header — hidden when collapsed at md */}
         <button
           onClick={() => toggleGroup(group.label)}
           aria-expanded={expanded}
           aria-controls={groupId}
-          className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-[10px] uppercase tracking-widest font-medium transition-colors hover:bg-white/5 ${
+          className={`hidden lg:flex w-full items-center justify-between px-2 py-1.5 rounded-md text-[10px] uppercase tracking-widest font-medium transition-colors hover:bg-white/5 ${
             isAdminGroup ? 'text-nia-orange/60' : 'text-white/40'
           }`}
         >
@@ -475,8 +476,8 @@ export default function Sidebar({
         </button>
         <div
           id={groupId}
-          className={`flex flex-col gap-0.5 overflow-hidden transition-all duration-200 ${
-            expanded ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'
+          className={`flex flex-col gap-0.5 overflow-visible lg:overflow-hidden transition-all duration-200 ${
+            expanded ? 'lg:max-h-96 lg:opacity-100 lg:mt-1' : 'lg:max-h-0 lg:opacity-0'
           }`}
         >
           {group.links.map((link) => (
@@ -485,7 +486,8 @@ export default function Sidebar({
               href={link.href}
               onClick={onClose}
               aria-current={isActive(link.href) ? 'page' : undefined}
-              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
+              title={link.label}
+              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all justify-center lg:justify-start ${
                 isActive(link.href)
                   ? isAdminGroup
                     ? 'bg-nia-orange/20 text-nia-orange font-medium'
@@ -494,7 +496,7 @@ export default function Sidebar({
               }`}
             >
               <NavIcon icon={link.icon} className="w-4 h-4 flex-shrink-0" />
-              {link.label}
+              <span className="hidden lg:inline">{link.label}</span>
             </Link>
           ))}
         </div>
@@ -505,9 +507,15 @@ export default function Sidebar({
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar">
       {/* Logo + app name */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-white/10">
-        <Image src="/logo.png" alt="NIA Logo" width={36} height={36} className="rounded" />
-        <div>
+      <div className="flex items-center gap-3 px-4 py-5 border-b border-white/10 lg:justify-start justify-center">
+        <Image
+          src="/logo.png"
+          alt="NIA Logo"
+          width={36}
+          height={36}
+          className="rounded flex-shrink-0"
+        />
+        <div className="hidden lg:block">
           <div className="text-white font-bold text-sm leading-tight font-display">
             NIA Excellence Hub
           </div>
@@ -515,8 +523,14 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Health widget — always visible above nav */}
-      <SidebarHealthWidget data={healthData ?? null} loading={healthLoading} onNavigate={onClose} />
+      {/* Health widget — hidden when collapsed at md, visible at lg */}
+      <div className="hidden lg:block">
+        <SidebarHealthWidget
+          data={healthData ?? null}
+          loading={healthLoading}
+          onNavigate={onClose}
+        />
+      </div>
 
       {/* Nav groups */}
       <nav
@@ -537,37 +551,40 @@ export default function Sidebar({
           href="/help"
           onClick={onClose}
           aria-current={isActive('/help') ? 'page' : undefined}
-          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
+          title="Help"
+          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all justify-center lg:justify-start ${
             isActive('/help')
               ? 'bg-white/15 text-white font-medium nav-link-active'
               : 'text-white/60 hover:text-white hover:bg-white/8'
           }`}
         >
           <NavIcon icon="help" className="w-4 h-4 flex-shrink-0" />
-          Help
+          <span className="hidden lg:inline">Help</span>
         </Link>
         <button
           onClick={() => {
             onClose?.();
             onFeedbackClick?.();
           }}
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all text-white/60 hover:text-white hover:bg-white/8"
+          title="Feedback"
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all text-white/60 hover:text-white hover:bg-white/8 justify-center lg:justify-start"
         >
           <NavIcon icon="message" className="w-4 h-4 flex-shrink-0" />
-          Feedback
+          <span className="hidden lg:inline">Feedback</span>
         </button>
         <Link
           href="/settings"
           onClick={onClose}
           aria-current={isActive('/settings') ? 'page' : undefined}
-          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
+          title="Settings"
+          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all justify-center lg:justify-start ${
             isActive('/settings')
               ? 'bg-white/15 text-white font-medium nav-link-active'
               : 'text-white/60 hover:text-white hover:bg-white/8'
           }`}
         >
           <NavIcon icon="settings" className="w-4 h-4 flex-shrink-0" />
-          Settings
+          <span className="hidden lg:inline">Settings</span>
         </Link>
       </div>
     </div>
@@ -575,8 +592,8 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Desktop sidebar — always visible */}
-      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-60 lg:z-40">
+      {/* Desktop sidebar — collapsed icons at md, full at lg */}
+      <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:w-16 lg:w-60 md:z-40">
         {sidebarContent}
       </aside>
 
@@ -584,9 +601,9 @@ export default function Sidebar({
       {open && (
         <>
           {/* Backdrop */}
-          <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={onClose} />
+          <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={onClose} />
           {/* Drawer */}
-          <aside className="lg:hidden fixed inset-y-0 left-0 w-60 z-50 sidebar-enter">
+          <aside className="md:hidden fixed inset-y-0 left-0 w-60 z-50 sidebar-enter">
             {sidebarContent}
           </aside>
         </>
