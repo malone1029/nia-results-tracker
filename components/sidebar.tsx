@@ -484,6 +484,7 @@ export default function Sidebar({
               key={link.href}
               href={link.href}
               onClick={onClose}
+              aria-current={isActive(link.href) ? 'page' : undefined}
               className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
                 isActive(link.href)
                   ? isAdminGroup
@@ -518,7 +519,11 @@ export default function Sidebar({
       <SidebarHealthWidget data={healthData ?? null} loading={healthLoading} onNavigate={onClose} />
 
       {/* Nav groups */}
-      <nav data-tour="sidebar-nav" className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
+      <nav
+        aria-label="Main navigation"
+        data-tour="sidebar-nav"
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-3"
+      >
         {isAdmin
           ? navGroups.map((group) => renderGroup(group, false))
           : memberNavGroups.map((group) => renderGroup(group, false))}
@@ -531,6 +536,7 @@ export default function Sidebar({
         <Link
           href="/help"
           onClick={onClose}
+          aria-current={isActive('/help') ? 'page' : undefined}
           className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
             isActive('/help')
               ? 'bg-white/15 text-white font-medium nav-link-active'
@@ -553,6 +559,7 @@ export default function Sidebar({
         <Link
           href="/settings"
           onClick={onClose}
+          aria-current={isActive('/settings') ? 'page' : undefined}
           className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
             isActive('/settings')
               ? 'bg-white/15 text-white font-medium nav-link-active'
