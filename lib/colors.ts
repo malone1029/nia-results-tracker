@@ -12,6 +12,9 @@ export const NIA_COLORS = {
   red: '#dc2626',
   purple: '#a855f7',
   yellow: '#eab308',
+  muted: '#9ca3af',
+  border: '#e5e7eb',
+  indigo: '#6366f1',
 } as const;
 
 // ADLI maturity levels — used by AI Insights and AI Chat Panel
@@ -31,7 +34,31 @@ export function getMaturityLevel(score: number): MaturityLevel {
 
 // Process status colors — used by process list, detail, and stepper
 export const STATUS_COLORS: Record<string, string> = {
-  draft: '#9ca3af',
+  draft: NIA_COLORS.muted,
   ready_for_review: NIA_COLORS.orange,
   approved: NIA_COLORS.green,
 } as const;
+
+// ADLI dimension colors — used by ADLI radar, process detail page, scoring info
+export const ADLI_COLORS = {
+  approach: NIA_COLORS.orange,
+  deployment: NIA_COLORS.greyBlue,
+  learning: NIA_COLORS.green,
+  integration: NIA_COLORS.dark,
+} as const;
+
+// Sparkline / trend colors — used by data-health and process detail pages
+export function getTrendColor(improving: boolean, trend: string | null): string {
+  if (improving) return NIA_COLORS.green;
+  if (trend === 'flat') return NIA_COLORS.greyBlue;
+  if (trend) return NIA_COLORS.red;
+  return 'var(--text-muted)';
+}
+
+// Health score threshold color — used by data-health and process-list
+export function getHealthColor(score: number): string {
+  if (score >= 80) return NIA_COLORS.green;
+  if (score >= 60) return NIA_COLORS.greyBlue;
+  if (score >= 40) return NIA_COLORS.orange;
+  return NIA_COLORS.red;
+}
