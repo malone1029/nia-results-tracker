@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface FeedbackModalProps {
   open: boolean;
@@ -35,6 +35,14 @@ export default function FeedbackModal({ open, onClose, onSuccess }: FeedbackModa
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   if (!open) return null;
 
@@ -79,17 +87,29 @@ export default function FeedbackModal({ open, onClose, onSuccess }: FeedbackModa
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="feedback-modal-title"
         className="bg-card rounded-xl shadow-xl w-full max-w-md mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
-          <h2 className="font-semibold text-foreground">Send Feedback</h2>
+          <h2 id="feedback-modal-title" className="font-semibold text-foreground">
+            Send Feedback
+          </h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="text-text-muted hover:text-foreground transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-5 h-5"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

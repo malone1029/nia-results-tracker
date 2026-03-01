@@ -18,7 +18,12 @@ export default function Toast({ message, type, onRetry, onDismiss }: ToastProps)
   const isError = type === 'error';
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-slide-up max-w-sm">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className="fixed bottom-6 right-6 z-50 animate-slide-up max-w-sm"
+    >
       <div
         className={`bg-card border rounded-xl shadow-lg px-4 py-3 flex items-center gap-3 ${
           isError ? 'border-nia-red/30' : 'border-nia-green/30'
@@ -27,7 +32,13 @@ export default function Toast({ message, type, onRetry, onDismiss }: ToastProps)
         {/* Icon */}
         <div className={`flex-shrink-0 ${isError ? 'text-nia-red' : 'text-nia-green'}`}>
           {isError ? (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              aria-hidden="true"
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -36,7 +47,13 @@ export default function Toast({ message, type, onRetry, onDismiss }: ToastProps)
               />
             </svg>
           ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              aria-hidden="true"
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -62,9 +79,16 @@ export default function Toast({ message, type, onRetry, onDismiss }: ToastProps)
           )}
           <button
             onClick={onDismiss}
+            aria-label="Dismiss"
             className="text-text-muted hover:text-foreground transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              aria-hidden="true"
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

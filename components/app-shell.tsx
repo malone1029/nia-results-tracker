@@ -101,6 +101,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-nia-dark focus:rounded-lg focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-nia-blue"
+      >
+        Skip to main content
+      </a>
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -112,9 +118,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex-1 flex flex-col lg:ml-60 min-w-0">
         <ProxyBanner />
-        <TopBar onMenuClick={() => setSidebarOpen(true)} user={user} />
+        <header>
+          <TopBar onMenuClick={() => setSidebarOpen(true)} user={user} />
+        </header>
 
-        <main className="flex-1 overflow-auto px-4 sm:px-6 py-6">
+        <main id="main-content" className="flex-1 overflow-auto px-4 sm:px-6 py-6">
           <div className="max-w-6xl mx-auto">{children}</div>
         </main>
       </div>
