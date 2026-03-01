@@ -64,7 +64,7 @@ function MissionFlowInner({ flowData, height = 700 }: MissionFlowCanvasProps) {
   }, [nodesWithTheme, layout.edges]);
 
   const bgColor = isDark ? 'var(--background)' : '#f8fafc';
-  const gridColor = isDark ? 'var(--border)' : 'var(--border)';
+  const gridColor = 'var(--border)';
 
   return (
     <div style={{ height, background: bgColor, borderRadius: 8 }} className="border border-border">

@@ -59,7 +59,7 @@ function ProcessFlowInner({ flowData, height = 520 }: ProcessFlowCanvasProps) {
   const [edges, , onEdgesChange] = useEdgesState(layout.edges);
 
   const bgColor = isDark ? 'var(--background)' : '#fafafa';
-  const gridColor = isDark ? 'var(--border)' : 'var(--border)';
+  const gridColor = 'var(--border)';
 
   return (
     <div style={{ height, background: bgColor, borderRadius: 8 }} className="border border-border">
