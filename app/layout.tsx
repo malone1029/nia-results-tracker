@@ -42,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://nkrpahbykvzfnqbyceag.supabase.co" />
         <meta name="color-scheme" content="light dark" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <script
