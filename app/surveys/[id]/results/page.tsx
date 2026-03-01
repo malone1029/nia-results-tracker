@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Badge, Card, Select } from '@/components/ui';
 import { DetailSkeleton } from '@/components/skeleton';
+import { NIA_COLORS } from '@/lib/colors';
 import {
   BarChart,
   Bar,
@@ -21,27 +22,22 @@ import {
   Legend,
 } from 'recharts';
 
-/* ─── NIA Brand Colors ─────────────────────────────────────────── */
+/* ─── Colors ──────────────────────────────────────────────────── */
 
-const NIA = {
-  green: '#b1bd37',
-  greenLight: '#c8d35a',
-  orange: '#e8983e',
-  dark: '#2d3c34',
-  greyBlue: '#6b8a7a',
-  red: '#c0392b',
-  yellow: '#f1c40f',
-};
+// Alias canonical colors for brevity within this file
+const NIA = NIA_COLORS;
 
+/* Survey-specific chart palette — extends NIA brand with additional
+   distinguishable hues for multi-series pie/bar charts */
 const CHART_COLORS = [
   NIA.green,
   NIA.orange,
   NIA.dark,
   NIA.greyBlue,
-  '#8884d8',
-  '#82ca9d',
-  '#ffc658',
-  '#ff7f50',
+  '#8884d8', // survey chart: lavender
+  '#82ca9d', // survey chart: mint
+  '#ffc658', // survey chart: gold
+  '#ff7f50', // survey chart: coral
 ];
 
 /* ─── Type Definitions ─────────────────────────────────────────── */

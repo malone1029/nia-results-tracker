@@ -49,6 +49,7 @@ import {
   type HealthResult,
   type HealthMetricInput,
 } from '@/lib/process-health';
+import { NIA_COLORS, ADLI_COLORS, getTrendColor } from '@/lib/colors';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
 interface ProcessDetail {
@@ -1145,7 +1146,7 @@ function ProcessDetailContent() {
                   name="asana-export"
                   checked={!asanaPickerOpen}
                   onChange={() => setAsanaPickerOpen(false)}
-                  className="mt-0.5 accent-[#55787c]"
+                  className="mt-0.5 accent-nia-grey-blue"
                 />
                 <div>
                   <p className="text-sm font-medium text-nia-dark">Sync linked project</p>
@@ -1166,7 +1167,7 @@ function ProcessDetailContent() {
                   setAsanaPickerOpen(true);
                   loadAsanaProjects();
                 }}
-                className="mt-0.5 accent-[#55787c]"
+                className="mt-0.5 accent-nia-grey-blue"
               />
               <div>
                 <p className="text-sm font-medium text-nia-dark">Link to existing project</p>
@@ -1497,7 +1498,7 @@ function ProcessDetailContent() {
                       integration={adliScoreData.integration_score}
                       size={160}
                       showLabels={true}
-                      color="#55787c"
+                      color={NIA_COLORS.greyBlue}
                     />
                   </div>
                   {/* Score details */}
@@ -1515,22 +1516,22 @@ function ProcessDetailContent() {
                           {
                             key: 'Approach',
                             score: adliScoreData.approach_score,
-                            color: '#f79935',
+                            color: ADLI_COLORS.approach,
                           },
                           {
                             key: 'Deployment',
                             score: adliScoreData.deployment_score,
-                            color: '#55787c',
+                            color: ADLI_COLORS.deployment,
                           },
                           {
                             key: 'Learning',
                             score: adliScoreData.learning_score,
-                            color: '#b1bd37',
+                            color: ADLI_COLORS.learning,
                           },
                           {
                             key: 'Integration',
                             score: adliScoreData.integration_score,
-                            color: '#324a4d',
+                            color: ADLI_COLORS.integration,
                           },
                         ] as const
                       ).map((dim) => (
@@ -1668,13 +1669,7 @@ function ProcessDetailContent() {
                         trend &&
                         ((trend === 'up' && m.is_higher_better) ||
                           (trend === 'down' && !m.is_higher_better));
-                      const sparkColor = improving
-                        ? '#b1bd37'
-                        : trend === 'flat'
-                          ? '#55787c'
-                          : trend
-                            ? '#dc2626'
-                            : 'var(--text-muted)';
+                      const sparkColor = getTrendColor(!!improving, trend);
                       return (
                         <div
                           key={m.id}
@@ -1724,7 +1719,9 @@ function ProcessDetailContent() {
                                   {m.on_target !== null && (
                                     <div
                                       className="text-xs"
-                                      style={{ color: m.on_target ? '#b1bd37' : '#dc2626' }}
+                                      style={{
+                                        color: m.on_target ? NIA_COLORS.green : NIA_COLORS.red,
+                                      }}
                                     >
                                       {m.on_target ? 'On Target' : 'Below'}
                                     </div>
@@ -3159,20 +3156,21 @@ function SectionEditLink({ processId, section }: { processId: number; section: s
 }
 
 const SECTION_COLORS: Record<string, string> = {
-  approach: '#55787c',
-  deployment: '#f79935',
-  learning: '#b1bd37',
-  integration: '#324a4d',
-  charter: '#6b7280',
-  workflow: '#a855f7',
+  approach: ADLI_COLORS.approach,
+  deployment: ADLI_COLORS.deployment,
+  learning: ADLI_COLORS.learning,
+  integration: ADLI_COLORS.integration,
+  charter: NIA_COLORS.muted,
+  workflow: NIA_COLORS.purple,
 };
 
+/* Status pill colors — Tailwind palette shades for semantic meaning, not NIA brand */
 const STATUS_PILLS: Record<string, { label: string; bg: string; text: string }> = {
-  committed: { label: 'Committed', bg: '#dbeafe', text: '#2563eb' },
-  in_progress: { label: 'In Progress', bg: '#fef3c7', text: '#d97706' },
-  implemented: { label: 'Implemented', bg: '#dcfce7', text: '#16a34a' },
-  deferred: { label: 'Deferred', bg: '#f3f4f6', text: '#6b7280' },
-  cancelled: { label: 'Cancelled', bg: '#fee2e2', text: '#dc2626' },
+  committed: { label: 'Committed', bg: '#dbeafe', text: '#2563eb' }, // blue — commitment
+  in_progress: { label: 'In Progress', bg: '#fef3c7', text: '#d97706' }, // amber — active work
+  implemented: { label: 'Implemented', bg: '#dcfce7', text: '#16a34a' }, // green — done
+  deferred: { label: 'Deferred', bg: '#f3f4f6', text: '#6b7280' }, // gray — inactive
+  cancelled: { label: 'Cancelled', bg: '#fee2e2', text: NIA_COLORS.red }, // red — cancelled
 };
 
 function ImprovementCard({
@@ -3186,7 +3184,7 @@ function ImprovementCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const sectionColor = SECTION_COLORS[improvement.section_affected] || '#6b7280';
+  const sectionColor = SECTION_COLORS[improvement.section_affected] || NIA_COLORS.muted;
   const statusPill = STATUS_PILLS[improvement.status] || STATUS_PILLS.committed;
 
   const nextStatus: Record<string, string> = {
@@ -3560,7 +3558,7 @@ function ProcessMapView({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // White background
+      // White background (intentional — export images must be opaque white regardless of theme)
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.scale(scale, scale);
