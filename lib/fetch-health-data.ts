@@ -2,8 +2,8 @@
 // Used by both /processes and /readiness pages to avoid duplicating ~120 lines
 // of parallel Supabase queries and Map-building logic.
 
-import { supabase } from "@/lib/supabase";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabase } from '@/lib/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   calculateHealthScore,
   type HealthResult,
@@ -12,9 +12,9 @@ import {
   type HealthMetricInput,
   type HealthTaskInput,
   type HealthImprovementInput,
-} from "@/lib/process-health";
-import { getReviewStatus } from "@/lib/review-status";
-import type { ProcessStatus, ProcessType } from "@/lib/types";
+} from '@/lib/process-health';
+import { getReviewStatus } from '@/lib/review-status';
+import type { ProcessStatus, ProcessType } from '@/lib/types';
 
 export interface ProcessWithCategory {
   id: number;
@@ -64,56 +64,60 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
     { data: tasksData },
     { data: improvementsData },
   ] = await Promise.all([
-    db.from("categories").select("*").order("sort_order"),
-    db.from("processes").select(`
+    db.from('categories').select('*').order('sort_order'),
+    db
+      .from('processes')
+      .select(
+        `
       id, name, category_id, process_type, status, owner, baldrige_item,
       charter, adli_approach, adli_deployment, adli_learning, adli_integration,
       workflow, classification_rationale,
       asana_project_gid, asana_adli_task_gids, updated_at,
       categories!inner ( display_name )
-    `).order("name"),
-    db.from("process_adli_scores").select("process_id, overall_score"),
-    db.from("metric_processes").select("process_id, metric_id"),
-    db.from("metrics").select("id, cadence, comparison_value"),
-    db.from("entries").select("metric_id, date").order("date", { ascending: false }),
-    db.from("process_tasks").select("process_id, status, assignee_name, due_date, completed"),
-    db.from("improvement_journal").select("process_id, created_at").order("created_at", { ascending: false }),
+    `
+      )
+      .order('name'),
+    db.from('process_adli_scores').select('process_id, overall_score'),
+    db.from('metric_processes').select('process_id, metric_id'),
+    db.from('metrics').select('id, cadence, comparison_value'),
+    db.from('entries').select('metric_id, date').order('date', { ascending: false }),
+    db.from('process_tasks').select('process_id, status, assignee_name, due_date, completed'),
+    db
+      .from('improvement_journal')
+      .select('process_id, created_at')
+      .order('created_at', { ascending: false }),
   ]);
 
   // Fetch Baldrige mapping counts per process (for health scoring)
-  const { data: mappingData } = await db
-    .from("process_question_mappings")
-    .select("process_id");
+  const { data: mappingData } = await db.from('process_question_mappings').select('process_id');
   const baldrigeMappingCounts = new Map<number, number>();
   for (const m of mappingData || []) {
     baldrigeMappingCounts.set(m.process_id, (baldrigeMappingCounts.get(m.process_id) || 0) + 1);
   }
 
-  const processes: ProcessWithCategory[] = (procData || []).map(
-    (p: Record<string, unknown>) => {
-      const cat = p.categories as Record<string, unknown>;
-      return {
-        id: p.id as number,
-        name: p.name as string,
-        category_id: p.category_id as number,
-        category_display_name: cat.display_name as string,
-        process_type: (p.process_type as ProcessType) || "unclassified",
-        status: (p.status as ProcessStatus) || "draft",
-        owner: p.owner as string | null,
-        baldrige_item: p.baldrige_item as string | null,
-        charter: p.charter as Record<string, unknown> | null,
-        adli_approach: p.adli_approach as Record<string, unknown> | null,
-        adli_deployment: p.adli_deployment as Record<string, unknown> | null,
-        adli_learning: p.adli_learning as Record<string, unknown> | null,
-        adli_integration: p.adli_integration as Record<string, unknown> | null,
-        workflow: p.workflow as Record<string, unknown> | null,
-        asana_project_gid: p.asana_project_gid as string | null,
-        asana_adli_task_gids: p.asana_adli_task_gids as Record<string, string> | null,
-        updated_at: p.updated_at as string,
-        classification_rationale: p.classification_rationale as string | null,
-      };
-    }
-  );
+  const processes: ProcessWithCategory[] = (procData || []).map((p: Record<string, unknown>) => {
+    const cat = p.categories as Record<string, unknown>;
+    return {
+      id: p.id as number,
+      name: p.name as string,
+      category_id: p.category_id as number,
+      category_display_name: cat.display_name as string,
+      process_type: (p.process_type as ProcessType) || 'unclassified',
+      status: (p.status as ProcessStatus) || 'draft',
+      owner: p.owner as string | null,
+      baldrige_item: p.baldrige_item as string | null,
+      charter: p.charter as Record<string, unknown> | null,
+      adli_approach: p.adli_approach as Record<string, unknown> | null,
+      adli_deployment: p.adli_deployment as Record<string, unknown> | null,
+      adli_learning: p.adli_learning as Record<string, unknown> | null,
+      adli_integration: p.adli_integration as Record<string, unknown> | null,
+      workflow: p.workflow as Record<string, unknown> | null,
+      asana_project_gid: p.asana_project_gid as string | null,
+      asana_adli_task_gids: p.asana_adli_task_gids as Record<string, string> | null,
+      updated_at: p.updated_at as string,
+      classification_rationale: p.classification_rationale as string | null,
+    };
+  });
 
   // Build lookup maps for health score inputs
   const scoresByProcess = new Map<number, HealthScoreInput>();
@@ -158,14 +162,14 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
       overdue_count: 0,
     };
 
-    if (t.status === "pending") {
+    if (t.status === 'pending') {
       existing.pending_count++;
     } else {
       existing.exported_count++;
     }
 
     // Count active tasks (not pending AI suggestions) for execution metrics
-    if (t.status !== "pending") {
+    if (t.status !== 'pending') {
       existing.total_active_tasks++;
       if (t.completed) existing.completed_count++;
       if (t.assignee_name) existing.tasks_with_assignee++;
@@ -213,7 +217,9 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
       letci++; // integration = linked to process (always true here)
 
       return {
-        has_recent_data: latestDate ? getReviewStatus(m?.cadence || "annual", latestDate) === "current" : false,
+        has_recent_data: latestDate
+          ? getReviewStatus(m?.cadence || 'annual', latestDate) === 'current'
+          : false,
         has_comparison: m?.comparison_value !== null && m?.comparison_value !== undefined,
         letci_score: letci,
         entry_count: entryCount,
@@ -233,7 +239,10 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
       latest_date: improvementsByProcess.get(proc.id) || null,
     };
 
-    healthScores.set(proc.id, calculateHealthScore(processInput, scoreInput, metricInputs, taskInput, improvementInput));
+    healthScores.set(
+      proc.id,
+      calculateHealthScore(processInput, scoreInput, metricInputs, taskInput, improvementInput)
+    );
   }
 
   // Compute last activity date per process
@@ -252,14 +261,12 @@ export async function fetchHealthData(client?: SupabaseClient): Promise<HealthDa
     lastActivityMap.set(proc.id, latest);
   }
 
-  const categories: CategoryRow[] = (catData || []).map(
-    (c: Record<string, unknown>) => ({
-      id: c.id as number,
-      name: c.name as string,
-      display_name: c.display_name as string,
-      sort_order: c.sort_order as number,
-    })
-  );
+  const categories: CategoryRow[] = (catData || []).map((c: Record<string, unknown>) => ({
+    id: c.id as number,
+    name: c.name as string,
+    display_name: c.display_name as string,
+    sort_order: c.sort_order as number,
+  }));
 
   return { processes, categories, healthScores, lastActivityMap };
 }

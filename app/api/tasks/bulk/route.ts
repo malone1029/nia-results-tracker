@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { getAsanaToken, asanaFetch } from "@/lib/asana";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { getAsanaToken, asanaFetch } from '@/lib/asana';
 
 // ── Per-user rate limiter (stricter for bulk ops) ─────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -35,12 +35,12 @@ export async function PATCH(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   if (!checkRateLimit(user.id)) {
     return NextResponse.json(
-      { error: "Too many bulk operations. Please wait a moment." },
+      { error: 'Too many bulk operations. Please wait a moment.' },
       { status: 429 }
     );
   }
@@ -49,26 +49,42 @@ export async function PATCH(request: Request) {
   const { taskIds, fields } = body;
 
   if (!Array.isArray(taskIds) || taskIds.length === 0) {
-    return NextResponse.json({ error: "taskIds must be a non-empty array" }, { status: 400 });
+    return NextResponse.json({ error: 'taskIds must be a non-empty array' }, { status: 400 });
   }
   if (taskIds.length > MAX_BATCH_SIZE) {
-    return NextResponse.json({ error: `Maximum ${MAX_BATCH_SIZE} tasks per bulk operation` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Maximum ${MAX_BATCH_SIZE} tasks per bulk operation` },
+      { status: 400 }
+    );
   }
-  if (!fields || typeof fields !== "object" || Object.keys(fields).length === 0) {
-    return NextResponse.json({ error: "fields must contain at least one field to update" }, { status: 400 });
+  if (!fields || typeof fields !== 'object' || Object.keys(fields).length === 0) {
+    return NextResponse.json(
+      { error: 'fields must contain at least one field to update' },
+      { status: 400 }
+    );
   }
 
   // Validate allowed fields
-  const allowedFields = ["completed", "priority", "assignee_name", "assignee_email", "assignee_asana_gid", "due_date"];
+  const allowedFields = [
+    'completed',
+    'priority',
+    'assignee_name',
+    'assignee_email',
+    'assignee_asana_gid',
+    'due_date',
+  ];
   for (const key of Object.keys(fields)) {
     if (!allowedFields.includes(key)) {
-      return NextResponse.json({ error: `Field "${key}" is not allowed in bulk update` }, { status: 400 });
+      return NextResponse.json(
+        { error: `Field "${key}" is not allowed in bulk update` },
+        { status: 400 }
+      );
     }
   }
 
   // Validate priority value
-  if (fields.priority !== undefined && !["high", "medium", "low"].includes(fields.priority)) {
-    return NextResponse.json({ error: "Invalid priority value" }, { status: 400 });
+  if (fields.priority !== undefined && !['high', 'medium', 'low'].includes(fields.priority)) {
+    return NextResponse.json({ error: 'Invalid priority value' }, { status: 400 });
   }
 
   // Build Supabase update object
@@ -76,26 +92,29 @@ export async function PATCH(request: Request) {
   if (fields.completed !== undefined) {
     updates.completed = fields.completed;
     updates.completed_at = fields.completed ? new Date().toISOString() : null;
-    updates.status = fields.completed ? "completed" : "active";
+    updates.status = fields.completed ? 'completed' : 'active';
   }
   if (fields.priority !== undefined) updates.priority = fields.priority;
   if (fields.assignee_name !== undefined) updates.assignee_name = fields.assignee_name;
   if (fields.assignee_email !== undefined) updates.assignee_email = fields.assignee_email;
-  if (fields.assignee_asana_gid !== undefined) updates.assignee_asana_gid = fields.assignee_asana_gid;
+  if (fields.assignee_asana_gid !== undefined)
+    updates.assignee_asana_gid = fields.assignee_asana_gid;
   if (fields.due_date !== undefined) updates.due_date = fields.due_date;
 
   // Fetch tasks to separate Hub vs Asana-origin
   const { data: tasks, error: fetchError } = await supabase
-    .from("process_tasks")
-    .select("id, origin, asana_task_gid")
-    .in("id", taskIds);
+    .from('process_tasks')
+    .select('id, origin, asana_task_gid')
+    .in('id', taskIds);
 
   if (fetchError || !tasks) {
-    return NextResponse.json({ error: "Failed to fetch tasks" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
   }
 
-  const asanaTasks = tasks.filter((t) => t.origin === "asana" && t.asana_task_gid);
-  const hubTaskIds = tasks.filter((t) => t.origin !== "asana" || !t.asana_task_gid).map((t) => t.id);
+  const asanaTasks = tasks.filter((t) => t.origin === 'asana' && t.asana_task_gid);
+  const hubTaskIds = tasks
+    .filter((t) => t.origin !== 'asana' || !t.asana_task_gid)
+    .map((t) => t.id);
 
   let updated = 0;
   let failed = 0;
@@ -104,9 +123,9 @@ export async function PATCH(request: Request) {
   // ── Update Hub tasks in batch ──
   if (hubTaskIds.length > 0) {
     const { error: updateError } = await supabase
-      .from("process_tasks")
+      .from('process_tasks')
       .update(updates)
-      .in("id", hubTaskIds);
+      .in('id', hubTaskIds);
 
     if (updateError) {
       failed += hubTaskIds.length;
@@ -123,16 +142,16 @@ export async function PATCH(request: Request) {
       // Can't sync to Asana — update Supabase only for these tasks too
       const asanaIds = asanaTasks.map((t) => t.id);
       const { error: updateError } = await supabase
-        .from("process_tasks")
+        .from('process_tasks')
         .update(updates)
-        .in("id", asanaIds);
+        .in('id', asanaIds);
 
       if (updateError) {
         failed += asanaIds.length;
       } else {
         updated += asanaIds.length;
       }
-      asanaErrors.push("Asana not connected — updated locally only");
+      asanaErrors.push('Asana not connected — updated locally only');
     } else {
       // Build Asana API field mapping
       const asanaData: Record<string, unknown> = {};
@@ -145,27 +164,27 @@ export async function PATCH(request: Request) {
           // Push to Asana if there are Asana-mapped fields
           if (Object.keys(asanaData).length > 0) {
             await asanaFetch(token, `/tasks/${task.asana_task_gid}`, {
-              method: "PUT",
+              method: 'PUT',
               body: JSON.stringify({ data: asanaData }),
             });
           }
 
           // Update Supabase
           const { error: updateError } = await supabase
-            .from("process_tasks")
+            .from('process_tasks')
             .update({ ...updates, last_synced_at: new Date().toISOString() })
-            .eq("id", task.id);
+            .eq('id', task.id);
 
           if (updateError) throw new Error(`Supabase update failed for task ${task.id}`);
         })
       );
 
       for (const result of results) {
-        if (result.status === "fulfilled") {
+        if (result.status === 'fulfilled') {
           updated++;
         } else {
           failed++;
-          asanaErrors.push(result.reason?.message || "Unknown Asana error");
+          asanaErrors.push(result.reason?.message || 'Unknown Asana error');
         }
       }
     }
@@ -174,24 +193,24 @@ export async function PATCH(request: Request) {
   // ── Activity log (best-effort) ──
   try {
     const { data: roleRow } = await supabase
-      .from("user_roles")
-      .select("full_name")
-      .eq("user_id", user.id)
+      .from('user_roles')
+      .select('full_name')
+      .eq('user_id', user.id)
       .single();
-    const userName = roleRow?.full_name || user.email || "Unknown";
+    const userName = roleRow?.full_name || user.email || 'Unknown';
 
     // Determine action type
-    let action = "status_changed";
+    let action = 'status_changed';
     const detail: Record<string, unknown> = { bulk: true, count: taskIds.length };
 
     if (fields.completed !== undefined) {
-      action = fields.completed ? "completed" : "uncompleted";
+      action = fields.completed ? 'completed' : 'uncompleted';
     } else if (fields.priority !== undefined) {
-      action = "priority_changed";
+      action = 'priority_changed';
       detail.to = fields.priority;
     } else if (fields.assignee_name !== undefined) {
-      action = "reassigned";
-      detail.to = fields.assignee_name || "Unassigned";
+      action = 'reassigned';
+      detail.to = fields.assignee_name || 'Unassigned';
     }
 
     const activities = taskIds.map((taskId: number) => ({
@@ -202,7 +221,7 @@ export async function PATCH(request: Request) {
       detail,
     }));
 
-    await supabase.from("task_activity_log").insert(activities);
+    await supabase.from('task_activity_log').insert(activities);
   } catch {
     // Non-critical
   }
@@ -229,12 +248,12 @@ export async function DELETE(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   if (!checkRateLimit(user.id)) {
     return NextResponse.json(
-      { error: "Too many bulk operations. Please wait a moment." },
+      { error: 'Too many bulk operations. Please wait a moment.' },
       { status: 429 }
     );
   }
@@ -243,20 +262,23 @@ export async function DELETE(request: Request) {
   const { taskIds } = body;
 
   if (!Array.isArray(taskIds) || taskIds.length === 0) {
-    return NextResponse.json({ error: "taskIds must be a non-empty array" }, { status: 400 });
+    return NextResponse.json({ error: 'taskIds must be a non-empty array' }, { status: 400 });
   }
   if (taskIds.length > MAX_BATCH_SIZE) {
-    return NextResponse.json({ error: `Maximum ${MAX_BATCH_SIZE} tasks per bulk delete` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Maximum ${MAX_BATCH_SIZE} tasks per bulk delete` },
+      { status: 400 }
+    );
   }
 
   // Fetch tasks to check for Asana GIDs
   const { data: tasks, error: fetchError } = await supabase
-    .from("process_tasks")
-    .select("id, asana_task_gid")
-    .in("id", taskIds);
+    .from('process_tasks')
+    .select('id, asana_task_gid')
+    .in('id', taskIds);
 
   if (fetchError || !tasks) {
-    return NextResponse.json({ error: "Failed to fetch tasks" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
   }
 
   const asanaTasks = tasks.filter((t) => t.asana_task_gid);
@@ -275,28 +297,26 @@ export async function DELETE(request: Request) {
         if (token && task.asana_task_gid) {
           try {
             await asanaFetch(token, `/tasks/${task.asana_task_gid}`, {
-              method: "DELETE",
+              method: 'DELETE',
             });
           } catch (err) {
             // Log but still delete from Supabase
-            asanaErrors.push(
-              `Asana delete failed for task ${task.id}: ${(err as Error).message}`
-            );
+            asanaErrors.push(`Asana delete failed for task ${task.id}: ${(err as Error).message}`);
           }
         }
 
         // Delete from Supabase regardless
         const { error: deleteError } = await supabase
-          .from("process_tasks")
+          .from('process_tasks')
           .delete()
-          .eq("id", task.id);
+          .eq('id', task.id);
 
         if (deleteError) throw new Error(`Supabase delete failed for task ${task.id}`);
       })
     );
 
     for (const result of results) {
-      if (result.status === "fulfilled") {
+      if (result.status === 'fulfilled') {
         deleted++;
       } else {
         failed++;
@@ -307,9 +327,9 @@ export async function DELETE(request: Request) {
   // ── Delete Hub-only tasks in batch ──
   if (hubOnlyIds.length > 0) {
     const { error: deleteError } = await supabase
-      .from("process_tasks")
+      .from('process_tasks')
       .delete()
-      .in("id", hubOnlyIds);
+      .in('id', hubOnlyIds);
 
     if (deleteError) {
       failed += hubOnlyIds.length;

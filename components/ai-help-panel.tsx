@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useRef, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import MarkdownContent from "@/components/markdown-content";
+import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import MarkdownContent from '@/components/markdown-content';
 
 interface AiHelpPanelProps {
   open: boolean;
@@ -10,19 +10,19 @@ interface AiHelpPanelProps {
 }
 
 interface Message {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
 }
 
 const STARTER_CHIPS = [
-  "What can I do here?",
-  "How do I get started?",
-  "What does the health score mean?",
+  'What can I do here?',
+  'How do I get started?',
+  'What does the health score mean?',
 ];
 
 export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -31,7 +31,7 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
 
   // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   // Focus input when opened
@@ -51,10 +51,10 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
   async function sendMessage(text: string) {
     if (!text.trim() || streaming) return;
 
-    const userMessage: Message = { role: "user", content: text.trim() };
+    const userMessage: Message = { role: 'user', content: text.trim() };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
-    setInput("");
+    setInput('');
     setStreaming(true);
 
     // Abort any previous stream
@@ -63,9 +63,9 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
     abortRef.current = controller;
 
     try {
-      const res = await fetch("/api/ai/help", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/ai/help', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: newMessages,
           pageUrl: pathname,
@@ -74,8 +74,11 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: "Something went wrong" }));
-        setMessages([...newMessages, { role: "assistant", content: errData.error || "Sorry, something went wrong." }]);
+        const errData = await res.json().catch(() => ({ error: 'Something went wrong' }));
+        setMessages([
+          ...newMessages,
+          { role: 'assistant', content: errData.error || 'Sorry, something went wrong.' },
+        ]);
         setStreaming(false);
         return;
       }
@@ -83,23 +86,23 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
       // Stream the response
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
-      let assistantContent = "";
+      let assistantContent = '';
 
-      setMessages([...newMessages, { role: "assistant", content: "" }]);
+      setMessages([...newMessages, { role: 'assistant', content: '' }]);
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           assistantContent += decoder.decode(value, { stream: true });
-          setMessages([...newMessages, { role: "assistant", content: assistantContent }]);
+          setMessages([...newMessages, { role: 'assistant', content: assistantContent }]);
         }
       }
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setMessages([
         ...newMessages,
-        { role: "assistant", content: "Sorry, I couldn't connect. Please try again." },
+        { role: 'assistant', content: "Sorry, I couldn't connect. Please try again." },
       ]);
     } finally {
       setStreaming(false);
@@ -107,7 +110,7 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage(input);
     }
@@ -125,17 +128,35 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border-light bg-nia-grey-blue/10">
           <div className="w-8 h-8 rounded-full bg-nia-grey-blue/20 flex items-center justify-center">
-            <svg className="w-4 h-4 text-nia-grey-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-4 h-4 text-nia-grey-blue"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
           <div className="flex-1">
             <h2 className="text-sm font-semibold text-foreground">Hub Help</h2>
             <p className="text-[11px] text-text-muted">Ask anything about the app</p>
           </div>
-          <button onClick={onClose} className="text-text-muted hover:text-foreground transition-colors p-1">
+          <button
+            onClick={onClose}
+            className="text-text-muted hover:text-foreground transition-colors p-1"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -145,8 +166,18 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
           {messages.length === 0 && (
             <div className="flex flex-col items-center text-center py-8">
               <div className="w-12 h-12 rounded-full bg-nia-grey-blue/15 flex items-center justify-center mb-3">
-                <svg className="w-6 h-6 text-nia-grey-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-6 h-6 text-nia-grey-blue"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <p className="text-sm font-medium text-foreground mb-1">How can I help?</p>
@@ -166,17 +197,22 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
           )}
 
           {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div
+              key={i}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
               <div
                 className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
-                  msg.role === "user"
-                    ? "bg-nia-grey-blue text-white rounded-br-sm"
-                    : "bg-surface-muted text-foreground rounded-bl-sm"
+                  msg.role === 'user'
+                    ? 'bg-nia-grey-blue text-white rounded-br-sm'
+                    : 'bg-surface-muted text-foreground rounded-bl-sm'
                 }`}
               >
-                {msg.role === "assistant" ? (
+                {msg.role === 'assistant' ? (
                   <div className="prose prose-sm max-w-none">
-                    <MarkdownContent content={msg.content || (streaming && i === messages.length - 1 ? "..." : "")} />
+                    <MarkdownContent
+                      content={msg.content || (streaming && i === messages.length - 1 ? '...' : '')}
+                    />
                   </div>
                 ) : (
                   <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -198,11 +234,11 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
               placeholder="Ask a question..."
               rows={1}
               className="flex-1 rounded-lg border border-border-light bg-surface-muted px-3 py-2 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30 resize-none"
-              style={{ maxHeight: "120px" }}
+              style={{ maxHeight: '120px' }}
               onInput={(e) => {
                 const el = e.currentTarget;
-                el.style.height = "auto";
-                el.style.height = Math.min(el.scrollHeight, 120) + "px";
+                el.style.height = 'auto';
+                el.style.height = Math.min(el.scrollHeight, 120) + 'px';
               }}
             />
             <button
@@ -212,12 +248,28 @@ export default function AiHelpPanel({ open, onClose }: AiHelpPanelProps) {
             >
               {streaming ? (
                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
               ) : (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  />
                 </svg>
               )}
             </button>

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
-import type { TaskPriority } from "@/lib/types";
+import { useState, useEffect, useRef } from 'react';
+import type { TaskPriority } from '@/lib/types';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -32,10 +32,10 @@ export default function BulkActionToolbar({
   onBulkDelete,
   onClearSelection,
 }: BulkActionToolbarProps) {
-  const [activePicker, setActivePicker] = useState<"priority" | "assign" | null>(null);
+  const [activePicker, setActivePicker] = useState<'priority' | 'assign' | null>(null);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
-  const [memberSearch, setMemberSearch] = useState("");
+  const [memberSearch, setMemberSearch] = useState('');
   const dateInputRef = useRef<HTMLInputElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const hasFetchedMembers = useRef(false);
@@ -48,14 +48,14 @@ export default function BulkActionToolbar({
         setActivePicker(null);
       }
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, [activePicker]);
 
   // Escape clears selection (only when no picker is open)
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         if (activePicker) {
           setActivePicker(null);
         } else {
@@ -63,16 +63,16 @@ export default function BulkActionToolbar({
         }
       }
     }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
   }, [activePicker, onClearSelection]);
 
   // Fetch workspace members when assign picker opens
   useEffect(() => {
-    if (activePicker !== "assign" || hasFetchedMembers.current) return;
+    if (activePicker !== 'assign' || hasFetchedMembers.current) return;
     hasFetchedMembers.current = true;
     setLoadingMembers(true);
-    fetch("/api/asana/workspace-members")
+    fetch('/api/asana/workspace-members')
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => setMembers(data.members || []))
       .catch(() => {})
@@ -81,21 +81,19 @@ export default function BulkActionToolbar({
 
   const searchLower = memberSearch.toLowerCase();
   const filteredMembers = members.filter(
-    (m) =>
-      m.name.toLowerCase().includes(searchLower) ||
-      m.email.toLowerCase().includes(searchLower)
+    (m) => m.name.toLowerCase().includes(searchLower) || m.email.toLowerCase().includes(searchLower)
   );
 
   return (
     <div
       ref={toolbarRef}
       className="fixed bottom-6 left-1/2 z-[100] animate-toolbar-enter"
-      style={{ transform: "translateX(-50%)" }}
+      style={{ transform: 'translateX(-50%)' }}
     >
       <div className="bg-nia-dark-solid text-white rounded-xl shadow-2xl px-4 py-2.5 flex items-center gap-3">
         {/* Selection count */}
         <span className="text-sm font-medium whitespace-nowrap">
-          {selectedCount} task{selectedCount !== 1 ? "s" : ""} selected
+          {selectedCount} task{selectedCount !== 1 ? 's' : ''} selected
         </span>
 
         {/* Divider */}
@@ -117,20 +115,25 @@ export default function BulkActionToolbar({
         <div className="relative">
           <button
             type="button"
-            onClick={() => setActivePicker(activePicker === "priority" ? null : "priority")}
+            onClick={() => setActivePicker(activePicker === 'priority' ? null : 'priority')}
             className={`p-1.5 rounded-lg transition-colors ${
-              activePicker === "priority" ? "bg-white/25" : "hover:bg-white/15"
+              activePicker === 'priority' ? 'bg-white/25' : 'hover:bg-white/15'
             }`}
             title="Set priority"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+              />
             </svg>
           </button>
 
-          {activePicker === "priority" && (
+          {activePicker === 'priority' && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[120px] animate-context-menu">
-              {(["high", "medium", "low"] as const).map((p) => (
+              {(['high', 'medium', 'low'] as const).map((p) => (
                 <button
                   key={p}
                   type="button"
@@ -142,7 +145,11 @@ export default function BulkActionToolbar({
                 >
                   <span
                     className={`w-2 h-2 rounded-full ${
-                      p === "high" ? "bg-red-500" : p === "medium" ? "bg-nia-orange" : "bg-surface-muted"
+                      p === 'high'
+                        ? 'bg-red-500'
+                        : p === 'medium'
+                          ? 'bg-nia-orange'
+                          : 'bg-surface-muted'
                     }`}
                   />
                   <span className="capitalize">{p}</span>
@@ -156,18 +163,23 @@ export default function BulkActionToolbar({
         <div className="relative">
           <button
             type="button"
-            onClick={() => setActivePicker(activePicker === "assign" ? null : "assign")}
+            onClick={() => setActivePicker(activePicker === 'assign' ? null : 'assign')}
             className={`p-1.5 rounded-lg transition-colors ${
-              activePicker === "assign" ? "bg-white/25" : "hover:bg-white/15"
+              activePicker === 'assign' ? 'bg-white/25' : 'hover:bg-white/15'
             }`}
             title="Assign"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
             </svg>
           </button>
 
-          {activePicker === "assign" && (
+          {activePicker === 'assign' && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-card border border-border rounded-lg shadow-xl overflow-hidden min-w-[240px] max-w-[280px] animate-context-menu">
               {/* Search */}
               <div className="p-2 border-b border-border">
@@ -195,7 +207,7 @@ export default function BulkActionToolbar({
                       onClick={() => {
                         onBulkAssign(null);
                         setActivePicker(null);
-                        setMemberSearch("");
+                        setMemberSearch('');
                       }}
                       className="w-full text-left px-3 py-2 text-sm text-text-muted hover:bg-surface-hover transition-colors"
                     >
@@ -209,7 +221,7 @@ export default function BulkActionToolbar({
                         onClick={() => {
                           onBulkAssign(member);
                           setActivePicker(null);
-                          setMemberSearch("");
+                          setMemberSearch('');
                         }}
                         className="w-full text-left px-3 py-2 hover:bg-surface-hover transition-colors"
                       >
@@ -239,7 +251,12 @@ export default function BulkActionToolbar({
             title="Set due date"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
           </button>
           <input
@@ -248,7 +265,7 @@ export default function BulkActionToolbar({
             onChange={(e) => {
               if (e.target.value) {
                 onBulkDueDate(e.target.value);
-                e.target.value = "";
+                e.target.value = '';
               }
             }}
             className="absolute inset-0 opacity-0 cursor-pointer"
@@ -267,7 +284,12 @@ export default function BulkActionToolbar({
           title="Delete selected tasks"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
           </svg>
         </button>
 
@@ -279,7 +301,12 @@ export default function BulkActionToolbar({
           title="Clear selection"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>

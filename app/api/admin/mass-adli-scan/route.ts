@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isSuperAdminRole } from "@/lib/auth-helpers";
-import { checkRateLimit } from "@/lib/rate-limit";
+import Anthropic from '@anthropic-ai/sdk';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isSuperAdminRole } from '@/lib/auth-helpers';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 300;
 
@@ -13,7 +13,7 @@ const anthropic = new Anthropic({
 
 // NDJSON helper — write a JSON line to the stream
 function ndjsonLine(encoder: TextEncoder, data: object): Uint8Array {
-  return encoder.encode(JSON.stringify(data) + "\n");
+  return encoder.encode(JSON.stringify(data) + '\n');
 }
 
 /**
@@ -30,48 +30,48 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const { data: roleData } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
-  if (!isSuperAdminRole(roleData?.role || "")) {
-    return Response.json({ error: "Super admin access required" }, { status: 403 });
+  if (!isSuperAdminRole(roleData?.role || '')) {
+    return Response.json({ error: 'Super admin access required' }, { status: 403 });
   }
 
   // Rate limit
   const rl = await checkRateLimit(user.id);
   if (!rl.success) return rl.response;
 
-  const { scope = "all" }: { scope: "all" | "key" | "unscored" } = await request.json();
+  const { scope = 'all' }: { scope: 'all' | 'key' | 'unscored' } = await request.json();
 
   // Build query based on scope
   let query = supabase
-    .from("processes")
-    .select(`
+    .from('processes')
+    .select(
+      `
       id, name, process_type, description,
       charter, adli_approach, adli_deployment, adli_learning, adli_integration,
       categories!inner(display_name)
-    `)
-    .order("name");
+    `
+    )
+    .order('name');
 
-  if (scope === "key") {
-    query = query.eq("process_type", "key");
+  if (scope === 'key') {
+    query = query.eq('process_type', 'key');
   }
 
   const { data: allProcesses, error: fetchError } = await query;
   if (fetchError || !allProcesses) {
-    return Response.json({ error: "Failed to fetch processes" }, { status: 500 });
+    return Response.json({ error: 'Failed to fetch processes' }, { status: 500 });
   }
 
   // For "unscored" scope, filter to processes without existing scores
   let processes = allProcesses;
-  if (scope === "unscored") {
-    const { data: scored } = await supabase
-      .from("process_adli_scores")
-      .select("process_id");
+  if (scope === 'unscored') {
+    const { data: scored } = await supabase.from('process_adli_scores').select('process_id');
     const scoredIds = new Set((scored || []).map((s) => s.process_id));
     processes = allProcesses.filter((p) => !scoredIds.has(p.id));
   }
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       const total = processes.length;
-      controller.enqueue(ndjsonLine(encoder, { type: "start", total }));
+      controller.enqueue(ndjsonLine(encoder, { type: 'start', total }));
 
       const failed: { processId: number; processName: string; error: string }[] = [];
       const scored: { category: string; overall: number }[] = [];
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
 
         controller.enqueue(
           ndjsonLine(encoder, {
-            type: "progress",
+            type: 'progress',
             current: i + 1,
             total,
             processName: p.name,
@@ -114,27 +114,26 @@ export async function POST(request: Request) {
             ``,
             `Process: ${p.name}`,
             `Category: ${cat.display_name}`,
-            charter?.content ? `Charter: ${String(charter.content).slice(0, 300)}` : "",
-            approach?.content ? `Approach: ${String(approach.content).slice(0, 250)}` : "",
-            deployment?.content ? `Deployment: ${String(deployment.content).slice(0, 250)}` : "",
-            learning?.content ? `Learning: ${String(learning.content).slice(0, 250)}` : "",
-            integration?.content ? `Integration: ${String(integration.content).slice(0, 250)}` : "",
+            charter?.content ? `Charter: ${String(charter.content).slice(0, 300)}` : '',
+            approach?.content ? `Approach: ${String(approach.content).slice(0, 250)}` : '',
+            deployment?.content ? `Deployment: ${String(deployment.content).slice(0, 250)}` : '',
+            learning?.content ? `Learning: ${String(learning.content).slice(0, 250)}` : '',
+            integration?.content ? `Integration: ${String(integration.content).slice(0, 250)}` : '',
           ]
             .filter(Boolean)
-            .join("\n");
+            .join('\n');
 
           const response = await anthropic.messages.create({
-            model: "claude-haiku-4-5-20251001",
+            model: 'claude-haiku-4-5-20251001',
             max_tokens: 128,
-            messages: [{ role: "user", content: prompt }],
+            messages: [{ role: 'user', content: prompt }],
           });
 
-          const text =
-            response.content[0].type === "text" ? response.content[0].text.trim() : "";
+          const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
 
           // Extract JSON — model may wrap it in backticks
           const jsonMatch = text.match(/\{[\s\S]*?\}/);
-          if (!jsonMatch) throw new Error("No JSON in response");
+          if (!jsonMatch) throw new Error('No JSON in response');
 
           const scores = JSON.parse(jsonMatch[0]) as {
             approach: number;
@@ -148,7 +147,7 @@ export async function POST(request: Request) {
           );
 
           // Upsert scores into DB
-          await supabase.from("process_adli_scores").upsert(
+          await supabase.from('process_adli_scores').upsert(
             {
               process_id: p.id,
               approach_score: scores.approach,
@@ -158,14 +157,14 @@ export async function POST(request: Request) {
               overall_score: overall,
               assessed_at: new Date().toISOString(),
             },
-            { onConflict: "process_id" }
+            { onConflict: 'process_id' }
           );
 
           scored.push({ category: cat.display_name, overall });
 
           controller.enqueue(
             ndjsonLine(encoder, {
-              type: "scored",
+              type: 'scored',
               processId: p.id,
               processName: p.name,
               scores,
@@ -173,11 +172,11 @@ export async function POST(request: Request) {
             })
           );
         } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : "Unknown error";
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
           failed.push({ processId: p.id, processName: p.name, error: errorMsg });
           controller.enqueue(
             ndjsonLine(encoder, {
-              type: "error",
+              type: 'error',
               processId: p.id,
               processName: p.name,
               error: errorMsg,
@@ -204,7 +203,7 @@ export async function POST(request: Request) {
 
       controller.enqueue(
         ndjsonLine(encoder, {
-          type: "complete",
+          type: 'complete',
           summary: {
             total,
             scored: scored.length,
@@ -221,9 +220,9 @@ export async function POST(request: Request) {
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "application/x-ndjson",
-      "Cache-Control": "no-cache",
-      "X-Accel-Buffering": "no",
+      'Content-Type': 'application/x-ndjson',
+      'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no',
     },
   });
 }

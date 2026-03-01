@@ -20,15 +20,15 @@ Additionally, process classification uses a boolean `is_key` field that leaves n
 
 ## Design Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Process types | Key / Support (two values) | Matches Baldrige framework exactly |
-| Classification method | AI-suggested + human confirm | Intentional but low-effort |
-| Existing `is_key` processes | All reset to "unclassified" for fresh review | Current labels may not be accurate |
-| Mapping method | AI-only + human confirm (no manual mapping) | Consistent, explainable |
-| Mapping direction | Both (Criteria Map + process pages) | Users can discover connections from either side |
-| Process page placement | Overview tab, right column | First thing owners see |
-| Legacy `baldrige_connections` | Convert remaining data, then stop using | Clean break |
+| Decision                      | Choice                                       | Rationale                                       |
+| ----------------------------- | -------------------------------------------- | ----------------------------------------------- |
+| Process types                 | Key / Support (two values)                   | Matches Baldrige framework exactly              |
+| Classification method         | AI-suggested + human confirm                 | Intentional but low-effort                      |
+| Existing `is_key` processes   | All reset to "unclassified" for fresh review | Current labels may not be accurate              |
+| Mapping method                | AI-only + human confirm (no manual mapping)  | Consistent, explainable                         |
+| Mapping direction             | Both (Criteria Map + process pages)          | Users can discover connections from either side |
+| Process page placement        | Overview tab, right column                   | First thing owners see                          |
+| Legacy `baldrige_connections` | Convert remaining data, then stop using      | Clean break                                     |
 
 ## Process Classification (Key / Support)
 
@@ -64,6 +64,7 @@ Additionally, process classification uses a boolean `is_key` field that leaves n
 ### Single Source of Truth
 
 `process_question_mappings` table powers everything:
+
 - Criteria Map page (question-centric view)
 - Process detail pages (process-centric view)
 - Health score (Documentation dimension)
@@ -95,11 +96,13 @@ Baldrige Connections
 ### AI Mapping — Both Directions
 
 **From Criteria Map (question -> processes):**
+
 - AI Scan All: scans unmapped questions, suggests processes (existing)
 - Per-question "Suggest Mappings" button (existing)
 - No manual "add mapping" UI (removed)
 
 **From Process Page (process -> questions) — NEW:**
+
 - "Find Baldrige Connections" button on process detail page
 - AI analyzes process charter + ADLI content against all unmapped questions
 - Shows suggestion cards on the process page with Accept/Dismiss
@@ -109,6 +112,7 @@ Baldrige Connections
 ### Health Score Update
 
 `lib/process-health.ts` Documentation dimension:
+
 - Old: checks `baldrige_connections` JSONB for content (2 points)
 - New: checks `process_question_mappings` count > 0 (2 points)
 

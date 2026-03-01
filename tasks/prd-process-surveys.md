@@ -18,9 +18,11 @@ This feature adds built-in micro-surveys directly to the Excellence Hub. Process
 ## User Stories
 
 ### US-001: Survey Database Schema
+
 **Description:** As a developer, I need database tables to store surveys, questions, deployment waves, and responses so that all survey data persists and connects to the existing metrics system.
 
 **Acceptance Criteria:**
+
 - [ ] `surveys` table created with: id, process_id (FK), title, description, is_public (boolean), is_anonymous (boolean), created_by, created_at, updated_at
 - [ ] `survey_questions` table created with: id, survey_id (FK), question_text, question_type (rating/yes_no), sort_order, rating_scale_max (default 5), metric_id (FK nullable — links to metrics table when creator chooses)
 - [ ] `survey_waves` table created with: id, survey_id (FK), wave_number, status (draft/open/closed), share_token (unique, for public URL), opened_at, closed_at, response_count (cached)
@@ -32,9 +34,11 @@ This feature adds built-in micro-surveys directly to the Excellence Hub. Process
 - [ ] Migration file created and runs cleanly
 
 ### US-002: Survey CRUD API
+
 **Description:** As a process owner, I need API endpoints to create, read, update, and delete surveys and their questions so the frontend can manage surveys.
 
 **Acceptance Criteria:**
+
 - [ ] `GET /api/surveys?processId=N` returns all surveys for a process with question count and latest wave status
 - [ ] `POST /api/surveys` creates a survey with questions in a single request (accepts `{ processId, title, description, isPublic, isAnonymous, questions: [...] }`)
 - [ ] `PATCH /api/surveys/[id]` updates survey title, description, settings, and questions (full replace of questions array)
@@ -43,9 +47,11 @@ This feature adds built-in micro-surveys directly to the Excellence Hub. Process
 - [ ] Validation: survey must have 1-10 questions, each question must have text and valid type
 
 ### US-003: Survey Builder UI
+
 **Description:** As a process owner, I want to create a survey from my process page so I can start measuring process effectiveness without leaving the Hub.
 
 **Acceptance Criteria:**
+
 - [ ] "Create Survey" button appears in the Metrics section of the process detail page
 - [ ] Clicking opens a slide-out panel or modal with the survey builder form
 - [ ] Builder includes: title, description, public/authenticated toggle, anonymous/identified toggle
@@ -57,9 +63,11 @@ This feature adds built-in micro-surveys directly to the Excellence Hub. Process
 - [ ] Maximum 10 questions enforced in UI with helper text encouraging 3-7
 
 ### US-004: AI Survey Design Assistant
+
 **Description:** As a process owner, I want the AI to suggest survey questions based on my process documentation so I don't have to start from scratch.
 
 **Acceptance Criteria:**
+
 - [ ] "Suggest Questions with AI" button in the survey builder
 - [ ] Calls the existing `/api/ai/chat` endpoint with a specific prompt that includes the process charter, ADLI sections, and existing metrics
 - [ ] AI returns a structured `survey-questions` block with 3-5 suggested questions, each with: question text, question type, and rationale for why this question measures process effectiveness
@@ -68,9 +76,11 @@ This feature adds built-in micro-surveys directly to the Excellence Hub. Process
 - [ ] System prompt addition for the AI: instructions on how to design effective survey questions (short, specific, measurable, tied to ADLI dimensions)
 
 ### US-005: Wave Deployment
+
 **Description:** As a process owner, I want to deploy my survey and get a shareable link so respondents can fill it out.
 
 **Acceptance Criteria:**
+
 - [ ] `POST /api/surveys/[id]/waves` creates a new wave with status "open" and generates a unique share_token (URL-safe, 12 characters)
 - [ ] Returns the shareable URL: `/survey/respond/[share_token]`
 - [ ] "Deploy Survey" button on the survey card (process detail page) creates a wave and shows the link
@@ -81,9 +91,11 @@ This feature adds built-in micro-surveys directly to the Excellence Hub. Process
 - [ ] Survey card on process page shows: wave status (open/closed), response count, share link if open
 
 ### US-006: Public Survey Response Page
+
 **Description:** As a survey respondent, I want to answer the survey via a simple link without needing to log in so I can give feedback quickly.
 
 **Acceptance Criteria:**
+
 - [ ] `/survey/respond/[token]` page is excluded from auth middleware (public access)
 - [ ] Page loads survey title, description, and questions from the share_token
 - [ ] Rating questions render as a row of selectable numbers (1-5) with labels at endpoints (e.g., "Strongly Disagree" to "Strongly Agree")
@@ -98,9 +110,11 @@ This feature adds built-in micro-surveys directly to the Excellence Hub. Process
 - [ ] `survey_waves.response_count` incremented on each submission
 
 ### US-007: Auto-Generate Metric Entries from Survey Results
+
 **Description:** As a process owner, when I close a survey wave, I want the results to automatically become metric data points so my process metrics stay current without manual entry.
 
 **Acceptance Criteria:**
+
 - [ ] When a wave is closed (`PATCH .../waves/[id]` with status "closed"), trigger metric entry generation
 - [ ] For each question linked to a metric (`survey_questions.metric_id IS NOT NULL`):
   - Rating questions: compute the average score across all responses → create an `entries` row with value = average, date = wave closed date, note_analysis = "Survey: [survey title], Wave [N], [response_count] responses"
@@ -111,9 +125,11 @@ This feature adds built-in micro-surveys directly to the Excellence Hub. Process
 - [ ] Return a summary: "3 metrics updated from 24 responses"
 
 ### US-008: Survey Results View
+
 **Description:** As a process owner, I want to see survey results on my process page so I can understand stakeholder feedback at a glance.
 
 **Acceptance Criteria:**
+
 - [ ] Survey card on process detail page expands to show results when a wave has responses
 - [ ] Per-question results: average rating (with bar chart showing distribution) or Yes/No percentage (with pie or bar)
 - [ ] Overall response count and response rate context (if known)
@@ -124,9 +140,11 @@ This feature adds built-in micro-surveys directly to the Excellence Hub. Process
 - [ ] Link to full results detail (could be a modal or expandable section)
 
 ### US-009: Survey Context in AI Coaching
+
 **Description:** As a process owner using the AI coach, I want the AI to reference my survey results when analyzing my process so its recommendations are grounded in real feedback.
 
 **Acceptance Criteria:**
+
 - [ ] `buildProcessContext()` in `/api/ai/chat/route.ts` includes a new "Survey Results" section
 - [ ] Section includes: survey title, latest wave results (per-question averages), response count, trend vs. previous wave (if available)
 - [ ] Capped at ~1000 characters to stay within context budget
@@ -135,9 +153,11 @@ This feature adds built-in micro-surveys directly to the Excellence Hub. Process
 - [ ] AI should acknowledge strong survey results as evidence of process effectiveness
 
 ### US-010: Survey Management on Process Page
+
 **Description:** As a process owner, I want to manage my surveys (edit, redeploy, delete) from the process page so everything stays in one place.
 
 **Acceptance Criteria:**
+
 - [ ] Surveys section on process detail page shows all surveys for this process
 - [ ] Each survey card shows: title, question count, latest wave status, response count
 - [ ] Actions per survey: Edit (opens builder), Deploy/Redeploy, View Results, Delete (with confirmation)

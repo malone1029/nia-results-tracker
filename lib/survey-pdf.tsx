@@ -1,17 +1,17 @@
-import React from "react";
-import { Document, Page, View, Text, StyleSheet, Svg, Rect } from "@react-pdf/renderer";
+import React from 'react';
+import { Document, Page, View, Text, StyleSheet, Svg, Rect } from '@react-pdf/renderer';
 
 // NIA brand colors
-const NIA_GREEN = "#b1bd37";
-const NIA_ORANGE = "#e78b36";
-const NIA_DARK = "#2d3748";
-const NIA_GRAY = "#718096";
-const NIA_LIGHT = "#f7fafc";
+const NIA_GREEN = '#b1bd37';
+const NIA_ORANGE = '#e78b36';
+const NIA_DARK = '#2d3748';
+const NIA_GRAY = '#718096';
+const NIA_LIGHT = '#f7fafc';
 
-const BAR_COLORS = ["#e2e8f0", "#c6d06c", "#a3b734", NIA_GREEN, "#8da02e"];
-const NPS_RED = "#e53e3e";
-const NPS_YELLOW = "#ecc94b";
-const NPS_GREEN = "#48bb78";
+const BAR_COLORS = ['#e2e8f0', '#c6d06c', '#a3b734', NIA_GREEN, '#8da02e'];
+const NPS_RED = '#e53e3e';
+const NPS_YELLOW = '#ecc94b';
+const NPS_GREEN = '#48bb78';
 
 interface QuestionResult {
   question_text: string;
@@ -49,18 +49,18 @@ interface PdfData {
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: "Helvetica",
+    fontFamily: 'Helvetica',
     fontSize: 10,
     color: NIA_DARK,
   },
   // Cover page
   coverPage: {
     padding: 40,
-    fontFamily: "Helvetica",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
+    fontFamily: 'Helvetica',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   coverAccent: {
     width: 60,
@@ -70,25 +70,25 @@ const styles = StyleSheet.create({
   },
   coverTitle: {
     fontSize: 28,
-    fontFamily: "Helvetica-Bold",
+    fontFamily: 'Helvetica-Bold',
     color: NIA_DARK,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 8,
   },
   coverSubtitle: {
     fontSize: 14,
     color: NIA_GRAY,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 30,
   },
   coverMeta: {
     fontSize: 11,
     color: NIA_GRAY,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 4,
   },
   coverStats: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 30,
     marginTop: 30,
     padding: 16,
@@ -96,11 +96,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   coverStat: {
-    alignItems: "center",
+    alignItems: 'center',
   },
   coverStatValue: {
     fontSize: 22,
-    fontFamily: "Helvetica-Bold",
+    fontFamily: 'Helvetica-Bold',
     color: NIA_DARK,
   },
   coverStatLabel: {
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   // Section headers
   sectionHeader: {
     fontSize: 16,
-    fontFamily: "Helvetica-Bold",
+    fontFamily: 'Helvetica-Bold',
     color: NIA_DARK,
     marginBottom: 12,
     marginTop: 8,
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   questionTitle: {
     fontSize: 11,
-    fontFamily: "Helvetica-Bold",
+    fontFamily: 'Helvetica-Bold',
     color: NIA_DARK,
     marginBottom: 4,
   },
@@ -139,20 +139,20 @@ const styles = StyleSheet.create({
   },
   avgBadge: {
     fontSize: 14,
-    fontFamily: "Helvetica-Bold",
+    fontFamily: 'Helvetica-Bold',
     color: NIA_GREEN,
     marginBottom: 6,
   },
   barRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 3,
   },
   barLabel: {
     width: 100,
     fontSize: 8,
     color: NIA_GRAY,
-    textAlign: "right",
+    textAlign: 'right',
     paddingRight: 6,
   },
   barCount: {
@@ -163,18 +163,18 @@ const styles = StyleSheet.create({
   // NPS
   npsScoreText: {
     fontSize: 24,
-    fontFamily: "Helvetica-Bold",
-    textAlign: "center",
+    fontFamily: 'Helvetica-Bold',
+    textAlign: 'center',
     marginBottom: 6,
   },
   npsSegmentRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginBottom: 4,
   },
   npsLabel: {
     fontSize: 8,
     color: NIA_GRAY,
-    textAlign: "center",
+    textAlign: 'center',
     marginTop: 2,
   },
   // Text responses
@@ -184,26 +184,26 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingLeft: 8,
     borderLeftWidth: 2,
-    borderLeftColor: "#e2e8f0",
+    borderLeftColor: '#e2e8f0',
   },
   // Matrix
   matrixRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 2,
   },
   matrixLabel: {
     width: 120,
     fontSize: 8,
     color: NIA_GRAY,
-    textAlign: "right",
+    textAlign: 'right',
     paddingRight: 6,
   },
   matrixValue: {
     fontSize: 8,
     color: NIA_DARK,
     paddingLeft: 4,
-    fontFamily: "Helvetica-Bold",
+    fontFamily: 'Helvetica-Bold',
   },
   // AI Summary
   summarySection: {
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   summaryHeading: {
     fontSize: 11,
-    fontFamily: "Helvetica-Bold",
+    fontFamily: 'Helvetica-Bold',
     color: NIA_DARK,
     marginBottom: 4,
   },
@@ -223,26 +223,26 @@ const styles = StyleSheet.create({
   },
   // Footer
   footer: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 20,
     left: 40,
     right: 40,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     fontSize: 8,
     color: NIA_GRAY,
   },
   // Options (MC/Checkbox)
   optionRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 3,
   },
   optionLabel: {
     width: 130,
     fontSize: 8,
     color: NIA_GRAY,
-    textAlign: "right",
+    textAlign: 'right',
     paddingRight: 6,
   },
   optionCount: {
@@ -253,12 +253,12 @@ const styles = StyleSheet.create({
 });
 
 function formatDate(dateStr: string): string {
-  if (!dateStr) return "N/A";
+  if (!dateStr) return 'N/A';
   const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+  return d.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
   });
 }
 
@@ -295,9 +295,7 @@ function RatingQuestion({ q }: { q: QuestionResult }) {
   return (
     <View style={styles.questionCard}>
       <Text style={styles.questionTitle}>{q.question_text}</Text>
-      <Text style={styles.questionMeta}>
-        Rating · {q.response_count} responses
-      </Text>
+      <Text style={styles.questionMeta}>Rating · {q.response_count} responses</Text>
       <Text style={styles.avgBadge}>
         Average: {q.avg_value.toFixed(2)} / {dist.length}
       </Text>
@@ -318,15 +316,11 @@ function RatingQuestion({ q }: { q: QuestionResult }) {
 
 function NpsQuestion({ q }: { q: QuestionResult }) {
   const segments = q.nps_segments;
-  const total = segments
-    ? segments.detractors + segments.passives + segments.promoters
-    : 0;
+  const total = segments ? segments.detractors + segments.passives + segments.promoters : 0;
   return (
     <View style={styles.questionCard}>
       <Text style={styles.questionTitle}>{q.question_text}</Text>
-      <Text style={styles.questionMeta}>
-        NPS · {q.response_count} responses
-      </Text>
+      <Text style={styles.questionMeta}>NPS · {q.response_count} responses</Text>
       <Text style={[styles.npsScoreText, { color: getNpsColor(q.nps_score || 0) }]}>
         NPS: {q.nps_score}
       </Text>
@@ -357,7 +351,7 @@ function NpsQuestion({ q }: { q: QuestionResult }) {
               />
             </Svg>
           </View>
-          <View style={{ flexDirection: "row", gap: 12, marginTop: 2 }}>
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 2 }}>
             <Text style={styles.npsLabel}>
               Detractors: {segments.detractors} ({Math.round((segments.detractors / total) * 100)}%)
             </Text>
@@ -379,9 +373,7 @@ function YesNoQuestion({ q }: { q: QuestionResult }) {
   return (
     <View style={styles.questionCard}>
       <Text style={styles.questionTitle}>{q.question_text}</Text>
-      <Text style={styles.questionMeta}>
-        Yes/No · {q.response_count} responses
-      </Text>
+      <Text style={styles.questionMeta}>Yes/No · {q.response_count} responses</Text>
       <Text style={styles.avgBadge}>{yesPercent}% Yes</Text>
       <View style={styles.barRow}>
         <Text style={styles.barLabel}>Yes</Text>
@@ -406,8 +398,8 @@ function ChoiceQuestion({ q }: { q: QuestionResult }) {
     <View style={styles.questionCard}>
       <Text style={styles.questionTitle}>{q.question_text}</Text>
       <Text style={styles.questionMeta}>
-        {q.question_type === "checkbox" ? "Checkbox" : "Multiple Choice"} ·{" "}
-        {q.response_count} responses
+        {q.question_type === 'checkbox' ? 'Checkbox' : 'Multiple Choice'} · {q.response_count}{' '}
+        responses
       </Text>
       {labels.map((label, i) => {
         const pct = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
@@ -430,9 +422,7 @@ function OpenTextQuestion({ q }: { q: QuestionResult }) {
   return (
     <View style={styles.questionCard}>
       <Text style={styles.questionTitle}>{q.question_text}</Text>
-      <Text style={styles.questionMeta}>
-        Open Text · {q.response_count} responses
-      </Text>
+      <Text style={styles.questionMeta}>Open Text · {q.response_count} responses</Text>
       {texts.length > 0 ? (
         texts.map((text, i) => (
           <Text key={i} style={styles.textResponse}>
@@ -452,9 +442,7 @@ function MatrixQuestion({ q }: { q: QuestionResult }) {
   return (
     <View style={styles.questionCard}>
       <Text style={styles.questionTitle}>{q.question_text}</Text>
-      <Text style={styles.questionMeta}>
-        Matrix · {q.response_count} responses
-      </Text>
+      <Text style={styles.questionMeta}>Matrix · {q.response_count} responses</Text>
       {rows.map((row, i) => (
         <View key={i} style={styles.matrixRow}>
           <Text style={styles.matrixLabel}>{row.row_label}</Text>
@@ -468,18 +456,18 @@ function MatrixQuestion({ q }: { q: QuestionResult }) {
 
 function QuestionSection({ q }: { q: QuestionResult }) {
   switch (q.question_type) {
-    case "rating":
+    case 'rating':
       return <RatingQuestion q={q} />;
-    case "nps":
+    case 'nps':
       return <NpsQuestion q={q} />;
-    case "yes_no":
+    case 'yes_no':
       return <YesNoQuestion q={q} />;
-    case "multiple_choice":
-    case "checkbox":
+    case 'multiple_choice':
+    case 'checkbox':
       return <ChoiceQuestion q={q} />;
-    case "open_text":
+    case 'open_text':
       return <OpenTextQuestion q={q} />;
-    case "matrix":
+    case 'matrix':
       return <MatrixQuestion q={q} />;
     default:
       return (
@@ -495,11 +483,11 @@ function QuestionSection({ q }: { q: QuestionResult }) {
 
 function AiSummarySection({ summary }: { summary: AiSummary }) {
   const sections: { title: string; items: string[] }[] = [
-    { title: "Key Findings", items: summary.key_findings },
-    { title: "Strengths", items: summary.strengths },
-    { title: "Areas for Improvement", items: summary.areas_for_improvement },
-    { title: "Notable Comments", items: summary.notable_comments },
-    { title: "Recommended Actions", items: summary.recommended_actions },
+    { title: 'Key Findings', items: summary.key_findings },
+    { title: 'Strengths', items: summary.strengths },
+    { title: 'Areas for Improvement', items: summary.areas_for_improvement },
+    { title: 'Notable Comments', items: summary.notable_comments },
+    { title: 'Recommended Actions', items: summary.recommended_actions },
   ];
 
   return (
@@ -531,12 +519,8 @@ export function SurveyPdfDocument(data: PdfData) {
       <Page size="LETTER" style={styles.coverPage}>
         <View style={styles.coverAccent} />
         <Text style={styles.coverTitle}>{data.surveyTitle}</Text>
-        {data.processName && (
-          <Text style={styles.coverSubtitle}>{data.processName}</Text>
-        )}
-        <Text style={styles.coverMeta}>
-          Round {data.waveNumber} Results Report
-        </Text>
+        {data.processName && <Text style={styles.coverSubtitle}>{data.processName}</Text>}
+        <Text style={styles.coverMeta}>Round {data.waveNumber} Results Report</Text>
         <Text style={styles.coverMeta}>{formatDate(data.closedAt)}</Text>
         <View style={styles.coverStats}>
           <View style={styles.coverStat}>
@@ -548,9 +532,7 @@ export function SurveyPdfDocument(data: PdfData) {
             <Text style={styles.coverStatLabel}>Questions</Text>
           </View>
           <View style={styles.coverStat}>
-            <Text style={styles.coverStatValue}>
-              Round {data.waveNumber}
-            </Text>
+            <Text style={styles.coverStatValue}>Round {data.waveNumber}</Text>
             <Text style={styles.coverStatLabel}>Wave</Text>
           </View>
         </View>
@@ -571,12 +553,10 @@ export function SurveyPdfDocument(data: PdfData) {
         {data.summary && <AiSummarySection summary={data.summary} />}
 
         <View style={styles.footer} fixed>
-          <Text>{data.surveyTitle} — Round {data.waveNumber}</Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} of ${totalPages}`
-            }
-          />
+          <Text>
+            {data.surveyTitle} — Round {data.waveNumber}
+          </Text>
+          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>
     </Document>

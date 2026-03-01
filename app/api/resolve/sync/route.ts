@@ -1,6 +1,6 @@
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { createClient } from "@supabase/supabase-js";
-import { NextRequest, NextResponse } from "next/server";
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from 'next/server';
 
 function createResolveClient() {
   return createClient(
@@ -22,23 +22,23 @@ type ComputedMetrics = {
 
 async function computeMetrics(month: string): Promise<ComputedMetrics> {
   const resolve = createResolveClient();
-  const [year, mon] = month.split("-").map(Number);
+  const [year, mon] = month.split('-').map(Number);
   const start = new Date(year, mon - 1, 1).toISOString();
   const end = new Date(year, mon, 1).toISOString();
 
   // Tickets created this month, with department name
   const { data: tickets } = await resolve
-    .from("tickets")
-    .select("id, created_at, resolved_at, departments(name)")
-    .gte("created_at", start)
-    .lt("created_at", end);
+    .from('tickets')
+    .select('id, created_at, resolved_at, departments(name)')
+    .gte('created_at', start)
+    .lt('created_at', end);
 
   const allTickets = tickets || [];
   const techTickets = allTickets.filter(
-    (t) => (t.departments as unknown as { name: string } | null)?.name === "Technology"
+    (t) => (t.departments as unknown as { name: string } | null)?.name === 'Technology'
   );
   const hrTickets = allTickets.filter(
-    (t) => (t.departments as unknown as { name: string } | null)?.name === "Human Resources"
+    (t) => (t.departments as unknown as { name: string } | null)?.name === 'Human Resources'
   );
 
   // Average resolution time (hours) for resolved tickets in this cohort
@@ -47,8 +47,7 @@ async function computeMetrics(month: string): Promise<ComputedMetrics> {
     if (!resolved.length) return null;
     const total = resolved.reduce(
       (sum, t) =>
-        sum +
-        (new Date(t.resolved_at!).getTime() - new Date(t.created_at).getTime()) / 3600000,
+        sum + (new Date(t.resolved_at!).getTime() - new Date(t.created_at).getTime()) / 3600000,
       0
     );
     return Math.round((total / resolved.length) * 10) / 10;
@@ -66,9 +65,9 @@ async function computeMetrics(month: string): Promise<ComputedMetrics> {
 
   if (allTicketIds.length > 0) {
     const { data: sentiment } = await resolve
-      .from("sentiment_responses")
-      .select("rating, ticket_id")
-      .in("ticket_id", allTicketIds);
+      .from('sentiment_responses')
+      .select('rating, ticket_id')
+      .in('ticket_id', allTicketIds);
 
     const allSentiment = sentiment || [];
     const techSentiment = allSentiment.filter((s) => techTicketIds.has(s.ticket_id));
@@ -85,9 +84,8 @@ async function computeMetrics(month: string): Promise<ComputedMetrics> {
     }
     if (hrSentiment.length > 0) {
       hrSatisfaction =
-        Math.round(
-          (hrSentiment.reduce((sum, s) => sum + s.rating, 0) / hrSentiment.length) * 10
-        ) / 10;
+        Math.round((hrSentiment.reduce((sum, s) => sum + s.rating, 0) / hrSentiment.length) * 10) /
+        10;
     }
   }
 
@@ -109,11 +107,11 @@ export async function GET(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const month = request.nextUrl.searchParams.get("month");
+  const month = request.nextUrl.searchParams.get('month');
   if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-    return NextResponse.json({ error: "Invalid month — use YYYY-MM" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid month — use YYYY-MM' }, { status: 400 });
   }
 
   const metrics = await computeMetrics(month);
@@ -126,12 +124,12 @@ export async function POST(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
   const { month } = body as { month: string };
   if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-    return NextResponse.json({ error: "Invalid month — use YYYY-MM" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid month — use YYYY-MM' }, { status: 400 });
   }
 
   const computed = await computeMetrics(month);
@@ -139,18 +137,18 @@ export async function POST(request: NextRequest) {
 
   // Look up Hub metric IDs by name
   const { data: metricRows } = await supabase
-    .from("metrics")
-    .select("id, name")
-    .in("name", [
-      "Technology Support: Avg Resolution Time",
-      "Technology Support: Customer Satisfaction",
-      "HR Support: Avg Resolution Time",
-      "HR Support: Customer Satisfaction",
+    .from('metrics')
+    .select('id, name')
+    .in('name', [
+      'Technology Support: Avg Resolution Time',
+      'Technology Support: Customer Satisfaction',
+      'HR Support: Avg Resolution Time',
+      'HR Support: Customer Satisfaction',
     ]);
 
   if (!metricRows?.length) {
     return NextResponse.json(
-      { error: "Metrics not found in Hub — run the migration first." },
+      { error: 'Metrics not found in Hub — run the migration first.' },
       { status: 500 }
     );
   }
@@ -160,24 +158,24 @@ export async function POST(request: NextRequest) {
   // Build entries, skip any where we have no data
   const candidates = [
     {
-      metric_id: byName["Technology Support: Avg Resolution Time"],
+      metric_id: byName['Technology Support: Avg Resolution Time'],
       value: computed.techAvgResolution,
       note_analysis: `Avg resolution time across ${computed.techTicketCount} Technology tickets opened in ${month}`,
     },
     {
-      metric_id: byName["Technology Support: Customer Satisfaction"],
+      metric_id: byName['Technology Support: Customer Satisfaction'],
       value: computed.techSatisfaction,
-      note_analysis: `Avg satisfaction from ${computed.techSentimentCount} survey response${computed.techSentimentCount !== 1 ? "s" : ""} on Technology tickets in ${month}`,
+      note_analysis: `Avg satisfaction from ${computed.techSentimentCount} survey response${computed.techSentimentCount !== 1 ? 's' : ''} on Technology tickets in ${month}`,
     },
     {
-      metric_id: byName["HR Support: Avg Resolution Time"],
+      metric_id: byName['HR Support: Avg Resolution Time'],
       value: computed.hrAvgResolution,
       note_analysis: `Avg resolution time across ${computed.hrTicketCount} HR tickets opened in ${month}`,
     },
     {
-      metric_id: byName["HR Support: Customer Satisfaction"],
+      metric_id: byName['HR Support: Customer Satisfaction'],
       value: computed.hrSatisfaction,
-      note_analysis: `Avg satisfaction from ${computed.hrSentimentCount} survey response${computed.hrSentimentCount !== 1 ? "s" : ""} on HR tickets in ${month}`,
+      note_analysis: `Avg satisfaction from ${computed.hrSentimentCount} survey response${computed.hrSentimentCount !== 1 ? 's' : ''} on HR tickets in ${month}`,
     },
   ].filter((e) => e.metric_id != null && e.value != null) as {
     metric_id: number;
@@ -186,14 +184,14 @@ export async function POST(request: NextRequest) {
   }[];
 
   if (!candidates.length) {
-    return NextResponse.json({ message: "No data to sync for this month", synced: 0 });
+    return NextResponse.json({ message: 'No data to sync for this month', synced: 0 });
   }
 
   // Delete any existing entries for these metrics on this date, then insert fresh
   const metricIds = candidates.map((e) => e.metric_id);
-  await supabase.from("entries").delete().in("metric_id", metricIds).eq("date", entryDate);
+  await supabase.from('entries').delete().in('metric_id', metricIds).eq('date', entryDate);
 
-  const { error } = await supabase.from("entries").insert(
+  const { error } = await supabase.from('entries').insert(
     candidates.map((e) => ({
       metric_id: e.metric_id,
       value: e.value,
@@ -204,5 +202,5 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ message: "Synced", synced: candidates.length, month });
+  return NextResponse.json({ message: 'Synced', synced: candidates.length, month });
 }

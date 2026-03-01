@@ -1,20 +1,41 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { PDCA_SECTIONS } from "@/lib/pdca";
-import type { PdcaSection } from "@/lib/types";
-import { FIELD_LABELS, type CoachSuggestion } from "@/lib/ai-parsers";
+import { useState } from 'react';
+import { PDCA_SECTIONS } from '@/lib/pdca';
+import type { PdcaSection } from '@/lib/types';
+import { FIELD_LABELS, type CoachSuggestion } from '@/lib/ai-parsers';
 
-const PRIORITY_STYLES: Record<string, { bg: string; text: string; label: string; border: string; cardBg: string }> = {
-  "quick-win": { bg: "bg-nia-green/15", text: "text-nia-green", label: "Quick Win", border: "#b1bd37", cardBg: "rgba(177,189,55,0.04)" },
-  "important": { bg: "bg-nia-orange/15", text: "text-nia-orange", label: "Important", border: "#f79935", cardBg: "rgba(247,153,53,0.04)" },
-  "long-term": { bg: "bg-nia-grey-blue/15", text: "text-nia-grey-blue", label: "Long-term", border: "#55787c", cardBg: "rgba(85,120,124,0.04)" },
+const PRIORITY_STYLES: Record<
+  string,
+  { bg: string; text: string; label: string; border: string; cardBg: string }
+> = {
+  'quick-win': {
+    bg: 'bg-nia-green/15',
+    text: 'text-nia-green',
+    label: 'Quick Win',
+    border: '#b1bd37',
+    cardBg: 'rgba(177,189,55,0.04)',
+  },
+  important: {
+    bg: 'bg-nia-orange/15',
+    text: 'text-nia-orange',
+    label: 'Important',
+    border: '#f79935',
+    cardBg: 'rgba(247,153,53,0.04)',
+  },
+  'long-term': {
+    bg: 'bg-nia-grey-blue/15',
+    text: 'text-nia-grey-blue',
+    label: 'Long-term',
+    border: '#55787c',
+    cardBg: 'rgba(85,120,124,0.04)',
+  },
 };
 
 const EFFORT_LABELS: Record<string, string> = {
-  minimal: "< 30 min",
-  moderate: "1-2 hours",
-  substantial: "Half day+",
+  minimal: '< 30 min',
+  moderate: '1-2 hours',
+  substantial: 'Half day+',
 };
 
 export default function CoachSuggestionCard({
@@ -29,33 +50,50 @@ export default function CoachSuggestionCard({
   isApplying: boolean;
 }) {
   const [showPreview, setShowPreview] = useState(false);
-  const priority = PRIORITY_STYLES[suggestion.priority] || PRIORITY_STYLES["important"];
+  const priority = PRIORITY_STYLES[suggestion.priority] || PRIORITY_STYLES['important'];
   const fieldLabel = FIELD_LABELS[suggestion.field] || suggestion.field;
   const effortLabel = EFFORT_LABELS[suggestion.effort] || suggestion.effort;
 
   // Build preview entries from content
   const previewEntries: { label: string; text: string }[] = [];
-  if (typeof suggestion.content === "object") {
+  if (typeof suggestion.content === 'object') {
     for (const [key, value] of Object.entries(suggestion.content)) {
       previewEntries.push({ label: FIELD_LABELS[key] || key, text: value });
     }
-  } else if (typeof suggestion.content === "string") {
+  } else if (typeof suggestion.content === 'string') {
     previewEntries.push({ label: fieldLabel, text: suggestion.content });
   }
 
   return (
     <div
       className="rounded-lg shadow-sm overflow-hidden border-l-4"
-      style={{ borderLeftColor: priority.border, backgroundColor: priority.cardBg, borderTop: "1px solid var(--border)", borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
+      style={{
+        borderLeftColor: priority.border,
+        backgroundColor: priority.cardBg,
+        borderTop: '1px solid var(--border)',
+        borderRight: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)',
+      }}
     >
       {/* Header with badges */}
       <div className="px-3 py-2.5 border-b border-border-light">
         <div className="flex items-center gap-2 mb-1.5">
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${priority.bg} ${priority.text}`}>
+          <span
+            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${priority.bg} ${priority.text}`}
+          >
             {priority.label}
           </span>
           <span className="text-xs text-text-muted flex items-center gap-1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
@@ -71,10 +109,13 @@ export default function CoachSuggestionCard({
         <p className="text-xs text-text-secondary italic">{suggestion.whyMatters}</p>
         <p className="text-xs text-text-tertiary">{suggestion.preview}</p>
         {/* Show affected fields for cleanup suggestions */}
-        {suggestion.field === "charter_cleanup" && typeof suggestion.content === "object" && (
+        {suggestion.field === 'charter_cleanup' && typeof suggestion.content === 'object' && (
           <div className="flex flex-wrap gap-1 mt-1">
             {Object.keys(suggestion.content).map((key) => (
-              <span key={key} className="text-[10px] px-1.5 py-0.5 rounded bg-nia-grey-blue/10 text-nia-grey-blue font-medium">
+              <span
+                key={key}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-nia-grey-blue/10 text-nia-grey-blue font-medium"
+              >
                 {FIELD_LABELS[key] || key}
               </span>
             ))}
@@ -89,10 +130,17 @@ export default function CoachSuggestionCard({
             onClick={() => setShowPreview(!showPreview)}
             className="w-full px-3 py-2 flex items-center justify-between text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
           >
-            <span>{showPreview ? "Hide Preview" : "Preview Changes"}</span>
+            <span>{showPreview ? 'Hide Preview' : 'Preview Changes'}</span>
             <svg
-              width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              className={`transition-transform ${showPreview ? "rotate-180" : ""}`}
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`transition-transform ${showPreview ? 'rotate-180' : ''}`}
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>
@@ -101,9 +149,11 @@ export default function CoachSuggestionCard({
             <div className="px-3 pb-3 space-y-3">
               {previewEntries.map(({ label, text }) => (
                 <div key={label}>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">{label}</p>
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                    {label}
+                  </p>
                   <div className="text-xs text-text-secondary bg-card rounded border border-border p-2 max-h-48 overflow-y-auto whitespace-pre-wrap">
-                    {text.length > 800 ? text.slice(0, 800) + "\n\n..." : text}
+                    {text.length > 800 ? text.slice(0, 800) + '\n\n...' : text}
                   </div>
                 </div>
               ))}
@@ -125,7 +175,7 @@ export default function CoachSuggestionCard({
                 <div key={idx} className="flex items-start gap-1.5">
                   <span
                     className="text-[10px] font-bold px-1.5 py-0.5 rounded mt-0.5 flex-shrink-0 text-white"
-                    style={{ backgroundColor: section?.color || "#6b7280" }}
+                    style={{ backgroundColor: section?.color || '#6b7280' }}
                   >
                     {section?.label || task.pdcaSection}
                   </span>
@@ -144,9 +194,11 @@ export default function CoachSuggestionCard({
           disabled={isApplying}
           className="text-xs bg-nia-dark-solid text-white rounded px-3 py-1.5 font-medium hover:bg-nia-grey-blue disabled:opacity-50 transition-colors"
         >
-          {isApplying ? "Applying..." : suggestion.field === "charter_cleanup"
-            ? `Clean Up${typeof suggestion.content === "object" ? ` ${Object.keys(suggestion.content).length} Sections` : ""}`
-            : `Apply${suggestion.tasks?.length ? ` + Queue ${suggestion.tasks.length} Task${suggestion.tasks.length !== 1 ? "s" : ""}` : ""}`}
+          {isApplying
+            ? 'Applying...'
+            : suggestion.field === 'charter_cleanup'
+              ? `Clean Up${typeof suggestion.content === 'object' ? ` ${Object.keys(suggestion.content).length} Sections` : ''}`
+              : `Apply${suggestion.tasks?.length ? ` + Queue ${suggestion.tasks.length} Task${suggestion.tasks.length !== 1 ? 's' : ''}` : ''}`}
         </button>
         <button
           onClick={onTellMore}

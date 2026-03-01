@@ -1,5 +1,5 @@
-import { memo } from "react";
-import { getMaturityLevel } from "@/lib/colors";
+import { memo } from 'react';
+import { getMaturityLevel } from '@/lib/colors';
 
 export const DimBar = memo(function DimBar({ label, score }: { label: string; score: number }) {
   const level = getMaturityLevel(score);

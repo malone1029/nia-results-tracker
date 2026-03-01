@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
 
 // DELETE — cancel/delete a scheduled wave
 export async function DELETE(
@@ -11,28 +11,25 @@ export async function DELETE(
 
   // Only allow deleting scheduled waves (not open/closed ones)
   const { data: wave } = await supabase
-    .from("survey_waves")
-    .select("status")
-    .eq("id", Number(waveId))
-    .eq("survey_id", Number(id))
+    .from('survey_waves')
+    .select('status')
+    .eq('id', Number(waveId))
+    .eq('survey_id', Number(id))
     .single();
 
   if (!wave) {
-    return NextResponse.json({ error: "Wave not found" }, { status: 404 });
+    return NextResponse.json({ error: 'Wave not found' }, { status: 404 });
   }
 
-  if (wave.status !== "scheduled") {
-    return NextResponse.json(
-      { error: "Only scheduled waves can be cancelled" },
-      { status: 400 }
-    );
+  if (wave.status !== 'scheduled') {
+    return NextResponse.json({ error: 'Only scheduled waves can be cancelled' }, { status: 400 });
   }
 
   const { error } = await supabase
-    .from("survey_waves")
+    .from('survey_waves')
     .delete()
-    .eq("id", Number(waveId))
-    .eq("survey_id", Number(id));
+    .eq('id', Number(waveId))
+    .eq('survey_id', Number(id));
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

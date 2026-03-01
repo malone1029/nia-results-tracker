@@ -1,11 +1,11 @@
-import Link from "next/link";
-import { Card, Badge } from "@/components/ui";
-import EmptyState from "@/components/empty-state";
-import type { ActionItem } from "./types";
+import Link from 'next/link';
+import { Card, Badge } from '@/components/ui';
+import EmptyState from '@/components/empty-state';
+import type { ActionItem } from './types';
 
-const ACTION_BADGE: Record<string, { color: "red" | "orange"; label: string }> = {
-  overdue: { color: "red", label: "overdue" },
-  "due-soon": { color: "orange", label: "due soon" },
+const ACTION_BADGE: Record<string, { color: 'red' | 'orange'; label: string }> = {
+  overdue: { color: 'red', label: 'overdue' },
+  'due-soon': { color: 'orange', label: 'due soon' },
 };
 
 /* ─── Metric Action Items ──────────────────────────────────── */
@@ -34,14 +34,14 @@ export function MetricActionItems({ items }: { items: ActionItem[] }) {
                 className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-surface-hover transition-colors group"
               >
                 <div
-                  className={`w-2 h-2 rounded-full flex-shrink-0 ${item.type === "overdue" ? "overdue-pulse" : ""}`}
+                  className={`w-2 h-2 rounded-full flex-shrink-0 ${item.type === 'overdue' ? 'overdue-pulse' : ''}`}
                   style={{
                     backgroundColor:
-                      item.type === "overdue"
-                        ? "#dc2626"
-                        : item.type === "due-soon"
-                          ? "#f79935"
-                          : "var(--text-muted)",
+                      item.type === 'overdue'
+                        ? '#dc2626'
+                        : item.type === 'due-soon'
+                          ? '#f79935'
+                          : 'var(--text-muted)',
                   }}
                 />
                 <span className="text-sm text-nia-dark group-hover:text-nia-orange transition-colors truncate">
@@ -63,9 +63,7 @@ export function MetricActionItems({ items }: { items: ActionItem[] }) {
             );
           })}
           {items.length > 8 && (
-            <p className="text-xs text-text-muted px-2 pt-1">
-              +{items.length - 8} more
-            </p>
+            <p className="text-xs text-text-muted px-2 pt-1">+{items.length - 8} more</p>
           )}
         </div>
       )}
@@ -87,7 +85,7 @@ export function NextActions({
   return (
     <Card padding="md">
       <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider mb-3">
-        {isAllOwners ? "Top Actions for Readiness" : "My Next Actions"}
+        {isAllOwners ? 'Top Actions for Readiness' : 'My Next Actions'}
       </h2>
       <div className="space-y-2">
         {actions.map((action, i) => (
@@ -95,14 +93,17 @@ export function NextActions({
             <span className="text-nia-orange font-bold text-sm mt-px">{i + 1}.</span>
             <div className="flex-1 min-w-0">
               {action.href ? (
-                <Link href={action.href} className="text-sm text-nia-dark hover:text-nia-orange transition-colors">
+                <Link
+                  href={action.href}
+                  className="text-sm text-nia-dark hover:text-nia-orange transition-colors"
+                >
                   {action.label}
                 </Link>
               ) : (
                 <span className="text-sm text-nia-dark">{action.label}</span>
               )}
               <div className="text-xs text-text-muted mt-0.5">
-                +{action.points} pts{action.count > 1 ? ` across ${action.count} processes` : ""}
+                +{action.points} pts{action.count > 1 ? ` across ${action.count} processes` : ''}
               </div>
             </div>
           </div>

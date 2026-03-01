@@ -1,11 +1,11 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  const code = searchParams.get('code');
+  const next = searchParams.get('next') ?? '/';
 
   if (code) {
     const cookieStore = await cookies();
@@ -34,13 +34,13 @@ export async function GET(request: Request) {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (user?.email?.endsWith("@thenia.org")) {
+      if (user?.email?.endsWith('@thenia.org')) {
         // Auto-register: upsert into user_roles on every login
         // First login → creates row with role='member' (DB default)
         // Subsequent logins → updates full_name and last_login_at only
-        const fullName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Unknown";
+        const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown';
         await supabase
-          .from("user_roles")
+          .from('user_roles')
           .upsert(
             {
               auth_id: user.id,
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
               full_name: fullName,
               last_login_at: new Date().toISOString(),
             },
-            { onConflict: "auth_id", ignoreDuplicates: false }
+            { onConflict: 'auth_id', ignoreDuplicates: false }
           )
           // Only update name and login time — never reset role
           .select();

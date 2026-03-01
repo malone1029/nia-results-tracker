@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 interface FeedbackModalProps {
   open: boolean;
@@ -9,57 +9,75 @@ interface FeedbackModalProps {
 }
 
 const TYPES = [
-  { value: "bug", label: "Bug", emoji: "🐛", color: "bg-red-500/15 text-red-600 border-red-500/20" },
-  { value: "idea", label: "Idea", emoji: "💡", color: "bg-nia-orange/15 text-nia-orange border-nia-orange/20" },
-  { value: "question", label: "Question", emoji: "❓", color: "bg-nia-grey-blue/15 text-nia-grey-blue border-nia-grey-blue/20" },
+  {
+    value: 'bug',
+    label: 'Bug',
+    emoji: '🐛',
+    color: 'bg-red-500/15 text-red-600 border-red-500/20',
+  },
+  {
+    value: 'idea',
+    label: 'Idea',
+    emoji: '💡',
+    color: 'bg-nia-orange/15 text-nia-orange border-nia-orange/20',
+  },
+  {
+    value: 'question',
+    label: 'Question',
+    emoji: '❓',
+    color: 'bg-nia-grey-blue/15 text-nia-grey-blue border-nia-grey-blue/20',
+  },
 ] as const;
 
 export default function FeedbackModal({ open, onClose, onSuccess }: FeedbackModalProps) {
-  const [type, setType] = useState<string>("idea");
-  const [description, setDescription] = useState("");
+  const [type, setType] = useState<string>('idea');
+  const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   if (!open) return null;
 
-  const pageUrl = typeof window !== "undefined" ? window.location.pathname : "";
+  const pageUrl = typeof window !== 'undefined' ? window.location.pathname : '';
 
   async function handleSubmit() {
     if (!description.trim() || description.trim().length < 10) {
-      setError("Please write at least 10 characters.");
+      setError('Please write at least 10 characters.');
       return;
     }
-    setError("");
+    setError('');
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, description: description.trim(), page_url: pageUrl }),
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to submit");
+        throw new Error(data.error || 'Failed to submit');
       }
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
-        setDescription("");
-        setType("idea");
+        setDescription('');
+        setType('idea');
         onClose();
         onSuccess?.();
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
       <div
         className="bg-card rounded-xl shadow-xl w-full max-w-md mx-4"
         onClick={(e) => e.stopPropagation()}
@@ -67,9 +85,17 @@ export default function FeedbackModal({ open, onClose, onSuccess }: FeedbackModa
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
           <h2 className="font-semibold text-foreground">Send Feedback</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-foreground transition-colors">
+          <button
+            onClick={onClose}
+            className="text-text-muted hover:text-foreground transition-colors"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -95,7 +121,7 @@ export default function FeedbackModal({ open, onClose, onSuccess }: FeedbackModa
                       className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
                         type === t.value
                           ? t.color
-                          : "bg-surface-muted text-text-muted border-border-light hover:border-border"
+                          : 'bg-surface-muted text-text-muted border-border-light hover:border-border'
                       }`}
                     >
                       <span>{t.emoji}</span>
@@ -107,16 +133,18 @@ export default function FeedbackModal({ open, onClose, onSuccess }: FeedbackModa
 
               {/* Description */}
               <div>
-                <label className="text-sm font-medium text-text-secondary mb-2 block">Description</label>
+                <label className="text-sm font-medium text-text-secondary mb-2 block">
+                  Description
+                </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder={
-                    type === "bug"
-                      ? "What went wrong? What were you trying to do?"
-                      : type === "idea"
-                      ? "What would make the Hub better?"
-                      : "What are you trying to figure out?"
+                    type === 'bug'
+                      ? 'What went wrong? What were you trying to do?'
+                      : type === 'idea'
+                        ? 'What would make the Hub better?'
+                        : 'What are you trying to figure out?'
                   }
                   rows={4}
                   className="w-full rounded-lg border border-border-light bg-surface-muted px-3 py-2 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30 resize-none"
@@ -125,13 +153,11 @@ export default function FeedbackModal({ open, onClose, onSuccess }: FeedbackModa
 
               {/* Page URL */}
               <p className="text-xs text-text-muted">
-                Submitted from: <span className="font-mono">{pageUrl || "/"}</span>
+                Submitted from: <span className="font-mono">{pageUrl || '/'}</span>
               </p>
 
               {/* Error */}
-              {error && (
-                <p className="text-sm text-red-500">{error}</p>
-              )}
+              {error && <p className="text-sm text-red-500">{error}</p>}
             </>
           )}
         </div>
@@ -150,7 +176,7 @@ export default function FeedbackModal({ open, onClose, onSuccess }: FeedbackModa
               disabled={submitting || !description.trim()}
               className="px-4 py-2 bg-nia-dark-solid text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {submitting ? "Sending..." : "Submit"}
+              {submitting ? 'Sending...' : 'Submit'}
             </button>
           </div>
         )}

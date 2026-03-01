@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isSuperAdminRole } from "@/lib/auth-helpers";
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isSuperAdminRole } from '@/lib/auth-helpers';
 
 interface ProxySession {
   adminId: string;
@@ -13,7 +13,7 @@ interface ProxySession {
 
 async function getProxySession(): Promise<ProxySession | null> {
   const cookieStore = await cookies();
-  const raw = cookieStore.get("hub_proxy_session")?.value;
+  const raw = cookieStore.get('hub_proxy_session')?.value;
   if (!raw) return null;
   try {
     return JSON.parse(raw) as ProxySession;
@@ -52,45 +52,42 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   // Caller must be super_admin
   const { data: callerRow } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
 
-  if (!isSuperAdminRole(callerRow?.role || "")) {
-    return NextResponse.json({ error: "Super admin access required" }, { status: 403 });
+  if (!isSuperAdminRole(callerRow?.role || '')) {
+    return NextResponse.json({ error: 'Super admin access required' }, { status: 403 });
   }
 
   const body = await request.json();
   const { targetAuthId } = body;
 
   if (!targetAuthId) {
-    return NextResponse.json({ error: "targetAuthId required" }, { status: 400 });
+    return NextResponse.json({ error: 'targetAuthId required' }, { status: 400 });
   }
   if (targetAuthId === user.id) {
-    return NextResponse.json({ error: "Cannot proxy as yourself" }, { status: 400 });
+    return NextResponse.json({ error: 'Cannot proxy as yourself' }, { status: 400 });
   }
 
   // Get target user info
   const { data: targetRow } = await supabase
-    .from("user_roles")
-    .select("role, full_name, email")
-    .eq("auth_id", targetAuthId)
+    .from('user_roles')
+    .select('role, full_name, email')
+    .eq('auth_id', targetAuthId)
     .single();
 
   if (!targetRow) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
   if (isSuperAdminRole(targetRow.role)) {
-    return NextResponse.json(
-      { error: "Cannot proxy as another super admin" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Cannot proxy as another super admin' }, { status: 400 });
   }
 
   const session: ProxySession = {
@@ -102,11 +99,11 @@ export async function POST(request: Request) {
   };
 
   const cookieStore = await cookies();
-  cookieStore.set("hub_proxy_session", JSON.stringify(session), {
+  cookieStore.set('hub_proxy_session', JSON.stringify(session), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
     maxAge: 60 * 60 * 4, // 4 hours
   });
 
@@ -116,6 +113,6 @@ export async function POST(request: Request) {
 /** DELETE — end the proxy session */
 export async function DELETE() {
   const cookieStore = await cookies();
-  cookieStore.delete("hub_proxy_session");
+  cookieStore.delete('hub_proxy_session');
   return NextResponse.json({ success: true });
 }

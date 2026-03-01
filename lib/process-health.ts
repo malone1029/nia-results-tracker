@@ -83,10 +83,10 @@ export interface HealthImprovementInput {
 
 // Health levels
 export function getHealthLevel(score: number): HealthLevel {
-  if (score >= 80) return { label: "Baldrige Ready", color: "#b1bd37" };
-  if (score >= 60) return { label: "On Track", color: "#55787c" };
-  if (score >= 40) return { label: "Developing", color: "#f79935" };
-  return { label: "Getting Started", color: "#dc2626" };
+  if (score >= 80) return { label: 'Baldrige Ready', color: '#b1bd37' };
+  if (score >= 60) return { label: 'On Track', color: '#55787c' };
+  if (score >= 40) return { label: 'Developing', color: '#f79935' };
+  return { label: 'Getting Started', color: '#dc2626' };
 }
 
 // Calculate days since a date
@@ -101,10 +101,14 @@ function daysSince(dateStr: string): number {
 function hasContent(field: Record<string, unknown> | null): boolean {
   if (!field) return false;
   // Check for 'content' key with non-empty string (the markdown narrative)
-  if (typeof field.content === "string" && field.content.trim().length > 0) return true;
+  if (typeof field.content === 'string' && field.content.trim().length > 0) return true;
   // Fallback: check if any key has a non-null, non-empty value
   return Object.values(field).some(
-    (v) => v !== null && v !== undefined && v !== "" && (typeof v !== "object" || (Array.isArray(v) && v.length > 0))
+    (v) =>
+      v !== null &&
+      v !== undefined &&
+      v !== '' &&
+      (typeof v !== 'object' || (Array.isArray(v) && v.length > 0))
   );
 }
 
@@ -118,13 +122,13 @@ export function calculateHealthScore(
   // ── Documentation (0-25) ──────────────────────────────
   const docDetails: HealthDimensionDetail[] = [];
   const charterPts = hasContent(process.charter) ? 5 : 0;
-  docDetails.push({ label: "Charter", earned: charterPts, possible: 5 });
+  docDetails.push({ label: 'Charter', earned: charterPts, possible: 5 });
 
   const adliFields = [
-    { key: "adli_approach", label: "Approach" },
-    { key: "adli_deployment", label: "Deployment" },
-    { key: "adli_learning", label: "Learning" },
-    { key: "adli_integration", label: "Integration" },
+    { key: 'adli_approach', label: 'Approach' },
+    { key: 'adli_deployment', label: 'Deployment' },
+    { key: 'adli_learning', label: 'Learning' },
+    { key: 'adli_integration', label: 'Integration' },
   ] as const;
 
   for (const f of adliFields) {
@@ -134,19 +138,19 @@ export function calculateHealthScore(
   }
 
   const workflowPts = hasContent(process.workflow) ? 2 : 0;
-  docDetails.push({ label: "Workflow", earned: workflowPts, possible: 2 });
+  docDetails.push({ label: 'Workflow', earned: workflowPts, possible: 2 });
 
   const baldrigePts = process.baldrige_mapping_count > 0 ? 2 : 0;
-  docDetails.push({ label: "Baldrige Connections", earned: baldrigePts, possible: 2 });
+  docDetails.push({ label: 'Baldrige Connections', earned: baldrigePts, possible: 2 });
 
   const docScore = docDetails.reduce((sum, d) => sum + d.earned, 0);
 
   // ── Maturity (0-20) ───────────────────────────────────
   const matDetails: HealthDimensionDetail[] = [];
   const overallScore = scores?.overall_score ?? null;
-  const matPts = overallScore !== null ? Math.round(overallScore * 0.20) : 0;
+  const matPts = overallScore !== null ? Math.round(overallScore * 0.2) : 0;
   matDetails.push({
-    label: overallScore !== null ? `ADLI Score: ${overallScore}%` : "No ADLI assessment",
+    label: overallScore !== null ? `ADLI Score: ${overallScore}%` : 'No ADLI assessment',
     earned: matPts,
     possible: 20,
   });
@@ -160,21 +164,25 @@ export function calculateHealthScore(
   const hasGoodLetci = metrics.some((m) => m.letci_score >= 3);
   const hasComparison = metrics.some((m) => m.has_comparison);
 
-  measDetails.push({ label: "Has linked metrics", earned: hasMetrics ? 5 : 0, possible: 5 });
-  measDetails.push({ label: "3+ linked metrics", earned: hasMany ? 3 : 0, possible: 3 });
-  measDetails.push({ label: "Metrics have recent data", earned: hasRecentData ? 4 : 0, possible: 4 });
-  measDetails.push({ label: "LeTCI score 3+", earned: hasGoodLetci ? 4 : 0, possible: 4 });
-  measDetails.push({ label: "Comparison value set", earned: hasComparison ? 4 : 0, possible: 4 });
+  measDetails.push({ label: 'Has linked metrics', earned: hasMetrics ? 5 : 0, possible: 5 });
+  measDetails.push({ label: '3+ linked metrics', earned: hasMany ? 3 : 0, possible: 3 });
+  measDetails.push({
+    label: 'Metrics have recent data',
+    earned: hasRecentData ? 4 : 0,
+    possible: 4,
+  });
+  measDetails.push({ label: 'LeTCI score 3+', earned: hasGoodLetci ? 4 : 0, possible: 4 });
+  measDetails.push({ label: 'Comparison value set', earned: hasComparison ? 4 : 0, possible: 4 });
 
   const measScore = measDetails.reduce((sum, d) => sum + d.earned, 0);
 
   // ── Operations (0-20) ─────────────────────────────────
   const opsDetails: HealthDimensionDetail[] = [];
   const asanaLinked = !!process.asana_project_gid;
-  const isApproved = process.status === "approved";
+  const isApproved = process.status === 'approved';
 
-  opsDetails.push({ label: "Linked to Asana", earned: asanaLinked ? 3 : 0, possible: 3 });
-  opsDetails.push({ label: "Status: Approved", earned: isApproved ? 2 : 0, possible: 2 });
+  opsDetails.push({ label: 'Linked to Asana', earned: asanaLinked ? 3 : 0, possible: 3 });
+  opsDetails.push({ label: 'Status: Approved', earned: isApproved ? 2 : 0, possible: 2 });
 
   // Task execution quality (only scored when tasks exist)
   const totalActive = tasks.total_active_tasks;
@@ -215,18 +223,19 @@ export function calculateHealthScore(
       overduePts = overdueRate < 0.25 ? 2 : overdueRate < 0.5 ? 1 : 0;
     }
     opsDetails.push({
-      label: tasks.overdue_count === 0
-        ? "No overdue tasks"
-        : `${tasks.overdue_count} overdue task${tasks.overdue_count !== 1 ? "s" : ""}`,
+      label:
+        tasks.overdue_count === 0
+          ? 'No overdue tasks'
+          : `${tasks.overdue_count} overdue task${tasks.overdue_count !== 1 ? 's' : ''}`,
       earned: overduePts,
       possible: 3,
     });
   } else {
     // No tasks yet — show what's possible
-    opsDetails.push({ label: "Tasks with assignees", earned: 0, possible: 4 });
-    opsDetails.push({ label: "Tasks with due dates", earned: 0, possible: 4 });
-    opsDetails.push({ label: "Task completion", earned: 0, possible: 4 });
-    opsDetails.push({ label: "No overdue tasks", earned: 0, possible: 3 });
+    opsDetails.push({ label: 'Tasks with assignees', earned: 0, possible: 4 });
+    opsDetails.push({ label: 'Tasks with due dates', earned: 0, possible: 4 });
+    opsDetails.push({ label: 'Task completion', earned: 0, possible: 4 });
+    opsDetails.push({ label: 'No overdue tasks', earned: 0, possible: 3 });
   }
 
   const opsScore = opsDetails.reduce((sum, d) => sum + d.earned, 0);
@@ -241,10 +250,10 @@ export function calculateHealthScore(
 
   const days = daysSince(mostRecentDate);
   let freshPts = 0;
-  let freshLabel = "";
+  let freshLabel = '';
   if (days <= 30) {
     freshPts = 15;
-    freshLabel = `Updated ${days} day${days !== 1 ? "s" : ""} ago`;
+    freshLabel = `Updated ${days} day${days !== 1 ? 's' : ''} ago`;
   } else if (days <= 60) {
     freshPts = 10;
     freshLabel = `Updated ${days} days ago`;
@@ -267,54 +276,98 @@ export function calculateHealthScore(
 
   // Documentation gaps — link to edit page with section hash
   if (charterPts === 0) {
-    actions.push({ label: "Write a charter for this process", href: `/processes/${processId}/edit#charter`, points: 5 });
+    actions.push({
+      label: 'Write a charter for this process',
+      href: `/processes/${processId}/edit#charter`,
+      points: 5,
+    });
   }
   for (const f of adliFields) {
     const val = process[f.key] as Record<string, unknown> | null;
     if (!hasContent(val)) {
-      actions.push({ label: `Write the ${f.label} section`, href: `/processes/${processId}/edit#${f.key}`, points: 4 });
+      actions.push({
+        label: `Write the ${f.label} section`,
+        href: `/processes/${processId}/edit#${f.key}`,
+        points: 4,
+      });
     }
   }
 
   // Maturity — link to process with AI chat prompt
   if (overallScore === null) {
-    actions.push({ label: "Run an AI assessment to get ADLI maturity scores", href: `/processes/${processId}?openAI=assessment`, points: 10 });
+    actions.push({
+      label: 'Run an AI assessment to get ADLI maturity scores',
+      href: `/processes/${processId}?openAI=assessment`,
+      points: 10,
+    });
   } else if (overallScore < 50) {
-    actions.push({ label: "Improve ADLI maturity through an AI deep dive", href: `/processes/${processId}?openAI=deep_dive`, points: 5 });
+    actions.push({
+      label: 'Improve ADLI maturity through an AI deep dive',
+      href: `/processes/${processId}?openAI=deep_dive`,
+      points: 5,
+    });
   }
 
   // Measurement
   if (!hasMetrics) {
-    actions.push({ label: "Link at least one metric to this process", href: `/processes/${processId}?openAI=metrics`, points: 5 });
+    actions.push({
+      label: 'Link at least one metric to this process',
+      href: `/processes/${processId}?openAI=metrics`,
+      points: 5,
+    });
   }
   if (hasMetrics && !hasComparison) {
-    actions.push({ label: "Add a comparison value to a linked metric", href: `/data-health`, points: 4 });
+    actions.push({
+      label: 'Add a comparison value to a linked metric',
+      href: `/data-health`,
+      points: 4,
+    });
   }
   if (hasMetrics && !hasRecentData) {
-    actions.push({ label: "Log recent data for linked metrics", href: "/log", points: 4 });
+    actions.push({ label: 'Log recent data for linked metrics', href: '/log', points: 4 });
   }
 
   // Operations
   if (!asanaLinked) {
-    actions.push({ label: "Link this process to an Asana project", href: `/processes/${processId}?openExport=true`, points: 3 });
+    actions.push({
+      label: 'Link this process to an Asana project',
+      href: `/processes/${processId}?openExport=true`,
+      points: 3,
+    });
   }
   if (totalActive > 0) {
     const unassigned = totalActive - tasks.tasks_with_assignee;
     if (unassigned > 0) {
-      actions.push({ label: `Assign owners to ${unassigned} task${unassigned !== 1 ? "s" : ""}`, href: `/processes/${processId}`, points: 4 });
+      actions.push({
+        label: `Assign owners to ${unassigned} task${unassigned !== 1 ? 's' : ''}`,
+        href: `/processes/${processId}`,
+        points: 4,
+      });
     }
     const noDueDate = totalActive - tasks.tasks_with_due_date;
     if (noDueDate > 0) {
-      actions.push({ label: `Add due dates to ${noDueDate} task${noDueDate !== 1 ? "s" : ""}`, href: `/processes/${processId}`, points: 4 });
+      actions.push({
+        label: `Add due dates to ${noDueDate} task${noDueDate !== 1 ? 's' : ''}`,
+        href: `/processes/${processId}`,
+        points: 4,
+      });
     }
     if (tasks.overdue_count > 0) {
-      actions.push({ label: `Review ${tasks.overdue_count} overdue task${tasks.overdue_count !== 1 ? "s" : ""}`, href: `/processes/${processId}`, points: 3 });
+      actions.push({
+        label: `Review ${tasks.overdue_count} overdue task${tasks.overdue_count !== 1 ? 's' : ''}`,
+        href: `/processes/${processId}`,
+        points: 3,
+      });
     }
   }
 
   // Freshness — link to AI improvement cycle
   if (days > 60) {
-    actions.push({ label: `Run an improvement cycle (last updated ${days} days ago)`, href: `/processes/${processId}?openAI=charter`, points: days > 90 ? 15 : 10 });
+    actions.push({
+      label: `Run an improvement cycle (last updated ${days} days ago)`,
+      href: `/processes/${processId}?openAI=charter`,
+      points: days > 90 ? 15 : 10,
+    });
   }
 
   // Sort by points (highest first) and take top 3

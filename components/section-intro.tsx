@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 interface SectionIntroProps {
   storageKey: string;
@@ -16,7 +16,7 @@ export default function SectionIntro({ storageKey, children }: SectionIntroProps
   }, [storageKey]);
 
   function dismiss() {
-    localStorage.setItem(`section-intro-${storageKey}`, "dismissed");
+    localStorage.setItem(`section-intro-${storageKey}`, 'dismissed');
     setVisible(false);
   }
 
@@ -44,7 +44,13 @@ export default function SectionIntro({ storageKey, children }: SectionIntroProps
         className="text-text-muted hover:text-text-secondary transition-colors flex-shrink-0"
         aria-label="Dismiss"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>

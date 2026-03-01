@@ -1,14 +1,14 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { Resend } from "resend";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { Resend } from 'resend';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://nia-results-tracker.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nia-results-tracker.vercel.app';
 
 // NIA brand colors (inline — email clients strip <style> tags)
-const NIA_DARK = "#324a4d";
-const NIA_ORANGE = "#f5a623";
-const TEXT_SECONDARY = "#6b7280";
-const BORDER = "#e5e7eb";
+const NIA_DARK = '#324a4d';
+const NIA_ORANGE = '#f5a623';
+const TEXT_SECONDARY = '#6b7280';
+const BORDER = '#e5e7eb';
 
 function buildInviteHtml(surveyTitle: string, shareToken: string): string {
   const surveyUrl = `${APP_URL}/survey/respond/${shareToken}`;
@@ -76,16 +76,18 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
 
   // Verify authenticated
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) {
     // Fail-open: return warning, don't block deploy
     return NextResponse.json({
-      warning: "Email not configured (RESEND_API_KEY missing)",
+      warning: 'Email not configured (RESEND_API_KEY missing)',
       sent: 0,
       failed: [],
     });
@@ -100,7 +102,7 @@ export async function POST(request: Request) {
 
   if (!shareToken || !surveyTitle || !emails || emails.length === 0) {
     return NextResponse.json(
-      { error: "shareToken, surveyTitle, and emails are required" },
+      { error: 'shareToken, surveyTitle, and emails are required' },
       { status: 400 }
     );
   }
@@ -110,10 +112,7 @@ export async function POST(request: Request) {
   const validEmails = emails.filter((e) => emailRegex.test(e.trim()));
 
   if (validEmails.length === 0) {
-    return NextResponse.json(
-      { error: "No valid email addresses provided" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'No valid email addresses provided' }, { status: 400 });
   }
 
   const resend = new Resend(resendKey);
@@ -123,7 +122,7 @@ export async function POST(request: Request) {
 
   for (const email of validEmails) {
     const { error: sendError } = await resend.emails.send({
-      from: "NIA Excellence Hub <hub@thenia.org>",
+      from: 'NIA Excellence Hub <hub@thenia.org>',
       to: email.trim(),
       subject: `You're invited: ${surveyTitle}`,
       html,

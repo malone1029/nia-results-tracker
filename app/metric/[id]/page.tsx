@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { DetailSkeleton } from "@/components/skeleton";
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { DetailSkeleton } from '@/components/skeleton';
 import {
   getReviewStatus,
   getStatusColor,
@@ -12,10 +12,10 @@ import {
   getTrendDirection,
   formatDate,
   formatValue,
-} from "@/lib/review-status";
-import type { Metric, Entry } from "@/lib/types";
-import Link from "next/link";
-import { Card, Badge, Button, Input } from "@/components/ui";
+} from '@/lib/review-status';
+import type { Metric, Entry } from '@/lib/types';
+import Link from 'next/link';
+import { Card, Badge, Button, Input } from '@/components/ui';
 import {
   LineChart,
   Line,
@@ -26,7 +26,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Legend,
-} from "recharts";
+} from 'recharts';
 
 interface LinkedProcessInfo {
   id: number;
@@ -44,28 +44,35 @@ export default function MetricDetailPage() {
 
   const [metric, setMetric] = useState<MetricDetail | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [linkedRequirements, setLinkedRequirements] = useState<{ id: number; requirement: string; stakeholder_group: string }[]>([]);
+  const [linkedRequirements, setLinkedRequirements] = useState<
+    { id: number; requirement: string; stakeholder_group: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
 
   // Log form state
   const [showLogForm, setShowLogForm] = useState(false);
-  const [logValue, setLogValue] = useState("");
-  const [logDate, setLogDate] = useState(new Date().toISOString().split("T")[0]);
-  const [logAnalysis, setLogAnalysis] = useState("");
-  const [logCorrection, setLogCorrection] = useState("");
+  const [logValue, setLogValue] = useState('');
+  const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
+  const [logAnalysis, setLogAnalysis] = useState('');
+  const [logCorrection, setLogCorrection] = useState('');
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Inline edit state
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ value: "", date: "", noteAnalysis: "", noteCorrection: "" });
+  const [editForm, setEditForm] = useState({
+    value: '',
+    date: '',
+    noteAnalysis: '',
+    noteCorrection: '',
+  });
   const [editSaving, setEditSaving] = useState(false);
 
   async function fetchData() {
     const { data: metricData } = await supabase
-      .from("metrics")
-      .select("*")
-      .eq("id", metricId)
+      .from('metrics')
+      .select('*')
+      .eq('id', metricId)
       .single();
 
     if (metricData) {
@@ -74,15 +81,21 @@ export default function MetricDetailPage() {
 
       // Fetch linked processes via junction table
       const { data: processLinks } = await supabase
-        .from("metric_processes")
-        .select(`
+        .from('metric_processes')
+        .select(
+          `
           process_id,
           processes!inner ( id, name, categories!inner ( display_name ) )
-        `)
-        .eq("metric_id", metricId);
+        `
+        )
+        .eq('metric_id', metricId);
 
       const linkedProcs: LinkedProcessInfo[] = (processLinks || []).map((link) => {
-        const proc = link.processes as unknown as { id: number; name: string; categories: { display_name: string } };
+        const proc = link.processes as unknown as {
+          id: number;
+          name: string;
+          categories: { display_name: string };
+        };
         return {
           id: proc.id,
           name: proc.name,
@@ -97,26 +110,32 @@ export default function MetricDetailPage() {
     }
 
     const { data: entriesData } = await supabase
-      .from("entries")
-      .select("*")
-      .eq("metric_id", metricId)
-      .order("date", { ascending: true });
+      .from('entries')
+      .select('*')
+      .eq('metric_id', metricId)
+      .order('date', { ascending: true });
 
     setEntries(entriesData || []);
 
     // Fetch linked requirements for LeTCI Integration
     const { data: reqLinks } = await supabase
-      .from("metric_requirements")
-      .select(`
+      .from('metric_requirements')
+      .select(
+        `
         requirement_id,
         key_requirements!inner ( id, requirement, stakeholder_group )
-      `)
-      .eq("metric_id", metricId);
+      `
+      )
+      .eq('metric_id', metricId);
 
     if (reqLinks) {
       setLinkedRequirements(
         reqLinks.map((link) => {
-          const req = link.key_requirements as unknown as { id: number; requirement: string; stakeholder_group: string };
+          const req = link.key_requirements as unknown as {
+            id: number;
+            requirement: string;
+            stakeholder_group: string;
+          };
           return req;
         })
       );
@@ -135,7 +154,7 @@ export default function MetricDetailPage() {
     e.preventDefault();
     setSaving(true);
 
-    const { error } = await supabase.from("entries").insert({
+    const { error } = await supabase.from('entries').insert({
       metric_id: metricId,
       value: parseFloat(logValue),
       date: logDate,
@@ -144,24 +163,24 @@ export default function MetricDetailPage() {
     });
 
     if (error) {
-      alert("Failed to save: " + error.message);
+      alert('Failed to save: ' + error.message);
     } else {
-      setSuccessMessage("Entry saved successfully");
+      setSuccessMessage('Entry saved successfully');
       setShowLogForm(false);
-      setLogValue("");
-      setLogAnalysis("");
-      setLogCorrection("");
+      setLogValue('');
+      setLogAnalysis('');
+      setLogCorrection('');
       await fetchData();
-      setTimeout(() => setSuccessMessage(""), 3000);
+      setTimeout(() => setSuccessMessage(''), 3000);
     }
     setSaving(false);
   }
 
   async function handleDeleteEntry(entryId: number) {
-    if (!confirm("Delete this entry? This cannot be undone.")) return;
-    const { error } = await supabase.from("entries").delete().eq("id", entryId);
+    if (!confirm('Delete this entry? This cannot be undone.')) return;
+    const { error } = await supabase.from('entries').delete().eq('id', entryId);
     if (error) {
-      alert("Failed to delete: " + error.message);
+      alert('Failed to delete: ' + error.message);
     } else {
       await fetchData();
     }
@@ -172,8 +191,8 @@ export default function MetricDetailPage() {
     setEditForm({
       value: String(entry.value),
       date: entry.date,
-      noteAnalysis: entry.note_analysis || "",
-      noteCorrection: entry.note_course_correction || "",
+      noteAnalysis: entry.note_analysis || '',
+      noteCorrection: entry.note_course_correction || '',
     });
   }
 
@@ -181,22 +200,22 @@ export default function MetricDetailPage() {
     if (editingEntryId === null) return;
     setEditSaving(true);
     const { error } = await supabase
-      .from("entries")
+      .from('entries')
       .update({
         value: parseFloat(editForm.value),
         date: editForm.date,
         note_analysis: editForm.noteAnalysis || null,
         note_course_correction: editForm.noteCorrection || null,
       })
-      .eq("id", editingEntryId);
+      .eq('id', editingEntryId);
 
     if (error) {
-      alert("Failed to update: " + error.message);
+      alert('Failed to update: ' + error.message);
     } else {
       setEditingEntryId(null);
-      setSuccessMessage("Entry updated");
+      setSuccessMessage('Entry updated');
       await fetchData();
-      setTimeout(() => setSuccessMessage(""), 3000);
+      setTimeout(() => setSuccessMessage(''), 3000);
     }
     setEditSaving(false);
   }
@@ -233,20 +252,22 @@ export default function MetricDetailPage() {
     comparison: metric.comparison_value !== null,
     integration: linkedRequirements.length > 0,
   };
-  const letciCount = [letci.level, letci.trend, letci.comparison, letci.integration].filter(Boolean).length;
+  const letciCount = [letci.level, letci.trend, letci.comparison, letci.integration].filter(
+    Boolean
+  ).length;
 
   // Trend display
   const trendEmoji: Record<string, string> = {
-    improving: "↑",
-    declining: "↓",
-    flat: "→",
-    insufficient: "—",
+    improving: '↑',
+    declining: '↓',
+    flat: '→',
+    insufficient: '—',
   };
   const trendColor: Record<string, string> = {
-    improving: "#b1bd37",
-    declining: "#dc2626",
-    flat: "#55787c",
-    insufficient: "var(--text-muted)",
+    improving: '#b1bd37',
+    declining: '#dc2626',
+    flat: '#55787c',
+    insufficient: 'var(--text-muted)',
   };
 
   return (
@@ -263,10 +284,13 @@ export default function MetricDetailPage() {
         <Link href="/" className="hover:text-nia-grey-blue">
           Dashboard
         </Link>
-        {" / "}
+        {' / '}
         {metric.linked_processes.length > 0 ? (
           <>
-            <Link href={`/processes/${metric.linked_processes[0].id}`} className="hover:text-nia-grey-blue">
+            <Link
+              href={`/processes/${metric.linked_processes[0].id}`}
+              className="hover:text-nia-grey-blue"
+            >
               {metric.linked_processes[0].name}
             </Link>
             {metric.linked_processes.length > 1 && (
@@ -276,7 +300,7 @@ export default function MetricDetailPage() {
         ) : (
           <span className="text-text-muted">Unlinked</span>
         )}
-        {" / "}
+        {' / '}
         <span className="text-nia-dark">{metric.name}</span>
       </div>
 
@@ -287,8 +311,8 @@ export default function MetricDetailPage() {
             <h1 className="text-3xl font-bold text-nia-dark">{metric.name}</h1>
             <p className="text-text-tertiary mt-1">
               {metric.linked_processes.length > 0
-                ? metric.linked_processes.map((p) => p.name).join(", ")
-                : "No linked processes"}
+                ? metric.linked_processes.map((p) => p.name).join(', ')
+                : 'No linked processes'}
             </p>
             {metric.description && (
               <p className="text-sm text-text-muted mt-2">{metric.description}</p>
@@ -296,13 +320,25 @@ export default function MetricDetailPage() {
           </div>
           <div className="flex items-center gap-3">
             <Badge
-              color={reviewStatus === "current" ? "green" : reviewStatus === "overdue" ? "red" : reviewStatus === "due-soon" ? "orange" : "gray"}
+              color={
+                reviewStatus === 'current'
+                  ? 'green'
+                  : reviewStatus === 'overdue'
+                    ? 'red'
+                    : reviewStatus === 'due-soon'
+                      ? 'orange'
+                      : 'gray'
+              }
               size="sm"
             >
               {getStatusLabel(reviewStatus)}
             </Badge>
-            <Button variant="ghost" size="sm" href={`/metric/${metricId}/edit`}>Edit</Button>
-            <Button size="sm" onClick={() => setShowLogForm(!showLogForm)}>Log New Value</Button>
+            <Button variant="ghost" size="sm" href={`/metric/${metricId}/edit`}>
+              Edit
+            </Button>
+            <Button size="sm" onClick={() => setShowLogForm(!showLogForm)}>
+              Log New Value
+            </Button>
           </div>
         </div>
 
@@ -315,7 +351,7 @@ export default function MetricDetailPage() {
           <div className="text-center">
             <div className="text-xs text-text-muted uppercase">Last Value</div>
             <div className="font-medium text-nia-dark">
-              {lastEntry ? formatValue(lastEntry.value, metric.unit) : "—"}
+              {lastEntry ? formatValue(lastEntry.value, metric.unit) : '—'}
             </div>
           </div>
           <div className="text-center">
@@ -323,18 +359,19 @@ export default function MetricDetailPage() {
             <div className="font-medium text-nia-dark">
               {metric.target_value !== null
                 ? formatValue(metric.target_value, metric.unit)
-                : "Not set"}
+                : 'Not set'}
             </div>
           </div>
           <div className="text-center">
             <div className="text-xs text-text-muted uppercase">Trend</div>
             <div className="font-medium" style={{ color: trendColor[trendDirection] }}>
-              {trendEmoji[trendDirection]} {trendDirection === "insufficient" ? "Need 3+ points" : trendDirection}
+              {trendEmoji[trendDirection]}{' '}
+              {trendDirection === 'insufficient' ? 'Need 3+ points' : trendDirection}
             </div>
           </div>
           <div className="text-center">
             <div className="text-xs text-text-muted uppercase">Data Source</div>
-            <div className="font-medium text-nia-dark text-sm">{metric.data_source || "—"}</div>
+            <div className="font-medium text-nia-dark text-sm">{metric.data_source || '—'}</div>
           </div>
         </div>
 
@@ -343,7 +380,9 @@ export default function MetricDetailPage() {
           <div className="mt-4 pt-4 border-t border-border-light">
             <div>
               <span className="text-xs text-text-muted uppercase tracking-wide">Data Steward</span>
-              <p className="text-sm font-medium text-nia-dark mt-0.5">{metric.data_steward_email}</p>
+              <p className="text-sm font-medium text-nia-dark mt-0.5">
+                {metric.data_steward_email}
+              </p>
             </div>
           </div>
         )}
@@ -351,7 +390,10 @@ export default function MetricDetailPage() {
         {/* Target nudge */}
         {metric.target_value === null && (
           <div className="mt-4 bg-nia-orange/10 border border-nia-orange/30 rounded-lg px-4 py-3 text-sm text-nia-dark flex items-center justify-between">
-            <span>No target set — setting a target helps evaluate whether results are meeting expectations.</span>
+            <span>
+              No target set — setting a target helps evaluate whether results are meeting
+              expectations.
+            </span>
             <Link
               href={`/metric/${metricId}/edit`}
               className="text-nia-orange font-medium hover:underline whitespace-nowrap ml-4"
@@ -368,14 +410,41 @@ export default function MetricDetailPage() {
           <h3 className="font-bold text-nia-dark mb-4">Log New Value</h3>
           <form onSubmit={handleLogSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Value *" type="number" step="any" required value={logValue} onChange={(e) => setLogValue(e.target.value)} />
-              <Input label="Date *" type="date" required value={logDate} onChange={(e) => setLogDate(e.target.value)} />
+              <Input
+                label="Value *"
+                type="number"
+                step="any"
+                required
+                value={logValue}
+                onChange={(e) => setLogValue(e.target.value)}
+              />
+              <Input
+                label="Date *"
+                type="date"
+                required
+                value={logDate}
+                onChange={(e) => setLogDate(e.target.value)}
+              />
             </div>
-            <Input label="Analysis Note" hint="context" value={logAnalysis} onChange={(e) => setLogAnalysis(e.target.value)} />
-            <Input label="Course Correction" hint="action if missing target" value={logCorrection} onChange={(e) => setLogCorrection(e.target.value)} />
+            <Input
+              label="Analysis Note"
+              hint="context"
+              value={logAnalysis}
+              onChange={(e) => setLogAnalysis(e.target.value)}
+            />
+            <Input
+              label="Course Correction"
+              hint="action if missing target"
+              value={logCorrection}
+              onChange={(e) => setLogCorrection(e.target.value)}
+            />
             <div className="flex gap-3">
-              <Button type="submit" loading={saving}>{saving ? "Saving..." : "Save Entry"}</Button>
-              <Button variant="ghost" onClick={() => setShowLogForm(false)}>Cancel</Button>
+              <Button type="submit" loading={saving}>
+                {saving ? 'Saving...' : 'Save Entry'}
+              </Button>
+              <Button variant="ghost" onClick={() => setShowLogForm(false)}>
+                Cancel
+              </Button>
             </div>
           </form>
         </Card>
@@ -388,19 +457,13 @@ export default function MetricDetailPage() {
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
-              <XAxis
-                dataKey="label"
-                tick={{ fill: "var(--foreground)", fontSize: 12 }}
-              />
-              <YAxis
-                tick={{ fill: "var(--foreground)", fontSize: 12 }}
-                domain={["auto", "auto"]}
-              />
+              <XAxis dataKey="label" tick={{ fill: 'var(--foreground)', fontSize: 12 }} />
+              <YAxis tick={{ fill: 'var(--foreground)', fontSize: 12 }} domain={['auto', 'auto']} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
                 }}
                 formatter={(value: unknown) => [
                   formatValue(value as number, metric.unit),
@@ -414,8 +477,8 @@ export default function MetricDetailPage() {
                 dataKey="value"
                 stroke="#324a4d"
                 strokeWidth={2}
-                dot={{ fill: "var(--foreground)", r: 5 }}
-                activeDot={{ fill: "#f79935", r: 7 }}
+                dot={{ fill: 'var(--foreground)', r: 5 }}
+                activeDot={{ fill: '#f79935', r: 7 }}
                 name="Actual"
               />
               {metric.target_value !== null && (
@@ -426,9 +489,9 @@ export default function MetricDetailPage() {
                   strokeWidth={2}
                   label={{
                     value: `Target: ${metric.target_value}`,
-                    fill: "#b1bd37",
+                    fill: '#b1bd37',
                     fontSize: 12,
-                    position: "right",
+                    position: 'right',
                   }}
                 />
               )}
@@ -439,10 +502,10 @@ export default function MetricDetailPage() {
                   strokeDasharray="4 4"
                   strokeWidth={2}
                   label={{
-                    value: `${metric.comparison_source || "Comparison"}: ${metric.comparison_value}`,
-                    fill: "#f79935",
+                    value: `${metric.comparison_source || 'Comparison'}: ${metric.comparison_value}`,
+                    fill: '#f79935',
                     fontSize: 12,
-                    position: "right",
+                    position: 'right',
                   }}
                 />
               )}
@@ -460,7 +523,8 @@ export default function MetricDetailPage() {
           </span>
         </div>
         <p className="text-sm text-text-tertiary mb-4">
-          Baldrige evaluates results on four dimensions: Levels, Trends, Comparisons, and Integration.
+          Baldrige evaluates results on four dimensions: Levels, Trends, Comparisons, and
+          Integration.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <LeTCICard
@@ -470,8 +534,8 @@ export default function MetricDetailPage() {
             ready={letci.level}
             detail={
               letci.level
-                ? `${entries.length} data point${entries.length !== 1 ? "s" : ""} recorded. Latest: ${formatValue(lastEntry?.value ?? null, metric.unit)}`
-                : "No data logged yet. Use the Log New Value button to add your first entry."
+                ? `${entries.length} data point${entries.length !== 1 ? 's' : ''} recorded. Latest: ${formatValue(lastEntry?.value ?? null, metric.unit)}`
+                : 'No data logged yet. Use the Log New Value button to add your first entry.'
             }
           />
           <LeTCICard
@@ -482,7 +546,7 @@ export default function MetricDetailPage() {
             detail={
               letci.trend
                 ? `${entries.length} data points. Trend is ${trendDirection} ${trendEmoji[trendDirection]}`
-                : `Only ${entries.length} data point${entries.length !== 1 ? "s" : ""}. Need at least 3 to show a trend.`
+                : `Only ${entries.length} data point${entries.length !== 1 ? 's' : ''}. Need at least 3 to show a trend.`
             }
           />
           <LeTCICard
@@ -493,7 +557,7 @@ export default function MetricDetailPage() {
             detail={
               letci.comparison
                 ? `Comparison: ${formatValue(metric.comparison_value, metric.unit)} (${metric.comparison_source})`
-                : "No comparison value set. Add a benchmark, industry standard, or peer comparison to strengthen this dimension."
+                : 'No comparison value set. Add a benchmark, industry standard, or peer comparison to strengthen this dimension.'
             }
           />
           <LeTCICard
@@ -503,8 +567,8 @@ export default function MetricDetailPage() {
             ready={letci.integration}
             detail={
               letci.integration
-                ? `Linked to ${linkedRequirements.length} Key Requirement${linkedRequirements.length !== 1 ? "s" : ""}: ${linkedRequirements.map((r) => `${r.requirement} (${r.stakeholder_group})`).join(", ")}`
-                : "No Key Requirements linked. Edit this metric to link it to stakeholder requirements and demonstrate Integration."
+                ? `Linked to ${linkedRequirements.length} Key Requirement${linkedRequirements.length !== 1 ? 's' : ''}: ${linkedRequirements.map((r) => `${r.requirement} (${r.stakeholder_group})`).join(', ')}`
+                : 'No Key Requirements linked. Edit this metric to link it to stakeholder requirements and demonstrate Integration.'
             }
           />
         </div>
@@ -562,7 +626,9 @@ export default function MetricDetailPage() {
                       <input
                         type="text"
                         value={editForm.noteCorrection}
-                        onChange={(e) => setEditForm({ ...editForm, noteCorrection: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, noteCorrection: e.target.value })
+                        }
                         placeholder="Course correction"
                         className="w-full border border-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-nia-orange/50"
                       />
@@ -573,7 +639,7 @@ export default function MetricDetailPage() {
                         disabled={editSaving}
                         className="text-nia-green hover:text-nia-green/80 text-xs font-medium mr-2"
                       >
-                        {editSaving ? "Saving..." : "Save"}
+                        {editSaving ? 'Saving...' : 'Save'}
                       </button>
                       <button
                         onClick={() => setEditingEntryId(null)}
@@ -590,7 +656,7 @@ export default function MetricDetailPage() {
                     <td className="px-4 py-2 text-right font-medium text-nia-dark">
                       {formatValue(entry.value, metric.unit)}
                     </td>
-                    <td className="px-4 py-2 text-text-tertiary">{entry.note_analysis || "—"}</td>
+                    <td className="px-4 py-2 text-text-tertiary">{entry.note_analysis || '—'}</td>
                     <td className="px-4 py-2">
                       {entry.note_course_correction ? (
                         <span className="inline-block border-l-2 border-nia-orange pl-2 text-text-secondary">
@@ -643,13 +709,13 @@ function LeTCICard({
   return (
     <div
       className={`rounded-lg border-2 p-4 ${
-        ready ? "border-nia-green bg-nia-green/5" : "border-border bg-surface-hover"
+        ready ? 'border-nia-green bg-nia-green/5' : 'border-border bg-surface-hover'
       }`}
     >
       <div className="flex items-center gap-3 mb-2">
         <div
           className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-            ready ? "bg-nia-green" : "bg-surface-muted"
+            ready ? 'bg-nia-green' : 'bg-surface-muted'
           }`}
         >
           {letter}

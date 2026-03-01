@@ -4,13 +4,13 @@
 //
 // Growth signal thresholds (adjust here if expectations change):
 const HEALTH_SCORE_HEALTHY_THRESHOLD = 60; // "On Track" level
-const ADLI_AVG_SCORE_THRESHOLD = 25;       // avg ADLI across ALL owned processes (0–100, unassessed = 0)
+const ADLI_AVG_SCORE_THRESHOLD = 25; // avg ADLI across ALL owned processes (0–100, unassessed = 0)
 
 // Metric cadence windows (unchanged)
 const CADENCE_GRACE: Record<string, number> = {
   monthly: 36,
   quarterly: 108,
-  "semi-annual": 218,
+  'semi-annual': 218,
   annual: 438,
 };
 
@@ -23,7 +23,7 @@ export interface MetricComplianceInput {
 export interface ComplianceInput {
   onboardingCompletedAt: string | null;
   processHealthScores: number[]; // actual health scores per owned process (0–100)
-  avgAdliScore: number;          // average ADLI overall score across ALL owned processes (unassessed = 0)
+  avgAdliScore: number; // average ADLI overall score across ALL owned processes (unassessed = 0)
   processes: {
     metrics: MetricComplianceInput[];
   }[];
@@ -57,7 +57,7 @@ export function computeCompliance(input: ComplianceInput): ComplianceResult {
     allMetrics.length === 0 ||
     allMetrics.every((m) => {
       if (m.nextEntryExpected) {
-        const nextDate = new Date(m.nextEntryExpected + "T00:00:00");
+        const nextDate = new Date(m.nextEntryExpected + 'T00:00:00');
         if (nextDate > now) return true;
       }
       if (!m.lastEntryDate) return false;
@@ -78,8 +78,7 @@ export function computeCompliance(input: ComplianceInput): ComplianceResult {
   // not just cherry-pick one strong process.
   // Owners with no processes pass automatically.
   const adliImproving =
-    input.processes.length === 0 ||
-    input.avgAdliScore >= ADLI_AVG_SCORE_THRESHOLD;
+    input.processes.length === 0 || input.avgAdliScore >= ADLI_AVG_SCORE_THRESHOLD;
 
   const checks: ComplianceChecks = {
     onboardingComplete,

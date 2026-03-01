@@ -8,13 +8,10 @@ export interface Category {
 }
 
 // Process classification: key (creates value) vs support (enables key processes)
-export type ProcessType = "key" | "support" | "unclassified";
+export type ProcessType = 'key' | 'support' | 'unclassified';
 
 // Status workflow: draft → ready_for_review → approved
-export type ProcessStatus =
-  | "draft"
-  | "ready_for_review"
-  | "approved";
+export type ProcessStatus = 'draft' | 'ready_for_review' | 'approved';
 
 // JSONB field types for structured process data
 // Each type has an optional `content` field that stores the full markdown
@@ -63,7 +60,7 @@ export interface AdliIntegration {
 
 export interface Workflow {
   content?: string;
-  flow_data?: import("./flow-types").ProcessMapFlowData;
+  flow_data?: import('./flow-types').ProcessMapFlowData;
   inputs?: string[];
   steps?: {
     responsible: string;
@@ -112,10 +109,21 @@ export interface ProcessHistory {
   changed_at: string;
 }
 
-export type ImprovementSection = "approach" | "deployment" | "learning" | "integration" | "charter" | "workflow";
-export type ImprovementChangeType = "addition" | "modification" | "removal";
-export type ImprovementStatus = "committed" | "in_progress" | "implemented" | "deferred" | "cancelled";
-export type ImprovementSource = "ai_suggestion" | "user_initiated" | "review_finding" | "import";
+export type ImprovementSection =
+  | 'approach'
+  | 'deployment'
+  | 'learning'
+  | 'integration'
+  | 'charter'
+  | 'workflow';
+export type ImprovementChangeType = 'addition' | 'modification' | 'removal';
+export type ImprovementStatus =
+  | 'committed'
+  | 'in_progress'
+  | 'implemented'
+  | 'deferred'
+  | 'cancelled';
+export type ImprovementSource = 'ai_suggestion' | 'user_initiated' | 'review_finding' | 'import';
 
 export interface ProcessImprovement {
   id: number;
@@ -149,7 +157,7 @@ export interface Metric {
   id: number;
   name: string;
   description: string | null;
-  cadence: "monthly" | "quarterly" | "semi-annual" | "annual";
+  cadence: 'monthly' | 'quarterly' | 'semi-annual' | 'annual';
   target_value: number | null;
   comparison_value: number | null;
   comparison_source: string | null;
@@ -188,12 +196,12 @@ export interface MetricRequirement {
 
 // ── PDCA Task types ──────────────────────────────────────────
 
-export type PdcaSection = "plan" | "execute" | "evaluate" | "improve";
-export type AdliDimension = "approach" | "deployment" | "learning" | "integration";
-export type TaskSource = "ai_suggestion" | "ai_interview" | "user_created";
-export type TaskStatus = "pending" | "active" | "completed" | "exported";
-export type TaskOrigin = "asana" | "hub_ai" | "hub_manual";
-export type TaskPriority = "high" | "medium" | "low";
+export type PdcaSection = 'plan' | 'execute' | 'evaluate' | 'improve';
+export type AdliDimension = 'approach' | 'deployment' | 'learning' | 'integration';
+export type TaskSource = 'ai_suggestion' | 'ai_interview' | 'user_created';
+export type TaskStatus = 'pending' | 'active' | 'completed' | 'exported';
+export type TaskOrigin = 'asana' | 'hub_ai' | 'hub_manual';
+export type TaskPriority = 'high' | 'medium' | 'low';
 
 export interface ProcessTask {
   id: number;
@@ -230,7 +238,7 @@ export interface ProcessTask {
 // ── Recurrence rules ────────────────────────────────────────
 
 export interface RecurrenceRule {
-  type: "daily" | "weekly" | "monthly";
+  type: 'daily' | 'weekly' | 'monthly';
   interval: number;
   dayOfWeek?: number;
   dayOfMonth?: number;
@@ -264,19 +272,19 @@ export interface TaskComment {
 }
 
 export type TaskActivityAction =
-  | "created"
-  | "completed"
-  | "uncompleted"
-  | "deleted"
-  | "reassigned"
-  | "priority_changed"
-  | "status_changed"
-  | "commented"
-  | "dependency_added"
-  | "dependency_removed"
-  | "attachment_added"
-  | "attachment_removed"
-  | "recurrence_set";
+  | 'created'
+  | 'completed'
+  | 'uncompleted'
+  | 'deleted'
+  | 'reassigned'
+  | 'priority_changed'
+  | 'status_changed'
+  | 'commented'
+  | 'dependency_added'
+  | 'dependency_removed'
+  | 'attachment_added'
+  | 'attachment_removed'
+  | 'recurrence_set';
 
 // ── Task dependencies ────────────────────────────────────────
 
@@ -333,10 +341,10 @@ export interface KeyRequirementWithStatus extends KeyRequirement {
     latest_value: number | null;
     target_value: number | null;
     is_higher_better: boolean;
-    trend_direction: "improving" | "declining" | "flat" | "insufficient";
+    trend_direction: 'improving' | 'declining' | 'flat' | 'insufficient';
     on_target: boolean | null; // null = no target set
   }[];
-  health: "green" | "yellow" | "red" | "no-data";
+  health: 'green' | 'yellow' | 'red' | 'no-data';
 }
 
 export interface MetricWithStatus extends Metric {
@@ -346,7 +354,7 @@ export interface MetricWithStatus extends Metric {
   last_entry_date: string | null;
   last_entry_value: number | null;
   entry_count: number;
-  review_status: "current" | "due-soon" | "overdue" | "no-data" | "scheduled";
+  review_status: 'current' | 'due-soon' | 'overdue' | 'no-data' | 'scheduled';
 }
 
 export interface ProcessWithMetrics extends Process {

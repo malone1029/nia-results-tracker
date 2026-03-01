@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import Link from "next/link";
-import { Card, Button, Input } from "@/components/ui";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
+import { Card, Button, Input } from '@/components/ui';
 
 type BulkResult = {
   gid: string;
   name: string;
-  status: "success" | "skipped" | "failed";
+  status: 'success' | 'skipped' | 'failed';
   processId?: number;
   error?: string;
 };
@@ -26,13 +26,17 @@ export default function ImportProcessPage() {
   const [importedGids, setImportedGids] = useState<Set<string>>(new Set());
 
   // Asana import state
-  const [asanaProjects, setAsanaProjects] = useState<{ gid: string; name: string; description: string; modified_at: string; team: string | null }[]>([]);
+  const [asanaProjects, setAsanaProjects] = useState<
+    { gid: string; name: string; description: string; modified_at: string; team: string | null }[]
+  >([]);
   const [asanaLoading, setAsanaLoading] = useState(true);
-  const [asanaError, setAsanaError] = useState("");
+  const [asanaError, setAsanaError] = useState('');
   const [asanaConnected, setAsanaConnected] = useState<boolean | null>(null);
   const [asanaImporting, setAsanaImporting] = useState<string | null>(null);
-  const [asanaSearch, setAsanaSearch] = useState("");
-  const [showAnalyzePrompt, setShowAnalyzePrompt] = useState<{ id: number; name: string } | null>(null);
+  const [asanaSearch, setAsanaSearch] = useState('');
+  const [showAnalyzePrompt, setShowAnalyzePrompt] = useState<{ id: number; name: string } | null>(
+    null
+  );
   const router = useRouter();
 
   const [savedProcesses, setSavedProcesses] = useState<{ id: number; name: string }[]>([]);
@@ -45,17 +49,19 @@ export default function ImportProcessPage() {
   const [bulkSummary, setBulkSummary] = useState<BulkResult[] | null>(null);
 
   useEffect(() => {
-    document.title = "Import Processes | NIA Excellence Hub";
+    document.title = 'Import Processes | NIA Excellence Hub';
 
     async function fetchData() {
-      const procRes = await supabase.from("processes").select("id, name, asana_project_gid");
+      const procRes = await supabase.from('processes').select('id, name, asana_project_gid');
       if (procRes.data) {
         const map = new Map<string, number>();
         const gids = new Set<string>();
-        procRes.data.forEach((p: { id: number; name: string; asana_project_gid: string | null }) => {
-          map.set(p.name.toLowerCase(), p.id);
-          if (p.asana_project_gid) gids.add(p.asana_project_gid);
-        });
+        procRes.data.forEach(
+          (p: { id: number; name: string; asana_project_gid: string | null }) => {
+            map.set(p.name.toLowerCase(), p.id);
+            if (p.asana_project_gid) gids.add(p.asana_project_gid);
+          }
+        );
         setExistingProcesses(map);
         setImportedGids(gids);
       }
@@ -66,9 +72,9 @@ export default function ImportProcessPage() {
 
   async function loadAsanaProjects() {
     setAsanaLoading(true);
-    setAsanaError("");
+    setAsanaError('');
     try {
-      const res = await fetch("/api/asana/projects");
+      const res = await fetch('/api/asana/projects');
       const data = await res.json();
       if (res.status === 401) {
         setAsanaConnected(false);
@@ -81,7 +87,7 @@ export default function ImportProcessPage() {
       setAsanaConnected(true);
       setAsanaProjects(data.projects);
     } catch (e) {
-      setAsanaError("Failed to load projects: " + (e as Error).message);
+      setAsanaError('Failed to load projects: ' + (e as Error).message);
     } finally {
       setAsanaLoading(false);
     }
@@ -89,11 +95,11 @@ export default function ImportProcessPage() {
 
   async function handleAsanaImport(projectGid: string) {
     setAsanaImporting(projectGid);
-    setAsanaError("");
+    setAsanaError('');
     try {
-      const res = await fetch("/api/asana/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/asana/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectGid }),
       });
       const data = await res.json();
@@ -105,7 +111,7 @@ export default function ImportProcessPage() {
       }
 
       if (!res.ok) {
-        setAsanaError(data.error || "Import failed");
+        setAsanaError(data.error || 'Import failed');
         setAsanaImporting(null);
         return;
       }
@@ -114,7 +120,7 @@ export default function ImportProcessPage() {
       setImportedGids((prev) => new Set(prev).add(projectGid));
       setShowAnalyzePrompt({ id: data.id, name: data.name });
     } catch (e) {
-      setAsanaError("Import failed: " + (e as Error).message);
+      setAsanaError('Import failed: ' + (e as Error).message);
     }
     setAsanaImporting(null);
   }
@@ -122,9 +128,11 @@ export default function ImportProcessPage() {
   // --- Bulk import helpers ---
 
   function isProjectImportable(project: { gid: string; name: string }) {
-    return !importedGids.has(project.gid)
-      && !existingProcesses.has(project.name.toLowerCase())
-      && !savedProcesses.some((sp) => sp.name === project.name);
+    return (
+      !importedGids.has(project.gid) &&
+      !existingProcesses.has(project.name.toLowerCase()) &&
+      !savedProcesses.some((sp) => sp.name === project.name)
+    );
   }
 
   function toggleSelect(gid: string) {
@@ -160,7 +168,7 @@ export default function ImportProcessPage() {
 
     setBulkImporting(true);
     setBulkSummary(null);
-    setAsanaError("");
+    setAsanaError('');
     const progress: BulkProgress = {
       total: projectsToImport.length,
       completed: 0,
@@ -174,24 +182,44 @@ export default function ImportProcessPage() {
       setBulkProgress({ ...progress });
 
       try {
-        const res = await fetch("/api/asana/import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/api/asana/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ projectGid: project.gid }),
         });
         const data = await res.json();
 
         if (res.status === 409) {
-          progress.results.push({ gid: project.gid, name: project.name, status: "skipped", error: "Already imported" });
+          progress.results.push({
+            gid: project.gid,
+            name: project.name,
+            status: 'skipped',
+            error: 'Already imported',
+          });
         } else if (!res.ok) {
-          progress.results.push({ gid: project.gid, name: project.name, status: "failed", error: data.error || "Import failed" });
+          progress.results.push({
+            gid: project.gid,
+            name: project.name,
+            status: 'failed',
+            error: data.error || 'Import failed',
+          });
         } else {
-          progress.results.push({ gid: project.gid, name: project.name, status: "success", processId: data.id });
+          progress.results.push({
+            gid: project.gid,
+            name: project.name,
+            status: 'success',
+            processId: data.id,
+          });
           setSavedProcesses((prev) => [...prev, { id: data.id, name: data.name }]);
           setImportedGids((prev) => new Set(prev).add(project.gid));
         }
       } catch (e) {
-        progress.results.push({ gid: project.gid, name: project.name, status: "failed", error: (e as Error).message });
+        progress.results.push({
+          gid: project.gid,
+          name: project.name,
+          status: 'failed',
+          error: (e as Error).message,
+        });
       }
 
       progress.completed += 1;
@@ -221,13 +249,11 @@ export default function ImportProcessPage() {
         >
           &larr; Back to Processes
         </Link>
-        <h1 className="text-3xl font-bold text-nia-dark mt-2">
-          Import from Asana
-        </h1>
+        <h1 className="text-3xl font-bold text-nia-dark mt-2">Import from Asana</h1>
         <p className="text-text-tertiary mt-1">
           {bulkMode
-            ? "Select multiple projects to import them all at once."
-            : "Select an Asana project to import as a process in the Excellence Hub."}
+            ? 'Select multiple projects to import them all at once.'
+            : 'Select an Asana project to import as a process in the Excellence Hub.'}
         </p>
       </div>
 
@@ -236,7 +262,7 @@ export default function ImportProcessPage() {
         <div className="success-celebrate bg-nia-green/20 border border-nia-green rounded-lg p-4">
           <p className="text-sm text-nia-dark font-medium">
             Successfully imported {savedProcesses.length} process
-            {savedProcesses.length !== 1 ? "es" : ""}:
+            {savedProcesses.length !== 1 ? 'es' : ''}:
           </p>
           <ul className="mt-1 text-sm space-y-1">
             {savedProcesses.map((proc) => (
@@ -260,10 +286,21 @@ export default function ImportProcessPage() {
             <strong>{showAnalyzePrompt.name}</strong> imported! Want AI to analyze it for ADLI gaps?
           </p>
           <div className="flex gap-2 flex-shrink-0">
-            <Button variant="success" size="sm" onClick={() => router.push(`/processes/${showAnalyzePrompt.id}?analyze=true`)}>
+            <Button
+              variant="success"
+              size="sm"
+              onClick={() => router.push(`/processes/${showAnalyzePrompt.id}?analyze=true`)}
+            >
               Analyze Now
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => { setShowAnalyzePrompt(null); router.push(`/processes/${showAnalyzePrompt.id}`); }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowAnalyzePrompt(null);
+                router.push(`/processes/${showAnalyzePrompt.id}`);
+              }}
+            >
               Skip
             </Button>
           </div>
@@ -275,9 +312,7 @@ export default function ImportProcessPage() {
         <Card padding="sm">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-nia-dark">
-                Importing projects...
-              </p>
+              <p className="text-sm font-medium text-nia-dark">Importing projects...</p>
               <span className="text-xs text-text-muted">
                 {bulkProgress.completed} of {bulkProgress.total}
               </span>
@@ -294,7 +329,8 @@ export default function ImportProcessPage() {
             {/* Current item */}
             {bulkProgress.completed < bulkProgress.total && (
               <p className="text-xs text-text-muted">
-                Importing: <span className="font-medium text-nia-dark">{bulkProgress.currentName}</span>
+                Importing:{' '}
+                <span className="font-medium text-nia-dark">{bulkProgress.currentName}</span>
               </p>
             )}
 
@@ -303,10 +339,12 @@ export default function ImportProcessPage() {
               <div className="space-y-1 max-h-40 overflow-y-auto">
                 {bulkProgress.results.map((r) => (
                   <div key={r.gid} className="flex items-center gap-2 text-xs">
-                    {r.status === "success" && <span className="text-nia-green">&#10003;</span>}
-                    {r.status === "skipped" && <span className="text-text-muted">&ndash;</span>}
-                    {r.status === "failed" && <span className="text-nia-red">&#10007;</span>}
-                    <span className={r.status === "failed" ? "text-nia-red" : "text-foreground"}>{r.name}</span>
+                    {r.status === 'success' && <span className="text-nia-green">&#10003;</span>}
+                    {r.status === 'skipped' && <span className="text-text-muted">&ndash;</span>}
+                    {r.status === 'failed' && <span className="text-nia-red">&#10007;</span>}
+                    <span className={r.status === 'failed' ? 'text-nia-red' : 'text-foreground'}>
+                      {r.name}
+                    </span>
                     {r.error && <span className="text-text-muted">({r.error})</span>}
                   </div>
                 ))}
@@ -320,50 +358,54 @@ export default function ImportProcessPage() {
       {bulkSummary && (
         <Card padding="sm">
           <div className="space-y-3">
-            <p className="text-sm font-medium text-nia-dark">
-              Import Complete
-            </p>
+            <p className="text-sm font-medium text-nia-dark">Import Complete</p>
 
             {/* Stats */}
             <div className="flex gap-4 text-sm">
-              {bulkSummary.filter((r) => r.status === "success").length > 0 && (
+              {bulkSummary.filter((r) => r.status === 'success').length > 0 && (
                 <span className="text-nia-green font-medium">
-                  {bulkSummary.filter((r) => r.status === "success").length} imported
+                  {bulkSummary.filter((r) => r.status === 'success').length} imported
                 </span>
               )}
-              {bulkSummary.filter((r) => r.status === "skipped").length > 0 && (
+              {bulkSummary.filter((r) => r.status === 'skipped').length > 0 && (
                 <span className="text-text-muted">
-                  {bulkSummary.filter((r) => r.status === "skipped").length} skipped
+                  {bulkSummary.filter((r) => r.status === 'skipped').length} skipped
                 </span>
               )}
-              {bulkSummary.filter((r) => r.status === "failed").length > 0 && (
+              {bulkSummary.filter((r) => r.status === 'failed').length > 0 && (
                 <span className="text-nia-red font-medium">
-                  {bulkSummary.filter((r) => r.status === "failed").length} failed
+                  {bulkSummary.filter((r) => r.status === 'failed').length} failed
                 </span>
               )}
             </div>
 
             {/* Failed details */}
-            {bulkSummary.some((r) => r.status === "failed") && (
+            {bulkSummary.some((r) => r.status === 'failed') && (
               <div className="bg-nia-red/10 border border-nia-red/30 rounded-lg p-3 text-sm text-nia-red space-y-1">
-                {bulkSummary.filter((r) => r.status === "failed").map((r) => (
-                  <p key={r.gid}><strong>{r.name}:</strong> {r.error}</p>
-                ))}
+                {bulkSummary
+                  .filter((r) => r.status === 'failed')
+                  .map((r) => (
+                    <p key={r.gid}>
+                      <strong>{r.name}:</strong> {r.error}
+                    </p>
+                  ))}
               </div>
             )}
 
             {/* Successful imports list */}
-            {bulkSummary.some((r) => r.status === "success") && (
+            {bulkSummary.some((r) => r.status === 'success') && (
               <div className="space-y-1">
-                {bulkSummary.filter((r) => r.status === "success").map((r) => (
-                  <Link
-                    key={r.gid}
-                    href={`/processes/${r.processId}`}
-                    className="block text-sm text-nia-grey-blue hover:text-nia-dark transition-colors underline"
-                  >
-                    {r.name} &rarr;
-                  </Link>
-                ))}
+                {bulkSummary
+                  .filter((r) => r.status === 'success')
+                  .map((r) => (
+                    <Link
+                      key={r.gid}
+                      href={`/processes/${r.processId}`}
+                      className="block text-sm text-nia-grey-blue hover:text-nia-dark transition-colors underline"
+                    >
+                      {r.name} &rarr;
+                    </Link>
+                  ))}
               </div>
             )}
 
@@ -372,7 +414,14 @@ export default function ImportProcessPage() {
               <Button size="sm" href="/processes">
                 View All Processes
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setBulkSummary(null); exitBulkMode(); }}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setBulkSummary(null);
+                  exitBulkMode();
+                }}
+              >
                 Import More
               </Button>
             </div>
@@ -423,17 +472,15 @@ export default function ImportProcessPage() {
           <>
             {/* Header row with bulk mode toggle */}
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-nia-dark">
-                Your Asana Projects
-              </h2>
+              <h2 className="font-semibold text-nia-dark">Your Asana Projects</h2>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-text-muted">{asanaProjects.length} projects</span>
                 {!bulkImporting && !bulkSummary && (
                   <button
-                    onClick={() => bulkMode ? exitBulkMode() : setBulkMode(true)}
+                    onClick={() => (bulkMode ? exitBulkMode() : setBulkMode(true))}
                     className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
                   >
-                    {bulkMode ? "Cancel" : "Select Multiple"}
+                    {bulkMode ? 'Cancel' : 'Select Multiple'}
                   </button>
                 )}
               </div>
@@ -471,12 +518,12 @@ export default function ImportProcessPage() {
               className="mb-4"
             />
 
-            <div className={`space-y-2 max-h-[500px] overflow-y-auto ${bulkMode && selected.size > 0 ? "pb-20" : ""}`}>
+            <div
+              className={`space-y-2 max-h-[500px] overflow-y-auto ${bulkMode && selected.size > 0 ? 'pb-20' : ''}`}
+            >
               {filteredProjects.map((project) => {
                 const isImporting = asanaImporting === project.gid;
-                const alreadySaved = savedProcesses.some(
-                  (sp) => sp.name === project.name
-                );
+                const alreadySaved = savedProcesses.some((sp) => sp.name === project.name);
                 const alreadyByGid = importedGids.has(project.gid);
                 const alreadyByName = existingProcesses.has(project.name.toLowerCase());
                 const alreadyExists = alreadySaved || alreadyByGid || alreadyByName;
@@ -485,13 +532,17 @@ export default function ImportProcessPage() {
                 return (
                   <div
                     key={project.gid}
-                    onClick={bulkMode && !alreadyExists && !bulkImporting ? () => toggleSelect(project.gid) : undefined}
+                    onClick={
+                      bulkMode && !alreadyExists && !bulkImporting
+                        ? () => toggleSelect(project.gid)
+                        : undefined
+                    }
                     className={`flex items-center gap-3 px-3 py-3 rounded-lg border transition-colors ${
-                      bulkMode && !alreadyExists && !bulkImporting ? "cursor-pointer" : ""
+                      bulkMode && !alreadyExists && !bulkImporting ? 'cursor-pointer' : ''
                     } ${
                       isSelected
-                        ? "border-nia-orange bg-nia-orange/5"
-                        : "border-border-light hover:border-nia-grey-blue/30"
+                        ? 'border-nia-orange bg-nia-orange/5'
+                        : 'border-border-light hover:border-nia-grey-blue/30'
                     }`}
                   >
                     {/* Checkbox in bulk mode */}
@@ -509,9 +560,7 @@ export default function ImportProcessPage() {
                     )}
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-nia-dark truncate">
-                        {project.name}
-                      </p>
+                      <p className="text-sm font-medium text-nia-dark truncate">{project.name}</p>
                       {project.description && (
                         <p className="text-xs text-text-muted truncate mt-0.5">
                           {project.description}
@@ -520,33 +569,25 @@ export default function ImportProcessPage() {
                       <div className="flex gap-3 mt-1 text-xs text-text-muted">
                         {project.team && <span>{project.team}</span>}
                         {project.modified_at && (
-                          <span>
-                            Updated{" "}
-                            {new Date(project.modified_at).toLocaleDateString()}
-                          </span>
+                          <span>Updated {new Date(project.modified_at).toLocaleDateString()}</span>
                         )}
                       </div>
                     </div>
                     <div className="flex-shrink-0">
                       {alreadySaved || alreadyByGid ? (
                         <span className="text-xs text-nia-green font-medium">
-                          {alreadySaved ? "Imported" : "Already in Hub"}
+                          {alreadySaved ? 'Imported' : 'Already in Hub'}
                         </span>
                       ) : alreadyByName ? (
-                        <span className="text-xs text-text-muted">
-                          Already in Hub
-                        </span>
-                      ) : bulkMode ? (
-                        // In bulk mode, no individual import button
-                        null
-                      ) : (
+                        <span className="text-xs text-text-muted">Already in Hub</span>
+                      ) : bulkMode ? null : ( // In bulk mode, no individual import button
                         <Button
                           size="xs"
                           onClick={() => handleAsanaImport(project.gid)}
                           disabled={isImporting || asanaImporting !== null}
                           loading={isImporting}
                         >
-                          {isImporting ? "Importing..." : "Import"}
+                          {isImporting ? 'Importing...' : 'Import'}
                         </Button>
                       )}
                     </div>
@@ -563,14 +604,14 @@ export default function ImportProcessPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-40">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
             <span className="text-sm text-nia-dark font-medium">
-              {selected.size} project{selected.size !== 1 ? "s" : ""} selected
+              {selected.size} project{selected.size !== 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
               <Button size="sm" variant="ghost" onClick={exitBulkMode}>
                 Cancel
               </Button>
               <Button size="sm" onClick={handleBulkImport}>
-                Import {selected.size} Project{selected.size !== 1 ? "s" : ""}
+                Import {selected.size} Project{selected.size !== 1 ? 's' : ''}
               </Button>
             </div>
           </div>

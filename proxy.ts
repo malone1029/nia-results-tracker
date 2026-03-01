@@ -1,5 +1,5 @@
-import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -13,9 +13,7 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -33,11 +31,11 @@ export async function proxy(request: NextRequest) {
   // Allow login page and auth callback without a session
   const path = request.nextUrl.pathname;
   if (
-    path.startsWith("/login") ||
-    path.startsWith("/api/auth") ||
-    path.startsWith("/survey/respond") ||
-    path.startsWith("/api/surveys/respond") ||
-    path.startsWith("/api/cron")
+    path.startsWith('/login') ||
+    path.startsWith('/api/auth') ||
+    path.startsWith('/survey/respond') ||
+    path.startsWith('/api/surveys/respond') ||
+    path.startsWith('/api/cron')
   ) {
     return supabaseResponse;
   }
@@ -45,7 +43,7 @@ export async function proxy(request: NextRequest) {
   // Redirect unauthenticated users to login
   if (!user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
@@ -55,6 +53,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Match all routes except static files and images
-    "/((?!_next/static|_next/image|favicon.ico|logo.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    '/((?!_next/static|_next/image|favicon.ico|logo.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

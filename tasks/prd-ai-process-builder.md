@@ -21,9 +21,11 @@ This feature makes the AI generate concrete tasks that land in the correct Asana
 ## User Stories
 
 ### US-001: Enhanced AI Suggestion Format with Tasks
+
 **Description:** As a process owner, I want AI suggestions to include concrete tasks so I know exactly what actions to take, not just what text to change.
 
 **Acceptance Criteria:**
+
 - [ ] AI system prompt updated to generate tasks alongside content improvements
 - [ ] Each suggestion includes a `tasks` array with 1-5 tasks
 - [ ] Each task has: `title`, `description`, `pdcaSection` (plan/execute/evaluate/improve), `adliDimension` (approach/deployment/learning/integration)
@@ -33,9 +35,11 @@ This feature makes the AI generate concrete tasks that land in the correct Asana
 - [ ] Typecheck/lint passes
 
 ### US-002: Task Preview in Suggestion Cards
+
 **Description:** As a process owner, I want to see what tasks will be created before I apply a suggestion, so I understand the work involved.
 
 **Acceptance Criteria:**
+
 - [ ] Each CoachSuggestionCard shows the proposed tasks below the "why it matters" section
 - [ ] Tasks display their PDCA section as a colored badge (Plan=blue, Execute=green, Evaluate=amber, Improve=purple)
 - [ ] Tasks display their ADLI dimension as a subtle label
@@ -43,9 +47,11 @@ This feature makes the AI generate concrete tasks that land in the correct Asana
 - [ ] Typecheck/lint passes
 
 ### US-003: Pending Tasks Table and API
+
 **Description:** As a developer, I need to store proposed tasks in the database so they persist across sessions and can be reviewed before export.
 
 **Acceptance Criteria:**
+
 - [ ] New `process_tasks` table with columns: id, process_id, title, description, pdca_section, adli_dimension, source, source_detail, status (pending/exported), asana_task_gid, asana_task_url, created_at
 - [ ] SQL migration file created (migration-011)
 - [ ] RLS policies: authenticated users can CRUD
@@ -54,9 +60,11 @@ This feature makes the AI generate concrete tasks that land in the correct Asana
 - [ ] Typecheck/lint passes
 
 ### US-004: Smart Apply with Task Queuing
+
 **Description:** As a process owner, when I click "Apply This" on a suggestion, I want the process text updated AND the proposed tasks queued for review — not immediately pushed to Asana.
 
 **Acceptance Criteria:**
+
 - [ ] "Apply This" still updates process field content (unchanged behavior)
 - [ ] "Apply This" still creates improvement history record (unchanged behavior)
 - [ ] "Apply This" now also inserts tasks from the suggestion into `process_tasks` table with status "pending"
@@ -67,9 +75,11 @@ This feature makes the AI generate concrete tasks that land in the correct Asana
 - [ ] Typecheck/lint passes
 
 ### US-005: Task Review Screen
+
 **Description:** As a process owner, I want to review all pending tasks grouped by PDCA section before exporting to Asana, so I can edit or remove tasks that don't fit.
 
 **Acceptance Criteria:**
+
 - [ ] New **tab** on the process detail page (alongside existing content tabs)
 - [ ] Shows pending tasks grouped into 4 columns/sections: Plan, Execute, Evaluate, Improve
 - [ ] Each task card shows: title, description, ADLI dimension badge, source (AI suggestion vs interview)
@@ -82,9 +92,11 @@ This feature makes the AI generate concrete tasks that land in the correct Asana
 - [ ] Typecheck/lint passes
 
 ### US-006: AI Process Step Interview
+
 **Description:** As a process owner, I want the AI to ask me questions about my process steps and generate Plan/Execute/Evaluate tasks from my answers, so the AI helps me build out my operational task list.
 
 **Acceptance Criteria:**
+
 - [ ] New quick action button in AI chat: "Build Task List" (alongside existing Analyze/Coach/Interview buttons)
 - [ ] AI enters interview mode: asks about key steps, who does what, how success is measured, review cadence
 - [ ] After 3-5 exchanges, AI generates a batch of tasks with PDCA section assignments
@@ -95,9 +107,11 @@ This feature makes the AI generate concrete tasks that land in the correct Asana
 - [ ] Typecheck/lint passes
 
 ### US-007: Export Pending Tasks to Asana
+
 **Description:** As a process owner, I want to export all pending tasks to Asana in the correct PDCA sections, so my team can assign owners and due dates.
 
 **Acceptance Criteria:**
+
 - [ ] "Export to Asana" button on the task review screen
 - [ ] If process is not linked to Asana: prompts to link/create (reuses existing export dialog logic)
 - [ ] Creates tasks in the correct PDCA section (Plan/Execute/Evaluate/Improve) based on `pdca_section` field
@@ -110,9 +124,11 @@ This feature makes the AI generate concrete tasks that land in the correct Asana
 - [ ] Typecheck/lint passes
 
 ### US-008: ADLI-to-PDCA Mapping Logic
+
 **Description:** As a developer, I need clear mapping rules so the AI consistently places tasks in the right PDCA sections.
 
 **Acceptance Criteria:**
+
 - [ ] Mapping rules defined in the AI system prompt (see FR-2 for full mapping)
 - [ ] AI can override default mapping when context demands it (e.g., "training" could be Plan or Execute depending on context)
 - [ ] AI can split a single improvement into multiple tasks across sections (e.g., "Create training" → Plan: design training + Execute: deliver training)

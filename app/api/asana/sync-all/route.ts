@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isAdminRole } from "@/lib/auth-helpers";
-import { getAsanaToken } from "@/lib/asana";
-import { syncProcessTasks, type SyncResult } from "@/lib/asana-sync";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isAdminRole } from '@/lib/auth-helpers';
+import { getAsanaToken } from '@/lib/asana';
+import { syncProcessTasks, type SyncResult } from '@/lib/asana-sync';
 
 export const maxDuration = 300;
 
@@ -21,25 +21,25 @@ export async function POST() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   const { data: roleData } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
 
-  if (!isAdminRole(roleData?.role || "")) {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  if (!isAdminRole(roleData?.role || '')) {
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
   }
 
   const token = await getAsanaToken(user.id);
   if (!token) {
     return NextResponse.json(
       {
-        error: "not_connected",
-        message: "Asana not connected. Connect Asana in Settings first.",
+        error: 'not_connected',
+        message: 'Asana not connected. Connect Asana in Settings first.',
       },
       { status: 401 }
     );
@@ -47,10 +47,10 @@ export async function POST() {
 
   // Fetch all processes with linked Asana projects
   const { data: processes, error: procError } = await supabase
-    .from("processes")
-    .select("id, name, asana_project_gid")
-    .not("asana_project_gid", "is", null)
-    .order("name");
+    .from('processes')
+    .select('id, name, asana_project_gid')
+    .not('asana_project_gid', 'is', null)
+    .order('name');
 
   if (procError) {
     return NextResponse.json({ error: procError.message }, { status: 500 });
@@ -87,7 +87,7 @@ export async function POST() {
         removed: 0,
         total: 0,
         lastSyncedAt: new Date().toISOString(),
-        error: (err as Error).message || "Unknown error",
+        error: (err as Error).message || 'Unknown error',
       });
     }
 

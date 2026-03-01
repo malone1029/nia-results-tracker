@@ -51,38 +51,47 @@ Open http://localhost:3000 in your browser. You should see the NIA Excellence Hu
 ### Making Changes
 
 1. **Start from main:**
+
    ```bash
    git checkout main
    git pull
    ```
 
 2. **Create a branch:**
+
    ```bash
    git checkout -b yourname/short-description
    ```
+
    Examples: `sarah/add-reports-page`, `sarah/fix-login-bug`
 
 3. **Make your changes, then commit:**
+
    ```bash
    git add <files>
    git commit -m "Short description of what you changed"
    ```
 
 4. **Push your branch:**
+
    ```bash
    git push -u origin yourname/short-description
    ```
 
 5. **Open a Pull Request:**
+
    ```bash
    gh pr create
    ```
+
    Or go to GitHub and click the "Compare & pull request" button.
 
 6. **Merge when ready:**
+
    ```bash
    gh pr merge
    ```
+
    Or click "Merge pull request" on GitHub. This triggers an automatic deploy to production.
 
 7. **Clean up:**

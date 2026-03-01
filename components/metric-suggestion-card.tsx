@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import type { MetricSuggestion } from "@/lib/ai-parsers";
+import { useState } from 'react';
+import type { MetricSuggestion } from '@/lib/ai-parsers';
 
 export default function MetricSuggestionCard({
   suggestion,
@@ -12,13 +12,13 @@ export default function MetricSuggestionCard({
   onAction: (edited?: Partial<MetricSuggestion>) => void;
   isLoading: boolean;
 }) {
-  const isCreate = suggestion.action === "create";
+  const isCreate = suggestion.action === 'create';
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(suggestion.name);
   const [unit, setUnit] = useState(suggestion.unit);
   const [cadence, setCadence] = useState(suggestion.cadence);
   const [targetValue, setTargetValue] = useState(
-    suggestion.targetValue != null ? String(suggestion.targetValue) : ""
+    suggestion.targetValue != null ? String(suggestion.targetValue) : ''
   );
 
   function handleConfirm() {
@@ -38,18 +38,18 @@ export default function MetricSuggestionCard({
     <div
       className="rounded-lg shadow-sm overflow-hidden border-l-4"
       style={{
-        borderLeftColor: "#b1bd37",
-        backgroundColor: "rgba(177,189,55,0.04)",
-        borderTop: "1px solid var(--border)",
-        borderRight: "1px solid var(--border)",
-        borderBottom: "1px solid var(--border)",
+        borderLeftColor: '#b1bd37',
+        backgroundColor: 'rgba(177,189,55,0.04)',
+        borderTop: '1px solid var(--border)',
+        borderRight: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)',
       }}
     >
       {/* Header */}
       <div className="px-3 py-2.5 border-b border-border-light">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-nia-green/15 text-nia-green">
-            {isCreate ? "New Metric" : "Link Existing"}
+            {isCreate ? 'New Metric' : 'Link Existing'}
           </span>
         </div>
         {!editing ? (
@@ -69,16 +69,24 @@ export default function MetricSuggestionCard({
 
         {!editing ? (
           <div className="flex flex-wrap gap-2 text-xs text-text-tertiary">
-            <span>Unit: <strong className="text-nia-dark">{suggestion.unit}</strong></span>
-            <span>Cadence: <strong className="text-nia-dark">{suggestion.cadence}</strong></span>
+            <span>
+              Unit: <strong className="text-nia-dark">{suggestion.unit}</strong>
+            </span>
+            <span>
+              Cadence: <strong className="text-nia-dark">{suggestion.cadence}</strong>
+            </span>
             {suggestion.targetValue != null && (
-              <span>Target: <strong className="text-nia-dark">{suggestion.targetValue}</strong></span>
+              <span>
+                Target: <strong className="text-nia-dark">{suggestion.targetValue}</strong>
+              </span>
             )}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Unit</label>
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                Unit
+              </label>
               <input
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
@@ -86,7 +94,9 @@ export default function MetricSuggestionCard({
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Cadence</label>
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                Cadence
+              </label>
               <select
                 value={cadence}
                 onChange={(e) => setCadence(e.target.value)}
@@ -100,7 +110,9 @@ export default function MetricSuggestionCard({
               </select>
             </div>
             <div className="col-span-2">
-              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Target Value (optional)</label>
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                Target Value (optional)
+              </label>
               <input
                 type="number"
                 value={targetValue}
@@ -120,11 +132,7 @@ export default function MetricSuggestionCard({
           disabled={isLoading}
           className="text-xs bg-nia-green text-white rounded px-3 py-1.5 font-medium hover:bg-nia-green/80 disabled:opacity-50 transition-colors"
         >
-          {isLoading
-            ? "Processing..."
-            : isCreate
-            ? "Create & Link"
-            : "Link to Process"}
+          {isLoading ? 'Processing...' : isCreate ? 'Create & Link' : 'Link to Process'}
         </button>
         {isCreate && !editing && (
           <button

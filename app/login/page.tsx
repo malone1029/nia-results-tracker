@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import { useSearchParams } from "next/navigation";
-import { useState, Suspense } from "react";
-import Image from "next/image";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui";
+import { useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui';
 
 function LoginForm() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
-  const error = searchParams.get("error");
+  const error = searchParams.get('error');
 
   async function signInWithGoogle() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
+      provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/api/auth/callback`,
         queryParams: {
-          hd: "thenia.org",
-          prompt: "select_account",
+          hd: 'thenia.org',
+          prompt: 'select_account',
         },
       },
     });
@@ -38,21 +38,17 @@ function LoginForm() {
           height={64}
           className="mx-auto mb-4 rounded"
         />
-        <h1 className="text-2xl font-bold font-display text-nia-dark mb-1">
-          NIA Excellence Hub
-        </h1>
-        <p className="text-sm text-text-tertiary mb-8">
-          Baldrige Excellence Framework
-        </p>
+        <h1 className="text-2xl font-bold font-display text-nia-dark mb-1">NIA Excellence Hub</h1>
+        <p className="text-sm text-text-tertiary mb-8">Baldrige Excellence Framework</p>
 
-        {error === "domain" && (
+        {error === 'domain' && (
           <div className="bg-nia-red/10 border border-nia-red/30 rounded-lg p-3 mb-4 text-sm text-nia-red">
-            Access is restricted to <strong>@thenia.org</strong> email addresses.
-            Please sign in with your NIA account.
+            Access is restricted to <strong>@thenia.org</strong> email addresses. Please sign in
+            with your NIA account.
           </div>
         )}
 
-        {error === "auth" && (
+        {error === 'auth' && (
           <div className="bg-nia-red/10 border border-nia-red/30 rounded-lg p-3 mb-4 text-sm text-nia-red">
             Something went wrong during sign-in. Please try again.
           </div>
@@ -83,12 +79,10 @@ function LoginForm() {
               d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z"
             />
           </svg>
-          {loading ? "Signing in..." : "Sign in with Google"}
+          {loading ? 'Signing in...' : 'Sign in with Google'}
         </Button>
 
-        <p className="text-xs text-text-muted mt-6">
-          Access restricted to NIA team members
-        </p>
+        <p className="text-xs text-text-muted mt-6">Access restricted to NIA team members</p>
       </div>
     </div>
   );

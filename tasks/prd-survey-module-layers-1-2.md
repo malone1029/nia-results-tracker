@@ -26,9 +26,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ## User Stories
 
 ### US-001: Database Migration for New Question Types
+
 **Description:** As a developer, I need the database schema to support new question types, options, sections, logic rules, and answer formats so all Layer 1-2 features have a solid foundation.
 
 **Acceptance Criteria:**
+
 - [ ] `survey_questions` table updated:
   - `question_type` CHECK expanded to include: `rating`, `yes_no`, `nps`, `multiple_choice`, `checkbox`, `open_text`, `matrix`
   - `options` JSONB column added (stores choice labels, custom scale labels, matrix rows/columns)
@@ -56,9 +58,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-002: Likert Scale with Custom Labels
+
 **Description:** As a survey creator, I want to define custom rating labels (e.g., "Never / Rarely / Sometimes / Often / Always") so my scales match the question context instead of always using "Strongly Disagree → Strongly Agree."
 
 **Acceptance Criteria:**
+
 - [ ] Survey builder shows "Custom Labels" toggle when question type is "Rating"
 - [ ] When enabled, shows editable label inputs for each scale point (default 5)
 - [ ] Scale size selector: 3, 4, 5, 7, or 10 points (already have `rating_scale_max`)
@@ -72,9 +76,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-003: Multiple Choice (Single Select)
+
 **Description:** As a survey creator, I want to add multiple-choice questions where respondents pick exactly one option from a list, for questions like "What department are you in?" or "How did you hear about this service?"
 
 **Acceptance Criteria:**
+
 - [ ] New question type "Multiple Choice" in builder dropdown
 - [ ] Builder shows editable option list (add/remove/reorder, min 2 options)
 - [ ] Options stored in `options` JSONB: `{ "choices": ["Option A", "Option B", "Option C"] }`
@@ -88,9 +94,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-004: Checkbox (Multi-Select)
+
 **Description:** As a survey creator, I want checkbox questions where respondents can select multiple options, for questions like "Which NIA services have you used? (Select all that apply)"
 
 **Acceptance Criteria:**
+
 - [ ] New question type "Checkbox" in builder dropdown
 - [ ] Builder shows same editable option list as multiple choice
 - [ ] Optional "Other (please specify)" toggle
@@ -104,9 +112,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-005: Open Text (Short + Long Answer)
+
 **Description:** As a survey creator, I want free-text questions for qualitative feedback, with short answer (one line) and long answer (paragraph) variants.
 
 **Acceptance Criteria:**
+
 - [ ] New question type "Open Text" in builder dropdown
 - [ ] Builder shows "Short answer" / "Long answer" toggle (stored in `options` JSONB: `{ "variant": "short" | "long" }`)
 - [ ] Optional character limit field (stored in options, enforced on response page)
@@ -121,9 +131,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-006: Net Promoter Score (NPS)
+
 **Description:** As a survey creator, I want an NPS question (0-10 scale) that auto-calculates the NPS score and shows Detractor/Passive/Promoter breakdown, since NPS is a standard metric NIA leadership already understands.
 
 **Acceptance Criteria:**
+
 - [ ] New question type "NPS" in builder dropdown
 - [ ] Builder shows fixed 0-10 scale (no customization needed — NPS is standardized)
 - [ ] Response page renders 11 buttons (0-10) with color gradient: red (0-6), yellow (7-8), green (9-10)
@@ -140,9 +152,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-007: Matrix / Grid Question
+
 **Description:** As a survey creator, I want matrix questions where multiple related items share the same rating scale (e.g., "Rate each NIA service: [Timeliness, Quality, Communication] × [Poor, Fair, Good, Excellent]"), since these are common in satisfaction surveys.
 
 **Acceptance Criteria:**
+
 - [ ] New question type "Matrix" in builder dropdown
 - [ ] Builder shows:
   - Row labels editor (add/remove/reorder, min 2 rows) — these are the items being rated
@@ -160,9 +174,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-008: Update Results Aggregation for New Types
+
 **Description:** As a process owner, I want the results view to correctly aggregate and display data for all new question types so I can analyze survey responses regardless of question format.
 
 **Acceptance Criteria:**
+
 - [ ] `/api/surveys/[id]/results` route updated to handle all 7 question types
 - [ ] **Multiple Choice:** count per option, percentage, most-selected highlighted
 - [ ] **Checkbox:** count per option (respondents can select multiple), percentage of respondents who selected each
@@ -176,9 +192,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-009: Update Auto-Entry Generation for New Types
+
 **Description:** As a process owner, I want metric entries to be auto-generated when closing a wave, for question types where numeric aggregation makes sense.
 
 **Acceptance Criteria:**
+
 - [ ] Wave close PATCH route updated for new types:
   - **Rating:** average (unchanged)
   - **Yes/No:** % Yes (unchanged)
@@ -193,12 +211,14 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-010: Required vs. Optional Questions
+
 **Description:** As a survey creator, I want to mark individual questions as required or optional so respondents aren't forced to answer every question (especially sensitive ones like open text).
 
 **Acceptance Criteria:**
+
 - [ ] Survey builder shows "Required" toggle per question (default: on)
 - [ ] Required state stored in `survey_questions.is_required`
-- [ ] Response page: required questions show red asterisk (*) next to question number
+- [ ] Response page: required questions show red asterisk (\*) next to question number
 - [ ] Submit validation only checks required questions (optional can be skipped)
 - [ ] Progress counter: "3 / 5 required answered" (only counts required)
 - [ ] Results: response count per question reflects actual answers (may differ between required and optional questions)
@@ -208,9 +228,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-011: Question Help Text
+
 **Description:** As a survey creator, I want to add a brief description or instruction below a question to clarify what I'm asking, especially for complex or sensitive questions.
 
 **Acceptance Criteria:**
+
 - [ ] Survey builder shows optional "Help text" input below each question text field
 - [ ] Help text stored in `survey_questions.help_text`
 - [ ] Response page renders help text in smaller, muted text below the question
@@ -221,9 +243,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-012: Survey Sections (Multi-Page)
+
 **Description:** As a survey creator, I want to group questions into labeled sections so long surveys feel organized and respondents can see their progress through distinct topics.
 
 **Acceptance Criteria:**
+
 - [ ] Survey builder shows "Add Section Break" button between questions
 - [ ] Section break has an editable label (e.g., "About Your Experience", "Service Quality")
 - [ ] Optional section description text
@@ -237,9 +261,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-013: Custom Welcome & Thank You Messages
+
 **Description:** As a survey creator, I want to customize the welcome text at the top of the survey and the thank-you message after submission, so the survey feels branded and personal rather than generic.
 
 **Acceptance Criteria:**
+
 - [ ] Survey builder shows "Welcome Message" textarea (optional, below description)
 - [ ] Survey builder shows "Thank You Message" textarea (optional, at bottom)
 - [ ] Stored in `surveys.welcome_message` and `surveys.thank_you_message`
@@ -251,9 +277,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-014: Conditional Skip Logic
+
 **Description:** As a survey creator, I want to show or hide questions based on previous answers (e.g., "If you selected 'No' on Q3, skip Q4-Q6"), so respondents only see relevant questions.
 
 **Acceptance Criteria:**
+
 - [ ] Survey builder shows "Add Condition" option per question
 - [ ] Condition format: "Show this question only if [Question X] [equals/does not equal/is greater than] [value]"
 - [ ] Supported condition sources: rating value, yes/no value, multiple choice selection, NPS score range
@@ -269,9 +297,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-015: Question Templates & Bank
+
 **Description:** As a survey creator, I want to save questions as templates and browse a library of pre-built questions so I can quickly assemble surveys from proven questions instead of writing from scratch every time.
 
 **Acceptance Criteria:**
+
 - [ ] Survey builder shows "Browse Templates" button that opens a template picker modal
 - [ ] Template picker shows categories: Employee Engagement, Member Satisfaction, Process Effectiveness, Custom
 - [ ] Each template shows: name, description, question count, preview of questions
@@ -290,9 +320,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-016: AI Survey Generation from Process Context
+
 **Description:** As a survey creator, I want to ask the AI to generate a complete survey based on my process's charter and ADLI content, so I get a head start instead of building from scratch.
 
 **Acceptance Criteria:**
+
 - [ ] Survey builder shows "Generate with AI" button (sparkle icon)
 - [ ] Clicking it sends process context (charter, ADLI dimensions, linked metrics) to AI chat
 - [ ] AI returns a `survey-questions` structured block with 5-8 targeted questions
@@ -307,9 +339,11 @@ Layers 3-5 (email distribution, analytics dashboards, advanced features) are def
 ---
 
 ### US-017: Update Survey Builder UI for All New Features
+
 **Description:** As a survey creator, I want the survey builder modal to be reorganized to accommodate all new features without feeling cluttered, since the current modal is simple and adding 6 new question types + sections + logic + templates could make it overwhelming.
 
 **Acceptance Criteria:**
+
 - [ ] Builder reorganized into logical areas:
   - **Header area:** Title, description, welcome message (collapsible)
   - **Questions area:** Scrollable list with drag-to-reorder (or move up/down buttons)

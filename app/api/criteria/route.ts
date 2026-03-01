@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
 
 /**
  * GET /api/criteria
@@ -11,18 +11,16 @@ export async function GET() {
 
   // Fetch all three tables in parallel
   const [itemsRes, questionsRes, mappingsRes] = await Promise.all([
-    supabase.from("baldrige_items").select("*").order("sort_order"),
-    supabase.from("baldrige_questions").select("*").order("sort_order"),
+    supabase.from('baldrige_items').select('*').order('sort_order'),
+    supabase.from('baldrige_questions').select('*').order('sort_order'),
     supabase
-      .from("process_question_mappings")
-      .select("*, processes(id, name, owner, baldrige_item)"),
+      .from('process_question_mappings')
+      .select('*, processes(id, name, owner, baldrige_item)'),
   ]);
 
   if (itemsRes.error || questionsRes.error || mappingsRes.error) {
     const msg =
-      itemsRes.error?.message ||
-      questionsRes.error?.message ||
-      mappingsRes.error?.message;
+      itemsRes.error?.message || questionsRes.error?.message || mappingsRes.error?.message;
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
@@ -51,7 +49,7 @@ export async function GET() {
 
     const totalQuestions = questions.length;
     const mappedQuestions = questions.filter((q) =>
-      q.mappings.some((m: { coverage: string }) => m.coverage === "primary")
+      q.mappings.some((m: { coverage: string }) => m.coverage === 'primary')
     ).length;
 
     return {
@@ -59,10 +57,7 @@ export async function GET() {
       questions,
       totalQuestions,
       mappedQuestions,
-      coveragePct:
-        totalQuestions > 0
-          ? Math.round((mappedQuestions / totalQuestions) * 100)
-          : 0,
+      coveragePct: totalQuestions > 0 ? Math.round((mappedQuestions / totalQuestions) * 100) : 0,
     };
   });
 

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { Card, Badge } from "@/components/ui";
-import HelpTip from "@/components/help-tip";
-import type { DashboardTask, DashboardTaskData } from "./types";
+import { useState } from 'react';
+import Link from 'next/link';
+import { Card, Badge } from '@/components/ui';
+import HelpTip from '@/components/help-tip';
+import type { DashboardTask, DashboardTaskData } from './types';
 
 /* ─── Task row ─────────────────────────────────────────────── */
 
@@ -15,27 +15,27 @@ function TaskRow({
   onToggle,
 }: {
   task: DashboardTask;
-  accent: "red" | "orange" | "green";
+  accent: 'red' | 'orange' | 'green';
   muted?: boolean;
   onToggle: (id: number, completed: boolean) => void;
 }) {
   const dueLabel = task.due_date
-    ? new Date(task.due_date + "T00:00:00").toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
+    ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
       })
     : null;
 
   const accentColors = {
-    red: "bg-red-500",
-    orange: "bg-nia-orange",
-    green: "bg-nia-green",
+    red: 'bg-red-500',
+    orange: 'bg-nia-orange',
+    green: 'bg-nia-green',
   };
 
   return (
     <div
       className={`flex items-center gap-2.5 py-2 px-3 rounded-lg group transition-colors hover:bg-surface-hover ${
-        muted ? "opacity-60" : ""
+        muted ? 'opacity-60' : ''
       }`}
     >
       {/* Left accent bar */}
@@ -46,13 +46,19 @@ function TaskRow({
         onClick={() => onToggle(task.id, !task.completed)}
         className="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors hover:border-nia-green focus:outline-none focus:ring-2 focus:ring-nia-green/30"
         style={{
-          borderColor: task.completed ? "#b1bd37" : "var(--border)",
-          backgroundColor: task.completed ? "#b1bd37" : "transparent",
+          borderColor: task.completed ? '#b1bd37' : 'var(--border)',
+          backgroundColor: task.completed ? '#b1bd37' : 'transparent',
         }}
-        aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
+        aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
       >
         {task.completed && (
-          <svg viewBox="0 0 12 12" className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            viewBox="0 0 12 12"
+            className="w-3 h-3 text-white"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
@@ -61,7 +67,7 @@ function TaskRow({
       {/* Task title */}
       <span
         className={`text-sm flex-1 min-w-0 truncate ${
-          task.completed ? "line-through text-text-muted" : "text-nia-dark"
+          task.completed ? 'line-through text-text-muted' : 'text-nia-dark'
         }`}
       >
         {task.title}
@@ -80,7 +86,7 @@ function TaskRow({
       {dueLabel && (
         <span
           className={`text-xs flex-shrink-0 ${
-            accent === "red" ? "text-red-600 font-medium" : "text-text-muted"
+            accent === 'red' ? 'text-red-600 font-medium' : 'text-text-muted'
           }`}
         >
           {dueLabel}
@@ -92,22 +98,14 @@ function TaskRow({
 
 /* ─── Section header ───────────────────────────────────────── */
 
-function SectionLabel({
-  label,
-  count,
-  color,
-}: {
-  label: string;
-  count: number;
-  color: string;
-}) {
+function SectionLabel({ label, count, color }: { label: string; count: number; color: string }) {
   return (
     <div className="flex items-center gap-2 px-3 pt-2 pb-1">
       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
       <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
         {label}
       </span>
-      <Badge color={count > 0 ? "gray" : "gray"} size="xs">
+      <Badge color={count > 0 ? 'gray' : 'gray'} size="xs">
         {count}
       </Badge>
     </div>
@@ -133,8 +131,8 @@ export default function TaskHub({
 
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completed }),
       });
 
@@ -181,7 +179,7 @@ export default function TaskHub({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider">
-          {isAllOwners ? "Tasks" : "My Tasks"}
+          {isAllOwners ? 'Tasks' : 'My Tasks'}
           <HelpTip text="Your cross-process task queue. Red = overdue, orange = due soon, green = recently done." />
         </h2>
         <Link
@@ -199,13 +197,13 @@ export default function TaskHub({
             {stats.totalOverdue} Overdue
           </Badge>
         )}
-        <Badge color={upcoming.length > 0 ? "orange" : "gray"} size="sm" dot>
+        <Badge color={upcoming.length > 0 ? 'orange' : 'gray'} size="sm" dot>
           {upcoming.length} Due Soon
         </Badge>
         <Badge color="dark" size="sm" dot>
           {stats.totalActive} Active
         </Badge>
-        {(stats.totalActive + stats.totalCompleted) > 0 && (
+        {stats.totalActive + stats.totalCompleted > 0 && (
           <Badge color="green" size="sm" dot>
             {stats.completionRate}% Done
           </Badge>
@@ -229,12 +227,7 @@ export default function TaskHub({
             <>
               <SectionLabel label="Overdue" count={overdue.length} color="#dc2626" />
               {overdue.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  accent="red"
-                  onToggle={handleToggle}
-                />
+                <TaskRow key={task.id} task={task} accent="red" onToggle={handleToggle} />
               ))}
             </>
           )}
@@ -244,12 +237,7 @@ export default function TaskHub({
             <>
               <SectionLabel label="Coming Up" count={upcoming.length} color="#f79935" />
               {upcoming.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  accent="orange"
-                  onToggle={handleToggle}
-                />
+                <TaskRow key={task.id} task={task} accent="orange" onToggle={handleToggle} />
               ))}
             </>
           )}
@@ -259,13 +247,7 @@ export default function TaskHub({
             <>
               <SectionLabel label="Recently Completed" count={completed.length} color="#b1bd37" />
               {completed.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  accent="green"
-                  muted
-                  onToggle={handleToggle}
-                />
+                <TaskRow key={task.id} task={task} accent="green" muted onToggle={handleToggle} />
               ))}
             </>
           )}

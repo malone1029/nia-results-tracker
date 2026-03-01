@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { isAdminRole } from "@/lib/auth-helpers";
-import { checkRateLimit } from "@/lib/rate-limit";
+import Anthropic from '@anthropic-ai/sdk';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { isAdminRole } from '@/lib/auth-helpers';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 120;
 
@@ -32,16 +32,16 @@ function buildPrimaryContext(proc: Record<string, unknown>): string {
     lines.push(`\n**Charter:**\n${text.slice(0, 1500)}`);
   }
 
-  for (const dim of ["adli_approach", "adli_deployment", "adli_learning", "adli_integration"]) {
+  for (const dim of ['adli_approach', 'adli_deployment', 'adli_learning', 'adli_integration']) {
     const data = proc[dim] as Record<string, unknown> | null;
     if (data?.content) {
-      const label = dim.replace("adli_", "").replace(/^\w/, (c) => c.toUpperCase());
+      const label = dim.replace('adli_', '').replace(/^\w/, (c) => c.toUpperCase());
       const text = String(data.content);
       lines.push(`\n**${label}:**\n${text.slice(0, 700)}`);
     }
   }
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 /**
@@ -57,15 +57,15 @@ function buildSupportingContext(proc: Record<string, unknown>): string {
     lines.push(`Charter summary: ${String(charter.content).slice(0, 400)}`);
   }
 
-  for (const dim of ["adli_approach", "adli_deployment", "adli_learning", "adli_integration"]) {
+  for (const dim of ['adli_approach', 'adli_deployment', 'adli_learning', 'adli_integration']) {
     const data = proc[dim] as Record<string, unknown> | null;
     if (data?.content) {
-      const label = dim.replace("adli_", "").replace(/^\w/, (c) => c.toUpperCase());
+      const label = dim.replace('adli_', '').replace(/^\w/, (c) => c.toUpperCase());
       lines.push(`${label}: ${String(data.content).slice(0, 150)}`);
     }
   }
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 /**
@@ -80,17 +80,17 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return Response.json({ error: "Not authenticated" }, { status: 401 });
+    return Response.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   const { data: roleData } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
 
-  if (!isAdminRole(roleData?.role || "")) {
-    return Response.json({ error: "Admin access required" }, { status: 403 });
+  if (!isAdminRole(roleData?.role || '')) {
+    return Response.json({ error: 'Admin access required' }, { status: 403 });
   }
 
   // Rate limit check
@@ -98,39 +98,39 @@ export async function POST(request: Request) {
   if (!rl.success) return rl.response;
 
   const body = await request.json();
-  const { item_id, tier = "excellence_builder" } = body;
+  const { item_id, tier = 'excellence_builder' } = body;
 
   if (!item_id) {
-    return Response.json({ error: "item_id is required" }, { status: 400 });
+    return Response.json({ error: 'item_id is required' }, { status: 400 });
   }
 
   try {
     // Fetch item details with questions (filtered by tier)
     let questionsQuery = supabase
-      .from("baldrige_questions")
-      .select("*")
-      .eq("item_id", item_id)
-      .order("sort_order");
+      .from('baldrige_questions')
+      .select('*')
+      .eq('item_id', item_id)
+      .order('sort_order');
 
-    if (tier !== "all") {
-      questionsQuery = questionsQuery.eq("tier", tier);
+    if (tier !== 'all') {
+      questionsQuery = questionsQuery.eq('tier', tier);
     }
 
     const [itemRes, questionsRes] = await Promise.all([
-      supabase.from("baldrige_items").select("*").eq("id", item_id).single(),
+      supabase.from('baldrige_items').select('*').eq('id', item_id).single(),
       questionsQuery,
     ]);
 
     if (itemRes.error || !itemRes.data) {
-      return Response.json({ error: "Item not found" }, { status: 404 });
+      return Response.json({ error: 'Item not found' }, { status: 404 });
     }
 
     const item = itemRes.data;
 
     // Block Profile and Results items
-    if (item.item_type === "profile" || item.item_type === "results") {
+    if (item.item_type === 'profile' || item.item_type === 'results') {
       return Response.json(
-        { error: "Draft generation is only available for Process items (Categories 1-6)" },
+        { error: 'Draft generation is only available for Process items (Categories 1-6)' },
         { status: 400 }
       );
     }
@@ -140,9 +140,11 @@ export async function POST(request: Request) {
     // Fetch mappings for all questions in this item
     const questionIds = questions.map((q: { id: number }) => q.id);
     const { data: mappings } = await supabase
-      .from("process_question_mappings")
-      .select("*, processes(id, name, owner, description, charter, adli_approach, adli_deployment, adli_learning, adli_integration)")
-      .in("question_id", questionIds);
+      .from('process_question_mappings')
+      .select(
+        '*, processes(id, name, owner, description, charter, adli_approach, adli_deployment, adli_learning, adli_integration)'
+      )
+      .in('question_id', questionIds);
 
     // Group mappings by coverage level for context budgeting
     const primaryProcessIds = new Set<number>();
@@ -155,7 +157,7 @@ export async function POST(request: Request) {
       const pid = proc.id as number;
       processMap.set(pid, proc);
 
-      if (m.coverage === "primary") {
+      if (m.coverage === 'primary') {
         primaryProcessIds.add(pid);
       } else {
         supportingProcessIds.add(pid);
@@ -173,7 +175,7 @@ export async function POST(request: Request) {
     // Primary processes: full detail (cap at 5)
     const primaryIds = [...primaryProcessIds].slice(0, 5);
     if (primaryIds.length > 0) {
-      contextParts.push("## Primary Mapped Processes (Full Detail)");
+      contextParts.push('## Primary Mapped Processes (Full Detail)');
       for (const pid of primaryIds) {
         const proc = processMap.get(pid);
         if (proc) contextParts.push(buildPrimaryContext(proc));
@@ -183,7 +185,7 @@ export async function POST(request: Request) {
     // Supporting/partial: condensed (cap at 5)
     const supportingIds = [...supportingProcessIds].slice(0, 5);
     if (supportingIds.length > 0) {
-      contextParts.push("\n## Supporting/Partial Mapped Processes (Summary)");
+      contextParts.push('\n## Supporting/Partial Mapped Processes (Summary)');
       for (const pid of supportingIds) {
         const proc = processMap.get(pid);
         if (proc) contextParts.push(buildSupportingContext(proc));
@@ -192,19 +194,19 @@ export async function POST(request: Request) {
 
     // Build question list for the prompt
     const questionList = questions
-      .map((q: { question_code: string; area_label: string; question_text: string }) =>
-        `- **${q.question_code}** (${q.area_label}): ${q.question_text}`
+      .map(
+        (q: { question_code: string; area_label: string; question_text: string }) =>
+          `- **${q.question_code}** (${q.area_label}): ${q.question_text}`
       )
-      .join("\n");
+      .join('\n');
 
     // Calculate word budget proportional to point value
-    const wordBudget = Math.round(
-      (item.points / DRAFTABLE_TOTAL_POINTS) * TOTAL_WORD_BUDGET
-    );
+    const wordBudget = Math.round((item.points / DRAFTABLE_TOTAL_POINTS) * TOTAL_WORD_BUDGET);
 
-    const processContext = contextParts.length > 0
-      ? contextParts.join("\n\n")
-      : "No processes have been mapped to this item yet. Generate a placeholder draft that marks all areas as [GAP: No process mapped].";
+    const processContext =
+      contextParts.length > 0
+        ? contextParts.join('\n\n')
+        : 'No processes have been mapped to this item yet. Generate a placeholder draft that marks all areas as [GAP: No process mapped].';
 
     const systemPrompt = `You are a Baldrige Performance Excellence expert helping NIA (Northern Illinois Academy) draft their Illinois Lincoln Award application. NIA is an educational service agency supporting 104 member districts in northern Illinois.
 
@@ -242,25 +244,24 @@ ${processContext}`;
       async start(controller) {
         try {
           const stream = anthropic.messages.stream({
-            model: "claude-sonnet-4-6",
+            model: 'claude-sonnet-4-6',
             max_tokens: 4096,
             system: systemPrompt,
             messages: [
               {
-                role: "user",
+                role: 'user',
                 content: `Please draft the narrative for Item ${item.item_code} "${item.item_name}". Address each sub-question using the mapped process evidence. Mark any gaps where evidence is insufficient.`,
               },
             ],
           });
 
-          stream.on("text", (text) => {
+          stream.on('text', (text) => {
             controller.enqueue(encoder.encode(text));
           });
 
-          stream.on("error", (error) => {
-            console.error("Anthropic stream error:", error);
-            const errMsg =
-              "\n\n*Connection to AI was interrupted. Please try again.*";
+          stream.on('error', (error) => {
+            console.error('Anthropic stream error:', error);
+            const errMsg = '\n\n*Connection to AI was interrupted. Please try again.*';
             controller.enqueue(encoder.encode(errMsg));
             controller.close();
           });
@@ -268,9 +269,9 @@ ${processContext}`;
           await stream.finalMessage();
           controller.close();
         } catch (err) {
-          console.error("Draft stream error:", err);
+          console.error('Draft stream error:', err);
           try {
-            const errMsg = "\n\n*AI request failed. Please try again.*";
+            const errMsg = '\n\n*AI request failed. Please try again.*';
             controller.enqueue(encoder.encode(errMsg));
             controller.close();
           } catch {
@@ -282,16 +283,13 @@ ${processContext}`;
 
     return new Response(readableStream, {
       headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "X-Accel-Buffering": "no",
-        "Cache-Control": "no-cache, no-transform",
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Accel-Buffering': 'no',
+        'Cache-Control': 'no-cache, no-transform',
       },
     });
   } catch (error) {
-    console.error("Draft generation error:", error);
-    return Response.json(
-      { error: "Failed to generate draft" },
-      { status: 500 }
-    );
+    console.error('Draft generation error:', error);
+    return Response.json({ error: 'Failed to generate draft' }, { status: 500 });
   }
 }

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
 // React Flow canvas for individual process maps (Process Map tab on process pages).
 // Renders start/end, step, decision, input, and output nodes with BFS-based layout.
 
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -13,11 +13,11 @@ import {
   useNodesState,
   useEdgesState,
   BackgroundVariant,
-} from "@xyflow/react";
+} from '@xyflow/react';
 
-import { PROCESS_NODE_TYPES } from "./process-nodes";
-import { calculateProcessLayout } from "@/lib/flow-layout";
-import type { ProcessMapFlowData } from "@/lib/flow-types";
+import { PROCESS_NODE_TYPES } from './process-nodes';
+import { calculateProcessLayout } from '@/lib/flow-layout';
+import type { ProcessMapFlowData } from '@/lib/flow-types';
 
 // nodeTypes MUST be module-level — never redefine inside a component body
 const nodeTypes = PROCESS_NODE_TYPES;
@@ -32,13 +32,13 @@ function ProcessFlowInner({ flowData, height = 520 }: ProcessFlowCanvasProps) {
 
   // Detect dark mode from data-theme attribute
   useEffect(() => {
-    const check = () =>
-      setIsDark(
-        document.documentElement.getAttribute("data-theme") === "dark"
-      );
+    const check = () => setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
     check();
     const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
     return () => observer.disconnect();
   }, []);
 
@@ -58,14 +58,11 @@ function ProcessFlowInner({ flowData, height = 520 }: ProcessFlowCanvasProps) {
   const [nodes, , onNodesChange] = useNodesState(nodesWithTheme);
   const [edges, , onEdgesChange] = useEdgesState(layout.edges);
 
-  const bgColor = isDark ? "#111111" : "#fafafa";
-  const gridColor = isDark ? "#2e2e2e" : "#e5e7eb";
+  const bgColor = isDark ? '#111111' : '#fafafa';
+  const gridColor = isDark ? '#2e2e2e' : '#e5e7eb';
 
   return (
-    <div
-      style={{ height, background: bgColor, borderRadius: 8 }}
-      className="border border-border"
-    >
+    <div style={{ height, background: bgColor, borderRadius: 8 }} className="border border-border">
       <ReactFlow
         nodes={nodesWithTheme}
         edges={edges}
@@ -76,29 +73,24 @@ function ProcessFlowInner({ flowData, height = 520 }: ProcessFlowCanvasProps) {
         fitViewOptions={{ padding: 0.12 }}
         minZoom={0.3}
         maxZoom={2}
-        colorMode={isDark ? "dark" : "light"}
+        colorMode={isDark ? 'dark' : 'light'}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
       >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          color={gridColor}
-        />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={gridColor} />
         <Controls
           showInteractive={false}
           style={{
-            backgroundColor: isDark ? "#1a1a1a" : "#ffffff",
-            border: `1px solid ${isDark ? "#2e2e2e" : "#e5e7eb"}`,
+            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+            border: `1px solid ${isDark ? '#2e2e2e' : '#e5e7eb'}`,
             borderRadius: 8,
           }}
         />
         <MiniMap
           style={{
-            backgroundColor: isDark ? "#1a1a1a" : "#f9fafb",
-            border: `1px solid ${isDark ? "#2e2e2e" : "#e5e7eb"}`,
+            backgroundColor: isDark ? '#1a1a1a' : '#f9fafb',
+            border: `1px solid ${isDark ? '#2e2e2e' : '#e5e7eb'}`,
           }}
           nodeStrokeWidth={2}
         />

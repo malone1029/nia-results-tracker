@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useParams } from "next/navigation";
-import type { QuestionType, QuestionOptions, ConditionRule } from "@/lib/survey-types";
-import { DEFAULT_RATING_LABELS } from "@/lib/survey-types";
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useParams } from 'next/navigation';
+import type { QuestionType, QuestionOptions, ConditionRule } from '@/lib/survey-types';
+import { DEFAULT_RATING_LABELS } from '@/lib/survey-types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,18 +56,19 @@ function evaluateCondition(
   if (!depAnswer) return false;
 
   const actual = depAnswer.value;
-  const expected = typeof condition.value === "string" ? parseFloat(condition.value) : condition.value;
+  const expected =
+    typeof condition.value === 'string' ? parseFloat(condition.value) : condition.value;
 
   if (actual === null || actual === undefined) return false;
 
   switch (condition.operator) {
-    case "equals":
+    case 'equals':
       return actual === expected;
-    case "not_equals":
+    case 'not_equals':
       return actual !== expected;
-    case "greater_than":
+    case 'greater_than':
       return actual > expected;
-    case "less_than":
+    case 'less_than':
       return actual < expected;
     default:
       return true;
@@ -94,12 +95,12 @@ export default function SurveyRespondPage() {
   // "Other" text for multiple_choice and checkbox
   const [otherText, setOtherText] = useState<Record<number, string>>({});
 
-  const [comment, setComment] = useState("");
-  const [email, setEmail] = useState("");
+  const [comment, setComment] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [closed, setClosed] = useState(false);
 
   // -----------------------------------------------------------------------
@@ -115,7 +116,7 @@ export default function SurveyRespondPage() {
           return;
         }
         if (!res.ok) {
-          setError("Survey not found");
+          setError('Survey not found');
           setLoading(false);
           return;
         }
@@ -124,7 +125,7 @@ export default function SurveyRespondPage() {
         setQuestions(data.questions);
         setWaveId(data.wave_id);
       } catch {
-        setError("Failed to load survey");
+        setError('Failed to load survey');
       }
       setLoading(false);
     }
@@ -135,9 +136,7 @@ export default function SurveyRespondPage() {
   // Visibility — which questions are hidden by conditions
   // -----------------------------------------------------------------------
   const visibleQuestions = useMemo(() => {
-    return questions.filter((q) =>
-      evaluateCondition(q.options?.condition, answers, questions)
-    );
+    return questions.filter((q) => evaluateCondition(q.options?.condition, answers, questions));
   }, [questions, answers]);
 
   const hiddenQuestionIds = useMemo(() => {
@@ -155,38 +154,40 @@ export default function SurveyRespondPage() {
 
   const answeredRequiredCount = useMemo(() => {
     return requiredVisible.filter((q) => {
-      if (q.question_type === "matrix") {
+      if (q.question_type === 'matrix') {
         const rows = q.options?.rows || [];
         return rows.every((_, ri) => matrixAnswers[`${q.id}-${ri}`] !== undefined);
       }
-      if (q.question_type === "checkbox") {
+      if (q.question_type === 'checkbox') {
         const sel = checkboxSelections[q.id];
         return sel && sel.size > 0;
       }
       const a = answers[q.id];
       if (!a) return false;
-      if (q.question_type === "open_text") return !!a.text?.trim();
+      if (q.question_type === 'open_text') return !!a.text?.trim();
       return a.value !== null && a.value !== undefined;
     }).length;
   }, [requiredVisible, answers, matrixAnswers, checkboxSelections]);
 
-  const progressPct = requiredVisible.length > 0
-    ? (answeredRequiredCount / requiredVisible.length) * 100
-    : 0;
+  const progressPct =
+    requiredVisible.length > 0 ? (answeredRequiredCount / requiredVisible.length) * 100 : 0;
 
   // -----------------------------------------------------------------------
   // Answer helpers
   // -----------------------------------------------------------------------
-  const setAnswer = useCallback((questionId: number, value: number | null, text?: string | null) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: {
-        value,
-        text: text ?? prev[questionId]?.text ?? null,
-        json: prev[questionId]?.json ?? null,
-      },
-    }));
-  }, []);
+  const setAnswer = useCallback(
+    (questionId: number, value: number | null, text?: string | null) => {
+      setAnswers((prev) => ({
+        ...prev,
+        [questionId]: {
+          value,
+          text: text ?? prev[questionId]?.text ?? null,
+          json: prev[questionId]?.json ?? null,
+        },
+      }));
+    },
+    []
+  );
 
   const setAnswerText = useCallback((questionId: number, text: string) => {
     setAnswers((prev) => ({
@@ -224,17 +225,17 @@ export default function SurveyRespondPage() {
   async function handleSubmit() {
     // Validate required visible questions
     const unansweredRequired = requiredVisible.filter((q) => {
-      if (q.question_type === "matrix") {
+      if (q.question_type === 'matrix') {
         const rows = q.options?.rows || [];
         return !rows.every((_, ri) => matrixAnswers[`${q.id}-${ri}`] !== undefined);
       }
-      if (q.question_type === "checkbox") {
+      if (q.question_type === 'checkbox') {
         const sel = checkboxSelections[q.id];
         return !sel || sel.size === 0;
       }
       const a = answers[q.id];
       if (!a) return true;
-      if (q.question_type === "open_text") return !a.text?.trim();
+      if (q.question_type === 'open_text') return !a.text?.trim();
       return a.value === null || a.value === undefined;
     });
 
@@ -243,11 +244,11 @@ export default function SurveyRespondPage() {
       // Scroll to first unanswered
       const firstId = unansweredRequired[0].id;
       const el = document.getElementById(`question-${firstId}`);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
-    setError("");
+    setError('');
     setSubmitting(true);
 
     // Build answer payloads for visible questions
@@ -259,7 +260,7 @@ export default function SurveyRespondPage() {
     }> = [];
 
     for (const q of visibleQuestions) {
-      if (q.question_type === "matrix") {
+      if (q.question_type === 'matrix') {
         // One answer per row
         const rows = q.options?.rows || [];
         rows.forEach((rowLabel, ri) => {
@@ -273,7 +274,7 @@ export default function SurveyRespondPage() {
             });
           }
         });
-      } else if (q.question_type === "checkbox") {
+      } else if (q.question_type === 'checkbox') {
         const sel = checkboxSelections[q.id];
         if (sel && sel.size > 0) {
           const selectedArr = Array.from(sel).sort((a, b) => a - b);
@@ -284,7 +285,7 @@ export default function SurveyRespondPage() {
             json: { selected: selectedArr },
           });
         }
-      } else if (q.question_type === "open_text") {
+      } else if (q.question_type === 'open_text') {
         const a = answers[q.id];
         if (a?.text?.trim()) {
           answerPayloads.push({
@@ -294,7 +295,7 @@ export default function SurveyRespondPage() {
             json: null,
           });
         }
-      } else if (q.question_type === "multiple_choice") {
+      } else if (q.question_type === 'multiple_choice') {
         const a = answers[q.id];
         if (a && a.value !== null && a.value !== undefined) {
           answerPayloads.push({
@@ -327,9 +328,9 @@ export default function SurveyRespondPage() {
     }
 
     try {
-      const res = await fetch("/api/surveys/respond", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/surveys/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token,
           answers: answerPayloads,
@@ -345,14 +346,14 @@ export default function SurveyRespondPage() {
           return;
         }
         const data = await res.json();
-        setError(data.error || "Failed to submit");
+        setError(data.error || 'Failed to submit');
         setSubmitting(false);
         return;
       }
 
       setSubmitted(true);
     } catch {
-      setError("Failed to submit. Please try again.");
+      setError('Failed to submit. Please try again.');
     }
     setSubmitting(false);
   }
@@ -374,7 +375,19 @@ export default function SurveyRespondPage() {
       <div className="min-h-screen bg-surface-hover flex items-center justify-center p-4">
         <div className="bg-card rounded-xl shadow-sm border border-border max-w-md w-full p-8 text-center">
           <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-surface-subtle flex items-center justify-center">
-            <svg className="w-6 h-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            <svg
+              className="w-6 h-6 text-text-muted"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
           </div>
           <h1 className="text-xl font-semibold text-foreground mb-2">Survey Closed</h1>
           <p className="text-text-tertiary">This survey is no longer accepting responses.</p>
@@ -388,7 +401,15 @@ export default function SurveyRespondPage() {
       <div className="min-h-screen bg-surface-hover flex items-center justify-center p-4">
         <div className="bg-card rounded-xl shadow-sm border border-border max-w-md w-full p-8 text-center">
           <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            <svg
+              className="w-6 h-6 text-red-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </div>
           <h1 className="text-xl font-semibold text-foreground mb-2">Oops</h1>
           <p className="text-text-tertiary">{error}</p>
@@ -402,11 +423,19 @@ export default function SurveyRespondPage() {
       <div className="min-h-screen bg-surface-hover flex items-center justify-center p-4">
         <div className="bg-card rounded-xl shadow-sm border border-border max-w-md w-full p-8 text-center">
           <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-green-50 flex items-center justify-center">
-            <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+            <svg
+              className="w-7 h-7 text-green-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
           </div>
           <h1 className="text-xl font-semibold text-foreground mb-2">Thank You!</h1>
           <p className="text-text-tertiary">
-            {survey?.thank_you_message || "Your response has been recorded."}
+            {survey?.thank_you_message || 'Your response has been recorded.'}
           </p>
         </div>
       </div>
@@ -475,8 +504,8 @@ export default function SurveyRespondPage() {
               id={`question-${q.id}`}
               className={`transition-all duration-300 ease-in-out ${
                 isVisible
-                  ? "opacity-100 max-h-[2000px] scale-100"
-                  : "opacity-0 max-h-0 scale-95 overflow-hidden pointer-events-none"
+                  ? 'opacity-100 max-h-[2000px] scale-100'
+                  : 'opacity-0 max-h-0 scale-95 overflow-hidden pointer-events-none'
               }`}
             >
               {/* Section divider */}
@@ -495,63 +524,59 @@ export default function SurveyRespondPage() {
                     {displayNum}
                     {q.is_required && <span className="text-red-500 ml-0.5">*</span>}
                   </span>
-                  <h2 className="text-base font-medium text-foreground">
-                    {q.question_text}
-                  </h2>
+                  <h2 className="text-base font-medium text-foreground">{q.question_text}</h2>
                 </div>
 
                 {/* Help text */}
-                {q.help_text && (
-                  <p className="ml-7 mb-3 text-sm text-text-muted">{q.help_text}</p>
-                )}
+                {q.help_text && <p className="ml-7 mb-3 text-sm text-text-muted">{q.help_text}</p>}
 
                 {/* Render the appropriate input based on question type */}
                 <div className="ml-7 mt-3">
-                  {q.question_type === "rating" && (
+                  {q.question_type === 'rating' && (
                     <RatingInput
                       question={q}
                       value={answers[q.id]?.value ?? null}
                       onChange={(val) => setAnswer(q.id, val)}
                     />
                   )}
-                  {q.question_type === "yes_no" && (
+                  {q.question_type === 'yes_no' && (
                     <YesNoInput
                       value={answers[q.id]?.value ?? null}
                       onChange={(val) => setAnswer(q.id, val)}
                     />
                   )}
-                  {q.question_type === "nps" && (
+                  {q.question_type === 'nps' && (
                     <NpsInput
                       value={answers[q.id]?.value ?? null}
                       onChange={(val) => setAnswer(q.id, val)}
                     />
                   )}
-                  {q.question_type === "multiple_choice" && (
+                  {q.question_type === 'multiple_choice' && (
                     <MultipleChoiceInput
                       question={q}
                       value={answers[q.id]?.value ?? null}
-                      otherText={otherText[q.id] || ""}
+                      otherText={otherText[q.id] || ''}
                       onChange={(val) => setAnswer(q.id, val)}
                       onOtherTextChange={(t) => setOtherText((prev) => ({ ...prev, [q.id]: t }))}
                     />
                   )}
-                  {q.question_type === "checkbox" && (
+                  {q.question_type === 'checkbox' && (
                     <CheckboxInput
                       question={q}
                       selected={checkboxSelections[q.id] || new Set()}
-                      otherText={otherText[q.id] || ""}
+                      otherText={otherText[q.id] || ''}
                       onToggle={(idx) => toggleCheckbox(q.id, idx)}
                       onOtherTextChange={(t) => setOtherText((prev) => ({ ...prev, [q.id]: t }))}
                     />
                   )}
-                  {q.question_type === "open_text" && (
+                  {q.question_type === 'open_text' && (
                     <OpenTextInput
                       question={q}
-                      value={answers[q.id]?.text || ""}
+                      value={answers[q.id]?.text || ''}
                       onChange={(t) => setAnswerText(q.id, t)}
                     />
                   )}
-                  {q.question_type === "matrix" && (
+                  {q.question_type === 'matrix' && (
                     <MatrixInput
                       question={q}
                       matrixAnswers={matrixAnswers}
@@ -567,7 +592,8 @@ export default function SurveyRespondPage() {
         {/* Optional comment */}
         <div className="bg-card rounded-xl border border-border shadow-sm p-5">
           <h2 className="text-base font-medium text-foreground mb-3">
-            Additional Comments <span className="text-text-muted font-normal text-sm">(optional)</span>
+            Additional Comments{' '}
+            <span className="text-text-muted font-normal text-sm">(optional)</span>
           </h2>
           <textarea
             value={comment}
@@ -605,13 +631,13 @@ export default function SurveyRespondPage() {
           disabled={submitting}
           className="w-full bg-[#2d3c34] text-white py-3.5 rounded-xl text-base font-semibold hover:bg-[#3d4c44] transition-colors disabled:opacity-50 shadow-md"
         >
-          {submitting ? "Submitting..." : "Submit Response"}
+          {submitting ? 'Submitting...' : 'Submit Response'}
         </button>
 
         <p className="text-center text-xs text-text-muted pb-8">
           {survey?.is_anonymous
-            ? "Your response is anonymous."
-            : "Your email will be recorded with your response."}
+            ? 'Your response is anonymous.'
+            : 'Your email will be recorded with your response.'}
         </p>
       </div>
     </div>
@@ -640,7 +666,7 @@ function RatingInput({
 
   return (
     <div>
-      <div className={`flex ${isCompact ? "gap-1" : "gap-2"} flex-wrap`}>
+      <div className={`flex ${isCompact ? 'gap-1' : 'gap-2'} flex-wrap`}>
         {Array.from({ length: max }, (_, i) => i + 1).map((val) => {
           const label = labels[val - 1];
           const useTextLabel = !isCompact && label;
@@ -651,14 +677,14 @@ function RatingInput({
               onClick={() => onChange(val)}
               className={`rounded-lg font-semibold transition-all text-center ${
                 isCompact
-                  ? "w-9 h-9 text-sm"
+                  ? 'w-9 h-9 text-sm'
                   : useTextLabel
-                  ? "flex-1 min-w-0 py-2.5 px-1 text-xs leading-tight"
-                  : "w-12 h-12 text-lg"
+                    ? 'flex-1 min-w-0 py-2.5 px-1 text-xs leading-tight'
+                    : 'w-12 h-12 text-lg'
               } ${
                 value === val
-                  ? "bg-[#2d3c34] text-white shadow-md scale-105"
-                  : "bg-surface-subtle text-text-secondary hover:bg-surface-muted"
+                  ? 'bg-[#2d3c34] text-white shadow-md scale-105'
+                  : 'bg-surface-subtle text-text-secondary hover:bg-surface-muted'
               }`}
               title={label || String(val)}
             >
@@ -694,8 +720,8 @@ function YesNoInput({
         onClick={() => onChange(1)}
         className={`flex-1 py-3 rounded-lg text-base font-medium transition-all ${
           value === 1
-            ? "bg-green-600 text-white shadow-md"
-            : "bg-surface-subtle text-text-secondary hover:bg-surface-muted"
+            ? 'bg-green-600 text-white shadow-md'
+            : 'bg-surface-subtle text-text-secondary hover:bg-surface-muted'
         }`}
       >
         Yes
@@ -704,8 +730,8 @@ function YesNoInput({
         onClick={() => onChange(0)}
         className={`flex-1 py-3 rounded-lg text-base font-medium transition-all ${
           value === 0
-            ? "bg-red-500 text-white shadow-md"
-            : "bg-surface-subtle text-text-secondary hover:bg-surface-muted"
+            ? 'bg-red-500 text-white shadow-md'
+            : 'bg-surface-subtle text-text-secondary hover:bg-surface-muted'
         }`}
       >
         No
@@ -717,24 +743,18 @@ function YesNoInput({
 // ---------------------------------------------------------------------------
 // NPS (0-10)
 // ---------------------------------------------------------------------------
-function NpsInput({
-  value,
-  onChange,
-}: {
-  value: number | null;
-  onChange: (val: number) => void;
-}) {
+function NpsInput({ value, onChange }: { value: number | null; onChange: (val: number) => void }) {
   function getNpsColor(score: number, isSelected: boolean): string {
-    if (!isSelected) return "bg-surface-subtle text-text-secondary hover:bg-surface-muted";
-    if (score <= 6) return "bg-red-500 text-white shadow-md";
-    if (score <= 8) return "bg-yellow-500 text-white shadow-md";
-    return "bg-green-600 text-white shadow-md";
+    if (!isSelected) return 'bg-surface-subtle text-text-secondary hover:bg-surface-muted';
+    if (score <= 6) return 'bg-red-500 text-white shadow-md';
+    if (score <= 8) return 'bg-yellow-500 text-white shadow-md';
+    return 'bg-green-600 text-white shadow-md';
   }
 
   function getNpsBorderColor(score: number): string {
-    if (score <= 6) return "border-red-200";
-    if (score <= 8) return "border-yellow-200";
-    return "border-green-200";
+    if (score <= 6) return 'border-red-200';
+    if (score <= 8) return 'border-yellow-200';
+    return 'border-green-200';
   }
 
   return (
@@ -800,18 +820,16 @@ function MultipleChoiceInput({
           onClick={() => onChange(idx)}
           className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center gap-3 ${
             value === idx
-              ? "border-[#2d3c34] bg-[#2d3c34]/5 ring-1 ring-[#2d3c34]"
-              : "border-border bg-surface-subtle hover:bg-surface-muted"
+              ? 'border-[#2d3c34] bg-[#2d3c34]/5 ring-1 ring-[#2d3c34]'
+              : 'border-border bg-surface-subtle hover:bg-surface-muted'
           }`}
         >
           <span
             className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-              value === idx ? "border-[#2d3c34]" : "border-gray-300"
+              value === idx ? 'border-[#2d3c34]' : 'border-gray-300'
             }`}
           >
-            {value === idx && (
-              <span className="w-2.5 h-2.5 rounded-full bg-[#2d3c34]" />
-            )}
+            {value === idx && <span className="w-2.5 h-2.5 rounded-full bg-[#2d3c34]" />}
           </span>
           <span className="text-sm text-foreground">{choice}</span>
         </button>
@@ -823,18 +841,16 @@ function MultipleChoiceInput({
             onClick={() => onChange(otherIndex)}
             className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center gap-3 ${
               value === otherIndex
-                ? "border-[#2d3c34] bg-[#2d3c34]/5 ring-1 ring-[#2d3c34]"
-                : "border-border bg-surface-subtle hover:bg-surface-muted"
+                ? 'border-[#2d3c34] bg-[#2d3c34]/5 ring-1 ring-[#2d3c34]'
+                : 'border-border bg-surface-subtle hover:bg-surface-muted'
             }`}
           >
             <span
               className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-                value === otherIndex ? "border-[#2d3c34]" : "border-gray-300"
+                value === otherIndex ? 'border-[#2d3c34]' : 'border-gray-300'
               }`}
             >
-              {value === otherIndex && (
-                <span className="w-2.5 h-2.5 rounded-full bg-[#2d3c34]" />
-              )}
+              {value === otherIndex && <span className="w-2.5 h-2.5 rounded-full bg-[#2d3c34]" />}
             </span>
             <span className="text-sm text-foreground">Other</span>
           </button>
@@ -884,17 +900,23 @@ function CheckboxInput({
             onClick={() => onToggle(idx)}
             className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center gap-3 ${
               isChecked
-                ? "border-[#2d3c34] bg-[#2d3c34]/5 ring-1 ring-[#2d3c34]"
-                : "border-border bg-surface-subtle hover:bg-surface-muted"
+                ? 'border-[#2d3c34] bg-[#2d3c34]/5 ring-1 ring-[#2d3c34]'
+                : 'border-border bg-surface-subtle hover:bg-surface-muted'
             }`}
           >
             <span
               className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border-2 transition-colors ${
-                isChecked ? "border-[#2d3c34] bg-[#2d3c34]" : "border-gray-300"
+                isChecked ? 'border-[#2d3c34] bg-[#2d3c34]' : 'border-gray-300'
               }`}
             >
               {isChecked && (
-                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <svg
+                  className="w-3 h-3 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               )}
@@ -910,17 +932,23 @@ function CheckboxInput({
             onClick={() => onToggle(otherIndex)}
             className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center gap-3 ${
               selected.has(otherIndex)
-                ? "border-[#2d3c34] bg-[#2d3c34]/5 ring-1 ring-[#2d3c34]"
-                : "border-border bg-surface-subtle hover:bg-surface-muted"
+                ? 'border-[#2d3c34] bg-[#2d3c34]/5 ring-1 ring-[#2d3c34]'
+                : 'border-border bg-surface-subtle hover:bg-surface-muted'
             }`}
           >
             <span
               className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border-2 transition-colors ${
-                selected.has(otherIndex) ? "border-[#2d3c34] bg-[#2d3c34]" : "border-gray-300"
+                selected.has(otherIndex) ? 'border-[#2d3c34] bg-[#2d3c34]' : 'border-gray-300'
               }`}
             >
               {selected.has(otherIndex) && (
-                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <svg
+                  className="w-3 h-3 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               )}
@@ -955,10 +983,10 @@ function OpenTextInput({
   value: string;
   onChange: (text: string) => void;
 }) {
-  const variant = question.options?.variant || "long";
+  const variant = question.options?.variant || 'long';
   const maxLength = question.options?.max_length;
 
-  if (variant === "short") {
+  if (variant === 'short') {
     return (
       <div>
         <input
@@ -973,7 +1001,9 @@ function OpenTextInput({
         />
         {maxLength && (
           <div className="text-right mt-1">
-            <span className={`text-xs ${value.length > maxLength * 0.9 ? "text-red-500" : "text-text-muted"}`}>
+            <span
+              className={`text-xs ${value.length > maxLength * 0.9 ? 'text-red-500' : 'text-text-muted'}`}
+            >
               {value.length} / {maxLength}
             </span>
           </div>
@@ -996,7 +1026,9 @@ function OpenTextInput({
       />
       {maxLength && (
         <div className="text-right mt-1">
-          <span className={`text-xs ${value.length > maxLength * 0.9 ? "text-red-500" : "text-text-muted"}`}>
+          <span
+            className={`text-xs ${value.length > maxLength * 0.9 ? 'text-red-500' : 'text-text-muted'}`}
+          >
             {value.length} / {maxLength}
           </span>
         </div>
@@ -1033,10 +1065,7 @@ function MatrixInput({
             <tr>
               <th className="text-left py-2 pr-4 font-medium text-text-muted w-1/3" />
               {columns.map((col, ci) => (
-                <th
-                  key={ci}
-                  className="text-center py-2 px-2 font-medium text-text-muted text-xs"
-                >
+                <th key={ci} className="text-center py-2 px-2 font-medium text-text-muted text-xs">
                   {col}
                 </th>
               ))}
@@ -1047,17 +1076,15 @@ function MatrixInput({
               const selectedCol = matrixAnswers[`${question.id}-${ri}`];
               return (
                 <tr key={ri} className="border-t border-border/50">
-                  <td className="py-3 pr-4 text-foreground font-medium text-sm">
-                    {row}
-                  </td>
+                  <td className="py-3 pr-4 text-foreground font-medium text-sm">{row}</td>
                   {columns.map((_, ci) => (
                     <td key={ci} className="text-center py-3 px-2">
                       <button
                         onClick={() => onChange(ri, ci)}
                         className={`w-7 h-7 rounded-full border-2 transition-all mx-auto flex items-center justify-center ${
                           selectedCol === ci
-                            ? "border-[#2d3c34] bg-[#2d3c34]"
-                            : "border-gray-300 hover:border-gray-400"
+                            ? 'border-[#2d3c34] bg-[#2d3c34]'
+                            : 'border-gray-300 hover:border-gray-400'
                         }`}
                       >
                         {selectedCol === ci && (
@@ -1087,8 +1114,8 @@ function MatrixInput({
                     onClick={() => onChange(ri, ci)}
                     className={`flex-1 min-w-0 py-2 px-1 rounded-lg text-xs font-medium transition-all text-center leading-tight ${
                       selectedCol === ci
-                        ? "bg-[#2d3c34] text-white shadow-md"
-                        : "bg-surface-subtle text-text-secondary hover:bg-surface-muted"
+                        ? 'bg-[#2d3c34] text-white shadow-md'
+                        : 'bg-surface-subtle text-text-secondary hover:bg-surface-muted'
                     }`}
                   >
                     {col}

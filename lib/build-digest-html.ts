@@ -1,16 +1,16 @@
 // Weekly Digest Email HTML Builder
 // Generates NIA-branded HTML email with inline styles (email clients strip <style> tags)
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://nia-results-tracker.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nia-results-tracker.vercel.app';
 
 // NIA brand colors
-const NIA_ORANGE = "#f5a623";
-const NIA_DARK = "#324a4d";
-const NIA_GREEN = "#b1bd37";
-const TEXT_PRIMARY = "#1a1a1a";
-const TEXT_SECONDARY = "#6b7280";
-const BORDER = "#e5e7eb";
-const BG_LIGHT = "#f9fafb";
+const NIA_ORANGE = '#f5a623';
+const NIA_DARK = '#324a4d';
+const NIA_GREEN = '#b1bd37';
+const TEXT_PRIMARY = '#1a1a1a';
+const TEXT_SECONDARY = '#6b7280';
+const BORDER = '#e5e7eb';
+const BG_LIGHT = '#f9fafb';
 
 export interface DigestOverdueMetric {
   id: number;
@@ -49,7 +49,7 @@ export interface DigestData {
 }
 
 function deltaArrow(delta: number | null): string {
-  if (delta === null) return "";
+  if (delta === null) return '';
   if (delta > 0) return ` <span style="color: ${NIA_GREEN};">&#9650; +${delta}</span>`;
   if (delta < 0) return ` <span style="color: #dc2626;">&#9660; ${delta}</span>`;
   return ` <span style="color: ${TEXT_SECONDARY};">&#8594; no change</span>`;
@@ -57,9 +57,9 @@ function deltaArrow(delta: number | null): string {
 
 function healthColor(score: number): string {
   if (score >= 80) return NIA_GREEN;
-  if (score >= 60) return "#55787c";
+  if (score >= 60) return '#55787c';
   if (score >= 40) return NIA_ORANGE;
-  return "#dc2626";
+  return '#dc2626';
 }
 
 export function buildDigestHtml(data: DigestData): string {
@@ -77,7 +77,7 @@ export function buildDigestHtml(data: DigestData): string {
     weeklyUpdates,
   } = data;
 
-  const firstName = recipientName ? recipientName.split(" ")[0] : null;
+  const firstName = recipientName ? recipientName.split(' ')[0] : null;
 
   // --- Stat cards row ---
   const statCards = `
@@ -105,7 +105,7 @@ export function buildDigestHtml(data: DigestData): string {
     </table>`;
 
   // --- Overdue metrics ---
-  let overdueSection = "";
+  let overdueSection = '';
   if (overdueMetrics.length > 0) {
     const rows = overdueMetrics
       .slice(0, 8) // cap at 8 to keep email short
@@ -114,18 +114,19 @@ export function buildDigestHtml(data: DigestData): string {
         <tr>
           <td style="padding: 8px 12px; border-bottom: 1px solid ${BORDER};">
             <a href="${APP_URL}/log?metricId=${m.id}" style="color: ${NIA_DARK}; text-decoration: none; font-weight: 500;">${escapeHtml(m.name)}</a>
-            ${m.processName ? `<div style="font-size: 12px; color: ${TEXT_SECONDARY};">${escapeHtml(m.processName)}</div>` : ""}
+            ${m.processName ? `<div style="font-size: 12px; color: ${TEXT_SECONDARY};">${escapeHtml(m.processName)}</div>` : ''}
           </td>
           <td style="padding: 8px 12px; border-bottom: 1px solid ${BORDER}; text-align: right; color: #dc2626; font-size: 13px;">
             ${m.daysOverdue} days overdue
           </td>
         </tr>`
       )
-      .join("");
+      .join('');
 
-    const moreText = overdueMetrics.length > 8
-      ? `<div style="padding: 8px 12px; font-size: 13px; color: ${TEXT_SECONDARY};">+ ${overdueMetrics.length - 8} more &mdash; <a href="${APP_URL}/data-health" style="color: ${NIA_DARK};">view all</a></div>`
-      : "";
+    const moreText =
+      overdueMetrics.length > 8
+        ? `<div style="padding: 8px 12px; font-size: 13px; color: ${TEXT_SECONDARY};">+ ${overdueMetrics.length - 8} more &mdash; <a href="${APP_URL}/data-health" style="color: ${NIA_DARK};">view all</a></div>`
+        : '';
 
     overdueSection = `
       <div style="margin: 24px 0;">
@@ -138,7 +139,7 @@ export function buildDigestHtml(data: DigestData): string {
   }
 
   // --- Stale processes ---
-  let staleSection = "";
+  let staleSection = '';
   if (staleProcesses.length > 0) {
     const rows = staleProcesses
       .slice(0, 5)
@@ -147,7 +148,7 @@ export function buildDigestHtml(data: DigestData): string {
         <tr>
           <td style="padding: 8px 12px; border-bottom: 1px solid ${BORDER};">
             <a href="${APP_URL}/processes/${p.id}" style="color: ${NIA_DARK}; text-decoration: none; font-weight: 500;">${escapeHtml(p.name)}</a>
-            ${p.owner ? `<div style="font-size: 12px; color: ${TEXT_SECONDARY};">${escapeHtml(p.owner)}</div>` : ""}
+            ${p.owner ? `<div style="font-size: 12px; color: ${TEXT_SECONDARY};">${escapeHtml(p.owner)}</div>` : ''}
           </td>
           <td style="padding: 8px 12px; border-bottom: 1px solid ${BORDER}; text-align: right;">
             <span style="color: ${healthColor(p.healthScore)}; font-weight: 600;">${p.healthScore}</span>
@@ -155,7 +156,7 @@ export function buildDigestHtml(data: DigestData): string {
           </td>
         </tr>`
       )
-      .join("");
+      .join('');
 
     staleSection = `
       <div style="margin: 24px 0;">
@@ -167,7 +168,7 @@ export function buildDigestHtml(data: DigestData): string {
   }
 
   // --- Next actions ---
-  let actionsSection = "";
+  let actionsSection = '';
   if (nextActions.length > 0) {
     const items = nextActions
       .slice(0, 5)
@@ -175,10 +176,10 @@ export function buildDigestHtml(data: DigestData): string {
         (a) => `
         <li style="margin: 6px 0;">
           <a href="${APP_URL}${a.href}" style="color: ${NIA_DARK}; text-decoration: none;">${escapeHtml(a.label)}</a>
-          <span style="color: ${TEXT_SECONDARY}; font-size: 12px;"> +${a.points} pts${a.processCount > 1 ? ` across ${a.processCount} processes` : ""}</span>
+          <span style="color: ${TEXT_SECONDARY}; font-size: 12px;"> +${a.points} pts${a.processCount > 1 ? ` across ${a.processCount} processes` : ''}</span>
         </li>`
       )
-      .join("");
+      .join('');
 
     actionsSection = `
       <div style="margin: 24px 0;">
@@ -190,14 +191,14 @@ export function buildDigestHtml(data: DigestData): string {
   }
 
   // --- Team activity ---
-  let activitySection = "";
+  let activitySection = '';
   if (weeklyUpdates.length > 0) {
     const items = weeklyUpdates
       .map(
         (u) =>
           `<span style="display: inline-block; background: ${BG_LIGHT}; border: 1px solid ${BORDER}; border-radius: 16px; padding: 4px 12px; margin: 2px 4px; font-size: 13px;">${escapeHtml(u.owner)} <strong>${u.processCount}</strong></span>`
       )
-      .join("");
+      .join('');
 
     activitySection = `
       <div style="margin: 24px 0;">
@@ -276,18 +277,18 @@ export function buildDigestHtml(data: DigestData): string {
 }
 
 function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
   });
 }
 
 function escapeHtml(str: string): string {
   return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }

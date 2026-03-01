@@ -1,16 +1,16 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
-import { fetchHealthData } from "@/lib/fetch-health-data";
-import { getReviewStatus } from "@/lib/review-status";
-import type { HealthResult } from "@/lib/process-health";
-import type { ProcessWithCategory } from "@/lib/fetch-health-data";
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
+import { fetchHealthData } from '@/lib/fetch-health-data';
+import { getReviewStatus } from '@/lib/review-status';
+import type { HealthResult } from '@/lib/process-health';
+import type { ProcessWithCategory } from '@/lib/fetch-health-data';
 import {
   buildDigestHtml,
   type DigestOverdueMetric,
   type DigestStaleProcess,
   type DigestNextAction,
-} from "@/lib/build-digest-html";
+} from '@/lib/build-digest-html';
 
 export const maxDuration = 60;
 
@@ -18,22 +18,22 @@ export const maxDuration = 60;
 const CADENCE_DAYS: Record<string, number> = {
   monthly: 30,
   quarterly: 90,
-  "semi-annual": 182,
+  'semi-annual': 182,
   annual: 365,
 };
 
 export async function GET(request: Request) {
   // Verify cron secret (Vercel sends this header for cron jobs)
-  const authHeader = request.headers.get("authorization");
+  const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) {
-    return NextResponse.json({ error: "Missing RESEND_API_KEY" }, { status: 500 });
+    return NextResponse.json({ error: 'Missing RESEND_API_KEY' }, { status: 500 });
   }
 
   // Service role client bypasses RLS — needed because cron has no user session
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     for (const proc of processes) {
       const health = healthScores.get(proc.id);
       if (!health) continue;
-      const weight = proc.process_type === "key" ? 2 : 1;
+      const weight = proc.process_type === 'key' ? 2 : 1;
       weightedSum += health.total * weight;
       totalWeight += weight;
     }
@@ -60,9 +60,9 @@ export async function GET(request: Request) {
 
     // ── 3. Week-over-week delta from readiness snapshots ──
     const { data: snapshots } = await serviceClient
-      .from("readiness_snapshots")
-      .select("org_score, snapshot_date")
-      .order("snapshot_date", { ascending: false })
+      .from('readiness_snapshots')
+      .select('org_score, snapshot_date')
+      .order('snapshot_date', { ascending: false })
       .limit(2);
 
     let orgScoreDelta: number | null = null;
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
     }
 
     // ── 4. Upsert today's readiness snapshot ──
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split('T')[0];
     const orgBaldrigeReady = processes.filter(
       (p) => (healthScores.get(p.id)?.total ?? 0) >= 80
     ).length;
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
       return (health && health.total < 40) || daysSince > 60;
     }).length;
 
-    await serviceClient.from("readiness_snapshots").upsert(
+    await serviceClient.from('readiness_snapshots').upsert(
       {
         snapshot_date: today,
         org_score: orgScore,
@@ -94,20 +94,18 @@ export async function GET(request: Request) {
         attention_count: orgNeedsAttention,
         total_processes: processes.length,
       },
-      { onConflict: "snapshot_date" }
+      { onConflict: 'snapshot_date' }
     );
 
     // ── 5. Build overdue metrics lookup (shared across all recipients) ──
-    const { data: allMetrics } = await serviceClient
-      .from("metrics")
-      .select("id, name, cadence");
+    const { data: allMetrics } = await serviceClient.from('metrics').select('id, name, cadence');
     const { data: allEntries } = await serviceClient
-      .from("entries")
-      .select("metric_id, date")
-      .order("date", { ascending: false });
+      .from('entries')
+      .select('metric_id, date')
+      .order('date', { ascending: false });
     const { data: metricLinks } = await serviceClient
-      .from("metric_processes")
-      .select("metric_id, process_id");
+      .from('metric_processes')
+      .select('metric_id, process_id');
 
     const latestEntryByMetric = new Map<number, string>();
     for (const e of allEntries || []) {
@@ -133,7 +131,7 @@ export async function GET(request: Request) {
     for (const m of allMetrics || []) {
       const lastDate = latestEntryByMetric.get(m.id);
       const status = getReviewStatus(m.cadence, lastDate || null);
-      if (status === "overdue") {
+      if (status === 'overdue') {
         const cadenceDays = CADENCE_DAYS[m.cadence] || 365;
         const daysSince = lastDate
           ? Math.floor((Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24))
@@ -157,19 +155,19 @@ export async function GET(request: Request) {
     const oneWeekAgoStr = oneWeekAgo.toISOString();
 
     const { data: recentImprovements } = await serviceClient
-      .from("process_improvements")
-      .select("process_id")
-      .gte("committed_date", oneWeekAgoStr);
+      .from('process_improvements')
+      .select('process_id')
+      .gte('committed_date', oneWeekAgoStr);
 
     const ownerUpdateCounts = new Map<string, number>();
     for (const imp of recentImprovements || []) {
       const proc = processes.find((p) => p.id === imp.process_id);
-      const owner = proc?.owner || "Unknown";
+      const owner = proc?.owner || 'Unknown';
       ownerUpdateCounts.set(owner, (ownerUpdateCounts.get(owner) || 0) + 1);
     }
     for (const proc of processes) {
       if (proc.updated_at >= oneWeekAgoStr) {
-        const owner = proc.owner || "Unknown";
+        const owner = proc.owner || 'Unknown';
         ownerUpdateCounts.set(owner, (ownerUpdateCounts.get(owner) || 0) + 1);
       }
     }
@@ -181,9 +179,7 @@ export async function GET(request: Request) {
     const testRecipient = process.env.DIGEST_RECIPIENT_EMAIL;
 
     // Fetch all registered users
-    const { data: users } = await serviceClient
-      .from("user_roles")
-      .select("email, full_name");
+    const { data: users } = await serviceClient.from('user_roles').select('email, full_name');
 
     interface Recipient {
       email: string;
@@ -207,11 +203,13 @@ export async function GET(request: Request) {
           }
         }
       }
-      recipients = [{
-        email: testRecipient,
-        fullName: matchedUser?.full_name || null,
-        ownerProcessIds: ownerProcs,
-      }];
+      recipients = [
+        {
+          email: testRecipient,
+          fullName: matchedUser?.full_name || null,
+          ownerProcessIds: ownerProcs,
+        },
+      ];
     } else {
       // Production mode: send to all users who own at least one process
       const ownerEmailMap = new Map<string, { email: string; fullName: string }>();
@@ -246,7 +244,7 @@ export async function GET(request: Request) {
     }
 
     if (recipients.length === 0) {
-      return NextResponse.json({ success: true, message: "No recipients found", emailsSent: 0 });
+      return NextResponse.json({ success: true, message: 'No recipients found', emailsSent: 0 });
     }
 
     // ── 8. Build and send personalized emails ──
@@ -259,9 +257,7 @@ export async function GET(request: Request) {
       const myProcessIds = recipient.ownerProcessIds;
 
       // Filter processes for this owner
-      const myProcesses = hasFilter
-        ? processes.filter((p) => myProcessIds.has(p.id))
-        : processes;
+      const myProcesses = hasFilter ? processes.filter((p) => myProcessIds.has(p.id)) : processes;
 
       // Personalized stats
       const myBaldrigeReady = myProcesses.filter(
@@ -278,9 +274,7 @@ export async function GET(request: Request) {
 
       // Filter overdue metrics to those linked to this owner's processes
       const myOverdueMetrics: DigestOverdueMetric[] = hasFilter
-        ? allOverdueMetrics.filter(
-            (m) => m.linkedProcessIds.some((pid) => myProcessIds.has(pid))
-          )
+        ? allOverdueMetrics.filter((m) => m.linkedProcessIds.some((pid) => myProcessIds.has(pid)))
         : allOverdueMetrics;
 
       // Filter stale processes
@@ -319,12 +313,15 @@ export async function GET(request: Request) {
         weeklyUpdates,
       });
 
-      const subjectDelta = orgScoreDelta !== null
-        ? (orgScoreDelta >= 0 ? ` (+${orgScoreDelta})` : ` (${orgScoreDelta})`)
-        : "";
+      const subjectDelta =
+        orgScoreDelta !== null
+          ? orgScoreDelta >= 0
+            ? ` (+${orgScoreDelta})`
+            : ` (${orgScoreDelta})`
+          : '';
 
       const { error: emailError } = await resend.emails.send({
-        from: "NIA Excellence Hub <hub@thenia.org>",
+        from: 'NIA Excellence Hub <hub@thenia.org>',
         to: recipient.email,
         subject: `NIA Weekly Digest — Readiness ${orgScore}/100${subjectDelta}`,
         html,
@@ -348,11 +345,8 @@ export async function GET(request: Request) {
       snapshotDate: today,
     });
   } catch (err) {
-    console.error("Weekly digest error:", err);
-    return NextResponse.json(
-      { error: "Internal error", detail: String(err) },
-      { status: 500 }
-    );
+    console.error('Weekly digest error:', err);
+    return NextResponse.json({ error: 'Internal error', detail: String(err) }, { status: 500 });
   }
 }
 
@@ -367,8 +361,8 @@ function aggregateNextActions(
     if (!health) continue;
     for (const action of health.nextActions) {
       const key = action.label
-        .replace(/for this process/gi, "")
-        .replace(/\(\d+ days ago\)/g, "")
+        .replace(/for this process/gi, '')
+        .replace(/\(\d+ days ago\)/g, '')
         .trim();
       const existing = actionMap.get(key);
       if (existing) {
@@ -377,7 +371,7 @@ function aggregateNextActions(
       } else {
         actionMap.set(key, {
           label: action.label,
-          href: action.href || "/",
+          href: action.href || '/',
           points: action.points,
           processCount: 1,
         });

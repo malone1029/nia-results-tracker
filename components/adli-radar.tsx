@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 interface AdliRadarProps {
   approach: number;
@@ -13,10 +13,10 @@ interface AdliRadarProps {
 }
 
 const DIMENSION_COLORS = {
-  approach: "#f79935",
-  deployment: "#55787c",
-  learning: "#b1bd37",
-  integration: "#324a4d",
+  approach: '#f79935',
+  deployment: '#55787c',
+  learning: '#b1bd37',
+  integration: '#324a4d',
 };
 
 export default function AdliRadar({
@@ -26,7 +26,7 @@ export default function AdliRadar({
   integration,
   size = 200,
   showLabels = true,
-  color = "#55787c",
+  color = '#55787c',
 }: AdliRadarProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -69,7 +69,7 @@ export default function AdliRadar({
       </defs>
 
       {/* Subtle center dot */}
-      <circle cx={cx} cy={cy} r="2" style={{ fill: "var(--grid-line)" }} />
+      <circle cx={cx} cy={cy} r="2" style={{ fill: 'var(--grid-line)' }} />
 
       {/* Grid diamonds — refined lines */}
       {[0.25, 0.5, 0.75, 1].map((pct) => (
@@ -77,24 +77,52 @@ export default function AdliRadar({
           key={pct}
           points={diamond(maxR * pct)}
           fill="none"
-          style={{ stroke: pct === 1 ? "var(--grid-line-strong)" : "var(--grid-line)" }}
-          strokeWidth={pct === 1 ? "1" : "0.5"}
-          strokeDasharray={pct < 1 ? "2 4" : undefined}
+          style={{ stroke: pct === 1 ? 'var(--grid-line-strong)' : 'var(--grid-line)' }}
+          strokeWidth={pct === 1 ? '1' : '0.5'}
+          strokeDasharray={pct < 1 ? '2 4' : undefined}
         />
       ))}
 
       {/* Axes — lighter, more refined */}
-      <line x1={cx} y1={cy} x2={cx} y2={cy - maxR} style={{ stroke: "var(--grid-line)" }} strokeWidth="0.5" />
-      <line x1={cx} y1={cy} x2={cx + maxR} y2={cy} style={{ stroke: "var(--grid-line)" }} strokeWidth="0.5" />
-      <line x1={cx} y1={cy} x2={cx} y2={cy + maxR} style={{ stroke: "var(--grid-line)" }} strokeWidth="0.5" />
-      <line x1={cx} y1={cy} x2={cx - maxR} y2={cy} style={{ stroke: "var(--grid-line)" }} strokeWidth="0.5" />
+      <line
+        x1={cx}
+        y1={cy}
+        x2={cx}
+        y2={cy - maxR}
+        style={{ stroke: 'var(--grid-line)' }}
+        strokeWidth="0.5"
+      />
+      <line
+        x1={cx}
+        y1={cy}
+        x2={cx + maxR}
+        y2={cy}
+        style={{ stroke: 'var(--grid-line)' }}
+        strokeWidth="0.5"
+      />
+      <line
+        x1={cx}
+        y1={cy}
+        x2={cx}
+        y2={cy + maxR}
+        style={{ stroke: 'var(--grid-line)' }}
+        strokeWidth="0.5"
+      />
+      <line
+        x1={cx}
+        y1={cy}
+        x2={cx - maxR}
+        y2={cy}
+        style={{ stroke: 'var(--grid-line)' }}
+        strokeWidth="0.5"
+      />
 
       {/* Score polygon + data dots — animated */}
       <g
         style={{
-          transform: mounted ? "scale(1)" : "scale(0)",
+          transform: mounted ? 'scale(1)' : 'scale(0)',
           transformOrigin: `${cx}px ${cy}px`,
-          transition: "transform 800ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+          transition: 'transform 800ms cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
       >
         {/* Glow polygon (behind) */}
@@ -113,44 +141,128 @@ export default function AdliRadar({
           strokeLinejoin="round"
         />
         {/* Data dots with dimension-specific colors */}
-        <circle cx={cx} cy={cy - aR} r="3" fill={DIMENSION_COLORS.approach} style={{ stroke: "var(--card)" }} strokeWidth="1.5" />
-        <circle cx={cx + dR} cy={cy} r="3" fill={DIMENSION_COLORS.deployment} style={{ stroke: "var(--card)" }} strokeWidth="1.5" />
-        <circle cx={cx} cy={cy + lR} r="3" fill={DIMENSION_COLORS.learning} style={{ stroke: "var(--card)" }} strokeWidth="1.5" />
-        <circle cx={cx - iR} cy={cy} r="3" fill={DIMENSION_COLORS.integration} style={{ stroke: "var(--card)" }} strokeWidth="1.5" />
+        <circle
+          cx={cx}
+          cy={cy - aR}
+          r="3"
+          fill={DIMENSION_COLORS.approach}
+          style={{ stroke: 'var(--card)' }}
+          strokeWidth="1.5"
+        />
+        <circle
+          cx={cx + dR}
+          cy={cy}
+          r="3"
+          fill={DIMENSION_COLORS.deployment}
+          style={{ stroke: 'var(--card)' }}
+          strokeWidth="1.5"
+        />
+        <circle
+          cx={cx}
+          cy={cy + lR}
+          r="3"
+          fill={DIMENSION_COLORS.learning}
+          style={{ stroke: 'var(--card)' }}
+          strokeWidth="1.5"
+        />
+        <circle
+          cx={cx - iR}
+          cy={cy}
+          r="3"
+          fill={DIMENSION_COLORS.integration}
+          style={{ stroke: 'var(--card)' }}
+          strokeWidth="1.5"
+        />
       </g>
 
       {/* Labels with scores — dimension-colored */}
       {showLabels && (
         <>
           {/* Approach — top */}
-          <text x={cx} y={20} textAnchor="middle" fontSize="10" fontWeight="700" fill={DIMENSION_COLORS.approach}>
+          <text
+            x={cx}
+            y={20}
+            textAnchor="middle"
+            fontSize="10"
+            fontWeight="700"
+            fill={DIMENSION_COLORS.approach}
+          >
             A
           </text>
-          <text x={cx} y={31} textAnchor="middle" fontSize="9" fontWeight="500" style={{ fill: "var(--text-muted)" }}>
+          <text
+            x={cx}
+            y={31}
+            textAnchor="middle"
+            fontSize="9"
+            fontWeight="500"
+            style={{ fill: 'var(--text-muted)' }}
+          >
             {approach}
           </text>
 
           {/* Deployment — right */}
-          <text x={175} y={cy - 1} textAnchor="end" fontSize="10" fontWeight="700" fill={DIMENSION_COLORS.deployment}>
+          <text
+            x={175}
+            y={cy - 1}
+            textAnchor="end"
+            fontSize="10"
+            fontWeight="700"
+            fill={DIMENSION_COLORS.deployment}
+          >
             D
           </text>
-          <text x={175} y={cy + 10} textAnchor="end" fontSize="9" fontWeight="500" style={{ fill: "var(--text-muted)" }}>
+          <text
+            x={175}
+            y={cy + 10}
+            textAnchor="end"
+            fontSize="9"
+            fontWeight="500"
+            style={{ fill: 'var(--text-muted)' }}
+          >
             {deployment}
           </text>
 
           {/* Learning — bottom */}
-          <text x={cx} y={177} textAnchor="middle" fontSize="10" fontWeight="700" fill={DIMENSION_COLORS.learning}>
+          <text
+            x={cx}
+            y={177}
+            textAnchor="middle"
+            fontSize="10"
+            fontWeight="700"
+            fill={DIMENSION_COLORS.learning}
+          >
             L
           </text>
-          <text x={cx} y={188} textAnchor="middle" fontSize="9" fontWeight="500" style={{ fill: "var(--text-muted)" }}>
+          <text
+            x={cx}
+            y={188}
+            textAnchor="middle"
+            fontSize="9"
+            fontWeight="500"
+            style={{ fill: 'var(--text-muted)' }}
+          >
             {learning}
           </text>
 
           {/* Integration — left */}
-          <text x={25} y={cy - 1} textAnchor="start" fontSize="10" fontWeight="700" fill={DIMENSION_COLORS.integration}>
+          <text
+            x={25}
+            y={cy - 1}
+            textAnchor="start"
+            fontSize="10"
+            fontWeight="700"
+            fill={DIMENSION_COLORS.integration}
+          >
             I
           </text>
-          <text x={25} y={cy + 10} textAnchor="start" fontSize="9" fontWeight="500" style={{ fill: "var(--text-muted)" }}>
+          <text
+            x={25}
+            y={cy + 10}
+            textAnchor="start"
+            fontSize="9"
+            fontWeight="500"
+            style={{ fill: 'var(--text-muted)' }}
+          >
             {integration}
           </text>
         </>

@@ -1,9 +1,9 @@
 // Circular progress ring showing a 0-100 health score with color coding.
 // The arc draws in via CSS transition; the number counts up via requestAnimationFrame.
 
-"use client";
+'use client';
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from 'react';
 
 interface HealthRingProps {
   score: number; // 0-100
@@ -22,7 +22,7 @@ const HealthRing = memo(function HealthRing({
   strokeWidth = 4,
   showLabel = true,
   animate = true,
-  className = "",
+  className = '',
 }: HealthRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -56,7 +56,10 @@ const HealthRing = memo(function HealthRing({
   }, [score, animate]);
 
   return (
-    <div className={`relative inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
+    <div
+      className={`relative inline-flex items-center justify-center ${className}`}
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} className="transform -rotate-90">
         {/* Background circle */}
         <circle
@@ -64,7 +67,7 @@ const HealthRing = memo(function HealthRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          style={{ stroke: "var(--grid-line)" }}
+          style={{ stroke: 'var(--grid-line)' }}
           strokeWidth={strokeWidth}
         />
         {/* Progress arc */}
@@ -82,10 +85,7 @@ const HealthRing = memo(function HealthRing({
         />
       </svg>
       {showLabel && (
-        <span
-          className="absolute text-xs font-bold"
-          style={{ color }}
-        >
+        <span className="absolute text-xs font-bold" style={{ color }}>
           {displayScore}
         </span>
       )}

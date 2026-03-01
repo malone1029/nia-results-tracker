@@ -4,14 +4,14 @@
 // (e.g. inline SVG, dynamic style calculations, chart libraries).
 
 export const NIA_COLORS = {
-  dark: "#324a4d",
-  greyBlue: "#55787c",
-  orange: "#f79935",
-  orangeDark: "#e88a28",
-  green: "#b1bd37",
-  red: "#dc2626",
-  purple: "#a855f7",
-  yellow: "#eab308",
+  dark: '#324a4d',
+  greyBlue: '#55787c',
+  orange: '#f79935',
+  orangeDark: '#e88a28',
+  green: '#b1bd37',
+  red: '#dc2626',
+  purple: '#a855f7',
+  yellow: '#eab308',
 } as const;
 
 // ADLI maturity levels — used by AI Insights and AI Chat Panel
@@ -22,15 +22,16 @@ export interface MaturityLevel {
 }
 
 export function getMaturityLevel(score: number): MaturityLevel {
-  if (score >= 70) return { label: "Integrated", color: NIA_COLORS.dark, bgColor: NIA_COLORS.dark };
-  if (score >= 50) return { label: "Aligned", color: NIA_COLORS.green, bgColor: NIA_COLORS.green };
-  if (score >= 30) return { label: "Early Systematic", color: NIA_COLORS.orange, bgColor: NIA_COLORS.orange };
-  return { label: "Reacting", color: NIA_COLORS.red, bgColor: NIA_COLORS.red };
+  if (score >= 70) return { label: 'Integrated', color: NIA_COLORS.dark, bgColor: NIA_COLORS.dark };
+  if (score >= 50) return { label: 'Aligned', color: NIA_COLORS.green, bgColor: NIA_COLORS.green };
+  if (score >= 30)
+    return { label: 'Early Systematic', color: NIA_COLORS.orange, bgColor: NIA_COLORS.orange };
+  return { label: 'Reacting', color: NIA_COLORS.red, bgColor: NIA_COLORS.red };
 }
 
 // Process status colors — used by process list, detail, and stepper
 export const STATUS_COLORS: Record<string, string> = {
-  draft: "#9ca3af",
+  draft: '#9ca3af',
   ready_for_review: NIA_COLORS.orange,
   approved: NIA_COLORS.green,
 } as const;

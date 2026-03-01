@@ -19,6 +19,7 @@ Process owners currently rely on two paths to get tasks into the Hub: AI suggest
 **Description:** As a process owner, I want to click a "New Task" button at the top of the task review panel so that I can create a new task with all relevant fields.
 
 **Acceptance Criteria:**
+
 - [ ] A "New Task" button appears at the top of the task review panel (next to the header area)
 - [ ] Clicking it opens a creation form (slide-out panel, reusing the detail panel pattern)
 - [ ] Form fields: Title (required), Description (optional), PDCA Section (required, dropdown with Plan/Execute/Evaluate/Improve), Assignee (optional, uses existing AssigneePicker), Due Date (optional, date picker)
@@ -36,6 +37,7 @@ Process owners currently rely on two paths to get tasks into the Hub: AI suggest
 **Description:** As a process owner, I want a small "+ Add task" button at the bottom of each PDCA section so that I can quickly create a task pre-assigned to that section.
 
 **Acceptance Criteria:**
+
 - [ ] Each section in the task review panel shows a subtle "+ Add task" link/button at the bottom
 - [ ] Clicking it opens the same creation form as the global button, but with PDCA Section pre-selected to match the clicked section
 - [ ] The pre-selected PDCA section can still be changed in the form
@@ -48,6 +50,7 @@ Process owners currently rely on two paths to get tasks into the Hub: AI suggest
 **Description:** As a process owner, I want newly created tasks to automatically appear in Asana so that my team sees them without a manual export step.
 
 **Acceptance Criteria:**
+
 - [ ] When a process has an `asana_project_gid` (linked to Asana), new tasks are pushed to Asana immediately after Supabase insert
 - [ ] The task is created in the correct PDCA section in the Asana project (using `POST /sections/{sectionGid}/addTask`)
 - [ ] If an assignee with an Asana GID is set, the Asana task is assigned to them
@@ -62,6 +65,7 @@ Process owners currently rely on two paths to get tasks into the Hub: AI suggest
 **Description:** As a developer, I need the task creation API to support all fields needed for manual creation and return the full task object.
 
 **Acceptance Criteria:**
+
 - [ ] `POST /api/tasks` accepts additional fields: `assignee_name`, `assignee_email`, `assignee_asana_gid`, `due_date`
 - [ ] Origin is set to `hub_manual` and source to `user_created` for manually created tasks
 - [ ] Status is set to `active` (skipping `pending` review — manual tasks are immediately active)
@@ -75,6 +79,7 @@ Process owners currently rely on two paths to get tasks into the Hub: AI suggest
 **Description:** As a developer, I need a `sort_order` column on `process_tasks` so that drag-and-drop reordering persists.
 
 **Acceptance Criteria:**
+
 - [ ] A new `sort_order` integer column is added to `process_tasks` (default 0, not null)
 - [ ] Existing tasks get `sort_order` populated based on their current `created_at` order (earlier = lower number)
 - [ ] The GET `/api/tasks` endpoint orders by `sort_order ASC, created_at ASC` (sort_order takes priority, created_at as tiebreaker)
@@ -87,6 +92,7 @@ Process owners currently rely on two paths to get tasks into the Hub: AI suggest
 **Description:** As a process owner, I want to drag tasks up and down within a section to prioritize them.
 
 **Acceptance Criteria:**
+
 - [ ] Install `@dnd-kit/core` and `@dnd-kit/sortable` as dependencies
 - [ ] Each task card has a visible drag handle (grip icon on the left side)
 - [ ] Dragging a task within its section reorders it visually with smooth animation
@@ -101,6 +107,7 @@ Process owners currently rely on two paths to get tasks into the Hub: AI suggest
 **Description:** As a process owner, I want to drag a task from one PDCA section to another so that I can reclassify it as my process evolves.
 
 **Acceptance Criteria:**
+
 - [ ] A task can be dragged from one section and dropped into a different section
 - [ ] The drop target section highlights when a task is dragged over it
 - [ ] On drop: the task's `pdca_section` is updated to match the target section
@@ -117,6 +124,7 @@ Process owners currently rely on two paths to get tasks into the Hub: AI suggest
 **Description:** As a developer, I need an API endpoint that accepts a batch of sort order updates efficiently.
 
 **Acceptance Criteria:**
+
 - [ ] New endpoint: `PATCH /api/tasks/reorder` (or similar)
 - [ ] Accepts `{ updates: [{ id: number, sort_order: number, pdca_section?: string }] }`
 - [ ] Updates all specified tasks in a single database call (batch update)
@@ -161,7 +169,7 @@ Process owners currently rely on two paths to get tasks into the Hub: AI suggest
 
 - **`@dnd-kit`** over alternatives: tree-shakeable, accessibility-first, works with React 19 / Next.js 16, supports both sortable (within section) and droppable (between sections). Install `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`
 - **Sort order strategy:** Use gap-based numbering (e.g., 1000, 2000, 3000) so inserts between items don't require renumbering all rows. When gaps run out, renumber the whole section
-- **Asana section movement:** Uses `POST /sections/{sectionGid}/addTask` (already proven in `export/route.ts`). This *moves* the task — Asana removes it from the old section automatically
+- **Asana section movement:** Uses `POST /sections/{sectionGid}/addTask` (already proven in `export/route.ts`). This _moves_ the task — Asana removes it from the old section automatically
 - **Migration backfill:** Set `sort_order = ROW_NUMBER() OVER (PARTITION BY process_id, pdca_section ORDER BY created_at) * 1000` so existing tasks get spaced-out sort orders
 - **Batch reorder:** Use Supabase `upsert` or individual updates in a loop (Supabase doesn't support `UPDATE ... FROM VALUES` natively). At ~20 tasks per process, a loop is fine
 - **`buildSections()`** in `task-review-panel.tsx` currently uses `sortTasks()` which sorts by completion and due date — this needs to change to `sort_order` as the primary sort key

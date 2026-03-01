@@ -1,50 +1,56 @@
 // app/api/strategy/route.ts
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import type { BscPerspective, ObjectiveStatus, StrategicObjectiveWithStatus } from "@/lib/types";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import type { BscPerspective, ObjectiveStatus, StrategicObjectiveWithStatus } from '@/lib/types';
 
 function computeStatus(current: number | null, target: number | null): ObjectiveStatus {
-  if (current === null || target === null) return "no-data";
-  if (current >= target) return "green";
-  if (current >= target * 0.9) return "yellow";
-  return "red";
+  if (current === null || target === null) return 'no-data';
+  if (current >= target) return 'green';
+  if (current >= target * 0.9) return 'yellow';
+  return 'red';
 }
 
 export async function GET() {
   const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Fetch all objectives
   const { data: objectives, error } = await supabase
-    .from("strategic_objectives")
-    .select("*")
-    .order("sort_order");
+    .from('strategic_objectives')
+    .select('*')
+    .order('sort_order');
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Fetch linked process counts (process_id also needed for adoption rate computation)
   const { data: procLinks } = await supabase
-    .from("process_objectives")
-    .select("objective_id, process_id");
+    .from('process_objectives')
+    .select('objective_id, process_id');
   const procCountByObjective = new Map<number, number>();
   const linkedProcessIds = new Set<number>();
   for (const link of procLinks ?? []) {
-    procCountByObjective.set(link.objective_id, (procCountByObjective.get(link.objective_id) ?? 0) + 1);
+    procCountByObjective.set(
+      link.objective_id,
+      (procCountByObjective.get(link.objective_id) ?? 0) + 1
+    );
     linkedProcessIds.add(link.process_id);
   }
 
   // For metric-type objectives: fetch all entries (ascending by date for trend)
   const metricIds = (objectives ?? [])
-    .filter((o) => o.compute_type === "metric" && o.linked_metric_id)
+    .filter((o) => o.compute_type === 'metric' && o.linked_metric_id)
     .map((o) => o.linked_metric_id as number);
 
-  const { data: entries } = metricIds.length > 0
-    ? await supabase
-        .from("entries")
-        .select("metric_id, value, date")
-        .in("metric_id", metricIds)
-        .order("date", { ascending: true })
-    : { data: [] };
+  const { data: entries } =
+    metricIds.length > 0
+      ? await supabase
+          .from('entries')
+          .select('metric_id, value, date')
+          .in('metric_id', metricIds)
+          .order('date', { ascending: true })
+      : { data: [] };
 
   // Build latest value + trend per metric
   const latestByMetric = new Map<number, number>();
@@ -57,9 +63,9 @@ export async function GET() {
 
   // For adli_threshold objectives: count processes with latest ADLI score >= 70
   const { data: adliRows } = await supabase
-    .from("process_adli_scores")
-    .select("process_id, overall_score, assessed_at")
-    .order("assessed_at", { ascending: false });
+    .from('process_adli_scores')
+    .select('process_id, overall_score, assessed_at')
+    .order('assessed_at', { ascending: false });
 
   const latestAdliByProcess = new Map<number, number>();
   for (const row of adliRows ?? []) {
@@ -82,10 +88,10 @@ export async function GET() {
     let computed_value: number | null = null;
     let trend_direction: 'improving' | 'declining' | 'flat' | 'no-data' = 'no-data';
 
-    if (obj.compute_type === "metric" && obj.linked_metric_id) {
+    if (obj.compute_type === 'metric' && obj.linked_metric_id) {
       computed_value = latestByMetric.get(obj.linked_metric_id) ?? null;
       trend_direction = getTrend(valuesByMetric.get(obj.linked_metric_id) ?? []);
-    } else if (obj.compute_type === "adli_threshold") {
+    } else if (obj.compute_type === 'adli_threshold') {
       computed_value = adliThresholdCount;
       trend_direction = 'no-data';
     } else {
@@ -108,9 +114,9 @@ export async function GET() {
   try {
     // Find the adoption rate metric by name
     const { data: adoptionMetric } = await supabase
-      .from("metrics")
-      .select("id")
-      .eq("name", "Strategic Plan Adoption Rate")
+      .from('metrics')
+      .select('id')
+      .eq('name', 'Strategic Plan Adoption Rate')
       .single();
 
     if (adoptionMetric) {
@@ -120,22 +126,22 @@ export async function GET() {
       const monthStartStr = monthStart.toISOString().slice(0, 10);
 
       const { count: existingCount } = await supabase
-        .from("entries")
-        .select("id", { count: "exact", head: true })
-        .eq("metric_id", adoptionMetric.id)
-        .gte("date", monthStartStr);
+        .from('entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('metric_id', adoptionMetric.id)
+        .gte('date', monthStartStr);
 
       if (!existingCount || existingCount === 0) {
         // Count all active processes
         const { count: totalProcesses } = await supabase
-          .from("processes")
-          .select("id", { count: "exact", head: true });
+          .from('processes')
+          .select('id', { count: 'exact', head: true });
 
         if (totalProcesses && totalProcesses > 0) {
           const rate = Math.round((linkedProcessIds.size / totalProcesses) * 1000) / 10; // 1 decimal
           const today = new Date().toISOString().slice(0, 10);
 
-          await supabase.from("entries").insert({
+          await supabase.from('entries').insert({
             metric_id: adoptionMetric.id,
             value: rate,
             date: today,
@@ -145,9 +151,9 @@ export async function GET() {
           const nextMonth = new Date();
           nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
           await supabase
-            .from("metrics")
+            .from('metrics')
             .update({ next_entry_expected: nextMonth.toISOString().slice(0, 10) })
-            .eq("id", adoptionMetric.id);
+            .eq('id', adoptionMetric.id);
         }
       }
     }
@@ -160,14 +166,25 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data: roleRow } = await supabase.from("user_roles").select("role").eq("auth_id", user.id).single();
-  if (roleRow?.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { data: roleRow } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
+    .single();
+  if (roleRow?.role !== 'super_admin')
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
-  const { data, error } = await supabase.from("strategic_objectives").insert(body).select().single();
+  const { data, error } = await supabase
+    .from('strategic_objectives')
+    .insert(body)
+    .select()
+    .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
 }

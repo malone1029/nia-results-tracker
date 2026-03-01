@@ -1,7 +1,15 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
 
-const VALID_QUESTION_TYPES = ["rating", "yes_no", "nps", "multiple_choice", "checkbox", "open_text", "matrix"];
+const VALID_QUESTION_TYPES = [
+  'rating',
+  'yes_no',
+  'nps',
+  'multiple_choice',
+  'checkbox',
+  'open_text',
+  'matrix',
+];
 
 interface QuestionInput {
   question_text: string;
@@ -20,11 +28,11 @@ interface QuestionInput {
 export async function GET(request: Request) {
   const supabase = await createSupabaseServer();
   const { searchParams } = new URL(request.url);
-  const processId = searchParams.get("processId");
+  const processId = searchParams.get('processId');
 
-  let query = supabase.from("surveys").select("*").order("created_at", { ascending: false });
+  let query = supabase.from('surveys').select('*').order('created_at', { ascending: false });
   if (processId) {
-    query = query.eq("process_id", Number(processId));
+    query = query.eq('process_id', Number(processId));
   }
 
   const { data: surveys, error } = await query;
@@ -38,10 +46,12 @@ export async function GET(request: Request) {
   if (!processId && surveys && surveys.length > 0) {
     const processIds = [...new Set(surveys.map((s) => s.process_id))];
     const { data: processes } = await supabase
-      .from("processes")
-      .select("id, name")
-      .in("id", processIds);
-    processMap = new Map((processes || []).map((p: { id: number; name: string }) => [p.id, p.name]));
+      .from('processes')
+      .select('id, name')
+      .in('id', processIds);
+    processMap = new Map(
+      (processes || []).map((p: { id: number; name: string }) => [p.id, p.name])
+    );
   }
 
   // For each survey, fetch question count + latest wave
@@ -49,14 +59,14 @@ export async function GET(request: Request) {
     (surveys || []).map(async (s) => {
       const [questionsRes, wavesRes] = await Promise.all([
         supabase
-          .from("survey_questions")
-          .select("id", { count: "exact", head: true })
-          .eq("survey_id", s.id),
+          .from('survey_questions')
+          .select('id', { count: 'exact', head: true })
+          .eq('survey_id', s.id),
         supabase
-          .from("survey_waves")
-          .select("*")
-          .eq("survey_id", s.id)
-          .order("wave_number", { ascending: false })
+          .from('survey_waves')
+          .select('*')
+          .eq('survey_id', s.id)
+          .order('wave_number', { ascending: false })
           .limit(1),
       ]);
 
@@ -64,7 +74,7 @@ export async function GET(request: Request) {
         ...s,
         question_count: questionsRes.count || 0,
         latest_wave: wavesRes.data?.[0] || null,
-        ...(processMap ? { process_name: processMap.get(s.process_id) || "Unknown" } : {}),
+        ...(processMap ? { process_name: processMap.get(s.process_id) || 'Unknown' } : {}),
       };
     })
   );
@@ -77,44 +87,51 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
   const body = await request.json();
 
-  const { process_id, title, description, is_public, is_anonymous, welcome_message, thank_you_message, questions } = body;
+  const {
+    process_id,
+    title,
+    description,
+    is_public,
+    is_anonymous,
+    welcome_message,
+    thank_you_message,
+    questions,
+  } = body;
 
   if (!process_id || !title) {
-    return NextResponse.json(
-      { error: "process_id and title are required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'process_id and title are required' }, { status: 400 });
   }
 
   if (!questions || !Array.isArray(questions) || questions.length === 0) {
-    return NextResponse.json(
-      { error: "At least one question is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'At least one question is required' }, { status: 400 });
   }
 
   // Validate question types
   for (const q of questions as QuestionInput[]) {
     if (!q.question_text || !q.question_type) {
       return NextResponse.json(
-        { error: "Each question requires question_text and question_type" },
+        { error: 'Each question requires question_text and question_type' },
         { status: 400 }
       );
     }
     if (!VALID_QUESTION_TYPES.includes(q.question_type)) {
       return NextResponse.json(
-        { error: `Invalid question_type: ${q.question_type}. Must be one of: ${VALID_QUESTION_TYPES.join(", ")}` },
+        {
+          error: `Invalid question_type: ${q.question_type}. Must be one of: ${VALID_QUESTION_TYPES.join(', ')}`,
+        },
         { status: 400 }
       );
     }
   }
 
   // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Insert survey
   const { data: survey, error: surveyError } = await supabase
-    .from("surveys")
+    .from('surveys')
     .insert({
       process_id,
       title,
@@ -125,7 +142,7 @@ export async function POST(request: Request) {
       thank_you_message: thank_you_message || null,
       created_by: user?.id || null,
     })
-    .select("id")
+    .select('id')
     .single();
 
   if (surveyError) {
@@ -146,13 +163,11 @@ export async function POST(request: Request) {
     section_label: q.section_label || null,
   }));
 
-  const { error: questionsError } = await supabase
-    .from("survey_questions")
-    .insert(questionRows);
+  const { error: questionsError } = await supabase.from('survey_questions').insert(questionRows);
 
   if (questionsError) {
     // Rollback: delete the survey (CASCADE will clean up)
-    await supabase.from("surveys").delete().eq("id", survey.id);
+    await supabase.from('surveys').delete().eq('id', survey.id);
     return NextResponse.json({ error: questionsError.message }, { status: 500 });
   }
 
@@ -163,10 +178,19 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const supabase = await createSupabaseServer();
   const body = await request.json();
-  const { id, title, description, is_public, is_anonymous, welcome_message, thank_you_message, questions } = body;
+  const {
+    id,
+    title,
+    description,
+    is_public,
+    is_anonymous,
+    welcome_message,
+    thank_you_message,
+    questions,
+  } = body;
 
   if (!id) {
-    return NextResponse.json({ error: "id is required" }, { status: 400 });
+    return NextResponse.json({ error: 'id is required' }, { status: 400 });
   }
 
   // Update survey fields
@@ -180,13 +204,12 @@ export async function PATCH(request: Request) {
   // Layer 3: response target + recurrence
   if (body.response_target !== undefined) updates.response_target = body.response_target || null;
   if (body.recurrence_enabled !== undefined) updates.recurrence_enabled = body.recurrence_enabled;
-  if (body.recurrence_cadence !== undefined) updates.recurrence_cadence = body.recurrence_cadence || null;
-  if (body.recurrence_duration_days !== undefined) updates.recurrence_duration_days = body.recurrence_duration_days;
+  if (body.recurrence_cadence !== undefined)
+    updates.recurrence_cadence = body.recurrence_cadence || null;
+  if (body.recurrence_duration_days !== undefined)
+    updates.recurrence_duration_days = body.recurrence_duration_days;
 
-  const { error: updateError } = await supabase
-    .from("surveys")
-    .update(updates)
-    .eq("id", id);
+  const { error: updateError } = await supabase.from('surveys').update(updates).eq('id', id);
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
@@ -209,15 +232,13 @@ export async function PATCH(request: Request) {
 
     // Fetch existing question IDs before inserting new ones
     const { data: oldQuestions } = await supabase
-      .from("survey_questions")
-      .select("id")
-      .eq("survey_id", id);
+      .from('survey_questions')
+      .select('id')
+      .eq('survey_id', id);
     const oldIds = (oldQuestions || []).map((q: { id: number }) => q.id);
 
     // Insert new questions first
-    const { error: questionsError } = await supabase
-      .from("survey_questions")
-      .insert(questionRows);
+    const { error: questionsError } = await supabase.from('survey_questions').insert(questionRows);
 
     if (questionsError) {
       return NextResponse.json({ error: questionsError.message }, { status: 500 });
@@ -225,7 +246,7 @@ export async function PATCH(request: Request) {
 
     // Only delete old questions after new ones succeed
     if (oldIds.length > 0) {
-      await supabase.from("survey_questions").delete().in("id", oldIds);
+      await supabase.from('survey_questions').delete().in('id', oldIds);
     }
   }
 
@@ -236,16 +257,13 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const supabase = await createSupabaseServer();
   const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
+  const id = searchParams.get('id');
 
   if (!id) {
-    return NextResponse.json({ error: "id is required" }, { status: 400 });
+    return NextResponse.json({ error: 'id is required' }, { status: 400 });
   }
 
-  const { error } = await supabase
-    .from("surveys")
-    .delete()
-    .eq("id", Number(id));
+  const { error } = await supabase.from('surveys').delete().eq('id', Number(id));
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

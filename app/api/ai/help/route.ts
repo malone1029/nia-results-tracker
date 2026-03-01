@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { buildHelpSystemPrompt } from "@/lib/help-ai-context";
-import { checkRateLimit } from "@/lib/rate-limit";
+import Anthropic from '@anthropic-ai/sdk';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { buildHelpSystemPrompt } from '@/lib/help-ai-context';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 60;
 
@@ -13,9 +13,11 @@ const anthropic = new Anthropic({
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const rateLimitResult = await checkRateLimit(user.id);
@@ -27,20 +29,20 @@ export async function POST(request: Request) {
 
   // Check admin status for context
   const { data: roleRow } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from('user_roles')
+    .select('role')
+    .eq('auth_id', user.id)
     .single();
-  const isAdmin = roleRow?.role === "admin";
+  const isAdmin = roleRow?.role === 'admin';
 
-  const systemBlocks = buildHelpSystemPrompt(pageUrl || "/", isAdmin);
+  const systemBlocks = buildHelpSystemPrompt(pageUrl || '/', isAdmin);
 
   const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-6",
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: systemBlocks,
     messages: messages.map((m: { role: string; content: string }) => ({
-      role: m.role as "user" | "assistant",
+      role: m.role as 'user' | 'assistant',
       content: m.content,
     })),
   });
@@ -51,19 +53,19 @@ export async function POST(request: Request) {
     async start(controller) {
       try {
         for await (const event of stream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
             controller.enqueue(encoder.encode(event.delta.text));
           }
         }
         controller.close();
       } catch (err) {
-        console.error("AI help stream error:", err);
+        console.error('AI help stream error:', err);
         controller.error(err);
       }
     },
   });
 
   return new Response(readable, {
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
 }

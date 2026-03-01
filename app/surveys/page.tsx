@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import AdminGuard from "@/components/admin-guard";
-import { Card } from "@/components/ui";
-import EmptyState from "@/components/empty-state";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import AdminGuard from '@/components/admin-guard';
+import { Card } from '@/components/ui';
+import EmptyState from '@/components/empty-state';
 
 interface SurveyWave {
   id: number;
@@ -26,34 +26,41 @@ interface SurveyRow {
   created_at: string;
 }
 
-type StatusFilter = "all" | "open" | "closed" | "draft";
+type StatusFilter = 'all' | 'open' | 'closed' | 'draft';
 
 function getStatus(survey: SurveyRow): { label: string; color: string; key: StatusFilter } {
-  if (!survey.latest_wave) return { label: "Draft", color: "bg-surface-muted text-text-muted", key: "draft" };
-  if (survey.latest_wave.status === "open") return { label: "Open", color: "bg-nia-green/15 text-nia-green", key: "open" };
-  if (survey.latest_wave.status === "scheduled") return { label: "Scheduled", color: "bg-nia-orange/15 text-nia-orange", key: "open" };
-  return { label: "Closed", color: "bg-surface-muted text-text-muted", key: "closed" };
+  if (!survey.latest_wave)
+    return { label: 'Draft', color: 'bg-surface-muted text-text-muted', key: 'draft' };
+  if (survey.latest_wave.status === 'open')
+    return { label: 'Open', color: 'bg-nia-green/15 text-nia-green', key: 'open' };
+  if (survey.latest_wave.status === 'scheduled')
+    return { label: 'Scheduled', color: 'bg-nia-orange/15 text-nia-orange', key: 'open' };
+  return { label: 'Closed', color: 'bg-surface-muted text-text-muted', key: 'closed' };
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 export default function SurveysPage() {
   const [surveys, setSurveys] = useState<SurveyRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<StatusFilter>("all");
-  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<StatusFilter>('all');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetch("/api/surveys")
-      .then((r) => r.ok ? r.json() : [])
+    fetch('/api/surveys')
+      .then((r) => (r.ok ? r.json() : []))
       .then((data) => setSurveys(data))
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = surveys.filter((s) => {
-    if (filter !== "all" && getStatus(s).key !== filter) return false;
+    if (filter !== 'all' && getStatus(s).key !== filter) return false;
     if (search) {
       const q = search.toLowerCase();
       return s.title.toLowerCase().includes(q) || s.process_name?.toLowerCase().includes(q);
@@ -62,7 +69,9 @@ export default function SurveysPage() {
   });
 
   // Stats
-  const openCount = surveys.filter((s) => s.latest_wave?.status === "open" || s.latest_wave?.status === "scheduled").length;
+  const openCount = surveys.filter(
+    (s) => s.latest_wave?.status === 'open' || s.latest_wave?.status === 'scheduled'
+  ).length;
   const totalResponses = surveys.reduce((sum, s) => sum + (s.latest_wave?.response_count || 0), 0);
   const draftCount = surveys.filter((s) => !s.latest_wave).length;
 
@@ -108,17 +117,17 @@ export default function SurveysPage() {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="flex gap-1">
-            {(["all", "open", "closed", "draft"] as StatusFilter[]).map((f) => (
+            {(['all', 'open', 'closed', 'draft'] as StatusFilter[]).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors capitalize ${
                   filter === f
-                    ? "bg-nia-dark-solid text-white"
-                    : "bg-surface-hover text-text-secondary hover:text-nia-dark"
+                    ? 'bg-nia-dark-solid text-white'
+                    : 'bg-surface-hover text-text-secondary hover:text-nia-dark'
                 }`}
               >
-                {f === "all" ? "All" : f}
+                {f === 'all' ? 'All' : f}
               </button>
             ))}
           </div>
@@ -145,7 +154,7 @@ export default function SurveysPage() {
                 illustration="document"
                 title="No surveys yet"
                 description="Create your first survey on any process page to gather team feedback and auto-generate metric data."
-                action={{ label: "Go to Processes", href: "/processes" }}
+                action={{ label: 'Go to Processes', href: '/processes' }}
               />
             ) : (
               <div className="px-4 py-12 text-center">
@@ -172,26 +181,45 @@ export default function SurveysPage() {
                     {filtered.map((s) => {
                       const status = getStatus(s);
                       return (
-                        <tr key={s.id} className="border-b border-border-light hover:bg-surface-hover transition-colors">
+                        <tr
+                          key={s.id}
+                          className="border-b border-border-light hover:bg-surface-hover transition-colors"
+                        >
                           <td className="px-4 py-3">
-                            <Link href={`/processes/${s.process_id}?tab=overview#section-surveys`} className="font-medium text-nia-dark hover:underline">
+                            <Link
+                              href={`/processes/${s.process_id}?tab=overview#section-surveys`}
+                              className="font-medium text-nia-dark hover:underline"
+                            >
                               {s.title}
                             </Link>
                           </td>
                           <td className="px-4 py-3">
-                            <Link href={`/processes/${s.process_id}`} className="text-text-secondary hover:text-nia-dark hover:underline">
+                            <Link
+                              href={`/processes/${s.process_id}`}
+                              className="text-text-secondary hover:text-nia-dark hover:underline"
+                            >
                               {s.process_name}
                             </Link>
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${status.color}`}>
+                            <span
+                              className={`text-xs font-medium px-2 py-0.5 rounded-full ${status.color}`}
+                            >
                               {status.label}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-center text-text-secondary">{s.question_count}</td>
+                          <td className="px-4 py-3 text-center text-text-secondary">
+                            {s.question_count}
+                          </td>
                           <td className="px-4 py-3 text-center">
                             {s.latest_wave ? (
-                              <span className={s.latest_wave.response_count > 0 ? "font-medium text-nia-dark" : "text-text-muted"}>
+                              <span
+                                className={
+                                  s.latest_wave.response_count > 0
+                                    ? 'font-medium text-nia-dark'
+                                    : 'text-text-muted'
+                                }
+                              >
                                 {s.latest_wave.response_count}
                               </span>
                             ) : (
@@ -199,9 +227,11 @@ export default function SurveysPage() {
                             )}
                           </td>
                           <td className="px-4 py-3 text-center text-text-secondary">
-                            {s.latest_wave ? s.latest_wave.wave_number : "—"}
+                            {s.latest_wave ? s.latest_wave.wave_number : '—'}
                           </td>
-                          <td className="px-4 py-3 text-text-muted text-xs">{formatDate(s.created_at)}</td>
+                          <td className="px-4 py-3 text-text-muted text-xs">
+                            {formatDate(s.created_at)}
+                          </td>
                         </tr>
                       );
                     })}
@@ -214,13 +244,19 @@ export default function SurveysPage() {
                 {filtered.map((s) => {
                   const status = getStatus(s);
                   return (
-                    <Link key={s.id} href={`/processes/${s.process_id}?tab=overview#section-surveys`} className="block px-4 py-3 hover:bg-surface-hover transition-colors">
+                    <Link
+                      key={s.id}
+                      href={`/processes/${s.process_id}?tab=overview#section-surveys`}
+                      className="block px-4 py-3 hover:bg-surface-hover transition-colors"
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-nia-dark truncate">{s.title}</p>
                           <p className="text-xs text-text-muted truncate">{s.process_name}</p>
                         </div>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${status.color}`}>
+                        <span
+                          className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${status.color}`}
+                        >
                           {status.label}
                         </span>
                       </div>

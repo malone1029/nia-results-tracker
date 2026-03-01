@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button, Input } from "@/components/ui";
+import { useState } from 'react';
+import { Button, Input } from '@/components/ui';
 
 interface QuestionInput {
   question_text: string;
-  question_type: "rating" | "yes_no";
+  question_type: 'rating' | 'yes_no';
   sort_order: number;
   rating_scale_max: number;
   metric_id: number | null;
@@ -41,23 +41,29 @@ export default function SurveyBuilder({
   onSaved,
   editSurvey,
 }: SurveyBuilderProps) {
-  const [title, setTitle] = useState(editSurvey?.title || "");
-  const [description, setDescription] = useState(editSurvey?.description || "");
+  const [title, setTitle] = useState(editSurvey?.title || '');
+  const [description, setDescription] = useState(editSurvey?.description || '');
   const [isAnonymous, setIsAnonymous] = useState(editSurvey?.is_anonymous ?? true);
   const [questions, setQuestions] = useState<QuestionInput[]>(
     editSurvey?.questions || [
-      { question_text: "", question_type: "rating", sort_order: 0, rating_scale_max: 5, metric_id: null },
+      {
+        question_text: '',
+        question_type: 'rating',
+        sort_order: 0,
+        rating_scale_max: 5,
+        metric_id: null,
+      },
     ]
   );
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   function addQuestion() {
     setQuestions([
       ...questions,
       {
-        question_text: "",
-        question_type: "rating",
+        question_text: '',
+        question_type: 'rating',
         sort_order: questions.length,
         rating_scale_max: 5,
         metric_id: null,
@@ -76,28 +82,29 @@ export default function SurveyBuilder({
     setQuestions(updated);
   }
 
-  function moveQuestion(index: number, direction: "up" | "down") {
+  function moveQuestion(index: number, direction: 'up' | 'down') {
     if (
-      (direction === "up" && index === 0) ||
-      (direction === "down" && index === questions.length - 1)
-    ) return;
+      (direction === 'up' && index === 0) ||
+      (direction === 'down' && index === questions.length - 1)
+    )
+      return;
     const updated = [...questions];
-    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
     [updated[index], updated[swapIndex]] = [updated[swapIndex], updated[index]];
     setQuestions(updated);
   }
 
   async function handleSave() {
-    setError("");
+    setError('');
 
     if (!title.trim()) {
-      setError("Survey title is required");
+      setError('Survey title is required');
       return;
     }
 
     const validQuestions = questions.filter((q) => q.question_text.trim());
     if (validQuestions.length === 0) {
-      setError("At least one question with text is required");
+      setError('At least one question with text is required');
       return;
     }
 
@@ -116,15 +123,15 @@ export default function SurveyBuilder({
       })),
     };
 
-    const res = await fetch("/api/surveys", {
-      method: editSurvey ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/surveys', {
+      method: editSurvey ? 'PATCH' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error || "Failed to save survey");
+      setError(data.error || 'Failed to save survey');
       setSaving(false);
       return;
     }
@@ -145,7 +152,7 @@ export default function SurveyBuilder({
         {/* Header */}
         <div className="px-5 py-4 border-b border-border-light flex-shrink-0">
           <h3 className="text-lg font-semibold text-nia-dark">
-            {editSurvey ? "Edit Survey" : "Create Survey"}
+            {editSurvey ? 'Edit Survey' : 'Create Survey'}
           </h3>
           <p className="text-sm text-text-tertiary mt-1">
             Build a micro-survey to collect feedback on this process.
@@ -194,15 +201,10 @@ export default function SurveyBuilder({
 
           {/* Questions */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
-              Questions
-            </label>
+            <label className="block text-sm font-medium text-text-secondary mb-2">Questions</label>
             <div className="space-y-3">
               {questions.map((q, i) => (
-                <div
-                  key={i}
-                  className="border border-border rounded-lg p-3 space-y-2"
-                >
+                <div key={i} className="border border-border rounded-lg p-3 space-y-2">
                   <div className="flex items-start gap-2">
                     <span className="text-xs text-text-muted mt-2.5 w-5 flex-shrink-0">
                       {i + 1}.
@@ -210,30 +212,40 @@ export default function SurveyBuilder({
                     <div className="flex-1">
                       <Input
                         value={q.question_text}
-                        onChange={(e) =>
-                          updateQuestion(i, "question_text", e.target.value)
-                        }
+                        onChange={(e) => updateQuestion(i, 'question_text', e.target.value)}
                         placeholder="Enter your question..."
                       />
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button
-                        onClick={() => moveQuestion(i, "up")}
+                        onClick={() => moveQuestion(i, 'up')}
                         disabled={i === 0}
                         className="p-1 text-text-muted hover:text-text-secondary disabled:opacity-30"
                         title="Move up"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                         </svg>
                       </button>
                       <button
-                        onClick={() => moveQuestion(i, "down")}
+                        onClick={() => moveQuestion(i, 'down')}
                         disabled={i === questions.length - 1}
                         className="p-1 text-text-muted hover:text-text-secondary disabled:opacity-30"
                         title="Move down"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
@@ -243,8 +255,18 @@ export default function SurveyBuilder({
                           className="p-1 text-text-muted hover:text-nia-red"
                           title="Remove question"
                         >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       )}
@@ -254,9 +276,7 @@ export default function SurveyBuilder({
                   <div className="flex items-center gap-3 ml-7">
                     <select
                       value={q.question_type}
-                      onChange={(e) =>
-                        updateQuestion(i, "question_type", e.target.value)
-                      }
+                      onChange={(e) => updateQuestion(i, 'question_type', e.target.value)}
                       className="text-xs border border-border rounded-md px-2 py-1 text-text-secondary bg-card"
                     >
                       <option value="rating">Rating (1-5)</option>
@@ -264,11 +284,11 @@ export default function SurveyBuilder({
                     </select>
 
                     <select
-                      value={q.metric_id || ""}
+                      value={q.metric_id || ''}
                       onChange={(e) =>
                         updateQuestion(
                           i,
-                          "metric_id",
+                          'metric_id',
                           e.target.value ? Number(e.target.value) : null
                         )
                       }
@@ -295,9 +315,7 @@ export default function SurveyBuilder({
           </div>
 
           {error && (
-            <div className="text-sm text-nia-red bg-nia-red/10 px-3 py-2 rounded-lg">
-              {error}
-            </div>
+            <div className="text-sm text-nia-red bg-nia-red/10 px-3 py-2 rounded-lg">{error}</div>
           )}
         </div>
 
@@ -307,7 +325,7 @@ export default function SurveyBuilder({
             Cancel
           </Button>
           <Button size="sm" loading={saving} onClick={handleSave}>
-            {editSurvey ? "Save Changes" : "Create Survey"}
+            {editSurvey ? 'Save Changes' : 'Create Survey'}
           </Button>
         </div>
       </div>

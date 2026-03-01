@@ -1,10 +1,10 @@
-import Link from "next/link";
-import { Card, CardHeader, Badge } from "@/components/ui";
-import HealthRing from "@/components/health-ring";
-import { MiniBar } from "@/components/adli-bars";
-import type { ProcessWithCategory } from "@/lib/fetch-health-data";
-import type { HealthResult } from "@/lib/process-health";
-import type { ScoreRow } from "./types";
+import Link from 'next/link';
+import { Card, CardHeader, Badge } from '@/components/ui';
+import HealthRing from '@/components/health-ring';
+import { MiniBar } from '@/components/adli-bars';
+import type { ProcessWithCategory } from '@/lib/fetch-health-data';
+import type { HealthResult } from '@/lib/process-health';
+import type { ScoreRow } from './types';
 
 export default function ProcessList({
   processes,
@@ -19,18 +19,18 @@ export default function ProcessList({
 }) {
   // Map health levels to accent colors for left border
   const getAccentColor = (health: HealthResult | undefined) => {
-    if (!health) return "var(--border-light)";
-    if (health.total >= 80) return "#b1bd37";
-    if (health.total >= 60) return "#55787c";
-    if (health.total >= 40) return "#f79935";
-    return "#dc2626";
+    if (!health) return 'var(--border-light)';
+    if (health.total >= 80) return '#b1bd37';
+    if (health.total >= 60) return '#55787c';
+    if (health.total >= 40) return '#f79935';
+    return '#dc2626';
   };
 
   return (
     <Card>
       <CardHeader>
         <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wider">
-          {isAllOwners ? "All Processes" : "My Processes"}
+          {isAllOwners ? 'All Processes' : 'My Processes'}
         </h2>
       </CardHeader>
       <div className="divide-y divide-border-light">
@@ -57,15 +57,13 @@ export default function ProcessList({
                       className="text-[8px] flex-shrink-0"
                     />
                   )}
-                  <span className="text-sm font-medium text-nia-dark truncate">
-                    {proc.name}
-                  </span>
-                  {proc.process_type === "key" && (
+                  <span className="text-sm font-medium text-nia-dark truncate">{proc.name}</span>
+                  {proc.process_type === 'key' && (
                     <Badge color="orange" size="xs" pill={false}>
                       KEY
                     </Badge>
                   )}
-                  {proc.process_type === "support" && (
+                  {proc.process_type === 'support' && (
                     <span className="text-[10px] text-text-muted">Support</span>
                   )}
                   {proc.asana_project_gid && (

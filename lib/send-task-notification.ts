@@ -3,14 +3,14 @@
  * Uses Resend with NIA-branded HTML template.
  * Fire-and-forget — never throws, always returns silently on error.
  */
-import { Resend } from "resend";
+import { Resend } from 'resend';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://nia-results-tracker.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nia-results-tracker.vercel.app';
 
 // NIA brand colors (inline — email clients strip <style> tags)
-const NIA_DARK = "#324a4d";
-const NIA_ORANGE = "#f5a623";
-const TEXT_SECONDARY = "#6b7280";
+const NIA_DARK = '#324a4d';
+const NIA_ORANGE = '#f5a623';
+const TEXT_SECONDARY = '#6b7280';
 
 interface TaskNotificationParams {
   to: string;
@@ -92,23 +92,23 @@ function buildTaskEmailHtml(params: TaskNotificationParams): string {
 export async function sendTaskNotification(params: TaskNotificationParams): Promise<void> {
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) {
-    console.warn("[Task Notification] RESEND_API_KEY not set — skipping email");
+    console.warn('[Task Notification] RESEND_API_KEY not set — skipping email');
     return;
   }
 
   try {
     const resend = new Resend(resendKey);
     const { error } = await resend.emails.send({
-      from: "NIA Excellence Hub <hub@thenia.org>",
+      from: 'NIA Excellence Hub <hub@thenia.org>',
       to: params.to,
       subject: params.subject,
       html: buildTaskEmailHtml(params),
     });
 
     if (error) {
-      console.error("[Task Notification] Resend error:", error.message);
+      console.error('[Task Notification] Resend error:', error.message);
     }
   } catch (err) {
-    console.error("[Task Notification] Failed:", (err as Error).message);
+    console.error('[Task Notification] Failed:', (err as Error).message);
   }
 }

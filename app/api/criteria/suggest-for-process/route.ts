@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { checkRateLimit } from "@/lib/rate-limit";
+import Anthropic from '@anthropic-ai/sdk';
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 120;
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   // Rate limit
@@ -34,32 +34,35 @@ export async function POST(request: Request) {
   const body = await request.json();
   const processId = body.process_id;
   if (!processId) {
-    return NextResponse.json({ error: "process_id required" }, { status: 400 });
+    return NextResponse.json({ error: 'process_id required' }, { status: 400 });
   }
 
   // Fetch process data
   const { data: proc, error: procErr } = await supabase
-    .from("processes")
-    .select("id, name, description, charter, adli_approach, adli_deployment, adli_learning, adli_integration")
-    .eq("id", processId)
+    .from('processes')
+    .select(
+      'id, name, description, charter, adli_approach, adli_deployment, adli_learning, adli_integration'
+    )
+    .eq('id', processId)
     .single();
 
   if (procErr || !proc) {
-    return NextResponse.json({ error: "Process not found" }, { status: 404 });
+    return NextResponse.json({ error: 'Process not found' }, { status: 404 });
   }
 
   // Fetch all questions + existing mappings for this process
   const [questionsRes, existingRes] = await Promise.all([
-    supabase.from("baldrige_questions")
-      .select("id, question_code, question_text, area_label, tier, baldrige_items!inner(item_code, item_name, category_name)")
-      .order("sort_order"),
-    supabase.from("process_question_mappings")
-      .select("question_id")
-      .eq("process_id", processId),
+    supabase
+      .from('baldrige_questions')
+      .select(
+        'id, question_code, question_text, area_label, tier, baldrige_items!inner(item_code, item_name, category_name)'
+      )
+      .order('sort_order'),
+    supabase.from('process_question_mappings').select('question_id').eq('process_id', processId),
   ]);
 
   if (questionsRes.error) {
-    return NextResponse.json({ error: "Failed to fetch questions" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch questions' }, { status: 500 });
   }
 
   // Filter to unmapped questions only
@@ -69,7 +72,10 @@ export async function POST(request: Request) {
   );
 
   if (unmappedQuestions.length === 0) {
-    return NextResponse.json({ suggestions: [], message: "All questions are already mapped to this process." });
+    return NextResponse.json({
+      suggestions: [],
+      message: 'All questions are already mapped to this process.',
+    });
   }
 
   // Build process context (capped ~3K chars)
@@ -78,16 +84,16 @@ export async function POST(request: Request) {
   const charter = proc.charter as Record<string, unknown> | null;
   if (charter?.content) contextParts.push(`Charter:\n${String(charter.content).slice(0, 800)}`);
   const adliFields = [
-    { key: "adli_approach", label: "Approach" },
-    { key: "adli_deployment", label: "Deployment" },
-    { key: "adli_learning", label: "Learning" },
-    { key: "adli_integration", label: "Integration" },
+    { key: 'adli_approach', label: 'Approach' },
+    { key: 'adli_deployment', label: 'Deployment' },
+    { key: 'adli_learning', label: 'Learning' },
+    { key: 'adli_integration', label: 'Integration' },
   ] as const;
   for (const f of adliFields) {
     const val = proc[f.key] as Record<string, unknown> | null;
     if (val?.content) contextParts.push(`${f.label}:\n${String(val.content).slice(0, 400)}`);
   }
-  const processContext = contextParts.join("\n\n");
+  const processContext = contextParts.join('\n\n');
 
   // Process questions in batches of 15 (larger batches since we're only matching one process)
   const BATCH_SIZE = 15;
@@ -99,7 +105,7 @@ export async function POST(request: Request) {
     item_code: string;
     item_name: string;
     category_name: string;
-    coverage: "primary" | "supporting" | "partial";
+    coverage: 'primary' | 'supporting' | 'partial';
     rationale: string;
   }[] = [];
 
@@ -111,7 +117,7 @@ export async function POST(request: Request) {
         const item = q.baldrige_items as unknown as { item_code: string; item_name: string };
         return `[Q${q.id}] ${q.question_code} (${item.item_code} ${item.item_name}): ${q.question_text}`;
       })
-      .join("\n\n");
+      .join('\n\n');
 
     const systemPrompt = `You are a Baldrige Excellence Framework expert. Given a process description, identify which Baldrige questions this process addresses.
 
@@ -132,28 +138,32 @@ ${questionsText}`;
 
     try {
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-6",
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
+        messages: [{ role: 'user', content: userPrompt }],
       });
 
-      const text = response.content[0].type === "text" ? response.content[0].text : "";
+      const text = response.content[0].type === 'text' ? response.content[0].text : '';
       let parsed: { question_id: number; coverage: string; rationale: string }[] = [];
       try {
         const jsonMatch = text.match(/\[[\s\S]*\]/);
         if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
       } catch {
-        console.error("Failed to parse AI suggestion response for batch");
+        console.error('Failed to parse AI suggestion response for batch');
       }
 
       for (const match of parsed) {
         const question = batch.find((q) => q.id === match.question_id);
         if (!question) continue;
-        const item = question.baldrige_items as unknown as { item_code: string; item_name: string; category_name: string };
-        const coverage = ["primary", "supporting", "partial"].includes(match.coverage)
-          ? (match.coverage as "primary" | "supporting" | "partial")
-          : "supporting";
+        const item = question.baldrige_items as unknown as {
+          item_code: string;
+          item_name: string;
+          category_name: string;
+        };
+        const coverage = ['primary', 'supporting', 'partial'].includes(match.coverage)
+          ? (match.coverage as 'primary' | 'supporting' | 'partial')
+          : 'supporting';
         suggestions.push({
           question_id: question.id,
           question_code: question.question_code,
@@ -163,11 +173,11 @@ ${questionsText}`;
           item_name: item.item_name,
           category_name: item.category_name,
           coverage,
-          rationale: match.rationale || "",
+          rationale: match.rationale || '',
         });
       }
     } catch (err) {
-      console.error("AI suggestion batch error:", err);
+      console.error('AI suggestion batch error:', err);
     }
   }
 

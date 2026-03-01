@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { Card } from "@/components/ui";
-import HealthRing from "@/components/health-ring";
-import HelpTip from "@/components/help-tip";
-import type { DashboardTaskStats } from "./types";
+import Link from 'next/link';
+import { Card } from '@/components/ui';
+import HealthRing from '@/components/health-ring';
+import HelpTip from '@/components/help-tip';
+import type { DashboardTaskStats } from './types';
 
 /* ─── StatCard ─────────────────────────────────────────────── */
 
@@ -19,7 +19,7 @@ export function StatCard({
   value: number | string;
   color: string;
   subtitle?: string;
-  glow?: "red" | "orange" | "green" | "dark";
+  glow?: 'red' | 'orange' | 'green' | 'dark';
   href?: string;
   helpText?: string;
 }) {
@@ -27,7 +27,7 @@ export function StatCard({
     <Card
       variant="elevated"
       padding="sm"
-      className={`p-4 h-full ${glow ? `glow-${glow}` : ""} ${href ? "hover:shadow-md transition-shadow cursor-pointer" : ""}`}
+      className={`p-4 h-full ${glow ? `glow-${glow}` : ''} ${href ? 'hover:shadow-md transition-shadow cursor-pointer' : ''}`}
     >
       <div className="text-2xl font-bold font-display number-pop" style={{ color }}>
         {value}
@@ -128,33 +128,31 @@ export default function StatCardsRow({
   let overdueSubtitle: string | undefined;
   if (totalOverdue > 0) {
     const parts: string[] = [];
-    if (overdueMetricCount > 0) parts.push(`${overdueMetricCount} metric${overdueMetricCount !== 1 ? "s" : ""}`);
-    if (overdueTaskCount > 0) parts.push(`${overdueTaskCount} task${overdueTaskCount !== 1 ? "s" : ""}`);
-    overdueSubtitle = parts.join(", ");
+    if (overdueMetricCount > 0)
+      parts.push(`${overdueMetricCount} metric${overdueMetricCount !== 1 ? 's' : ''}`);
+    if (overdueTaskCount > 0)
+      parts.push(`${overdueTaskCount} task${overdueTaskCount !== 1 ? 's' : ''}`);
+    overdueSubtitle = parts.join(', ');
   }
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-      <ReadinessCard
-        avgHealth={avgHealth}
-        healthCount={healthCount}
-        healthLevel={healthLevel}
-      />
+      <ReadinessCard avgHealth={avgHealth} healthCount={healthCount} healthLevel={healthLevel} />
       <StatCard
         label="NIA Average"
-        value={orgAvgHealth != null && orgAvgHealth > 0 ? orgAvgHealth : "--"}
+        value={orgAvgHealth != null && orgAvgHealth > 0 ? orgAvgHealth : '--'}
         color={
           orgAvgHealth != null && orgAvgHealth > 0 && avgHealth > 0
             ? avgHealth >= orgAvgHealth
-              ? "#b1bd37"
-              : "#f79935"
-            : "var(--text-muted)"
+              ? '#b1bd37'
+              : '#f79935'
+            : 'var(--text-muted)'
         }
         subtitle={
           orgAvgHealth != null && orgAvgHealth > 0 && avgHealth > 0
             ? avgHealth >= orgAvgHealth
               ? "You're above average"
-              : "Below NIA average"
+              : 'Below NIA average'
             : undefined
         }
         helpText="NIA's average process health score across all process owners."
@@ -162,16 +160,16 @@ export default function StatCardsRow({
       <StatCard
         label="Needs Attention"
         value={needsAttentionCount}
-        color={needsAttentionCount > 0 ? "#f79935" : "#b1bd37"}
-        glow={needsAttentionCount > 0 ? "orange" : undefined}
+        color={needsAttentionCount > 0 ? '#f79935' : '#b1bd37'}
+        glow={needsAttentionCount > 0 ? 'orange' : undefined}
         href="/processes"
         helpText="Processes scoring 40-79 that need improvement work."
       />
       <StatCard
         label="Overdue"
         value={totalOverdue}
-        color={totalOverdue > 0 ? "#dc2626" : "#b1bd37"}
-        glow={totalOverdue > 0 ? "red" : undefined}
+        color={totalOverdue > 0 ? '#dc2626' : '#b1bd37'}
+        glow={totalOverdue > 0 ? 'red' : undefined}
         subtitle={overdueSubtitle}
         href="/data-health"
         helpText="Metrics past review date or tasks past due date."
@@ -179,9 +177,9 @@ export default function StatCardsRow({
       <StatCard
         label="Active Tasks"
         value={taskStats?.totalActive ?? 0}
-        color={taskStats && taskStats.totalActive > 0 ? "#55787c" : "var(--text-muted)"}
+        color={taskStats && taskStats.totalActive > 0 ? '#55787c' : 'var(--text-muted)'}
         subtitle={
-          taskStats && (taskStats.totalActive + taskStats.totalCompleted) > 0
+          taskStats && taskStats.totalActive + taskStats.totalCompleted > 0
             ? `${taskStats.completionRate}% complete`
             : undefined
         }

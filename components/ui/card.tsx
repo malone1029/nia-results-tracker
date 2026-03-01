@@ -1,16 +1,11 @@
 /* ─── Variant definitions ───────────────────────────────────── */
 
 const variantStyles = {
-  default:
-    "bg-card rounded-xl border border-border shadow-sm",
-  elevated:
-    "bg-card-elevated rounded-xl border border-border shadow-md",
-  interactive:
-    "bg-card rounded-xl border border-border shadow-sm card-hover cursor-pointer",
-  flat:
-    "bg-card rounded-xl border border-border-light",
-  ghost:
-    "bg-surface-subtle/50 rounded-xl border border-border-light",
+  default: 'bg-card rounded-xl border border-border shadow-sm',
+  elevated: 'bg-card-elevated rounded-xl border border-border shadow-md',
+  interactive: 'bg-card rounded-xl border border-border shadow-sm card-hover cursor-pointer',
+  flat: 'bg-card rounded-xl border border-border-light',
+  ghost: 'bg-surface-subtle/50 rounded-xl border border-border-light',
 } as const;
 
 /* ─── Types ─────────────────────────────────────────────────── */
@@ -19,8 +14,8 @@ type Variant = keyof typeof variantStyles;
 
 interface CardProps {
   variant?: Variant;
-  accent?: "orange" | "green" | "dark" | "red" | "purple" | "none";
-  padding?: "none" | "sm" | "md" | "lg";
+  accent?: 'orange' | 'green' | 'dark' | 'red' | 'purple' | 'none';
+  padding?: 'none' | 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   className?: string;
   id?: string;
@@ -41,29 +36,29 @@ interface CardBodyProps {
 /* ─── Accent border ─────────────────────────────────────────── */
 
 const accentBorders = {
-  orange: "border-l-4 border-l-nia-orange",
-  green: "border-l-4 border-l-nia-green",
-  dark: "border-l-4 border-l-nia-dark",
-  red: "border-l-4 border-l-nia-red",
-  purple: "border-l-4 border-l-nia-purple",
-  none: "",
+  orange: 'border-l-4 border-l-nia-orange',
+  green: 'border-l-4 border-l-nia-green',
+  dark: 'border-l-4 border-l-nia-dark',
+  red: 'border-l-4 border-l-nia-red',
+  purple: 'border-l-4 border-l-nia-purple',
+  none: '',
 } as const;
 
 const paddings = {
-  none: "",
-  sm: "p-4",
-  md: "p-5",
-  lg: "p-6",
+  none: '',
+  sm: 'p-4',
+  md: 'p-5',
+  lg: 'p-6',
 } as const;
 
 /* ─── Card component ────────────────────────────────────────── */
 
 export default function Card({
-  variant = "default",
-  accent = "none",
-  padding = "none",
+  variant = 'default',
+  accent = 'none',
+  padding = 'none',
   children,
-  className = "",
+  className = '',
   id,
   onClick,
 }: CardProps) {
@@ -72,7 +67,7 @@ export default function Card({
       id={id}
       className={`${variantStyles[variant]} ${accentBorders[accent]} ${paddings[padding]} ${className}`}
       onClick={onClick}
-      role={onClick ? "button" : undefined}
+      role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
     >
       {children}
@@ -82,17 +77,9 @@ export default function Card({
 
 /* ─── Card.Header — optional top section with bottom border ── */
 
-export function CardHeader({
-  children,
-  className = "",
-  borderless = false,
-}: CardHeaderProps) {
+export function CardHeader({ children, className = '', borderless = false }: CardHeaderProps) {
   return (
-    <div
-      className={`px-5 py-3 ${
-        borderless ? "" : "border-b border-border-light"
-      } ${className}`}
-    >
+    <div className={`px-5 py-3 ${borderless ? '' : 'border-b border-border-light'} ${className}`}>
       {children}
     </div>
   );
@@ -100,6 +87,6 @@ export function CardHeader({
 
 /* ─── Card.Body — main content area ─────────────────────────── */
 
-export function CardBody({ children, className = "" }: CardBodyProps) {
+export function CardBody({ children, className = '' }: CardBodyProps) {
   return <div className={`p-5 ${className}`}>{children}</div>;
 }

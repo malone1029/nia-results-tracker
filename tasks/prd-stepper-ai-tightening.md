@@ -2,9 +2,10 @@
 
 ## Introduction
 
-The Improvement Cycle stepper and the AI chat panel are the two most important tools on the process detail page, but they feel disconnected. The stepper sits at the top of the page and tells users *where* they are, while the AI panel hides behind a floating button in the bottom-right corner. Users must: (1) read the stepper to understand their current step, (2) scroll down and click the floating AI button, (3) open the panel, (4) find the right prompt button inside. That's 3-4 actions for something that should be 1 click.
+The Improvement Cycle stepper and the AI chat panel are the two most important tools on the process detail page, but they feel disconnected. The stepper sits at the top of the page and tells users _where_ they are, while the AI panel hides behind a floating button in the bottom-right corner. Users must: (1) read the stepper to understand their current step, (2) scroll down and click the floating AI button, (3) open the panel, (4) find the right prompt button inside. That's 3-4 actions for something that should be 1 click.
 
 This PRD tightens the connection between the stepper and the AI by:
+
 - Adding a step-specific action button directly on the stepper (one click opens the panel AND sends the right prompt)
 - Adding a dedicated "Check Metrics" action to the Assessment step (equal prominence with "Run ADLI Assessment")
 - Scrolling the page to the relevant content section when the AI panel opens at a step
@@ -20,9 +21,11 @@ This PRD tightens the connection between the stepper and the AI by:
 ## User Stories
 
 ### US-001: Step action button on the stepper
+
 **Description:** As a process owner, I want to click an action button on the current step so the AI panel opens and starts coaching me on that step immediately, without hunting for the right prompt.
 
 **Acceptance Criteria:**
+
 - [ ] Each step in the `ImprovementStepper` shows a small action button (icon or text) on the active step
 - [ ] Completed and future steps show their action button with less prominent styling (muted color, smaller)
 - [ ] Start and Export steps have visually less prominent action buttons than Charter/Assessment/Deep Dive/Tasks
@@ -33,9 +36,11 @@ This PRD tightens the connection between the stepper and the AI by:
 - [ ] Verify in browser
 
 ### US-002: Wire stepper action to AI panel
+
 **Description:** As a process owner, when I click the stepper action button, the AI panel should open and automatically send the primary prompt for that step so I don't have to click twice.
 
 **Acceptance Criteria:**
+
 - [ ] Clicking the stepper action button on the process detail page: (a) changes the `guided_step` to that step, (b) opens the AI chat panel, (c) auto-sends the primary prompt for that step
 - [ ] The AI panel stays open after the response (user continues the conversation naturally)
 - [ ] If the AI panel is already open, clicking a stepper action still sends the prompt (no need to close and reopen)
@@ -44,9 +49,11 @@ This PRD tightens the connection between the stepper and the AI by:
 - [ ] Verify in browser
 
 ### US-003: Auto-scroll to relevant content section
+
 **Description:** As a process owner, when the AI panel opens for a step, the page should scroll to the content section that the step relates to, so I can see the AI coaching alongside the relevant content.
 
 **Acceptance Criteria:**
+
 - [ ] When stepper action triggers, page scrolls to the relevant content section:
   - Start → top of page (header)
   - Charter → Charter section
@@ -61,9 +68,11 @@ This PRD tightens the connection between the stepper and the AI by:
 - [ ] Verify in browser
 
 ### US-004: Add "Check Metrics" action to Assessment step
+
 **Description:** As a process owner, I want a dedicated "Check Metrics" prompt alongside "Run ADLI Assessment" on the Assessment step so I have a focused moment to review and link metrics to my process.
 
 **Acceptance Criteria:**
+
 - [ ] The Assessment step shows TWO action buttons of equal prominence: "Run Assessment" and "Check Metrics"
 - [ ] "Check Metrics" sends a prompt like: "Review the metrics linked to this process. Are there gaps? Are there existing metrics in the system I should link? Flag any overdue or off-target metrics."
 - [ ] Both buttons use the same one-click pattern (open panel + send prompt + scroll to ADLI/Metrics section)
@@ -73,9 +82,11 @@ This PRD tightens the connection between the stepper and the AI by:
 - [ ] Verify in browser
 
 ### US-005: Asana link nudge for unlinked processes
+
 **Description:** As a process owner with an unlinked process, I want to see a clear nudge to connect to Asana so I understand that guided coaching requires Asana linking.
 
 **Acceptance Criteria:**
+
 - [ ] When a process has NO `asana_project_gid`, the stepper area shows a nudge card instead of the stepper
 - [ ] Nudge card says something like: "Link this process to Asana to unlock the guided improvement cycle"
 - [ ] Nudge includes a "Link to Asana" button that opens the Asana export dialog (same as the "Sync to Asana" header button)
@@ -85,9 +96,11 @@ This PRD tightens the connection between the stepper and the AI by:
 - [ ] Verify in browser
 
 ### US-006: Step action prompt definitions
+
 **Description:** As a developer, I need a shared mapping of step → action labels + prompts so the stepper and AI panel use the same data.
 
 **Acceptance Criteria:**
+
 - [ ] A shared constant (e.g., `STEP_ACTIONS_MAP`) defines for each step: action label, short label (mobile), prompt text, scroll target section ID
 - [ ] The Assessment step has TWO actions defined (assessment + metrics)
 - [ ] The `ImprovementStepper` reads from this map for button labels

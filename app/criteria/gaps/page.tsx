@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useMemo } from "react";
-import Link from "next/link";
-import AdminGuard from "@/components/admin-guard";
+import { useEffect, useState, useMemo } from 'react';
+import Link from 'next/link';
+import AdminGuard from '@/components/admin-guard';
 
 /* ---------- types ---------- */
 interface Mapping {
@@ -39,26 +39,27 @@ interface Item {
 
 /* ---------- constants ---------- */
 function getPriorityTag(catCoverage: number) {
-  if (catCoverage === 0)
-    return { label: "Critical", className: "bg-nia-red/10 text-nia-red" };
+  if (catCoverage === 0) return { label: 'Critical', className: 'bg-nia-red/10 text-nia-red' };
   if (catCoverage < 50)
-    return { label: "Important", className: "bg-nia-orange/20 text-nia-orange" };
-  return { label: "Strengthen", className: "bg-nia-grey-blue/15 text-nia-grey-blue" };
+    return { label: 'Important', className: 'bg-nia-orange/20 text-nia-orange' };
+  return { label: 'Strengthen', className: 'bg-nia-grey-blue/15 text-nia-grey-blue' };
 }
 
 /* ---------- component ---------- */
 export default function GapAnalysisPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [tierFilter, setTierFilter] = useState<"excellence_builder" | "full" | "all">("excellence_builder");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [tierFilter, setTierFilter] = useState<'excellence_builder' | 'full' | 'all'>(
+    'excellence_builder'
+  );
 
   useEffect(() => {
-    document.title = "Application Gaps | NIA Excellence Hub";
+    document.title = 'Application Gaps | NIA Excellence Hub';
 
     async function fetchData() {
       try {
-        const res = await fetch("/api/criteria");
+        const res = await fetch('/api/criteria');
         if (res.ok) {
           const data = await res.json();
           setItems(data);
@@ -73,18 +74,22 @@ export default function GapAnalysisPage() {
 
   // Filter items by selected tier
   const filteredItems = useMemo(() => {
-    if (tierFilter === "all") return items;
-    return items.map((item) => {
-      const filtered = item.questions.filter((q) => q.tier === tierFilter);
-      const mapped = filtered.filter((q) => q.mappings.some((m) => m.coverage === "primary")).length;
-      return {
-        ...item,
-        questions: filtered,
-        totalQuestions: filtered.length,
-        mappedQuestions: mapped,
-        coveragePct: filtered.length > 0 ? Math.round((mapped / filtered.length) * 100) : 0,
-      };
-    }).filter((item) => item.questions.length > 0);
+    if (tierFilter === 'all') return items;
+    return items
+      .map((item) => {
+        const filtered = item.questions.filter((q) => q.tier === tierFilter);
+        const mapped = filtered.filter((q) =>
+          q.mappings.some((m) => m.coverage === 'primary')
+        ).length;
+        return {
+          ...item,
+          questions: filtered,
+          totalQuestions: filtered.length,
+          mappedQuestions: mapped,
+          coveragePct: filtered.length > 0 ? Math.round((mapped / filtered.length) * 100) : 0,
+        };
+      })
+      .filter((item) => item.questions.length > 0);
   }, [items, tierFilter]);
 
   // Compute category coverage percentages for priority tags
@@ -125,7 +130,7 @@ export default function GapAnalysisPage() {
     for (const item of filteredItems) {
       for (const q of item.questions) {
         // A question is a "gap" if it has no primary mapping
-        const hasPrimary = q.mappings.some((m) => m.coverage === "primary");
+        const hasPrimary = q.mappings.some((m) => m.coverage === 'primary');
         if (hasPrimary) continue;
 
         // Filter by search
@@ -208,7 +213,12 @@ export default function GapAnalysisPage() {
             className="inline-flex items-center gap-2 px-4 py-2 border border-border text-text-secondary rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
             </svg>
             Back to Criteria Map
           </Link>
@@ -216,18 +226,18 @@ export default function GapAnalysisPage() {
 
         {/* Tier toggle */}
         <div className="flex items-center gap-1 bg-surface-subtle rounded-lg p-1 w-fit">
-          {([
-            { key: "excellence_builder" as const, label: "Excellence Builder" },
-            { key: "full" as const, label: "Full Framework" },
-            { key: "all" as const, label: "All" },
-          ]).map(({ key, label }) => (
+          {[
+            { key: 'excellence_builder' as const, label: 'Excellence Builder' },
+            { key: 'full' as const, label: 'Full Framework' },
+            { key: 'all' as const, label: 'All' },
+          ].map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setTierFilter(key)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 tierFilter === key
-                  ? "bg-card text-nia-dark shadow-sm"
-                  : "text-text-tertiary hover:text-text-secondary"
+                  ? 'bg-card text-nia-dark shadow-sm'
+                  : 'text-text-tertiary hover:text-text-secondary'
               }`}
             >
               {label}
@@ -266,9 +276,7 @@ export default function GapAnalysisPage() {
         {totalGaps === 0 ? (
           <div className="bg-nia-green/10 border border-nia-green/30 rounded-xl p-8 text-center">
             <div className="text-4xl mb-2">&#127942;</div>
-            <h3 className="text-lg font-semibold text-nia-dark">
-              All Questions Mapped!
-            </h3>
+            <h3 className="text-lg font-semibold text-nia-dark">All Questions Mapped!</h3>
             <p className="text-text-secondary mt-1">
               Every Baldrige criteria question has at least one primary process.
             </p>
@@ -290,7 +298,7 @@ export default function GapAnalysisPage() {
                         {priority.label}
                       </span>
                       <h2 className="font-semibold text-nia-dark">
-                        {cat.categoryNumber === 0 ? "P" : cat.categoryNumber}. {cat.categoryName}
+                        {cat.categoryNumber === 0 ? 'P' : cat.categoryNumber}. {cat.categoryName}
                       </h2>
                     </div>
                     <div className="text-sm text-text-tertiary">
@@ -325,7 +333,8 @@ export default function GapAnalysisPage() {
                                     key={m.id}
                                     className="text-xs px-2 py-0.5 bg-surface-subtle text-text-secondary rounded-full"
                                   >
-                                    {(m.processes as unknown as { name: string })?.name} ({m.coverage})
+                                    {(m.processes as unknown as { name: string })?.name} (
+                                    {m.coverage})
                                   </span>
                                 ))}
                               </div>

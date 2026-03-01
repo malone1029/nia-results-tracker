@@ -1,6 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { createSupabaseServer } from "@/lib/supabase-server";
-import { checkRateLimit } from "@/lib/rate-limit";
+import Anthropic from '@anthropic-ai/sdk';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Allow up to 120 seconds for AI streaming responses (requires Vercel Pro)
 export const maxDuration = 120;
@@ -92,10 +92,7 @@ When you have enough information, generate a complete process draft. You MUST in
 // Load categories for mapping AI suggestion to category_id
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getCategoryMap(supabase: any): Promise<Map<string, number>> {
-  const { data } = await supabase
-    .from("categories")
-    .select("id, display_name")
-    .order("sort_order");
+  const { data } = await supabase.from('categories').select('id, display_name').order('sort_order');
 
   const map = new Map<string, number>();
   if (data) {
@@ -111,7 +108,9 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
   try {
     // Rate limit check
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
     if (authUser) {
       const rl = await checkRateLimit(authUser.id);
       if (!rl.success) return rl.response;
@@ -120,11 +119,11 @@ export async function POST(request: Request) {
     const { messages, action, processData } = await request.json();
 
     // Handle "save" action — create the process in Supabase
-    if (action === "save" && processData) {
+    if (action === 'save' && processData) {
       const categoryMap = await getCategoryMap(supabase);
 
       // Try to match the AI's category suggestion
-      const suggestion = (processData.category_suggestion || "").toLowerCase();
+      const suggestion = (processData.category_suggestion || '').toLowerCase();
       let categoryId: number | null = null;
       for (const [name, id] of categoryMap.entries()) {
         if (name.includes(suggestion) || suggestion.includes(name)) {
@@ -140,31 +139,31 @@ export async function POST(request: Request) {
       }
 
       if (!categoryId) {
-        return Response.json({ error: "No categories found" }, { status: 500 });
+        return Response.json({ error: 'No categories found' }, { status: 500 });
       }
 
       const { data, error } = await supabase
-        .from("processes")
+        .from('processes')
         .insert({
           name: processData.name,
           description: processData.description || null,
           category_id: categoryId,
           owner: processData.owner || null,
-          process_type: processData.process_type || "unclassified",
-          status: "draft",
-          template_type: "full",
+          process_type: processData.process_type || 'unclassified',
+          status: 'draft',
+          template_type: 'full',
           charter: processData.charter || null,
           adli_approach: processData.adli_approach || null,
           adli_deployment: processData.adli_deployment || null,
           adli_learning: processData.adli_learning || null,
           adli_integration: processData.adli_integration || null,
         })
-        .select("id")
+        .select('id')
         .single();
 
       if (error) {
-        console.error("Create process error:", error);
-        return Response.json({ error: "Failed to create process" }, { status: 500 });
+        console.error('Create process error:', error);
+        return Response.json({ error: 'Failed to create process' }, { status: 500 });
       }
 
       return Response.json({ processId: data.id });
@@ -172,10 +171,7 @@ export async function POST(request: Request) {
 
     // Handle "chat" — stream AI response
     if (!messages || !Array.isArray(messages)) {
-      return Response.json(
-        { error: "messages array is required" },
-        { status: 400 }
-      );
+      return Response.json({ error: 'messages array is required' }, { status: 400 });
     }
 
     const encoder = new TextEncoder();
@@ -183,22 +179,22 @@ export async function POST(request: Request) {
       async start(controller) {
         try {
           const stream = anthropic.messages.stream({
-            model: "claude-sonnet-4-6",
+            model: 'claude-sonnet-4-6',
             max_tokens: 4096,
             system: SYSTEM_PROMPT,
             messages: messages.map((m: { role: string; content: string }) => ({
-              role: m.role as "user" | "assistant",
+              role: m.role as 'user' | 'assistant',
               content: m.content,
             })),
           });
 
-          stream.on("text", (text) => {
+          stream.on('text', (text) => {
             controller.enqueue(encoder.encode(text));
           });
 
-          stream.on("error", (error) => {
-            console.error("Anthropic stream error:", error);
-            const errMsg = "\n\n*Connection to AI was interrupted. Please try again.*";
+          stream.on('error', (error) => {
+            console.error('Anthropic stream error:', error);
+            const errMsg = '\n\n*Connection to AI was interrupted. Please try again.*';
             controller.enqueue(encoder.encode(errMsg));
             controller.close();
           });
@@ -206,9 +202,9 @@ export async function POST(request: Request) {
           await stream.finalMessage();
           controller.close();
         } catch (err) {
-          console.error("Stream setup error:", err);
+          console.error('Stream setup error:', err);
           try {
-            const errMsg = "\n\n*AI request failed. Please try again.*";
+            const errMsg = '\n\n*AI request failed. Please try again.*';
             controller.enqueue(encoder.encode(errMsg));
             controller.close();
           } catch {
@@ -220,16 +216,13 @@ export async function POST(request: Request) {
 
     return new Response(readableStream, {
       headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "X-Accel-Buffering": "no",
-        "Cache-Control": "no-cache, no-transform",
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Accel-Buffering': 'no',
+        'Cache-Control': 'no-cache, no-transform',
       },
     });
   } catch (error) {
-    console.error("AI create-process error:", error);
-    return Response.json(
-      { error: "Failed to process request" },
-      { status: 500 }
-    );
+    console.error('AI create-process error:', error);
+    return Response.json({ error: 'Failed to process request' }, { status: 500 });
   }
 }

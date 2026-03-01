@@ -1,39 +1,38 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, DM_Serif_Display } from "next/font/google";
-import "./globals.css";
-import AppShell from "@/components/app-shell";
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono, DM_Serif_Display } from 'next/font/google';
+import './globals.css';
+import AppShell from '@/components/app-shell';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
 });
 
 const dmSerif = DM_Serif_Display({
-  variable: "--font-dm-serif",
-  weight: "400",
-  subsets: ["latin"],
+  variable: '--font-dm-serif',
+  weight: '400',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "NIA Excellence Hub",
+  title: 'NIA Excellence Hub',
   description:
-    "Process documentation and performance metrics aligned to the Baldrige Excellence Framework",
-  manifest: "/manifest.json",
+    'Process documentation and performance metrics aligned to the Baldrige Excellence Framework',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "NIA Hub",
+    statusBarStyle: 'default',
+    title: 'NIA Hub',
   },
   other: {
-    "apple-mobile-web-app-capable": "yes",
+    'apple-mobile-web-app-capable': 'yes',
   },
 };
-
 
 export default function RootLayout({
   children,

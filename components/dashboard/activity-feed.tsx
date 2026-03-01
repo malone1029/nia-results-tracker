@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { Card } from "@/components/ui";
-import HealthRing from "@/components/health-ring";
+import Link from 'next/link';
+import { Card } from '@/components/ui';
+import HealthRing from '@/components/health-ring';
 
 /* ─── Progress Momentum + Recent Wins ──────────────────────── */
 
@@ -18,11 +18,12 @@ export function MomentumAndWins({
       {monthlyImprovedCount > 0 && (
         <div className="flex items-center gap-3 mb-3">
           <div className="w-8 h-8 rounded-full bg-nia-green/10 flex items-center justify-center flex-shrink-0">
-            <span className="text-sm">{"\uD83D\uDD25"}</span>
+            <span className="text-sm">{'\uD83D\uDD25'}</span>
           </div>
           <div>
             <div className="text-sm font-medium text-nia-dark">
-              {monthlyImprovedCount} process{monthlyImprovedCount !== 1 ? "es" : ""} improved this month
+              {monthlyImprovedCount} process{monthlyImprovedCount !== 1 ? 'es' : ''} improved this
+              month
             </div>
             <div className="text-xs text-text-muted">Keep the momentum going!</div>
           </div>
@@ -44,7 +45,7 @@ export function MomentumAndWins({
                 {win.health !== undefined && (
                   <HealthRing
                     score={win.health}
-                    color={win.color || "#b1bd37"}
+                    color={win.color || '#b1bd37'}
                     size={22}
                     strokeWidth={2}
                     className="text-[7px] flex-shrink-0"
@@ -80,7 +81,7 @@ export function RecentActivity({
             (Date.now() - new Date(imp.date).getTime()) / (1000 * 60 * 60 * 24)
           );
           const timeLabel =
-            daysAgo === 0 ? "today" : daysAgo === 1 ? "yesterday" : `${daysAgo}d ago`;
+            daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo}d ago`;
           return (
             <Link
               key={i}
@@ -91,7 +92,7 @@ export function RecentActivity({
               <div className="flex-1 min-w-0">
                 <span className="text-xs text-nia-dark group-hover:text-nia-orange transition-colors">
                   <span className="font-medium">{imp.processName}</span>
-                  {" \u2014 "}
+                  {' \u2014 '}
                   {imp.label}
                 </span>
               </div>

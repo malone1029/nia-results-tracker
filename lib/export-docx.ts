@@ -7,7 +7,7 @@ import {
   PageBreak,
   Packer,
   BorderStyle,
-} from "docx";
+} from 'docx';
 
 /* ---------- types ---------- */
 interface DraftItem {
@@ -31,20 +31,20 @@ interface DraftItem {
  */
 function markdownToParagraphs(markdown: string): Paragraph[] {
   const paragraphs: Paragraph[] = [];
-  const lines = markdown.split("\n");
+  const lines = markdown.split('\n');
   let i = 0;
 
   while (i < lines.length) {
     const line = lines[i].trimEnd();
 
     // Skip empty lines
-    if (line.trim() === "") {
+    if (line.trim() === '') {
       i++;
       continue;
     }
 
     // Heading 2 (## )
-    if (line.startsWith("## ")) {
+    if (line.startsWith('## ')) {
       paragraphs.push(
         new Paragraph({
           heading: HeadingLevel.HEADING_2,
@@ -57,7 +57,7 @@ function markdownToParagraphs(markdown: string): Paragraph[] {
     }
 
     // Heading 3 (### )
-    if (line.startsWith("### ")) {
+    if (line.startsWith('### ')) {
       paragraphs.push(
         new Paragraph({
           heading: HeadingLevel.HEADING_3,
@@ -70,7 +70,7 @@ function markdownToParagraphs(markdown: string): Paragraph[] {
     }
 
     // Heading 4 (#### )
-    if (line.startsWith("#### ")) {
+    if (line.startsWith('#### ')) {
       paragraphs.push(
         new Paragraph({
           heading: HeadingLevel.HEADING_4,
@@ -100,7 +100,7 @@ function markdownToParagraphs(markdown: string): Paragraph[] {
     if (numMatch) {
       paragraphs.push(
         new Paragraph({
-          numbering: { reference: "numbered-list", level: 0 },
+          numbering: { reference: 'numbered-list', level: 0 },
           children: parseInlineFormatting(numMatch[2]),
           spacing: { before: 40, after: 40 },
         })
@@ -110,13 +110,13 @@ function markdownToParagraphs(markdown: string): Paragraph[] {
     }
 
     // Gap marker [GAP: ...]
-    if (line.includes("[GAP:")) {
+    if (line.includes('[GAP:')) {
       paragraphs.push(
         new Paragraph({
           children: [
             new TextRun({
               text: line.trim(),
-              color: "CC0000",
+              color: 'CC0000',
               bold: true,
               italics: true,
               size: 22,
@@ -127,7 +127,7 @@ function markdownToParagraphs(markdown: string): Paragraph[] {
             left: {
               style: BorderStyle.SINGLE,
               size: 6,
-              color: "CC0000",
+              color: 'CC0000',
               space: 8,
             },
           },
@@ -143,7 +143,7 @@ function markdownToParagraphs(markdown: string): Paragraph[] {
         new Paragraph({
           children: [],
           border: {
-            bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+            bottom: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
           },
           spacing: { before: 120, after: 120 },
         })
@@ -189,7 +189,7 @@ function parseInlineFormatting(text: string): TextRun[] {
       runs.push(new TextRun({ text: match[4], italics: true, size: 22 }));
     } else if (match[6]) {
       // Code
-      runs.push(new TextRun({ text: match[6], font: "Courier New", size: 20, color: "666666" }));
+      runs.push(new TextRun({ text: match[6], font: 'Courier New', size: 20, color: '666666' }));
     }
 
     lastIndex = match.index + match[0].length;
@@ -214,7 +214,10 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
   // Group by category
   const categories = new Map<number, { name: string; items: DraftItem[] }>();
   for (const item of draftItems) {
-    const existing = categories.get(item.category_number) || { name: item.category_name, items: [] };
+    const existing = categories.get(item.category_number) || {
+      name: item.category_name,
+      items: [],
+    };
     existing.items.push(item);
     categories.set(item.category_number, existing);
   }
@@ -235,10 +238,10 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: "NIA Excellence Hub",
+          text: 'NIA Excellence Hub',
           bold: true,
           size: 52,
-          color: "2A2A2A",
+          color: '2A2A2A',
         }),
       ],
       spacing: { after: 200 },
@@ -247,9 +250,9 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: "Baldrige Excellence Builder Application",
+          text: 'Baldrige Excellence Builder Application',
           size: 36,
-          color: "555555",
+          color: '555555',
         }),
       ],
       spacing: { after: 400 },
@@ -258,9 +261,9 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: "Northern Illinois Academy",
+          text: 'Northern Illinois Academy',
           size: 28,
-          color: "777777",
+          color: '777777',
         }),
       ],
       spacing: { after: 100 },
@@ -269,9 +272,9 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long" }),
+          text: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
           size: 24,
-          color: "999999",
+          color: '999999',
         }),
       ],
       spacing: { after: 600 },
@@ -282,7 +285,7 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
         new TextRun({
           text: `${totalWords.toLocaleString()} words · ${Math.round(totalWords / 500)} estimated pages`,
           size: 20,
-          color: "AAAAAA",
+          color: 'AAAAAA',
           italics: true,
         }),
       ],
@@ -294,29 +297,28 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
   children.push(
     new Paragraph({
       heading: HeadingLevel.HEADING_1,
-      children: [new TextRun({ text: "Contents", size: 32, bold: true })],
+      children: [new TextRun({ text: 'Contents', size: 32, bold: true })],
       spacing: { after: 200 },
     })
   );
 
   // Build manual TOC from categories and items
   for (const [catNum, cat] of sortedCategories) {
-    const catLabel = catNum === 0 ? "Organizational Profile" : `Category ${catNum}: ${cat.name}`;
+    const catLabel = catNum === 0 ? 'Organizational Profile' : `Category ${catNum}: ${cat.name}`;
     children.push(
       new Paragraph({
-        children: [
-          new TextRun({ text: catLabel, bold: true, size: 22 }),
-        ],
+        children: [new TextRun({ text: catLabel, bold: true, size: 22 })],
         spacing: { before: 80, after: 40 },
       })
     );
     for (const item of cat.items) {
-      const wordInfo = item.word_count > 0 ? ` (${item.word_count.toLocaleString()} words)` : " (no draft)";
+      const wordInfo =
+        item.word_count > 0 ? ` (${item.word_count.toLocaleString()} words)` : ' (no draft)';
       children.push(
         new Paragraph({
           children: [
             new TextRun({ text: `    ${item.item_code} ${item.item_name}`, size: 20 }),
-            new TextRun({ text: wordInfo, size: 20, color: "999999", italics: true }),
+            new TextRun({ text: wordInfo, size: 20, color: '999999', italics: true }),
           ],
           spacing: { before: 20, after: 20 },
         })
@@ -328,7 +330,7 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
 
   // ---- Category sections ----
   for (const [catNum, cat] of sortedCategories) {
-    const catLabel = catNum === 0 ? "Organizational Profile" : `Category ${catNum}: ${cat.name}`;
+    const catLabel = catNum === 0 ? 'Organizational Profile' : `Category ${catNum}: ${cat.name}`;
     const catPoints = cat.items.reduce((s, i) => s + i.points, 0);
     const catWords = cat.items.reduce((s, i) => s + i.word_count, 0);
 
@@ -350,7 +352,7 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
           new TextRun({
             text: `${catPoints} points · ${cat.items.length} items · ${catWords.toLocaleString()} words`,
             size: 20,
-            color: "888888",
+            color: '888888',
             italics: true,
           }),
         ],
@@ -373,7 +375,7 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
             new TextRun({
               text: ` (${item.points} points)`,
               size: 22,
-              color: "888888",
+              color: '888888',
             }),
           ],
           spacing: { before: 300, after: 120 },
@@ -390,9 +392,9 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
           new Paragraph({
             children: [
               new TextRun({
-                text: "[No narrative drafted yet for this item]",
+                text: '[No narrative drafted yet for this item]',
                 italics: true,
-                color: "999999",
+                color: '999999',
                 size: 22,
               }),
             ],
@@ -417,12 +419,12 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
     numbering: {
       config: [
         {
-          reference: "numbered-list",
+          reference: 'numbered-list',
           levels: [
             {
               level: 0,
-              format: "decimal",
-              text: "%1.",
+              format: 'decimal',
+              text: '%1.',
               alignment: AlignmentType.LEFT,
             },
           ],
@@ -433,7 +435,7 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
       default: {
         document: {
           run: {
-            font: "Calibri",
+            font: 'Calibri',
             size: 22,
           },
         },
@@ -444,7 +446,7 @@ export async function generateApplicationDocx(draftItems: DraftItem[]): Promise<
         properties: {
           page: {
             margin: {
-              top: 1440,  // 1 inch
+              top: 1440, // 1 inch
               bottom: 1440,
               left: 1440,
               right: 1440,

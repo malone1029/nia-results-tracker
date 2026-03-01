@@ -16,9 +16,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 ## User Stories
 
 ### US-001: Full-page results dashboard
+
 **Description:** As a process owner, I want a dedicated results page for each survey so I can see all analytics in one place without scrolling through the process detail page.
 
 **Acceptance Criteria:**
+
 - [ ] New route at `/surveys/[id]/results` shows full-page dashboard
 - [ ] Page header shows survey title, process name (linked), total responses, and wave selector
 - [ ] Wave selector dropdown lets user pick any wave (defaults to latest)
@@ -29,9 +31,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Verify in browser using dev-browser skill
 
 ### US-002: Overview stats cards
+
 **Description:** As a process owner, I want key metrics at the top of the dashboard so I can see the big picture at a glance.
 
 **Acceptance Criteria:**
+
 - [ ] Stats row shows: Total Responses, Response Rate (if response target exists), Overall NPS (if survey has NPS question), Completion Rate
 - [ ] Each stat card shows current value and trend arrow vs. previous wave (if available)
 - [ ] NPS card color-coded: red (<0), yellow (0-49), green (50+)
@@ -40,9 +44,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Verify in browser using dev-browser skill
 
 ### US-003: Rating question charts
+
 **Description:** As a process owner, I want bar charts for rating questions so I can see the distribution of responses visually.
 
 **Acceptance Criteria:**
+
 - [ ] Each rating question renders a horizontal bar chart (Recharts `BarChart`)
 - [ ] Bars labeled with the custom scale labels (e.g., "Strongly Disagree" through "Strongly Agree")
 - [ ] Bar colors use a green gradient (darker = higher rating)
@@ -53,9 +59,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Verify in browser using dev-browser skill
 
 ### US-004: NPS visualization
+
 **Description:** As a process owner, I want a dedicated NPS visualization showing the score, segment breakdown, and distribution.
 
 **Acceptance Criteria:**
+
 - [ ] Large NPS score number in center with color coding (red/yellow/green)
 - [ ] Stacked horizontal bar showing Detractors (red) | Passives (yellow) | Promoters (green) with percentages
 - [ ] Distribution chart below showing counts for each score 0-10 (Recharts `BarChart`)
@@ -64,9 +72,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Verify in browser using dev-browser skill
 
 ### US-005: Multiple choice and checkbox charts
+
 **Description:** As a process owner, I want pie/donut charts for choice-based questions so I can see the proportion of each answer.
 
 **Acceptance Criteria:**
+
 - [ ] Multiple choice questions render a donut chart (Recharts `PieChart`) with legend
 - [ ] Checkbox questions render a horizontal bar chart (since respondents pick multiple)
 - [ ] Colors auto-assigned from a NIA-branded palette
@@ -76,9 +86,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Verify in browser using dev-browser skill
 
 ### US-006: Matrix question visualization
+
 **Description:** As a process owner, I want a heatmap-style table for matrix questions so I can compare rows at a glance.
 
 **Acceptance Criteria:**
+
 - [ ] Matrix renders as a styled table: rows on left, columns across top
 - [ ] Cell background color intensity reflects the count (darker = more responses)
 - [ ] Row averages shown in rightmost column
@@ -88,9 +100,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Verify in browser using dev-browser skill
 
 ### US-007: Open-text response display
+
 **Description:** As a process owner, I want to read all open-text responses in a clean, scannable format.
 
 **Acceptance Criteria:**
+
 - [ ] Open-text questions show all responses in a card list (no truncation limit)
 - [ ] Each response in its own card with subtle border
 - [ ] Response count shown in section header
@@ -99,9 +113,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Verify in browser using dev-browser skill
 
 ### US-008: Cross-wave trend charts
+
 **Description:** As a process owner, I want to see how each question's scores change across all waves so I can track improvement over time.
 
 **Acceptance Criteria:**
+
 - [ ] New API endpoint fetches aggregated results for ALL waves of a survey in one call
 - [ ] "Trends" tab on dashboard shows a Recharts `LineChart` per rating/NPS/yes_no question
 - [ ] Each line represents one question, x-axis = wave number, y-axis = average score
@@ -112,9 +128,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Verify in browser using dev-browser skill
 
 ### US-009: AI executive summary
+
 **Description:** As a process owner, I want AI to analyze survey results and write an executive summary so I can quickly understand themes and share insights with leadership.
 
 **Acceptance Criteria:**
+
 - [ ] New API endpoint `/api/surveys/[id]/ai-summary` accepts waveId, sends results + open-text to Claude
 - [ ] AI returns structured summary: Key Findings (3-5 bullets), Strengths, Areas for Improvement, Notable Comments, Recommended Actions
 - [ ] Summary displayed in a styled card on the dashboard with section headings
@@ -128,9 +146,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Verify in browser using dev-browser skill
 
 ### US-010: PDF report export
+
 **Description:** As a process owner, I want to download a professional PDF report so I can share survey results with leadership who don't use the Hub.
 
 **Acceptance Criteria:**
+
 - [ ] "Download PDF" button on dashboard header
 - [ ] PDF generated server-side via `@react-pdf/renderer`
 - [ ] API endpoint `/api/surveys/[id]/pdf` accepts waveId + optional AI summary text
@@ -141,9 +161,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Typecheck passes
 
 ### US-011: CSV raw data export
+
 **Description:** As a process owner, I want to download raw response data as CSV so I can do custom analysis in Excel or Google Sheets.
 
 **Acceptance Criteria:**
+
 - [ ] "Export CSV" button on dashboard
 - [ ] New API endpoint `/api/surveys/[id]/csv?waveId=N` returns CSV file
 - [ ] CSV format: one row per response, columns = question texts, cells = answer values
@@ -158,9 +180,11 @@ Add a dedicated survey results dashboard with visual charts, cross-wave trend an
 - [ ] Typecheck passes
 
 ### US-012: Link from process detail page
+
 **Description:** As a process owner, I want to navigate from my process page to the survey dashboard with one click.
 
 **Acceptance Criteria:**
+
 - [ ] Each survey card on the process detail page shows a "View Results" button (next to existing "Edit" and wave controls)
 - [ ] Button links to `/surveys/[surveyId]/results?waveId=[latestWaveId]`
 - [ ] Button only appears if survey has at least 1 wave with responses

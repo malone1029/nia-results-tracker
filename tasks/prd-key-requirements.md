@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Replace the simple "Integration" checkbox on metrics with a meaningful connection to NIA's Organizational Profile Key Requirements. In the Baldrige Excellence Framework, Integration means results are actively used in decision-making and connected to organizational priorities. Currently, Integration is a manual yes/no checkbox that doesn't tell the story of *how* a metric connects to what stakeholders need.
+Replace the simple "Integration" checkbox on metrics with a meaningful connection to NIA's Organizational Profile Key Requirements. In the Baldrige Excellence Framework, Integration means results are actively used in decision-making and connected to organizational priorities. Currently, Integration is a manual yes/no checkbox that doesn't tell the story of _how_ a metric connects to what stakeholders need.
 
 This feature introduces a **Key Requirements** system — seeded from the Organizational Profile (Figure P-6) — that lets users link metrics to the stakeholder requirements they provide evidence for. A new **Key Requirements page** shows the health of each requirement based on real metric data, and highlights gaps where requirements have no supporting metrics.
 
@@ -20,24 +20,24 @@ Integration on the LeTCI scorecard becomes auto-calculated: if a metric is linke
 
 From the NIA Organizational Profile (Figure P-6):
 
-| Sort | Stakeholder Segment | Stakeholder Group | Key Requirement |
-|------|---------------------|-------------------|-----------------|
-| 1 | Customers | Member Districts | Prioritization |
-| 2 | Customers | Member Districts | High-quality services |
-| 3 | Customers | Member Districts | Cost effective |
-| 4 | Customers | Member Districts | Good customer service |
-| 5 | Customers | Non-Member Entities | High-quality services |
-| 6 | Customers | Non-Member Entities | Cost effective |
-| 7 | Customers | Non-Member Entities | Good customer service |
-| 8 | Stakeholders | Workforce | Competitive compensation/benefits |
-| 9 | Stakeholders | Workforce | Input and engagement |
-| 10 | Stakeholders | Workforce | Clear communication |
-| 11 | Stakeholders | Workforce | Responsive leadership |
-| 12 | Stakeholders | Workforce | Meaningful work |
-| 13 | Stakeholders | Students | High-quality services |
-| 14 | Stakeholders | Students | Engaging service delivery |
-| 15 | Stakeholders | Parents | High-quality services |
-| 16 | Stakeholders | Parents | Good communication |
+| Sort | Stakeholder Segment | Stakeholder Group   | Key Requirement                   |
+| ---- | ------------------- | ------------------- | --------------------------------- |
+| 1    | Customers           | Member Districts    | Prioritization                    |
+| 2    | Customers           | Member Districts    | High-quality services             |
+| 3    | Customers           | Member Districts    | Cost effective                    |
+| 4    | Customers           | Member Districts    | Good customer service             |
+| 5    | Customers           | Non-Member Entities | High-quality services             |
+| 6    | Customers           | Non-Member Entities | Cost effective                    |
+| 7    | Customers           | Non-Member Entities | Good customer service             |
+| 8    | Stakeholders        | Workforce           | Competitive compensation/benefits |
+| 9    | Stakeholders        | Workforce           | Input and engagement              |
+| 10   | Stakeholders        | Workforce           | Clear communication               |
+| 11   | Stakeholders        | Workforce           | Responsive leadership             |
+| 12   | Stakeholders        | Workforce           | Meaningful work                   |
+| 13   | Stakeholders        | Students            | High-quality services             |
+| 14   | Stakeholders        | Students            | Engaging service delivery         |
+| 15   | Stakeholders        | Parents             | High-quality services             |
+| 16   | Stakeholders        | Parents             | Good communication                |
 
 Requirements are kept separate per stakeholder group (e.g., "High-quality services" is a distinct requirement for Member Districts, Students, and Parents) because the metrics that provide evidence may differ by group.
 
@@ -46,9 +46,11 @@ Display order: Customers first (Member Districts, Non-Member Entities), then Sta
 ## User Stories
 
 ### US-001: Create key_requirements database table and seed data
+
 **Description:** As a developer, I need a database table to store Key Requirements so they persist and can be linked to metrics.
 
 **Acceptance Criteria:**
+
 - [ ] Create `key_requirements` table with columns: id (serial PK), stakeholder_segment (text), stakeholder_group (text), requirement (text), description (text, nullable), sort_order (integer)
 - [ ] Create `metric_requirements` junction table with columns: id (serial PK), metric_id (integer FK to metrics), requirement_id (integer FK to key_requirements)
 - [ ] Add unique constraint on metric_requirements (metric_id, requirement_id) to prevent duplicates
@@ -58,18 +60,22 @@ Display order: Customers first (Member Districts, Non-Member Entities), then Sta
 - [ ] Typecheck passes
 
 ### US-002: Add TypeScript types for Key Requirements
+
 **Description:** As a developer, I need TypeScript interfaces so the app can work with Key Requirements data in a type-safe way.
 
 **Acceptance Criteria:**
+
 - [ ] Add `KeyRequirement` interface to lib/types.ts with all table columns
 - [ ] Add `MetricRequirement` interface (junction table)
 - [ ] Add `KeyRequirementWithStatus` extended interface that includes: linked metric count, metrics with data count, overall health status (green/yellow/red/no-data)
 - [ ] Typecheck passes
 
 ### US-003: Build Key Requirements overview page
+
 **Description:** As a user, I want a Key Requirements page so I can see at a glance whether NIA is meeting each stakeholder requirement.
 
 **Acceptance Criteria:**
+
 - [ ] New page at `/requirements`
 - [ ] Page title: "Key Requirements" with subtitle explaining this comes from the Organizational Profile
 - [ ] Source attribution: "Source: NIA Organizational Profile, Figure P-6" displayed near the top
@@ -85,9 +91,11 @@ Display order: Customers first (Member Districts, Non-Member Entities), then Sta
 - [ ] Verify in browser using dev-browser skill
 
 ### US-004: Link metrics to requirements from the metric edit form
+
 **Description:** As a user, I want to select which Key Requirements a metric provides evidence for when editing that metric, so I can build the connection from the metric side.
 
 **Acceptance Criteria:**
+
 - [ ] On the metric edit page (`/metric/[id]/edit`), replace the Integration checkbox with a "Key Requirements" multi-select section
 - [ ] Display all available Key Requirements grouped by stakeholder group
 - [ ] Requirements currently linked to this metric are checked/selected
@@ -98,9 +106,11 @@ Display order: Customers first (Member Districts, Non-Member Entities), then Sta
 - [ ] Verify in browser using dev-browser skill
 
 ### US-005: Link metrics to requirements from the Key Requirements page
+
 **Description:** As a user, I want to link metrics to a requirement from the Key Requirements page, so I can build the connection from the requirement side.
 
 **Acceptance Criteria:**
+
 - [ ] Each expanded requirement card shows an "Add Metric" button
 - [ ] Clicking "Add Metric" opens a dropdown/picker showing all metrics not yet linked to this requirement
 - [ ] Metrics in the picker are grouped by category and process for easy finding
@@ -110,9 +120,11 @@ Display order: Customers first (Member Districts, Non-Member Entities), then Sta
 - [ ] Verify in browser using dev-browser skill
 
 ### US-006: Auto-calculate LeTCI Integration from linked requirements
+
 **Description:** As a user, I want Integration on the LeTCI scorecard to automatically reflect whether a metric is linked to Key Requirements, so I don't have to manually toggle a checkbox.
 
 **Acceptance Criteria:**
+
 - [ ] On the metric detail page (`/metric/[id]`), Integration is true if the metric has at least one linked requirement, false otherwise
 - [ ] The Integration LeTCI card shows which requirements are linked (instead of the old checkbox text)
 - [ ] If not integrated, the card suggests: "Link this metric to Key Requirements to demonstrate Integration"
@@ -124,9 +136,11 @@ Display order: Customers first (Member Districts, Non-Member Entities), then Sta
 - [ ] Verify in browser using dev-browser skill
 
 ### US-007: Edit and manage Key Requirements
+
 **Description:** As a user, I want to add, edit, or remove Key Requirements as the Organizational Profile evolves, so the system stays current.
 
 **Acceptance Criteria:**
+
 - [ ] On the Key Requirements page, an "Edit Requirements" button toggles edit mode
 - [ ] In edit mode, each requirement shows an edit icon and a delete icon
 - [ ] Clicking edit opens an inline form to change: requirement name, stakeholder segment, stakeholder group, description

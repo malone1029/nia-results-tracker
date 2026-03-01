@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { Button, Badge, Card, Select } from "@/components/ui";
-import { DetailSkeleton } from "@/components/skeleton";
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import { Button, Badge, Card, Select } from '@/components/ui';
+import { DetailSkeleton } from '@/components/skeleton';
 import {
   BarChart,
   Bar,
@@ -19,21 +19,30 @@ import {
   Line,
   CartesianGrid,
   Legend,
-} from "recharts";
+} from 'recharts';
 
 /* ─── NIA Brand Colors ─────────────────────────────────────────── */
 
 const NIA = {
-  green: "#b1bd37",
-  greenLight: "#c8d35a",
-  orange: "#e8983e",
-  dark: "#2d3c34",
-  greyBlue: "#6b8a7a",
-  red: "#c0392b",
-  yellow: "#f1c40f",
+  green: '#b1bd37',
+  greenLight: '#c8d35a',
+  orange: '#e8983e',
+  dark: '#2d3c34',
+  greyBlue: '#6b8a7a',
+  red: '#c0392b',
+  yellow: '#f1c40f',
 };
 
-const CHART_COLORS = [NIA.green, NIA.orange, NIA.dark, NIA.greyBlue, "#8884d8", "#82ca9d", "#ffc658", "#ff7f50"];
+const CHART_COLORS = [
+  NIA.green,
+  NIA.orange,
+  NIA.dark,
+  NIA.greyBlue,
+  '#8884d8',
+  '#82ca9d',
+  '#ffc658',
+  '#ff7f50',
+];
 
 /* ─── Type Definitions ─────────────────────────────────────────── */
 
@@ -68,7 +77,12 @@ interface QuestionResult {
   // open_text
   text_responses?: string[];
   // matrix
-  matrix_rows?: { row_label: string; avg_value: number; response_count: number; distribution: number[] }[];
+  matrix_rows?: {
+    row_label: string;
+    avg_value: number;
+    response_count: number;
+    distribution: number[];
+  }[];
   column_labels?: string[];
 }
 
@@ -100,27 +114,25 @@ function TrendArrow({ current, previous }: { current: number; previous: number |
   if (Math.abs(diff) < 0.01) return <span className="text-text-muted text-xs ml-1">--</span>;
   const isUp = diff > 0;
   return (
-    <span className={`text-xs font-medium ml-1.5 ${isUp ? "text-nia-green" : "text-nia-red"}`}>
-      {isUp ? "\u25B2" : "\u25BC"} {Math.abs(diff).toFixed(1)}
+    <span className={`text-xs font-medium ml-1.5 ${isUp ? 'text-nia-green' : 'text-nia-red'}`}>
+      {isUp ? '\u25B2' : '\u25BC'} {Math.abs(diff).toFixed(1)}
     </span>
   );
 }
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-sm font-semibold text-nia-dark uppercase tracking-wide mb-3">
-      {children}
-    </h3>
+    <h3 className="text-sm font-semibold text-nia-dark uppercase tracking-wide mb-3">{children}</h3>
   );
 }
 
 const tooltipStyle = {
-  borderRadius: "8px",
-  border: "1px solid var(--border)",
-  backgroundColor: "var(--card)",
-  color: "var(--foreground)",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-  fontSize: "13px",
+  borderRadius: '8px',
+  border: '1px solid var(--border)',
+  backgroundColor: 'var(--card)',
+  color: 'var(--foreground)',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+  fontSize: '13px',
 };
 
 /* ─── Rating Chart Component ──────────────────────────────────── */
@@ -145,13 +157,26 @@ function RatingChart({ q }: { q: QuestionResult }) {
       </div>
       <div className="text-xs text-text-muted">{q.response_count} responses</div>
       <ResponsiveContainer width="100%" height={180}>
-        <BarChart data={data} layout="horizontal" margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
-          <XAxis dataKey="label" tick={{ fontSize: 12, fill: "var(--text-muted)" }} tickLine={false} axisLine={false} />
+        <BarChart
+          data={data}
+          layout="horizontal"
+          margin={{ top: 5, right: 10, bottom: 5, left: 10 }}
+        >
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
+            tickLine={false}
+            axisLine={false}
+          />
           <YAxis hide allowDecimals={false} />
           <Tooltip contentStyle={tooltipStyle} />
           <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={40}>
             {data.map((_, i) => (
-              <Cell key={i} fill={i === data.length - 1 ? NIA.green : NIA.greyBlue} fillOpacity={0.5 + (i / data.length) * 0.5} />
+              <Cell
+                key={i}
+                fill={i === data.length - 1 ? NIA.green : NIA.greyBlue}
+                fillOpacity={0.5 + (i / data.length) * 0.5}
+              />
             ))}
           </Bar>
         </BarChart>
@@ -181,7 +206,7 @@ function NpsChart({ q }: { q: QuestionResult }) {
         <h4 className="text-sm font-medium text-foreground leading-snug flex-1">
           {q.question_text}
         </h4>
-        <Badge color={nps_score >= 50 ? "green" : nps_score >= 0 ? "yellow" : "red"} size="sm">
+        <Badge color={nps_score >= 50 ? 'green' : nps_score >= 0 ? 'yellow' : 'red'} size="sm">
           NPS
         </Badge>
       </div>
@@ -236,7 +261,12 @@ function NpsChart({ q }: { q: QuestionResult }) {
       {distData.length > 0 && (
         <ResponsiveContainer width="100%" height={140}>
           <BarChart data={distData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-            <XAxis dataKey="score" tick={{ fontSize: 11, fill: "var(--text-muted)" }} tickLine={false} axisLine={false} />
+            <XAxis
+              dataKey="score"
+              tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+              tickLine={false}
+              axisLine={false}
+            />
             <YAxis hide allowDecimals={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Bar dataKey="count" radius={[3, 3, 0, 0]} maxBarSize={28}>
@@ -288,7 +318,10 @@ function MultipleChoiceChart({ q }: { q: QuestionResult }) {
             </Pie>
             <Tooltip
               contentStyle={tooltipStyle}
-              formatter={(value, name) => [`${value} (${total > 0 ? Math.round((Number(value) / total) * 100) : 0}%)`, name]}
+              formatter={(value, name) => [
+                `${value} (${total > 0 ? Math.round((Number(value) / total) * 100) : 0}%)`,
+                name,
+              ]}
             />
           </PieChart>
         </ResponsiveContainer>
@@ -315,7 +348,10 @@ function MultipleChoiceChart({ q }: { q: QuestionResult }) {
             Other responses ({q.other_count})
           </div>
           {q.other_texts.map((t, i) => (
-            <div key={i} className="text-xs text-text-secondary pl-3 border-l-2 border-nia-orange/30 py-0.5">
+            <div
+              key={i}
+              className="text-xs text-text-secondary pl-3 border-l-2 border-nia-orange/30 py-0.5"
+            >
               {t}
             </div>
           ))}
@@ -338,7 +374,8 @@ function CheckboxChart({ q }: { q: QuestionResult }) {
     <Card padding="md" className="space-y-3">
       <h4 className="text-sm font-medium text-foreground leading-snug">{q.question_text}</h4>
       <div className="text-xs text-text-muted">
-        {q.response_count} responses{q.total_respondents ? ` (${q.total_respondents} respondents)` : ""}
+        {q.response_count} responses
+        {q.total_respondents ? ` (${q.total_respondents} respondents)` : ''}
       </div>
 
       <ResponsiveContainer width="100%" height={Math.max(140, data.length * 32)}>
@@ -348,12 +385,18 @@ function CheckboxChart({ q }: { q: QuestionResult }) {
             type="category"
             dataKey="label"
             width={150}
-            tick={{ fontSize: 12, fill: "var(--text-muted)" }}
+            tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
             tickLine={false}
             axisLine={false}
           />
           <Tooltip contentStyle={tooltipStyle} />
-          <Bar dataKey="count" fill={NIA.green} radius={[0, 4, 4, 0]} maxBarSize={20} fillOpacity={0.8} />
+          <Bar
+            dataKey="count"
+            fill={NIA.green}
+            radius={[0, 4, 4, 0]}
+            maxBarSize={20}
+            fillOpacity={0.8}
+          />
         </BarChart>
       </ResponsiveContainer>
 
@@ -364,7 +407,10 @@ function CheckboxChart({ q }: { q: QuestionResult }) {
             Other responses ({q.other_count})
           </div>
           {q.other_texts.map((t, i) => (
-            <div key={i} className="text-xs text-text-secondary pl-3 border-l-2 border-nia-orange/30 py-0.5">
+            <div
+              key={i}
+              className="text-xs text-text-secondary pl-3 border-l-2 border-nia-orange/30 py-0.5"
+            >
               {t}
             </div>
           ))}
@@ -392,7 +438,10 @@ function MatrixTable({ q }: { q: QuestionResult }) {
             <tr>
               <th className="text-left py-2 pr-3 text-xs font-medium text-text-muted" />
               {cols.map((col, i) => (
-                <th key={i} className="px-2 py-2 text-center text-xs font-medium text-text-muted whitespace-nowrap">
+                <th
+                  key={i}
+                  className="px-2 py-2 text-center text-xs font-medium text-text-muted whitespace-nowrap"
+                >
                   {col}
                 </th>
               ))}
@@ -496,8 +545,8 @@ function YesNoChart({ q }: { q: QuestionResult }) {
           <PieChart>
             <Pie
               data={[
-                { name: "Yes", value: yesPct },
-                { name: "No", value: noPct },
+                { name: 'Yes', value: yesPct },
+                { name: 'No', value: noPct },
               ]}
               cx="50%"
               cy="50%"
@@ -545,15 +594,15 @@ function AISummarySection({
     setError(null);
     try {
       const res = await fetch(`/api/surveys/${surveyId}/ai-summary`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ waveId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to generate summary");
+      if (!res.ok) throw new Error(data.error || 'Failed to generate summary');
       setSummary(data.summary);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -570,11 +619,11 @@ function AISummarySection({
   }
 
   const sections: { key: keyof AISummary; label: string; icon: string }[] = [
-    { key: "key_findings", label: "Key Findings", icon: "\uD83D\uDD0D" },
-    { key: "strengths", label: "Strengths", icon: "\u2705" },
-    { key: "areas_for_improvement", label: "Areas for Improvement", icon: "\u26A0\uFE0F" },
-    { key: "notable_comments", label: "Notable Comments", icon: "\uD83D\uDCAC" },
-    { key: "recommended_actions", label: "Recommended Actions", icon: "\uD83C\uDFAF" },
+    { key: 'key_findings', label: 'Key Findings', icon: '\uD83D\uDD0D' },
+    { key: 'strengths', label: 'Strengths', icon: '\u2705' },
+    { key: 'areas_for_improvement', label: 'Areas for Improvement', icon: '\u26A0\uFE0F' },
+    { key: 'notable_comments', label: 'Notable Comments', icon: '\uD83D\uDCAC' },
+    { key: 'recommended_actions', label: 'Recommended Actions', icon: '\uD83C\uDFAF' },
   ];
 
   return (
@@ -582,20 +631,18 @@ function AISummarySection({
       <div className="flex items-center justify-between">
         <SectionHeader>Executive Summary</SectionHeader>
         <Button
-          variant={summary ? "ghost" : "accent"}
+          variant={summary ? 'ghost' : 'accent'}
           size="sm"
           onClick={generate}
           loading={loading}
           disabled={!waveId}
         >
-          {summary ? "Regenerate" : "Generate Executive Summary"}
+          {summary ? 'Regenerate' : 'Generate Executive Summary'}
         </Button>
       </div>
 
       {error && (
-        <div className="bg-nia-red/10 text-nia-red text-sm rounded-lg px-4 py-2">
-          {error}
-        </div>
+        <div className="bg-nia-red/10 text-nia-red text-sm rounded-lg px-4 py-2">{error}</div>
       )}
 
       {loading && !summary && (
@@ -620,7 +667,7 @@ function AISummarySection({
               <ul className="space-y-1.5">
                 {summary[key].map((item, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-nia-green mt-0.5 flex-shrink-0">{"\u2022"}</span>
+                    <span className="text-nia-green mt-0.5 flex-shrink-0">{'\u2022'}</span>
                     <textarea
                       className="flex-1 text-sm text-foreground bg-transparent resize-none border-none focus:outline-none focus:ring-1 focus:ring-nia-grey-blue/30 rounded px-1 -mx-1"
                       value={item}
@@ -652,11 +699,11 @@ function TrendsTab({ surveyId }: { surveyId: string }) {
     async function load() {
       try {
         const res = await fetch(`/api/surveys/${surveyId}/trends`);
-        if (!res.ok) throw new Error("Failed to load trends");
+        if (!res.ok) throw new Error('Failed to load trends');
         const data = await res.json();
         setTrendsData(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load trends");
+        setError(err instanceof Error ? err.message : 'Failed to load trends');
       } finally {
         setLoading(false);
       }
@@ -689,8 +736,10 @@ function TrendsTab({ surveyId }: { surveyId: string }) {
     return (
       <Card padding="lg">
         <div className="text-center py-8">
-          <div className="text-4xl mb-3">{"\uD83D\uDCC8"}</div>
-          <h3 className="text-lg font-semibold text-foreground mb-1">Trends will appear after your second round</h3>
+          <div className="text-4xl mb-3">{'\uD83D\uDCC8'}</div>
+          <h3 className="text-lg font-semibold text-foreground mb-1">
+            Trends will appear after your second round
+          </h3>
           <p className="text-sm text-text-muted">
             Complete at least two survey waves to see how results change over time.
           </p>
@@ -703,16 +752,16 @@ function TrendsTab({ surveyId }: { surveyId: string }) {
 
   // Group questions: rating/yes_no together, nps separate, skip text-only types
   const chartableQuestions = questions.filter(
-    (q) => !["open_text", "multiple_choice", "checkbox"].includes(q.question_type)
+    (q) => !['open_text', 'multiple_choice', 'checkbox'].includes(q.question_type)
   );
-  const npsQuestions = chartableQuestions.filter((q) => q.question_type === "nps");
-  const otherQuestions = chartableQuestions.filter((q) => q.question_type !== "nps");
+  const npsQuestions = chartableQuestions.filter((q) => q.question_type === 'nps');
+  const otherQuestions = chartableQuestions.filter((q) => q.question_type !== 'nps');
 
   function buildChartData(questionId: number, isNps: boolean) {
     return waves.map((w) => {
       const qData = w.questions.find((q) => q.question_id === questionId);
       const dateLabel = w.closed_at
-        ? new Date(w.closed_at).toLocaleDateString("en-US", { month: "short", year: "2-digit" })
+        ? new Date(w.closed_at).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
         : `Round ${w.wave_number}`;
       return {
         label: dateLabel,
@@ -723,9 +772,15 @@ function TrendsTab({ surveyId }: { surveyId: string }) {
     });
   }
 
-  function TrendChart({ question, isNps }: { question: { id: number; question_text: string; question_type: string }; isNps: boolean }) {
+  function TrendChart({
+    question,
+    isNps,
+  }: {
+    question: { id: number; question_text: string; question_type: string };
+    isNps: boolean;
+  }) {
     const data = buildChartData(question.id, isNps);
-    const yDomain = isNps ? ([-100, 100] as const) : ([0, "auto"] as const);
+    const yDomain = isNps ? ([-100, 100] as const) : ([0, 'auto'] as const);
 
     return (
       <Card padding="md" className="space-y-3">
@@ -733,8 +788,8 @@ function TrendsTab({ surveyId }: { surveyId: string }) {
           <h4 className="text-sm font-medium text-foreground leading-snug flex-1">
             {question.question_text}
           </h4>
-          <Badge color={isNps ? "orange" : "green"} size="xs">
-            {question.question_type === "yes_no" ? "Yes/No" : isNps ? "NPS" : "Rating"}
+          <Badge color={isNps ? 'orange' : 'green'} size="xs">
+            {question.question_type === 'yes_no' ? 'Yes/No' : isNps ? 'NPS' : 'Rating'}
           </Badge>
         </div>
         <ResponsiveContainer width="100%" height={220}>
@@ -742,19 +797,22 @@ function TrendsTab({ surveyId }: { surveyId: string }) {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 12, fill: "var(--text-muted)" }}
+              tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
               tickLine={false}
-              axisLine={{ stroke: "var(--grid-line)" }}
+              axisLine={{ stroke: 'var(--grid-line)' }}
             />
             <YAxis
               domain={yDomain}
-              tick={{ fontSize: 12, fill: "var(--text-muted)" }}
+              tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
               tickLine={false}
               axisLine={false}
             />
             <Tooltip
               contentStyle={tooltipStyle}
-              formatter={(value) => [value != null ? Number(value).toFixed(1) : "N/A", isNps ? "NPS Score" : "Average"]}
+              formatter={(value) => [
+                value != null ? Number(value).toFixed(1) : 'N/A',
+                isNps ? 'NPS Score' : 'Average',
+              ]}
               labelFormatter={(label, payload) => {
                 if (payload && payload.length > 0) {
                   const item = payload[0].payload;
@@ -768,7 +826,12 @@ function TrendsTab({ surveyId }: { surveyId: string }) {
               dataKey="value"
               stroke={isNps ? NIA.orange : NIA.dark}
               strokeWidth={2.5}
-              dot={{ fill: isNps ? NIA.orange : NIA.dark, r: 4, strokeWidth: 2, stroke: "var(--card)" }}
+              dot={{
+                fill: isNps ? NIA.orange : NIA.dark,
+                r: 4,
+                strokeWidth: 2,
+                stroke: 'var(--card)',
+              }}
               activeDot={{ r: 6, strokeWidth: 2 }}
               connectNulls
             />
@@ -791,10 +854,21 @@ function TrendsTab({ surveyId }: { surveyId: string }) {
             }))}
             margin={{ top: 5, right: 10, bottom: 5, left: 10 }}
           >
-            <XAxis dataKey="label" tick={{ fontSize: 12, fill: "var(--text-muted)" }} tickLine={false} axisLine={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
+              tickLine={false}
+              axisLine={false}
+            />
             <YAxis hide allowDecimals={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="responses" fill={NIA.greyBlue} radius={[4, 4, 0, 0]} maxBarSize={40} fillOpacity={0.7} />
+            <Bar
+              dataKey="responses"
+              fill={NIA.greyBlue}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={40}
+              fillOpacity={0.7}
+            />
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -831,7 +905,7 @@ export default function SurveyResultsPage() {
 
   /* ── State — all hooks declared before any early returns ─────── */
 
-  const [surveyTitle, setSurveyTitle] = useState("");
+  const [surveyTitle, setSurveyTitle] = useState('');
   const [responseTarget, setResponseTarget] = useState<number | null>(null);
   const [processId, setProcessId] = useState<number | null>(null);
   const [waves, setWaves] = useState<Wave[]>([]);
@@ -839,7 +913,7 @@ export default function SurveyResultsPage() {
   const [questions, setQuestions] = useState<QuestionResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [resultsLoading, setResultsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"results" | "trends">("results");
+  const [activeTab, setActiveTab] = useState<'results' | 'trends'>('results');
   const [aiSummary, setAiSummary] = useState<AISummary | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -858,16 +932,14 @@ export default function SurveyResultsPage() {
     const totalResponses = currentWave?.response_count ?? 0;
 
     // Find NPS question
-    const npsQ = questions.find((q) => q.question_type === "nps");
+    const npsQ = questions.find((q) => q.question_type === 'nps');
     const npsScore = npsQ?.nps_score ?? null;
     const previousNps = npsQ?.previous_avg ?? null;
 
     // Average rating across all rating questions
-    const ratingQs = questions.filter((q) => q.question_type === "rating" && q.response_count > 0);
+    const ratingQs = questions.filter((q) => q.question_type === 'rating' && q.response_count > 0);
     const avgRating =
-      ratingQs.length > 0
-        ? ratingQs.reduce((s, q) => s + q.avg_value, 0) / ratingQs.length
-        : null;
+      ratingQs.length > 0 ? ratingQs.reduce((s, q) => s + q.avg_value, 0) / ratingQs.length : null;
     // Previous average rating
     const prevRatingQs = ratingQs.filter((q) => q.previous_avg !== null);
     const previousAvgRating =
@@ -876,11 +948,12 @@ export default function SurveyResultsPage() {
         : null;
 
     // Completion info
-    const completionText = currentWave?.status === "open"
-      ? "Survey is open"
-      : currentWave?.closed_at
-        ? `Closed ${new Date(currentWave.closed_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
-        : "Closed";
+    const completionText =
+      currentWave?.status === 'open'
+        ? 'Survey is open'
+        : currentWave?.closed_at
+          ? `Closed ${new Date(currentWave.closed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+          : 'Closed';
 
     return { totalResponses, npsScore, previousNps, avgRating, previousAvgRating, completionText };
   }, [questions, currentWave]);
@@ -897,13 +970,13 @@ export default function SurveyResultsPage() {
         fetch(`/api/surveys/${surveyId}/waves`).then((r) => r.json()),
       ]);
 
-      setSurveyTitle(surveyRes.title || "Survey Results");
+      setSurveyTitle(surveyRes.title || 'Survey Results');
       setResponseTarget(surveyRes.response_target || null);
       setProcessId(surveyRes.process_id || null);
       setWaves(wavesRes || []);
 
       // Default to latest non-scheduled wave (scheduled waves have no results)
-      const resultWaves = (wavesRes || []).filter((w: Wave) => w.status !== "scheduled");
+      const resultWaves = (wavesRes || []).filter((w: Wave) => w.status !== 'scheduled');
       if (resultWaves.length > 0) {
         setSelectedWaveId(resultWaves[0].id);
       }
@@ -940,7 +1013,7 @@ export default function SurveyResultsPage() {
 
   // Track trends tab visits
   useEffect(() => {
-    if (activeTab === "trends") {
+    if (activeTab === 'trends') {
       trendsVisitedRef.current = true;
     }
   }, [activeTab]);
@@ -952,16 +1025,16 @@ export default function SurveyResultsPage() {
     setPdfLoading(true);
     try {
       const res = await fetch(`/api/surveys/${surveyId}/pdf`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ waveId: selectedWaveId, summary: aiSummary }),
       });
-      if (!res.ok) throw new Error("PDF generation failed");
+      if (!res.ok) throw new Error('PDF generation failed');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `${surveyTitle.replace(/\s+/g, "-")}-Round-${currentWave?.wave_number || ""}.pdf`;
+      a.download = `${surveyTitle.replace(/\s+/g, '-')}-Round-${currentWave?.wave_number || ''}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -985,11 +1058,21 @@ export default function SurveyResultsPage() {
           {/* Left: back arrow + title */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <Link
-              href={processId ? `/processes/${processId}` : "/surveys"}
+              href={processId ? `/processes/${processId}` : '/surveys'}
               className="text-text-muted hover:text-foreground transition-colors flex-shrink-0"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.75 19.5L8.25 12l7.5-7.5"
+                />
               </svg>
             </Link>
             <h1 className="text-xl font-bold text-foreground font-display truncate">
@@ -1001,17 +1084,19 @@ export default function SurveyResultsPage() {
           <div className="flex items-center gap-2 flex-shrink-0">
             {waves.length > 0 && (
               <Select
-                value={String(selectedWaveId || "")}
+                value={String(selectedWaveId || '')}
                 onChange={(e) => setSelectedWaveId(Number(e.target.value))}
                 size="sm"
                 className="w-40"
               >
-                {waves.filter((w) => w.status !== "scheduled").map((w) => (
-                  <option key={w.id} value={w.id}>
-                    Round {w.wave_number}
-                    {w.status === "open" ? " (open)" : ` (${w.response_count})`}
-                  </option>
-                ))}
+                {waves
+                  .filter((w) => w.status !== 'scheduled')
+                  .map((w) => (
+                    <option key={w.id} value={w.id}>
+                      Round {w.wave_number}
+                      {w.status === 'open' ? ' (open)' : ` (${w.response_count})`}
+                    </option>
+                  ))}
               </Select>
             )}
 
@@ -1022,8 +1107,18 @@ export default function SurveyResultsPage() {
               loading={pdfLoading}
               disabled={!selectedWaveId}
               icon={
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                  />
                 </svg>
               }
             >
@@ -1033,11 +1128,23 @@ export default function SurveyResultsPage() {
             <Button
               variant="secondary"
               size="sm"
-              href={selectedWaveId ? `/api/surveys/${surveyId}/csv?waveId=${selectedWaveId}` : undefined}
+              href={
+                selectedWaveId ? `/api/surveys/${surveyId}/csv?waveId=${selectedWaveId}` : undefined
+              }
               target="_blank"
               icon={
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M12 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M3.375 12H12m0 0v1.5c0 .621.504 1.125 1.125 1.125" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M12 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M3.375 12H12m0 0v1.5c0 .621.504 1.125 1.125 1.125"
+                  />
                 </svg>
               }
             >
@@ -1051,28 +1158,28 @@ export default function SurveyResultsPage() {
       <div className="flex gap-1 bg-surface-subtle rounded-lg p-1 w-fit">
         <button
           className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            activeTab === "results"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-text-muted hover:text-foreground"
+            activeTab === 'results'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-text-muted hover:text-foreground'
           }`}
-          onClick={() => setActiveTab("results")}
+          onClick={() => setActiveTab('results')}
         >
           Results
         </button>
         <button
           className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            activeTab === "trends"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-text-muted hover:text-foreground"
+            activeTab === 'trends'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-text-muted hover:text-foreground'
           }`}
-          onClick={() => setActiveTab("trends")}
+          onClick={() => setActiveTab('trends')}
         >
           Trends
         </button>
       </div>
 
       {/* ── Results Tab ────────────────────────────────────────── */}
-      {activeTab === "results" && (
+      {activeTab === 'results' && (
         <div className="space-y-8">
           {/* Loading overlay for wave change */}
           {resultsLoading ? (
@@ -1109,14 +1216,12 @@ export default function SurveyResultsPage() {
                         <div
                           className={`h-full rounded-full transition-all ${
                             overviewStats.totalResponses >= responseTarget
-                              ? "bg-nia-green"
-                              : "bg-nia-dark-solid"
+                              ? 'bg-nia-green'
+                              : 'bg-nia-dark-solid'
                           }`}
                           style={{
                             width: `${Math.min(
-                              Math.round(
-                                (overviewStats.totalResponses / responseTarget) * 100
-                              ),
+                              Math.round((overviewStats.totalResponses / responseTarget) * 100),
                               100
                             )}%`,
                           }}
@@ -1124,11 +1229,10 @@ export default function SurveyResultsPage() {
                       </div>
                       <div className="text-[10px] text-text-muted mt-0.5">
                         {Math.min(
-                          Math.round(
-                            (overviewStats.totalResponses / responseTarget) * 100
-                          ),
+                          Math.round((overviewStats.totalResponses / responseTarget) * 100),
                           100
-                        )}% of target
+                        )}
+                        % of target
                       </div>
                     </div>
                   )}
@@ -1154,7 +1258,10 @@ export default function SurveyResultsPage() {
                       >
                         {overviewStats.npsScore}
                       </span>
-                      <TrendArrow current={overviewStats.npsScore} previous={overviewStats.previousNps} />
+                      <TrendArrow
+                        current={overviewStats.npsScore}
+                        previous={overviewStats.previousNps}
+                      />
                     </div>
                   </Card>
                 ) : (
@@ -1162,9 +1269,7 @@ export default function SurveyResultsPage() {
                     <div className="text-xs font-medium text-text-muted uppercase tracking-wide mb-1">
                       Questions
                     </div>
-                    <div className="text-3xl font-bold text-foreground">
-                      {questions.length}
-                    </div>
+                    <div className="text-3xl font-bold text-foreground">{questions.length}</div>
                   </Card>
                 )}
 
@@ -1175,9 +1280,7 @@ export default function SurveyResultsPage() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-foreground">
-                      {overviewStats.avgRating !== null
-                        ? overviewStats.avgRating.toFixed(2)
-                        : "--"}
+                      {overviewStats.avgRating !== null ? overviewStats.avgRating.toFixed(2) : '--'}
                     </span>
                     {overviewStats.avgRating !== null && (
                       <TrendArrow
@@ -1198,11 +1301,11 @@ export default function SurveyResultsPage() {
                   </div>
                   {currentWave && (
                     <Badge
-                      color={currentWave.status === "open" ? "green" : "gray"}
+                      color={currentWave.status === 'open' ? 'green' : 'gray'}
                       size="xs"
                       className="mt-1"
                     >
-                      {currentWave.status === "open" ? "Open" : "Closed"}
+                      {currentWave.status === 'open' ? 'Open' : 'Closed'}
                     </Badge>
                   )}
                 </Card>
@@ -1212,7 +1315,7 @@ export default function SurveyResultsPage() {
               {questions.length === 0 ? (
                 <Card padding="lg">
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-3">{"\uD83D\uDCCA"}</div>
+                    <div className="text-4xl mb-3">{'\uD83D\uDCCA'}</div>
                     <h3 className="text-lg font-semibold text-foreground mb-1">No responses yet</h3>
                     <p className="text-sm text-text-muted">
                       Share your survey link to start collecting responses.
@@ -1223,19 +1326,19 @@ export default function SurveyResultsPage() {
                 <div className="space-y-4">
                   {questions.map((q) => {
                     switch (q.question_type) {
-                      case "rating":
+                      case 'rating':
                         return <RatingChart key={q.question_id} q={q} />;
-                      case "nps":
+                      case 'nps':
                         return <NpsChart key={q.question_id} q={q} />;
-                      case "multiple_choice":
+                      case 'multiple_choice':
                         return <MultipleChoiceChart key={q.question_id} q={q} />;
-                      case "checkbox":
+                      case 'checkbox':
                         return <CheckboxChart key={q.question_id} q={q} />;
-                      case "matrix":
+                      case 'matrix':
                         return <MatrixTable key={q.question_id} q={q} />;
-                      case "open_text":
+                      case 'open_text':
                         return <OpenTextList key={q.question_id} q={q} />;
-                      case "yes_no":
+                      case 'yes_no':
                         return <YesNoChart key={q.question_id} q={q} />;
                       default:
                         return null;
@@ -1259,7 +1362,7 @@ export default function SurveyResultsPage() {
       )}
 
       {/* ── Trends Tab ─────────────────────────────────────────── */}
-      {activeTab === "trends" && <TrendsTab surveyId={surveyId} />}
+      {activeTab === 'trends' && <TrendsTab surveyId={surveyId} />}
     </div>
   );
 }

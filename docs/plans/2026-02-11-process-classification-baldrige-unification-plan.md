@@ -19,6 +19,7 @@
 **PRD:** US-001
 
 **Files:**
+
 - Create: `supabase/migrations/20260211_process_type.sql`
 
 **Step 1: Write the migration SQL**
@@ -42,9 +43,11 @@ Save to `supabase/migrations/20260211_process_type.sql`.
 **Step 2: Run in Supabase SQL Editor**
 
 Copy the SQL and run it in the Supabase dashboard SQL Editor. Verify with:
+
 ```sql
 SELECT id, name, is_key, process_type FROM processes LIMIT 10;
 ```
+
 Expected: all rows show `process_type = 'unclassified'`.
 
 **Step 3: Commit**
@@ -61,6 +64,7 @@ git commit -m "feat: add process_type column for key/support classification"
 **PRD:** US-001, US-005
 
 **Files:**
+
 - Modify: `lib/types.ts` (lines 74-83, 100-101)
 - Modify: `lib/fetch-health-data.ts` (lines 24, 69, 91)
 - Modify: `lib/process-health.ts` (lines 51, 133-134)
@@ -72,13 +76,14 @@ Add `ProcessType` type and update `Process` interface:
 
 ```typescript
 // Add near top of file
-export type ProcessType = "key" | "support" | "unclassified";
+export type ProcessType = 'key' | 'support' | 'unclassified';
 ```
 
 In the `Process` interface, add `process_type` field alongside `is_key`:
+
 ```typescript
-  is_key: boolean;           // KEEP for now — removed in Task 14
-  process_type: ProcessType;
+is_key: boolean; // KEEP for now — removed in Task 14
+process_type: ProcessType;
 ```
 
 **Step 2: Update `lib/fetch-health-data.ts`**
@@ -102,6 +107,7 @@ In the `Process` interface, add `process_type` field alongside `is_key`:
 ```bash
 npm run build
 ```
+
 Expected: build passes (may show warnings about unused `is_key` — that's fine for now).
 
 **Step 6: Commit**
@@ -118,42 +124,47 @@ git commit -m "feat: add process_type to types and shared libraries"
 **PRD:** US-001, US-004
 
 **Files:**
+
 - Modify: `app/processes/page.tsx` (lines 66-74, 131, 188-190, 235, 269-379)
 
 **Step 1: Replace `is_key` toggle with `process_type` toggle**
 
 - Remove `toggleKeyProcess()` function (lines 66-74) — replace with:
+
 ```typescript
 async function cycleProcessType(id: number, current: string) {
-  const next = current === "key" ? "support" : current === "support" ? "unclassified" : "key";
-  await supabase.from("processes").update({ process_type: next }).eq("id", id);
-  setProcesses((prev) =>
-    prev.map((p) => (p.id === id ? { ...p, process_type: next } : p))
-  );
+  const next = current === 'key' ? 'support' : current === 'support' ? 'unclassified' : 'key';
+  await supabase.from('processes').update({ process_type: next }).eq('id', id);
+  setProcesses((prev) => prev.map((p) => (p.id === id ? { ...p, process_type: next } : p)));
 }
 ```
 
 - Update filter: replace `showKeyOnly` boolean with `typeFilter` state:
+
 ```typescript
-const [typeFilter, setTypeFilter] = useState<"all" | "key" | "support" | "unclassified">("all");
+const [typeFilter, setTypeFilter] = useState<'all' | 'key' | 'support' | 'unclassified'>('all');
 ```
 
 - Update filter logic (line 131): replace `if (showKeyOnly && !p.is_key) return false` with:
+
 ```typescript
-if (typeFilter !== "all" && p.process_type !== typeFilter) return false;
+if (typeFilter !== 'all' && p.process_type !== typeFilter) return false;
 ```
 
 **Step 2: Update filter UI**
 
 Replace the single "Key Only" toggle button (line 235) with a segmented filter:
+
 ```
 All | Key | Support | Unclassified
 ```
+
 Each button sets `typeFilter`. Use the same styling pattern as the tier filter on the Criteria Map page.
 
 **Step 3: Update display**
 
 Replace star toggle buttons (lines 269-379) with type labels:
+
 - `key` → orange star `★` + "Key" text
 - `support` → gray text "Support"
 - `unclassified` → muted italic "Unclassified" with subtle border
@@ -188,21 +199,25 @@ git commit -m "feat: process list uses process_type filter and labels"
 **PRD:** US-003
 
 **Files:**
+
 - Modify: `app/processes/[id]/edit/page.tsx` (lines 55, 89, 143, 218-235)
 
 **Step 1: Replace star toggle with segmented control**
 
 - Replace `isKey` state (line 55) with:
+
 ```typescript
-const [processType, setProcessType] = useState<"key" | "support" | "unclassified">("unclassified");
+const [processType, setProcessType] = useState<'key' | 'support' | 'unclassified'>('unclassified');
 ```
 
 - Load from database (line 89): replace `setIsKey(p.is_key || false)` with:
+
 ```typescript
-setProcessType(p.process_type || "unclassified");
+setProcessType(p.process_type || 'unclassified');
 ```
 
 - Save to database (line 143): replace `is_key: isKey` with:
+
 ```typescript
 process_type: processType,
 ```
@@ -210,6 +225,7 @@ process_type: processType,
 **Step 2: Build the segmented control UI**
 
 Replace the toggle switch (lines 218-235) with:
+
 ```
 Process Type
 [  Key  ] [  Support  ]
@@ -238,6 +254,7 @@ git commit -m "feat: process edit page Key/Support segmented control"
 **PRD:** US-001
 
 **Files:**
+
 - Modify: `app/processes/new/page.tsx` (lines 25, 54, 126-135)
 - Modify: `app/processes/new/ai/page.tsx` (lines 19, 373)
 
@@ -255,6 +272,7 @@ git commit -m "feat: process edit page Key/Support segmented control"
 **Step 3: Update AI create process API**
 
 File: `app/api/ai/create-process/route.ts`
+
 - Line 57: change `"is_key": false` to `"process_type": "unclassified"` in JSON template
 - Line 85: update AI prompt instruction to reference `process_type`
 - Line 153: change `is_key: processData.is_key || false` to `process_type: processData.process_type || "unclassified"`
@@ -279,6 +297,7 @@ git commit -m "feat: new process pages use process_type"
 **PRD:** US-001
 
 **Files (8 pages with same pattern: query, filter, display):**
+
 - Modify: `app/page.tsx` (dashboard — lines 246, 393, 772-775)
 - Modify: `app/readiness/page.tsx` (lines 74-77, 196-220, 555-558)
 - Modify: `app/adli-insights/page.tsx` (lines 26, 65, 200, 244-246, 308-310)
@@ -303,10 +322,12 @@ git commit -m "feat: new process pages use process_type"
 8. **Weighting (readiness, cron):** Replace `proc.is_key ? 2 : 1` with `proc.process_type === "key" ? 2 : 1`
 
 **Special cases:**
+
 - `app/readiness/page.tsx` line 220: `filteredProcesses.filter((p) => p.is_key)` → `filteredProcesses.filter((p) => p.process_type === "key")`
 - `app/data-health/page.tsx` line 117: `if (proc.is_key) keyMetrics.add(...)` → `if (proc.process_type === "key") keyMetrics.add(...)`
 
 **Also update API route:**
+
 - Modify: `app/api/cron/weekly-digest/route.ts` (lines 55-58): same weighting pattern
 - Modify: `app/api/ai/chat/route.ts` (line 25): `if (process.is_key)` → `if (process.process_type === "key")`
 - Modify: `app/api/ai/scores/route.ts` (line 29): add `process_type` to select
@@ -337,6 +358,7 @@ git commit -m "feat: all pages use process_type instead of is_key"
 **PRD:** US-002
 
 **Files:**
+
 - Create: `app/api/processes/classify/route.ts`
 - Modify: `app/processes/page.tsx` (add review UI)
 
@@ -354,6 +376,7 @@ git commit -m "feat: all pages use process_type instead of is_key"
 ```
 
 Key details:
+
 - Rate limit check via `checkRateLimit()`
 - Admin-only (same pattern as `/api/criteria/ai-scan`)
 - `maxDuration = 120` for large process lists
@@ -365,6 +388,7 @@ Key details:
 Add a "Review Classifications" button in the page header (admin-only via `useRole()`).
 
 When clicked:
+
 1. Shows loading spinner: "AI is analyzing your processes..."
 2. Calls `POST /api/processes/classify`
 3. Displays review table overlay/section:
@@ -419,6 +443,7 @@ vercel --prod
 **PRD:** US-005
 
 **Files:**
+
 - Modify: `lib/process-health.ts` (lines 51, 133-134)
 - Modify: `lib/fetch-health-data.ts` (add mapping count fetch)
 
@@ -428,8 +453,7 @@ In `lib/fetch-health-data.ts`, add a parallel query to fetch mapping counts per 
 
 ```typescript
 // Add to the Promise.all block:
-supabase.from("process_question_mappings")
-  .select("process_id")
+supabase.from('process_question_mappings').select('process_id');
 ```
 
 Then compute a `Map<number, number>` of process_id → mapping count. Pass it into the health score calculation.
@@ -437,13 +461,15 @@ Then compute a `Map<number, number>` of process_id → mapping count. Pass it in
 **Step 2: Update health score interface**
 
 In `lib/process-health.ts`, add to `HealthProcessInput`:
+
 ```typescript
-baldrige_mapping_count: number;  // from process_question_mappings
+baldrige_mapping_count: number; // from process_question_mappings
 ```
 
 **Step 3: Update scoring logic**
 
 Replace lines 133-134:
+
 ```typescript
 // OLD: const baldrigePts = hasContent(process.baldrige_connections) ? 2 : 0;
 // NEW:
@@ -455,6 +481,7 @@ Keep the label: `{ label: "Baldrige Connections", earned: baldrigePts, possible:
 **Step 4: Update caller in fetch-health-data.ts**
 
 Pass the mapping count when calling `calculateHealthScore()`:
+
 ```typescript
 baldrige_mapping_count: mappingCountMap.get(proc.id) || 0,
 ```
@@ -479,6 +506,7 @@ git commit -m "feat: health score uses process_question_mappings instead of lega
 **PRD:** US-006
 
 **Files:**
+
 - Modify: `app/processes/[id]/page.tsx` (Overview tab, right column)
 
 **Step 1: Fetch full mapping data**
@@ -487,9 +515,12 @@ Replace the existing `ebMappings` fetch (which only gets count) with a richer qu
 
 ```typescript
 // Fetch all mappings for this process, joined to questions and items
-supabase.from("process_question_mappings")
-  .select("id, coverage, mapped_by, baldrige_questions!inner(id, question_code, area_label, question_text, tier, baldrige_items!inner(id, item_code, item_name, category_name, category_number))")
-  .eq("process_id", id)
+supabase
+  .from('process_question_mappings')
+  .select(
+    'id, coverage, mapped_by, baldrige_questions!inner(id, question_code, area_label, question_text, tier, baldrige_items!inner(id, item_code, item_name, category_name, category_number))'
+  )
+  .eq('process_id', id);
 ```
 
 **Step 2: Group mappings by Baldrige item**
@@ -542,6 +573,7 @@ git commit -m "feat: Baldrige Connections card on process detail Overview tab"
 **PRD:** US-007
 
 **Files:**
+
 - Create: `app/api/criteria/suggest-for-process/route.ts`
 - Modify: `app/processes/[id]/page.tsx` (wire button to API)
 
@@ -560,6 +592,7 @@ git commit -m "feat: Baldrige Connections card on process detail Overview tab"
 ```
 
 Key details:
+
 - Rate limit + admin check
 - `maxDuration = 120`
 - Process questions in batches of 10 (send question text, get matches)
@@ -568,6 +601,7 @@ Key details:
 **Step 2: Wire "Find Baldrige Connections" button**
 
 On the process detail page Baldrige Connections card:
+
 - Button shows spinner while loading
 - On success, render suggestion cards below the existing connections:
   ```
@@ -600,11 +634,13 @@ git commit -m "feat: Find Baldrige Connections with AI from process page"
 **PRD:** US-008
 
 **Files:**
+
 - Modify: `app/criteria/page.tsx` (remove manual mapping UI)
 
 **Step 1: Remove manual mapping controls**
 
 In the expanded question detail area (lines 630-740), remove:
+
 - Any manual "add process" dropdown or form
 - Keep: "Suggest Mappings" per-question button (AI-generated)
 - Keep: "AI Scan All" bulk button
@@ -631,6 +667,7 @@ git commit -m "refactor: confirm Criteria Map is AI-only mapping"
 **PRD:** US-009
 
 **Files:**
+
 - Modify: `app/processes/[id]/edit/page.tsx` (lines 460-480)
 
 **Step 1: Fetch mappings for this process**
@@ -640,6 +677,7 @@ Add a Supabase query in the edit page's data fetch to get `process_question_mapp
 **Step 2: Replace info box with read-only connections view**
 
 Replace the current "Managed automatically via AI mapping" info box (lines 460-480) with:
+
 - Grouped-by-item connections list (same visual style as detail page card, but simpler)
 - Coverage badges on each item
 - "Manage on Criteria Map →" link
@@ -670,6 +708,7 @@ git commit -m "feat: edit page shows read-only Baldrige connections, stops writi
 **PRD:** US-010
 
 **Files:**
+
 - Modify: `lib/types.ts` — remove `BaldigeConnections` interface and `baldrige_connections` field from `Process`
 - Modify: `lib/fetch-health-data.ts` — remove from interface, query, and mapping
 - Modify: `lib/process-health.ts` — remove from `HealthProcessInput` (already replaced in Task 9)
@@ -680,6 +719,7 @@ git commit -m "feat: edit page shows read-only Baldrige connections, stops writi
 - Keep: `app/api/criteria/convert-legacy/route.ts` — leave as-is (one-time migration tool, harmless)
 
 **Also remove `is_key` references (now fully replaced by `process_type`):**
+
 - Modify: `lib/types.ts` — remove `is_key: boolean` from `Process` interface
 - Modify: `lib/fetch-health-data.ts` — remove `is_key` from interface, query, mapping
 - Modify: `lib/parse-obsidian-process.ts` — remove `is_key` from interface and returned object
@@ -725,6 +765,7 @@ In the browser, call `/api/criteria/convert-legacy` (POST) to migrate any remain
 **Step 3: Browser verification checklist**
 
 Process Classification:
+
 - [ ] Process list shows All/Key/Support/Unclassified filter
 - [ ] "Review Classifications" button works (AI suggests, user confirms)
 - [ ] Process edit page has Key/Support segmented control
@@ -734,6 +775,7 @@ Process Classification:
 - [ ] All other pages (ADLI Insights, Data Health, Categories, Schedule, LeTCI, Requirements) show correct labels
 
 Baldrige Connections:
+
 - [ ] Process detail Overview tab shows Baldrige Connections card
 - [ ] Connections grouped by item with expand/collapse
 - [ ] "Find Baldrige Connections" button triggers AI scan
@@ -768,6 +810,7 @@ Task 15: Final deploy + E2E verification            ← Depends on Task 14
 ```
 
 **Parallelizable groups:**
+
 - Tasks 3, 4, 5, 6 can run in parallel (all depend on Task 2 only)
 - Tasks 9, 10, 12 can run in parallel with each other
 - Task 14 must be LAST before final deploy

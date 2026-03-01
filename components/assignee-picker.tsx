@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from 'react';
 
 interface WorkspaceMember {
   gid: string;
@@ -25,7 +25,7 @@ export default function AssigneePicker({
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const hasFetched = useRef(false);
@@ -37,9 +37,9 @@ export default function AssigneePicker({
     setLoading(true);
     setError(null);
 
-    fetch("/api/asana/workspace-members")
+    fetch('/api/asana/workspace-members')
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to load members");
+        if (!res.ok) throw new Error('Failed to load members');
         return res.json();
       })
       .then((data) => setMembers(data.members || []))
@@ -52,7 +52,7 @@ export default function AssigneePicker({
     if (isOpen) {
       setTimeout(() => searchRef.current?.focus(), 50);
     } else {
-      setSearch("");
+      setSearch('');
     }
   }, [isOpen]);
 
@@ -64,27 +64,26 @@ export default function AssigneePicker({
         setIsOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, [isOpen]);
 
   // Close on Escape
   useEffect(() => {
     if (!isOpen) return;
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.stopPropagation(); // Don't close the detail panel
         setIsOpen(false);
       }
     }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen]);
 
   const searchLower = search.toLowerCase();
-  const filtered = members.filter((m) =>
-    m.name.toLowerCase().includes(searchLower) ||
-    m.email.toLowerCase().includes(searchLower)
+  const filtered = members.filter(
+    (m) => m.name.toLowerCase().includes(searchLower) || m.email.toLowerCase().includes(searchLower)
   );
 
   return (
@@ -100,9 +99,19 @@ export default function AssigneePicker({
           <span className="text-text-muted animate-pulse">Saving...</span>
         ) : (
           <>
-            {currentAssigneeName || "Unassigned"}
-            <svg className="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            {currentAssigneeName || 'Unassigned'}
+            <svg
+              className="w-3 h-3 text-text-muted"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </>
         )}
@@ -147,7 +156,7 @@ export default function AssigneePicker({
                     setIsOpen(false);
                   }}
                   className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-hover transition-colors ${
-                    !currentAssigneeGid ? "text-nia-grey-blue font-medium" : "text-text-muted"
+                    !currentAssigneeGid ? 'text-nia-grey-blue font-medium' : 'text-text-muted'
                   }`}
                 >
                   Unassigned
@@ -162,12 +171,16 @@ export default function AssigneePicker({
                       setIsOpen(false);
                     }}
                     className={`w-full text-left px-3 py-2 hover:bg-surface-hover transition-colors ${
-                      member.gid === currentAssigneeGid ? "bg-surface-hover" : ""
+                      member.gid === currentAssigneeGid ? 'bg-surface-hover' : ''
                     }`}
                   >
-                    <span className={`text-sm ${
-                      member.gid === currentAssigneeGid ? "text-nia-grey-blue font-medium" : "text-foreground"
-                    }`}>
+                    <span
+                      className={`text-sm ${
+                        member.gid === currentAssigneeGid
+                          ? 'text-nia-grey-blue font-medium'
+                          : 'text-foreground'
+                      }`}
+                    >
                       {member.name}
                     </span>
                     <span className="text-[10px] text-text-muted ml-2">{member.email}</span>

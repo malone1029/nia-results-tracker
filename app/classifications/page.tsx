@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
-import { fetchHealthData, type ProcessWithCategory } from "@/lib/fetch-health-data";
-import { useRole } from "@/lib/use-role";
-import { ListPageSkeleton } from "@/components/skeleton";
-import Link from "next/link";
-import { Card, Button, Badge } from "@/components/ui";
-import SectionIntro from "@/components/section-intro";
+import { useEffect, useState, useMemo } from 'react';
+import { supabase } from '@/lib/supabase';
+import { fetchHealthData, type ProcessWithCategory } from '@/lib/fetch-health-data';
+import { useRole } from '@/lib/use-role';
+import { ListPageSkeleton } from '@/components/skeleton';
+import Link from 'next/link';
+import { Card, Button, Badge } from '@/components/ui';
+import SectionIntro from '@/components/section-intro';
 
-type ProcessType = "key" | "support" | "unclassified";
+type ProcessType = 'key' | 'support' | 'unclassified';
 
 export default function ClassificationsPage() {
   const [processes, setProcesses] = useState<ProcessWithCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<"all" | ProcessType>("all");
-  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<'all' | ProcessType>('all');
+  const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState<number | null>(null);
   const { isAdmin } = useRole();
 
@@ -24,7 +24,7 @@ export default function ClassificationsPage() {
   const [classifyMsg, setClassifyMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Classifications | NIA Excellence Hub";
+    document.title = 'Classifications | NIA Excellence Hub';
     async function load() {
       const { processes: procs } = await fetchHealthData();
       setProcesses(procs);
@@ -35,21 +35,17 @@ export default function ClassificationsPage() {
 
   async function toggleType(id: number, currentType: string) {
     const next: ProcessType =
-      currentType === "key" ? "support" : currentType === "support" ? "unclassified" : "key";
+      currentType === 'key' ? 'support' : currentType === 'support' ? 'unclassified' : 'key';
     setSavingId(id);
-    await supabase.from("processes").update({ process_type: next }).eq("id", id);
-    setProcesses((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, process_type: next } : p))
-    );
+    await supabase.from('processes').update({ process_type: next }).eq('id', id);
+    setProcesses((prev) => prev.map((p) => (p.id === id ? { ...p, process_type: next } : p)));
     setSavingId(null);
   }
 
   async function setType(id: number, newType: ProcessType) {
     setSavingId(id);
-    await supabase.from("processes").update({ process_type: newType }).eq("id", id);
-    setProcesses((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, process_type: newType } : p))
-    );
+    await supabase.from('processes').update({ process_type: newType }).eq('id', id);
+    setProcesses((prev) => prev.map((p) => (p.id === id ? { ...p, process_type: newType } : p)));
     setSavingId(null);
   }
 
@@ -57,10 +53,10 @@ export default function ClassificationsPage() {
     setClassifyLoading(true);
     setClassifyMsg(null);
     try {
-      const res = await fetch("/api/processes/classify", { method: "POST" });
+      const res = await fetch('/api/processes/classify', { method: 'POST' });
       if (!res.ok) {
         const data = await res.json();
-        setClassifyMsg(data.error || "Classification failed");
+        setClassifyMsg(data.error || 'Classification failed');
         setClassifyLoading(false);
         return;
       }
@@ -68,19 +64,17 @@ export default function ClassificationsPage() {
       // Apply suggestions and save rationale
       for (const s of data.suggestions) {
         await supabase
-          .from("processes")
+          .from('processes')
           .update({
             process_type: s.suggestion,
             classification_rationale: s.rationale,
           })
-          .eq("id", s.process_id);
+          .eq('id', s.process_id);
       }
       // Update local state
       setProcesses((prev) =>
         prev.map((p) => {
-          const match = data.suggestions.find(
-            (s: { process_id: number }) => s.process_id === p.id
-          );
+          const match = data.suggestions.find((s: { process_id: number }) => s.process_id === p.id);
           return match
             ? {
                 ...p,
@@ -91,17 +85,15 @@ export default function ClassificationsPage() {
         })
       );
       const keyCount = data.suggestions.filter(
-        (s: { suggestion: string }) => s.suggestion === "key"
+        (s: { suggestion: string }) => s.suggestion === 'key'
       ).length;
       const supportCount = data.suggestions.filter(
-        (s: { suggestion: string }) => s.suggestion === "support"
+        (s: { suggestion: string }) => s.suggestion === 'support'
       ).length;
-      setClassifyMsg(
-        `AI classified ${keyCount} Key and ${supportCount} Support processes`
-      );
+      setClassifyMsg(`AI classified ${keyCount} Key and ${supportCount} Support processes`);
       setTimeout(() => setClassifyMsg(null), 6000);
     } catch {
-      setClassifyMsg("Network error — please try again");
+      setClassifyMsg('Network error — please try again');
     }
     setClassifyLoading(false);
   }
@@ -110,7 +102,7 @@ export default function ClassificationsPage() {
   const filtered = useMemo(() => {
     return processes
       .filter((p) => {
-        if (filterType !== "all" && p.process_type !== filterType) return false;
+        if (filterType !== 'all' && p.process_type !== filterType) return false;
         if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
         return true;
       })
@@ -130,10 +122,10 @@ export default function ClassificationsPage() {
   if (loading) return <ListPageSkeleton showStats statCount={3} />;
 
   // Stats
-  const keyCount = processes.filter((p) => p.process_type === "key").length;
-  const supportCount = processes.filter((p) => p.process_type === "support").length;
+  const keyCount = processes.filter((p) => p.process_type === 'key').length;
+  const supportCount = processes.filter((p) => p.process_type === 'support').length;
   const unclassifiedCount = processes.filter(
-    (p) => p.process_type === "unclassified" || !p.process_type
+    (p) => p.process_type === 'unclassified' || !p.process_type
   ).length;
   const withRationale = processes.filter((p) => p.classification_rationale).length;
 
@@ -144,7 +136,8 @@ export default function ClassificationsPage() {
         <div>
           <h1 className="text-3xl font-bold text-nia-dark">Classifications</h1>
           <p className="text-text-tertiary mt-1">
-            {isAdmin ? "Manage" : "View"} Key vs Support process classifications for Baldrige alignment
+            {isAdmin ? 'Manage' : 'View'} Key vs Support process classifications for Baldrige
+            alignment
           </p>
         </div>
         {isAdmin && (
@@ -154,21 +147,22 @@ export default function ClassificationsPage() {
             onClick={runClassification}
             disabled={classifyLoading}
           >
-            {classifyLoading ? "Analyzing..." : "Run AI Classification"}
+            {classifyLoading ? 'Analyzing...' : 'Run AI Classification'}
           </Button>
         )}
       </div>
 
       {/* Stats */}
       <SectionIntro storageKey="intro-classifications">
-        Key processes directly serve your mission. Support processes enable them. This classification affects readiness scoring — Key processes count 2x.
+        Key processes directly serve your mission. Support processes enable them. This
+        classification affects readiness scoring — Key processes count 2x.
       </SectionIntro>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button onClick={() => setFilterType(filterType === "key" ? "all" : "key")}>
+        <button onClick={() => setFilterType(filterType === 'key' ? 'all' : 'key')}>
           <Card
             variant="interactive"
-            accent={filterType === "key" ? "orange" : "dark"}
+            accent={filterType === 'key' ? 'orange' : 'dark'}
             padding="sm"
             className="text-center"
           >
@@ -178,10 +172,10 @@ export default function ClassificationsPage() {
             <div className="text-xs text-text-muted">Key Processes</div>
           </Card>
         </button>
-        <button onClick={() => setFilterType(filterType === "support" ? "all" : "support")}>
+        <button onClick={() => setFilterType(filterType === 'support' ? 'all' : 'support')}>
           <Card
             variant="interactive"
-            accent={filterType === "support" ? "orange" : "dark"}
+            accent={filterType === 'support' ? 'orange' : 'dark'}
             padding="sm"
             className="text-center"
           >
@@ -192,19 +186,17 @@ export default function ClassificationsPage() {
           </Card>
         </button>
         <button
-          onClick={() =>
-            setFilterType(filterType === "unclassified" ? "all" : "unclassified")
-          }
+          onClick={() => setFilterType(filterType === 'unclassified' ? 'all' : 'unclassified')}
         >
           <Card
             variant="interactive"
-            accent={unclassifiedCount > 0 ? "red" : "dark"}
+            accent={unclassifiedCount > 0 ? 'red' : 'dark'}
             padding="sm"
             className="text-center"
           >
             <div
               className={`text-2xl font-bold font-display number-pop ${
-                unclassifiedCount > 0 ? "text-nia-red" : "text-nia-dark"
+                unclassifiedCount > 0 ? 'text-nia-red' : 'text-nia-dark'
               }`}
             >
               {unclassifiedCount}
@@ -236,11 +228,11 @@ export default function ClassificationsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="px-3 py-2 rounded-lg border border-border bg-card text-foreground text-sm w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-nia-grey-blue/30"
         />
-        {(filterType !== "all" || search) && (
+        {(filterType !== 'all' || search) && (
           <button
             onClick={() => {
-              setFilterType("all");
-              setSearch("");
+              setFilterType('all');
+              setSearch('');
             }}
             className="text-sm text-nia-grey-blue hover:text-nia-dark transition-colors"
           >
@@ -248,7 +240,7 @@ export default function ClassificationsPage() {
           </button>
         )}
         <span className="text-sm text-text-muted ml-auto">
-          {filtered.length} process{filtered.length !== 1 ? "es" : ""}
+          {filtered.length} process{filtered.length !== 1 ? 'es' : ''}
         </span>
       </div>
 
@@ -256,8 +248,7 @@ export default function ClassificationsPage() {
       {[...grouped.entries()].map(([category, procs]) => (
         <div key={category}>
           <h2 className="text-sm font-medium text-text-tertiary uppercase tracking-wider mb-3">
-            {category}{" "}
-            <span className="text-text-muted font-normal">({procs.length})</span>
+            {category} <span className="text-text-muted font-normal">({procs.length})</span>
           </h2>
           <Card>
             <div className="divide-y divide-border-light">
@@ -274,9 +265,7 @@ export default function ClassificationsPage() {
                     >
                       {p.name}
                     </Link>
-                    {p.owner && (
-                      <span className="text-xs text-text-muted ml-2">{p.owner}</span>
-                    )}
+                    {p.owner && <span className="text-xs text-text-muted ml-2">{p.owner}</span>}
                   </div>
 
                   {/* Classification toggle (admin) / read-only badge (member) */}
@@ -284,23 +273,23 @@ export default function ClassificationsPage() {
                     {isAdmin ? (
                       <>
                         <button
-                          onClick={() => setType(p.id, "key")}
+                          onClick={() => setType(p.id, 'key')}
                           disabled={savingId === p.id}
                           className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
-                            p.process_type === "key"
-                              ? "bg-nia-orange text-white shadow-sm"
-                              : "bg-surface-subtle text-text-muted hover:bg-nia-orange/10 hover:text-nia-orange"
+                            p.process_type === 'key'
+                              ? 'bg-nia-orange text-white shadow-sm'
+                              : 'bg-surface-subtle text-text-muted hover:bg-nia-orange/10 hover:text-nia-orange'
                           }`}
                         >
-                          {"\u2605"} Key
+                          {'\u2605'} Key
                         </button>
                         <button
-                          onClick={() => setType(p.id, "support")}
+                          onClick={() => setType(p.id, 'support')}
                           disabled={savingId === p.id}
                           className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
-                            p.process_type === "support"
-                              ? "bg-nia-grey-blue text-white shadow-sm"
-                              : "bg-surface-subtle text-text-muted hover:bg-nia-grey-blue/10 hover:text-nia-grey-blue"
+                            p.process_type === 'support'
+                              ? 'bg-nia-grey-blue text-white shadow-sm'
+                              : 'bg-surface-subtle text-text-muted hover:bg-nia-grey-blue/10 hover:text-nia-grey-blue'
                           }`}
                         >
                           Support
@@ -309,14 +298,18 @@ export default function ClassificationsPage() {
                     ) : (
                       <span
                         className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          p.process_type === "key"
-                            ? "bg-nia-orange text-white"
-                            : p.process_type === "support"
-                            ? "bg-nia-grey-blue text-white"
-                            : "bg-surface-subtle text-text-muted border border-border-light"
+                          p.process_type === 'key'
+                            ? 'bg-nia-orange text-white'
+                            : p.process_type === 'support'
+                              ? 'bg-nia-grey-blue text-white'
+                              : 'bg-surface-subtle text-text-muted border border-border-light'
                         }`}
                       >
-                        {p.process_type === "key" ? "\u2605 Key" : p.process_type === "support" ? "Support" : "Unclassified"}
+                        {p.process_type === 'key'
+                          ? '\u2605 Key'
+                          : p.process_type === 'support'
+                            ? 'Support'
+                            : 'Unclassified'}
                       </span>
                     )}
                   </div>
@@ -344,9 +337,8 @@ export default function ClassificationsPage() {
 
       {/* Help text */}
       <div className="text-xs text-text-muted text-center py-4">
-        <strong>Key processes</strong> directly produce value for customers and
-        stakeholders. <strong>Support processes</strong> enable key processes to
-        function.{" "}
+        <strong>Key processes</strong> directly produce value for customers and stakeholders.{' '}
+        <strong>Support processes</strong> enable key processes to function.{' '}
         <Link
           href="/processes"
           className="text-nia-grey-blue hover:text-nia-dark transition-colors"

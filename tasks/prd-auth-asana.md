@@ -19,9 +19,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 ## User Stories
 
 ### US-001: Google OAuth Sign-In via Supabase
+
 **Description:** As a team member, I want to sign in with my Google account so only NIA staff can access the app.
 
 **Acceptance Criteria:**
+
 - [ ] "Sign in with Google" button on a login page (`/login`)
 - [ ] Uses Supabase Auth with Google OAuth provider (built-in, no custom auth code)
 - [ ] After sign-in, Supabase creates a user record with email, name, and avatar from Google
@@ -33,9 +35,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 ---
 
 ### US-002: Auth Middleware and Protected Routes
+
 **Description:** As a developer, I need middleware that checks authentication on every page so unauthenticated users can't access the app.
 
 **Acceptance Criteria:**
+
 - [ ] Create `middleware.ts` at the project root that checks for a valid Supabase Auth session
 - [ ] Unauthenticated requests to any page (except `/login`) are redirected to `/login`
 - [ ] API routes (`/api/*`) return 401 for unauthenticated requests (except any public health-check routes)
@@ -46,9 +50,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 ---
 
 ### US-003: User Profile Display and Sign Out
+
 **Description:** As a signed-in user, I want to see who I'm logged in as and be able to sign out.
 
 **Acceptance Criteria:**
+
 - [ ] User avatar (from Google) and name displayed in the nav bar (top right on desktop, in the mobile menu)
 - [ ] Clicking the avatar shows a dropdown with "Sign Out" option
 - [ ] Sign out clears the Supabase session and redirects to `/login`
@@ -59,9 +65,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 ---
 
 ### US-004: Row-Level Security Policies
+
 **Description:** As a developer, I need to update Supabase RLS policies so the database is protected even if someone bypasses the UI.
 
 **Acceptance Criteria:**
+
 - [ ] Replace all blanket `USING (true)` RLS policies with `USING (auth.uid() IS NOT NULL)` (any authenticated user can read/write)
 - [ ] This is intentionally simple — no per-user ownership filtering yet (entire NIA team shares all data)
 - [ ] Verify that all existing features still work after RLS update (processes, metrics, AI features)
@@ -71,9 +79,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 ---
 
 ### US-005: Connect Asana Account (OAuth)
+
 **Description:** As a team member, I want to connect my Asana account so the app can access my Asana projects on my behalf.
 
 **Acceptance Criteria:**
+
 - [ ] "Connect Asana" button on a new `/settings` page
 - [ ] Clicking it starts the Asana OAuth flow (redirects to Asana's consent screen)
 - [ ] After authorization, Asana sends back an access token and refresh token
@@ -88,9 +98,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 ---
 
 ### US-006: Browse and Select Asana Projects
+
 **Description:** As a user, I want to browse my Asana projects so I can pick which one to import as a process.
 
 **Acceptance Criteria:**
+
 - [ ] New "Import from Asana" tab on the existing `/processes/import` page (alongside "From Obsidian Vault" and "Paste Markdown")
 - [ ] Tab shows a list of the user's Asana projects (name, workspace, last modified date) fetched from the Asana API
 - [ ] Projects grouped by Asana workspace/team if the user belongs to multiple
@@ -105,9 +117,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 ---
 
 ### US-007: Import Asana Project as Process
+
 **Description:** As a user, I want to import an Asana project into the Excellence Hub so I can work on it with the ADLI framework and AI tools.
 
 **Acceptance Criteria:**
+
 - [ ] Clicking "Import" on an Asana project fetches the full project data from the Asana API:
   - Project name and description (`notes` / `html_notes`)
   - All sections (ordered)
@@ -132,9 +146,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 ---
 
 ### US-008: Export Process to Asana (Update Original)
+
 **Description:** As a user, I want to push my improved process back to the Asana project it came from so my team sees the updated documentation in Asana.
 
 **Acceptance Criteria:**
+
 - [ ] "Sync to Asana" button on the process detail page (only visible if the process has an `asana_project_gid`)
 - [ ] Export maps NIA process fields back to Asana:
   - Charter content → Project overview/description (`notes` field via Asana API)
@@ -151,9 +167,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 ---
 
 ### US-009: Export Process to New Asana Project
+
 **Description:** As a user, I want to export a process that was created in the app (not imported from Asana) to a new Asana project so my team can access it there too.
 
 **Acceptance Criteria:**
+
 - [ ] "Export to Asana" button on the process detail page (visible when the process does NOT have an `asana_project_gid`)
 - [ ] User picks which Asana workspace/team to create the project in (dropdown, fetched from Asana API)
 - [ ] Creates a new Asana project with:
@@ -171,9 +189,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 ---
 
 ### US-010: Asana Sync Status Indicator
+
 **Description:** As a user, I want to see which processes are linked to Asana and whether they're in sync so I know if I need to push or pull updates.
 
 **Acceptance Criteria:**
+
 - [ ] On the processes list page, show an Asana icon/badge next to processes that have an `asana_project_gid`
 - [ ] On the process detail page, show a sync status section:
   - "Linked to Asana: [project name]" with a clickable link to the Asana project
@@ -265,11 +285,11 @@ Right now the app is open to anyone with the URL. Adding auth locks it down to `
 
 Build in layers — each ships independently and adds value:
 
-| Layer | Stories | What Ships | Prerequisites |
-|-------|---------|------------|---------------|
-| **1. Auth Foundation** | US-001, US-002 | Google sign-in required, routes protected | Google Cloud OAuth app + Supabase config |
-| **2. User Experience** | US-003, US-004 | Profile in nav, sign out, database locked down | Layer 1 |
-| **3. Asana Connection** | US-005 | Settings page, Asana OAuth flow, token storage | Layer 1 + Asana Developer Console app |
-| **4. Import** | US-006, US-007 | Browse Asana projects, import as process, AI gap-fill prompt | Layer 3 |
-| **5. Export** | US-008, US-009 | Sync back to original Asana project or create new one | Layer 3 |
-| **6. Polish** | US-010 | Sync status indicators, visual cues for unsynced changes | Layers 4 & 5 |
+| Layer                   | Stories        | What Ships                                                   | Prerequisites                            |
+| ----------------------- | -------------- | ------------------------------------------------------------ | ---------------------------------------- |
+| **1. Auth Foundation**  | US-001, US-002 | Google sign-in required, routes protected                    | Google Cloud OAuth app + Supabase config |
+| **2. User Experience**  | US-003, US-004 | Profile in nav, sign out, database locked down               | Layer 1                                  |
+| **3. Asana Connection** | US-005         | Settings page, Asana OAuth flow, token storage               | Layer 1 + Asana Developer Console app    |
+| **4. Import**           | US-006, US-007 | Browse Asana projects, import as process, AI gap-fill prompt | Layer 3                                  |
+| **5. Export**           | US-008, US-009 | Sync back to original Asana project or create new one        | Layer 3                                  |
+| **6. Polish**           | US-010         | Sync status indicators, visual cues for unsynced changes     | Layers 4 & 5                             |

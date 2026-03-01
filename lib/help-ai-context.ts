@@ -12,7 +12,7 @@ export function buildHelpSystemPrompt(currentPageUrl: string, isAdmin: boolean) 
 - If you're not sure about something, say so and suggest submitting feedback
 
 ## The User
-- Role: ${isAdmin ? "Admin (can access all features)" : "Member (standard access)"}
+- Role: ${isAdmin ? 'Admin (can access all features)' : 'Member (standard access)'}
 
 ## App Pages & Features
 
@@ -153,12 +153,12 @@ Be friendly, concise, and specific. Reference page names and button labels. If t
 
   return [
     {
-      type: "text" as const,
+      type: 'text' as const,
       text: staticText,
-      cache_control: { type: "ephemeral" as const },
+      cache_control: { type: 'ephemeral' as const },
     },
     {
-      type: "text" as const,
+      type: 'text' as const,
       text: `\nUser's current page: ${currentPageUrl}`,
     },
   ];

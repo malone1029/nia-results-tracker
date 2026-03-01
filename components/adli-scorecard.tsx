@@ -1,15 +1,23 @@
-"use client";
+'use client';
 
-import AdliRadar from "./adli-radar";
-import { getMaturityLevel } from "@/lib/colors";
-import type { AdliScores } from "@/lib/ai-parsers";
+import AdliRadar from './adli-radar';
+import { getMaturityLevel } from '@/lib/colors';
+import type { AdliScores } from '@/lib/ai-parsers';
 
-export default function AdliScorecard({ scores, onImprove, isLoading }: { scores: AdliScores; onImprove?: (dimension: string) => void; isLoading?: boolean }) {
+export default function AdliScorecard({
+  scores,
+  onImprove,
+  isLoading,
+}: {
+  scores: AdliScores;
+  onImprove?: (dimension: string) => void;
+  isLoading?: boolean;
+}) {
   const dimensions = [
-    { key: "approach" as const, label: "Approach" },
-    { key: "deployment" as const, label: "Deployment" },
-    { key: "learning" as const, label: "Learning" },
-    { key: "integration" as const, label: "Integration" },
+    { key: 'approach' as const, label: 'Approach' },
+    { key: 'deployment' as const, label: 'Deployment' },
+    { key: 'learning' as const, label: 'Learning' },
+    { key: 'integration' as const, label: 'Integration' },
   ];
 
   // Sort by score ascending so user can see weakest first
