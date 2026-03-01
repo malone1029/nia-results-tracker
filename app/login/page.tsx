@@ -61,6 +61,7 @@ function LoginForm() {
           disabled={loading}
           className="w-full"
         >
+          {/* vendor: Google brand colors — do not modify */}
           <svg width="18" height="18" viewBox="0 0 18 18">
             <path
               fill="#4285F4"

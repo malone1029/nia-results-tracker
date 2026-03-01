@@ -58,8 +58,8 @@ function ProcessFlowInner({ flowData, height = 520 }: ProcessFlowCanvasProps) {
   const [nodes, , onNodesChange] = useNodesState(nodesWithTheme);
   const [edges, , onEdgesChange] = useEdgesState(layout.edges);
 
-  const bgColor = isDark ? '#111111' : '#fafafa';
-  const gridColor = isDark ? '#2e2e2e' : '#e5e7eb';
+  const bgColor = isDark ? 'var(--background)' : '#fafafa';
+  const gridColor = isDark ? 'var(--border)' : 'var(--border)';
 
   return (
     <div style={{ height, background: bgColor, borderRadius: 8 }} className="border border-border">
@@ -82,15 +82,15 @@ function ProcessFlowInner({ flowData, height = 520 }: ProcessFlowCanvasProps) {
         <Controls
           showInteractive={false}
           style={{
-            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-            border: `1px solid ${isDark ? '#2e2e2e' : '#e5e7eb'}`,
+            backgroundColor: isDark ? 'var(--card)' : '#ffffff',
+            border: '1px solid var(--border)',
             borderRadius: 8,
           }}
         />
         <MiniMap
           style={{
-            backgroundColor: isDark ? '#1a1a1a' : '#f9fafb',
-            border: `1px solid ${isDark ? '#2e2e2e' : '#e5e7eb'}`,
+            backgroundColor: isDark ? 'var(--card)' : '#f9fafb',
+            border: '1px solid var(--border)',
           }}
           nodeStrokeWidth={2}
         />

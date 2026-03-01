@@ -5,33 +5,21 @@
 // to avoid React Flow's infinite re-render warning.
 
 import { Handle, Position } from '@xyflow/react';
+import { NIA_COLORS } from '@/lib/colors';
 
-// ── Color helpers ─────────────────────────────────────────────────────────────
+// ── Baldrige category colors ──────────────────────────────────────────────────
+// Each of the 6 Baldrige categories gets a distinct color palette.
+// These are NOT NIA brand colors — they're chosen to visually distinguish
+// the categories in the Mission Workflow Diagram.
 
-const CAT_BG: Record<number, string> = {
-  1: '#f0f9ff', // Leadership — sky
-  2: '#f0fdf4', // Strategy — green
-  3: '#fff7ed', // Customers — orange
-  4: '#faf5ff', // Measurement — purple
-  5: '#fefce8', // Workforce — yellow
-  6: '#f8fafc', // Operations — slate
-};
-const CAT_BORDER: Record<number, string> = {
-  1: '#bae6fd',
-  2: '#bbf7d0',
-  3: '#fed7aa',
-  4: '#e9d5ff',
-  5: '#fef08a',
-  6: '#e2e8f0',
-};
-const CAT_LABEL: Record<number, string> = {
-  1: '#0369a1',
-  2: '#15803d',
-  3: '#c2410c',
-  4: '#7c3aed',
-  5: '#a16207',
-  6: '#475569',
-};
+const BALDRIGE_CATEGORY_COLORS = {
+  1: { bg: '#f0f9ff', border: '#bae6fd', label: '#0369a1' }, // Leadership — sky blue
+  2: { bg: '#f0fdf4', border: '#bbf7d0', label: '#15803d' }, // Strategy — green
+  3: { bg: '#fff7ed', border: '#fed7aa', label: '#c2410c' }, // Customers — orange
+  4: { bg: '#faf5ff', border: '#e9d5ff', label: '#7c3aed' }, // Measurement — purple
+  5: { bg: '#fefce8', border: '#fef08a', label: '#a16207' }, // Workforce — yellow
+  6: { bg: '#f8fafc', border: '#e2e8f0', label: '#475569' }, // Operations — slate
+} as const;
 
 // ── CategoryGroupNode ─────────────────────────────────────────────────────────
 // A background container that groups processes in one Baldrige category.
@@ -50,10 +38,11 @@ export function CategoryGroupNode({
   data: CategoryGroupData;
   style?: React.CSSProperties;
 }) {
-  const num = data.number as number;
-  const bg = data.isDark ? '#1a1a1a' : (CAT_BG[num] ?? '#f9fafb');
-  const border = data.isDark ? '#2e2e2e' : (CAT_BORDER[num] ?? '#e5e7eb');
-  const labelColor = data.isDark ? '#e5e7eb' : (CAT_LABEL[num] ?? '#374151');
+  const num = data.number as keyof typeof BALDRIGE_CATEGORY_COLORS;
+  const cat = BALDRIGE_CATEGORY_COLORS[num];
+  const bg = data.isDark ? '#1a1a1a' : (cat?.bg ?? '#f9fafb');
+  const border = data.isDark ? 'var(--border)' : (cat?.border ?? NIA_COLORS.border);
+  const labelColor = data.isDark ? NIA_COLORS.border : (cat?.label ?? '#374151');
 
   return (
     <div
@@ -73,7 +62,7 @@ export function CategoryGroupNode({
           alignItems: 'center',
           paddingLeft: 14,
           borderBottom: `1px solid ${border}`,
-          backgroundColor: data.isDark ? '#222' : 'rgba(255,255,255,0.6)',
+          backgroundColor: data.isDark ? 'var(--surface-subtle)' : 'rgba(255,255,255,0.6)',
         }}
       >
         <span
@@ -142,16 +131,20 @@ interface GapNodeData {
 
 export function GapNode({ data }: { data: GapNodeData }) {
   const priorityDot =
-    data.priority === 'high' ? '#ef4444' : data.priority === 'medium' ? '#f59e0b' : '#9ca3af';
+    data.priority === 'high'
+      ? NIA_COLORS.red
+      : data.priority === 'medium'
+        ? NIA_COLORS.orange
+        : NIA_COLORS.muted;
 
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
-        backgroundColor: data.isDark ? '#1c1400' : '#fff7ed',
-        color: data.isDark ? '#fbbf24' : '#92400e',
-        border: '1.5px dashed #f59e0b',
+        backgroundColor: data.isDark ? '#1c1400' : '#fff7ed', // amber tint — gap warning
+        color: data.isDark ? '#fbbf24' : '#92400e', // amber text — gap warning
+        border: `1.5px dashed ${NIA_COLORS.orange}`,
         borderRadius: 6,
         display: 'flex',
         flexDirection: 'column',

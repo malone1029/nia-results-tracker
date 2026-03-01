@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ADLI_COLORS } from '@/lib/colors';
 
 /**
  * Info modal explaining how AI scores ADLI dimensions.
@@ -88,7 +89,7 @@ export default function AdliScoringInfo() {
                   <div className="flex gap-3">
                     <span
                       className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                      style={{ backgroundColor: '#f79935' }}
+                      style={{ backgroundColor: ADLI_COLORS.approach }}
                     >
                       A
                     </span>
@@ -103,7 +104,7 @@ export default function AdliScoringInfo() {
                   <div className="flex gap-3">
                     <span
                       className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                      style={{ backgroundColor: '#55787c' }}
+                      style={{ backgroundColor: ADLI_COLORS.deployment }}
                     >
                       D
                     </span>
@@ -118,7 +119,7 @@ export default function AdliScoringInfo() {
                   <div className="flex gap-3">
                     <span
                       className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                      style={{ backgroundColor: '#b1bd37' }}
+                      style={{ backgroundColor: ADLI_COLORS.learning }}
                     >
                       L
                     </span>
@@ -133,7 +134,7 @@ export default function AdliScoringInfo() {
                   <div className="flex gap-3">
                     <span
                       className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                      style={{ backgroundColor: '#324a4d' }}
+                      style={{ backgroundColor: ADLI_COLORS.integration }}
                     >
                       I
                     </span>

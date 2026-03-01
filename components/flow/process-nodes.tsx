@@ -5,6 +5,31 @@
 
 import { Handle, Position } from '@xyflow/react';
 
+// ── Flowchart node colors ─────────────────────────────────────────────────────
+// These are standard flowchart semantic colors, NOT NIA brand colors.
+// Green = start, red = end, teal = step, amber = decision, blue = input, purple = output.
+
+const NODE_COLORS = {
+  start: { bg: '#15803d', border: '#166534' },
+  end: { bg: '#b91c1c', border: '#991b1b' },
+  step: {
+    light: { bg: '#e8f4f5', text: '#324a4d', border: '#9ac5c9' },
+    dark: { bg: '#1e3a3f', text: '#b8cdd0', border: '#324a4d' },
+  },
+  decision: {
+    light: { bg: '#fff7ed', border: '#f79935', text: '#92400e' },
+    dark: { bg: '#3a2a00', border: '#f59e0b', text: '#fbbf24' },
+  },
+  input: {
+    light: { bg: '#eff6ff', text: '#1e40af', border: '#93c5fd' },
+    dark: { bg: '#0f172a', text: '#93c5fd', border: '#1e40af' },
+  },
+  output: {
+    light: { bg: '#faf5ff', text: '#6d28d9', border: '#c4b5fd' },
+    dark: { bg: '#1a0f2e', text: '#c4b5fd', border: '#7c3aed' },
+  },
+} as const;
+
 // ── StartEndNode ──────────────────────────────────────────────────────────────
 // Pill-shaped terminal nodes (green for start, red for end).
 
@@ -20,9 +45,9 @@ export function StartNode({ data }: { data: StartEndData }) {
       style={{
         width: '100%',
         height: '100%',
-        backgroundColor: '#15803d',
+        backgroundColor: NODE_COLORS.start.bg,
         color: '#ffffff',
-        border: '2px solid #166534',
+        border: `2px solid ${NODE_COLORS.start.border}`,
         borderRadius: 9999,
         display: 'flex',
         alignItems: 'center',
@@ -45,9 +70,9 @@ export function EndNode({ data }: { data: StartEndData }) {
       style={{
         width: '100%',
         height: '100%',
-        backgroundColor: '#b91c1c',
+        backgroundColor: NODE_COLORS.end.bg,
         color: '#ffffff',
-        border: '2px solid #991b1b',
+        border: `2px solid ${NODE_COLORS.end.border}`,
         borderRadius: 9999,
         display: 'flex',
         alignItems: 'center',
@@ -76,14 +101,15 @@ interface StepData {
 
 export function StepNode({ data }: { data: StepData }) {
   const isDark = data.isDark;
+  const s = isDark ? NODE_COLORS.step.dark : NODE_COLORS.step.light;
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
-        backgroundColor: isDark ? '#1e3a3f' : '#e8f4f5',
-        color: isDark ? '#b8cdd0' : '#324a4d',
-        border: `1.5px solid ${isDark ? '#324a4d' : '#9ac5c9'}`,
+        backgroundColor: s.bg,
+        color: s.text,
+        border: `1.5px solid ${s.border}`,
         borderRadius: 8,
         display: 'flex',
         flexDirection: 'column',
@@ -114,6 +140,7 @@ interface DecisionData {
 
 export function DecisionNode({ data }: { data: DecisionData }) {
   const isDark = data.isDark;
+  const d = isDark ? NODE_COLORS.decision.dark : NODE_COLORS.decision.light;
   return (
     <div
       style={{
@@ -131,8 +158,8 @@ export function DecisionNode({ data }: { data: DecisionData }) {
           position: 'absolute',
           width: '72%',
           height: '72%',
-          backgroundColor: isDark ? '#3a2a00' : '#fff7ed',
-          border: `2px solid ${isDark ? '#f59e0b' : '#f79935'}`,
+          backgroundColor: d.bg,
+          border: `2px solid ${d.border}`,
           transform: 'rotate(45deg)',
           borderRadius: 4,
         }}
@@ -144,7 +171,7 @@ export function DecisionNode({ data }: { data: DecisionData }) {
           zIndex: 1,
           fontSize: 11,
           fontWeight: 600,
-          color: isDark ? '#fbbf24' : '#92400e',
+          color: d.text,
           textAlign: 'center',
           lineHeight: 1.3,
           maxWidth: '80%',
@@ -171,14 +198,15 @@ interface IOData {
 
 export function InputNode({ data }: { data: IOData }) {
   const isDark = data.isDark;
+  const inp = isDark ? NODE_COLORS.input.dark : NODE_COLORS.input.light;
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
-        backgroundColor: isDark ? '#0f172a' : '#eff6ff',
-        color: isDark ? '#93c5fd' : '#1e40af',
-        border: `1.5px solid ${isDark ? '#1e40af' : '#93c5fd'}`,
+        backgroundColor: inp.bg,
+        color: inp.text,
+        border: `1.5px solid ${inp.border}`,
         borderRadius: 6,
         display: 'flex',
         alignItems: 'center',
@@ -207,14 +235,15 @@ export function InputNode({ data }: { data: IOData }) {
 
 export function OutputNode({ data }: { data: IOData }) {
   const isDark = data.isDark;
+  const out = isDark ? NODE_COLORS.output.dark : NODE_COLORS.output.light;
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
-        backgroundColor: isDark ? '#1a0f2e' : '#faf5ff',
-        color: isDark ? '#c4b5fd' : '#6d28d9',
-        border: `1.5px solid ${isDark ? '#7c3aed' : '#c4b5fd'}`,
+        backgroundColor: out.bg,
+        color: out.text,
+        border: `1.5px solid ${out.border}`,
         borderRadius: 6,
         display: 'flex',
         alignItems: 'center',

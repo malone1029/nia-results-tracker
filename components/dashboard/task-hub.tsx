@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, Badge } from '@/components/ui';
 import HelpTip from '@/components/help-tip';
 import type { DashboardTask, DashboardTaskData } from './types';
+import { NIA_COLORS } from '@/lib/colors';
 
 /* ─── Task row ─────────────────────────────────────────────── */
 
@@ -46,8 +47,8 @@ function TaskRow({
         onClick={() => onToggle(task.id, !task.completed)}
         className="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors hover:border-nia-green focus:outline-none focus:ring-2 focus:ring-nia-green/30"
         style={{
-          borderColor: task.completed ? '#b1bd37' : 'var(--border)',
-          backgroundColor: task.completed ? '#b1bd37' : 'transparent',
+          borderColor: task.completed ? NIA_COLORS.green : 'var(--border)',
+          backgroundColor: task.completed ? NIA_COLORS.green : 'transparent',
         }}
         aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
       >
@@ -225,7 +226,7 @@ export default function TaskHub({
           {/* Overdue */}
           {overdue.length > 0 && (
             <>
-              <SectionLabel label="Overdue" count={overdue.length} color="#dc2626" />
+              <SectionLabel label="Overdue" count={overdue.length} color={NIA_COLORS.red} />
               {overdue.map((task) => (
                 <TaskRow key={task.id} task={task} accent="red" onToggle={handleToggle} />
               ))}
@@ -235,7 +236,7 @@ export default function TaskHub({
           {/* Upcoming */}
           {upcoming.length > 0 && (
             <>
-              <SectionLabel label="Coming Up" count={upcoming.length} color="#f79935" />
+              <SectionLabel label="Coming Up" count={upcoming.length} color={NIA_COLORS.orange} />
               {upcoming.map((task) => (
                 <TaskRow key={task.id} task={task} accent="orange" onToggle={handleToggle} />
               ))}
@@ -245,7 +246,11 @@ export default function TaskHub({
           {/* Recently Completed */}
           {completed.length > 0 && (
             <>
-              <SectionLabel label="Recently Completed" count={completed.length} color="#b1bd37" />
+              <SectionLabel
+                label="Recently Completed"
+                count={completed.length}
+                color={NIA_COLORS.green}
+              />
               {completed.map((task) => (
                 <TaskRow key={task.id} task={task} accent="green" muted onToggle={handleToggle} />
               ))}

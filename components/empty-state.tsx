@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui';
+import { NIA_COLORS } from '@/lib/colors';
 
 type Illustration = 'check' | 'document' | 'chart' | 'radar' | 'search';
 
@@ -46,23 +47,31 @@ const illustrations: Record<Illustration, React.ReactNode> = {
   /* Checkmark with celebration rays — "all caught up" */
   check: (
     <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="40" cy="40" r="24" fill="#b1bd37" opacity="0.12" />
-      <circle cx="40" cy="40" r="24" stroke="#b1bd37" strokeWidth="2" fill="none" />
+      <circle cx="40" cy="40" r="24" fill={NIA_COLORS.green} opacity="0.12" />
+      <circle cx="40" cy="40" r="24" stroke={NIA_COLORS.green} strokeWidth="2" fill="none" />
       <path
         d="M28 40l8 8 16-16"
-        stroke="#b1bd37"
+        stroke={NIA_COLORS.green}
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {/* Celebration rays */}
-      <line x1="40" y1="7" x2="40" y2="12" stroke="#f79935" strokeWidth="2" strokeLinecap="round" />
+      <line
+        x1="40"
+        y1="7"
+        x2="40"
+        y2="12"
+        stroke={NIA_COLORS.orange}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
       <line
         x1="61"
         y1="13"
         x2="58"
         y2="17"
-        stroke="#f79935"
+        stroke={NIA_COLORS.orange}
         strokeWidth="2"
         strokeLinecap="round"
       />
@@ -71,7 +80,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         y1="13"
         x2="22"
         y2="17"
-        stroke="#f79935"
+        stroke={NIA_COLORS.orange}
         strokeWidth="2"
         strokeLinecap="round"
       />
@@ -80,7 +89,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         y1="34"
         x2="63"
         y2="36"
-        stroke="#f79935"
+        stroke={NIA_COLORS.orange}
         strokeWidth="2"
         strokeLinecap="round"
       />
@@ -89,13 +98,13 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         y1="34"
         x2="17"
         y2="36"
-        stroke="#f79935"
+        stroke={NIA_COLORS.orange}
         strokeWidth="2"
         strokeLinecap="round"
       />
-      <circle cx="14" cy="22" r="1.5" fill="#b1bd37" opacity="0.5" />
-      <circle cx="66" cy="22" r="1.5" fill="#b1bd37" opacity="0.5" />
-      <circle cx="40" cy="2" r="1" fill="#f79935" opacity="0.6" />
+      <circle cx="14" cy="22" r="1.5" fill={NIA_COLORS.green} opacity="0.5" />
+      <circle cx="66" cy="22" r="1.5" fill={NIA_COLORS.green} opacity="0.5" />
+      <circle cx="40" cy="2" r="1" fill={NIA_COLORS.orange} opacity="0.6" />
     </svg>
   ),
 
@@ -165,14 +174,14 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         strokeDasharray="4 3"
       />
       {/* Plus icon accent */}
-      <circle cx="60" cy="60" r="10" fill="#f79935" opacity="0.12" />
-      <circle cx="60" cy="60" r="10" stroke="#f79935" strokeWidth="1.5" />
+      <circle cx="60" cy="60" r="10" fill={NIA_COLORS.orange} opacity="0.12" />
+      <circle cx="60" cy="60" r="10" stroke={NIA_COLORS.orange} strokeWidth="1.5" />
       <line
         x1="56"
         y1="60"
         x2="64"
         y2="60"
-        stroke="#f79935"
+        stroke={NIA_COLORS.orange}
         strokeWidth="2"
         strokeLinecap="round"
       />
@@ -181,7 +190,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         y1="56"
         x2="60"
         y2="64"
-        stroke="#f79935"
+        stroke={NIA_COLORS.orange}
         strokeWidth="2"
         strokeLinecap="round"
       />
@@ -239,7 +248,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         style={{ fill: 'var(--grid-line)' }}
         opacity="0.5"
       />
-      <rect x="36" y="24" width="8" height="40" rx="2" fill="#b1bd37" opacity="0.18" />
+      <rect x="36" y="24" width="8" height="40" rx="2" fill={NIA_COLORS.green} opacity="0.18" />
       <rect
         x="50"
         y="44"
@@ -267,7 +276,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         width="8"
         height="40"
         rx="2"
-        stroke="#b1bd37"
+        stroke={NIA_COLORS.green}
         strokeWidth="1"
         strokeDasharray="3 2"
         fill="none"
@@ -330,14 +339,14 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         strokeWidth="0.75"
       />
       {/* Axis labels */}
-      <circle cx="40" cy="10" r="2" fill="#55787c" opacity="0.4" />
-      <circle cx="66" cy="25" r="2" fill="#55787c" opacity="0.4" />
-      <circle cx="66" cy="55" r="2" fill="#55787c" opacity="0.4" />
-      <circle cx="40" cy="70" r="2" fill="#55787c" opacity="0.4" />
-      <circle cx="14" cy="55" r="2" fill="#55787c" opacity="0.4" />
-      <circle cx="14" cy="25" r="2" fill="#55787c" opacity="0.4" />
+      <circle cx="40" cy="10" r="2" fill={NIA_COLORS.greyBlue} opacity="0.4" />
+      <circle cx="66" cy="25" r="2" fill={NIA_COLORS.greyBlue} opacity="0.4" />
+      <circle cx="66" cy="55" r="2" fill={NIA_COLORS.greyBlue} opacity="0.4" />
+      <circle cx="40" cy="70" r="2" fill={NIA_COLORS.greyBlue} opacity="0.4" />
+      <circle cx="14" cy="55" r="2" fill={NIA_COLORS.greyBlue} opacity="0.4" />
+      <circle cx="14" cy="25" r="2" fill={NIA_COLORS.greyBlue} opacity="0.4" />
       {/* Center dot */}
-      <circle cx="40" cy="40" r="3" fill="#f79935" opacity="0.4" />
+      <circle cx="40" cy="40" r="3" fill={NIA_COLORS.orange} opacity="0.4" />
     </svg>
   ),
 
@@ -348,7 +357,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         cx="34"
         cy="34"
         r="18"
-        fill="#55787c"
+        fill={NIA_COLORS.greyBlue}
         opacity="0.06"
         style={{ stroke: 'var(--grid-line-strong)' }}
         strokeWidth="1.5"
@@ -358,7 +367,7 @@ const illustrations: Record<Illustration, React.ReactNode> = {
         y1="47"
         x2="64"
         y2="64"
-        stroke="#55787c"
+        stroke={NIA_COLORS.greyBlue}
         strokeWidth="3"
         strokeLinecap="round"
       />

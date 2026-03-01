@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { Card, Button } from '@/components/ui';
 import type { GapItem } from '@/app/api/admin/generate-workflow/route';
 import type { MissionFlowData } from '@/lib/flow-types';
+import { NIA_COLORS } from '@/lib/colors';
 
 // Dynamically import the React Flow canvas so it only loads client-side
 // (avoids SSR issues with React Flow's browser-only APIs)
@@ -30,12 +31,12 @@ interface ChatMessage {
 }
 
 const LEGEND_ITEMS = [
-  { label: 'Integrated (70+%)', color: '#324a4d' },
-  { label: 'Aligned (50–69%)', color: '#b1bd37' },
-  { label: 'Early Systematic (30–49%)', color: '#f79935' },
-  { label: 'Reacting (0–29%)', color: '#dc2626' },
-  { label: 'Unscored', color: '#9ca3af' },
-  { label: 'Gap (missing process)', color: '#fff7ed', border: '#f59e0b' },
+  { label: 'Integrated (70+%)', color: NIA_COLORS.dark },
+  { label: 'Aligned (50-69%)', color: NIA_COLORS.green },
+  { label: 'Early Systematic (30-49%)', color: NIA_COLORS.orange },
+  { label: 'Reacting (0-29%)', color: NIA_COLORS.red },
+  { label: 'Unscored', color: NIA_COLORS.muted },
+  { label: 'Gap (missing process)', color: '#fff7ed', border: NIA_COLORS.orange },
 ];
 
 const PRIORITY_STYLES: Record<string, string> = {
