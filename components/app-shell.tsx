@@ -1,16 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useRole } from '@/lib/use-role';
 import Sidebar from '@/components/sidebar';
 import TopBar from '@/components/top-bar';
-import FeedbackModal from '@/components/feedback-modal';
-import AiHelpPanel from '@/components/ai-help-panel';
 import ProxyBanner from '@/components/proxy-banner';
 import type { SidebarHealthData } from '@/components/sidebar-health-widget';
 import type { User } from '@supabase/supabase-js';
+
+// Dynamically import heavy panels to avoid loading jsdom (via isomorphic-dompurify)
+// during SSR — jsdom has an ESM/CJS incompatibility that crashes Turbopack SSR.
+const FeedbackModal = dynamic(() => import('@/components/feedback-modal'), { ssr: false });
+const AiHelpPanel = dynamic(() => import('@/components/ai-help-panel'), { ssr: false });
 
 // Paths that members (non-admin users) are allowed to access
 const MEMBER_ALLOWED_PATHS = [
