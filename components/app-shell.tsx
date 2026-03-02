@@ -75,7 +75,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Redirect members away from pages they can't access
+  // (skip redirect on public survey pages — anonymous respondents have no role)
   useEffect(() => {
+    if (pathname.startsWith('/survey/respond')) return;
     if (!roleLoading && !isAdmin && !isMemberAllowed(pathname)) {
       router.replace('/processes');
     }
