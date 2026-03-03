@@ -2,14 +2,20 @@ import { createSupabaseServer } from '@/lib/supabase-server';
 import { PDFDocument, PDFFont, StandardFonts, rgb, PDFPage } from 'pdf-lib';
 import { DEFAULT_RATING_LABELS } from '@/lib/survey-types';
 import type { QuestionOptions } from '@/lib/survey-types';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
 
 export const maxDuration = 30;
 
-// NIA brand green (approximate)
-const NIA_GREEN = rgb(0.18, 0.55, 0.34);
-const DARK_TEXT = rgb(0.13, 0.13, 0.13);
-const MUTED_TEXT = rgb(0.4, 0.4, 0.4);
-const LIGHT_BG = rgb(0.96, 0.97, 0.96);
+// NIA Brand Colors (from brand guidelines)
+const NIA_DARK = rgb(0x32 / 255, 0x4a / 255, 0x4d / 255); // #324a4d — headers, primary
+const NIA_GREY_BLUE = rgb(0x55 / 255, 0x78 / 255, 0x7c / 255); // #55787c — secondary
+const NIA_ORANGE = rgb(0xf7 / 255, 0x99 / 255, 0x35 / 255); // #f79935 — accents
+const NIA_GREEN = rgb(0xb1 / 255, 0xbd / 255, 0x37 / 255); // #b1bd37 — success
+
+const DARK_TEXT = rgb(0.15, 0.15, 0.15);
+const MUTED_TEXT = rgb(0.42, 0.42, 0.42);
+const LIGHT_BG = rgb(0.96, 0.97, 0.97);
 const WHITE = rgb(1, 1, 1);
 
 const PAGE_WIDTH = 612; // US Letter
@@ -170,6 +176,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return cursor;
     }
 
+    // --- Embed NIA logo ---
+    let logoImage: Awaited<ReturnType<typeof pdfDoc.embedPng>> | null = null;
+    try {
+      const logoPath = join(process.cwd(), 'public', 'logo.png');
+      const logoBytes = await readFile(logoPath);
+      logoImage = await pdfDoc.embedPng(logoBytes);
+    } catch {
+      // Logo not found — continue without it
+    }
+
     // --- Start first page ---
     let cursor: Cursor = {
       page: addPage(),
@@ -177,23 +193,72 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       pageIndex: 0,
     };
 
-    // --- Title block with green accent bar ---
+    // --- Header banner (NIA Dark with orange accent) ---
+    const titleX = logoImage ? MARGIN + 46 : MARGIN;
+    const titleMaxWidth = PAGE_WIDTH - titleX - MARGIN;
+    const titleClean = sanitize(survey.title);
+
+    // Auto-size title: try sizes from 14 down to 10, pick the largest
+    // that fits in 2 lines. Allow 3 lines at smallest size.
+    let titleFontSize = 14;
+    let titleLines = wrapText(titleClean, titleMaxWidth, fontBold, titleFontSize);
+    for (const trySize of [14, 13, 12, 11, 10]) {
+      titleLines = wrapText(titleClean, titleMaxWidth, fontBold, trySize);
+      titleFontSize = trySize;
+      if (titleLines.length <= 2) break;
+    }
+
+    const titleLineHeight = titleFontSize + 4;
+    const titleTextHeight = titleLines.length * titleLineHeight;
+    const headerPadding = 14;
+    const headerHeight = Math.max(56, titleTextHeight + headerPadding * 2);
+
     cursor.page.drawRectangle({
-      x: MARGIN,
-      y: cursor.y - 4,
-      width: 4,
-      height: 28,
-      color: NIA_GREEN,
+      x: 0,
+      y: PAGE_HEIGHT - headerHeight,
+      width: PAGE_WIDTH,
+      height: headerHeight,
+      color: NIA_DARK,
+    });
+    // Orange accent line at bottom of header
+    cursor.page.drawRectangle({
+      x: 0,
+      y: PAGE_HEIGHT - headerHeight - 3,
+      width: PAGE_WIDTH,
+      height: 3,
+      color: NIA_ORANGE,
     });
 
-    cursor.page.drawText(sanitize(survey.title), {
-      x: MARGIN + 14,
-      y: cursor.y,
-      size: 18,
-      font: fontBold,
-      color: DARK_TEXT,
-    });
-    cursor.y -= 32;
+    // Logo in header (vertically centered)
+    if (logoImage) {
+      const logoSize = Math.min(36, headerHeight - 16);
+      cursor.page.drawImage(logoImage, {
+        x: MARGIN,
+        y: PAGE_HEIGHT - headerHeight + (headerHeight - logoSize) / 2,
+        width: logoSize,
+        height: logoSize,
+      });
+    }
+
+    // Title text (vertically centered in header)
+    const titleStartY =
+      PAGE_HEIGHT -
+      headerHeight +
+      (headerHeight - titleTextHeight) / 2 +
+      titleTextHeight -
+      titleFontSize;
+
+    for (let i = 0; i < titleLines.length; i++) {
+      cursor.page.drawText(titleLines[i], {
+        x: titleX,
+        y: titleStartY - i * titleLineHeight,
+        size: titleFontSize,
+        font: fontBold,
+        color: WHITE,
+      });
+    }
+
+    cursor.y = PAGE_HEIGHT - headerHeight - 20;
 
     // Description
     if (survey.description) {
@@ -201,27 +266,37 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       cursor.y -= 6;
     }
 
-    // Welcome message
+    // Welcome message (with NIA Grey-Blue left border)
     if (survey.welcome_message) {
-      cursor = ensureSpace(cursor, 40);
+      const wmLines = wrapText(survey.welcome_message, CONTENT_WIDTH - 24, fontItalic, 9);
+      const wmHeight = Math.max(wmLines.length * 13 + 12, 34);
+      cursor = ensureSpace(cursor, wmHeight);
+
       cursor.page.drawRectangle({
         x: MARGIN,
-        y: cursor.y - 24,
+        y: cursor.y - wmHeight + 14,
         width: CONTENT_WIDTH,
-        height: 34,
+        height: wmHeight,
         color: LIGHT_BG,
-        borderColor: NIA_GREEN,
-        borderWidth: 0.5,
       });
-      const wmLines = wrapText(survey.welcome_message, CONTENT_WIDTH - 20, fontItalic, 9);
-      cursor.page.drawText(wmLines[0], {
-        x: MARGIN + 10,
-        y: cursor.y - 2,
-        size: 9,
-        font: fontItalic,
-        color: MUTED_TEXT,
+      // Left accent bar
+      cursor.page.drawRectangle({
+        x: MARGIN,
+        y: cursor.y - wmHeight + 14,
+        width: 3,
+        height: wmHeight,
+        color: NIA_GREY_BLUE,
       });
-      cursor.y -= 40;
+      for (let i = 0; i < wmLines.length; i++) {
+        cursor.page.drawText(wmLines[i], {
+          x: MARGIN + 12,
+          y: cursor.y - i * 13,
+          size: 9,
+          font: fontItalic,
+          color: MUTED_TEXT,
+        });
+      }
+      cursor.y -= wmHeight + 4;
     }
 
     // Instructions
@@ -240,7 +315,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       start: { x: MARGIN, y: cursor.y },
       end: { x: PAGE_WIDTH - MARGIN, y: cursor.y },
       thickness: 0.5,
-      color: rgb(0.85, 0.85, 0.85),
+      color: NIA_GREY_BLUE,
+      opacity: 0.3,
     });
     cursor.y -= 16;
 
@@ -252,14 +328,22 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       // Section label
       if (q.section_label) {
         cursor = ensureSpace(cursor, 30);
+        // Section divider line
+        cursor.page.drawLine({
+          start: { x: MARGIN, y: cursor.y + 6 },
+          end: { x: MARGIN + 180, y: cursor.y + 6 },
+          thickness: 1,
+          color: NIA_ORANGE,
+          opacity: 0.5,
+        });
         cursor.page.drawText(sanitize(q.section_label), {
           x: MARGIN,
-          y: cursor.y,
-          size: 12,
+          y: cursor.y - 8,
+          size: 11,
           font: fontBold,
-          color: NIA_GREEN,
+          color: NIA_DARK,
         });
-        cursor.y -= 20;
+        cursor.y -= 24;
       }
 
       // Estimate space needed for question header
@@ -629,7 +713,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           start: { x: MARGIN + 12, y: cursor.y + 4 },
           end: { x: MARGIN + 200, y: cursor.y + 4 },
           thickness: 0.3,
-          color: rgb(0.88, 0.88, 0.88),
+          color: NIA_GREY_BLUE,
+          opacity: 0.2,
         });
         cursor.y -= 8;
       }
@@ -678,24 +763,33 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }
     );
 
-    // --- Page numbers ---
+    // --- Page footer on every page ---
     const totalPages = pdfDoc.getPageCount();
     const pages = pdfDoc.getPages();
     for (let i = 0; i < totalPages; i++) {
-      pages[i].drawText(`Page ${i + 1} of ${totalPages}`, {
-        x: PAGE_WIDTH - MARGIN - 60,
-        y: 20,
-        size: 7,
-        font: font,
-        color: MUTED_TEXT,
+      // Footer line
+      pages[i].drawLine({
+        start: { x: MARGIN, y: 32 },
+        end: { x: PAGE_WIDTH - MARGIN, y: 32 },
+        thickness: 0.5,
+        color: NIA_GREY_BLUE,
+        opacity: 0.3,
       });
       // NIA attribution
-      pages[i].drawText('NIA Excellence Hub', {
+      pages[i].drawText('Northwestern Illinois Association', {
         x: MARGIN,
         y: 20,
         size: 7,
+        font: fontBold,
+        color: NIA_DARK,
+      });
+      // Page number
+      pages[i].drawText(`Page ${i + 1} of ${totalPages}`, {
+        x: PAGE_WIDTH - MARGIN - 55,
+        y: 20,
+        size: 7,
         font: font,
-        color: NIA_GREEN,
+        color: NIA_GREY_BLUE,
       });
     }
 
