@@ -155,8 +155,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
               const json = a.value_json as { row_index?: number } | null;
               return json?.row_index === ri;
             });
-            if (rowAnswer?.value_numeric != null && rowAnswer.value_numeric < columns.length) {
-              cells.push(columns[rowAnswer.value_numeric]);
+            if (
+              rowAnswer?.value_numeric != null &&
+              rowAnswer.value_numeric >= 1 &&
+              rowAnswer.value_numeric <= columns.length
+            ) {
+              cells.push(columns[rowAnswer.value_numeric - 1]); // 1-based: subtract 1 for array index
             } else {
               cells.push('');
             }

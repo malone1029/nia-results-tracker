@@ -269,7 +269,7 @@ export default function SurveyRespondPage() {
           if (colIdx !== undefined) {
             answerPayloads.push({
               questionId: q.id,
-              value: colIdx,
+              value: colIdx + 1, // 1-based: 1 = first column, 5 = last column
               text: null,
               json: { row_index: ri, row_label: rowLabel },
             });

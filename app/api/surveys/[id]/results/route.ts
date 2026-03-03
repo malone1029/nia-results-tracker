@@ -293,7 +293,8 @@ function aggregateQuestion(q: QuestionRow, allAnswers: AnswerRow[], totalRespons
           rowNumerics.length > 0 ? rowNumerics.reduce((s, v) => s + v, 0) / rowNumerics.length : 0;
         const distribution = columns.map(() => 0);
         for (const v of rowNumerics) {
-          if (v >= 0 && v < columns.length) distribution[v]++;
+          // Matrix values are 1-based (1 = first column, 5 = last)
+          if (v >= 1 && v <= columns.length) distribution[v - 1]++;
         }
         return {
           row_label: rowLabel,
