@@ -105,23 +105,41 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return cursor;
     }
 
+    // --- Helper: sanitize text for pdf-lib (cannot encode newlines/tabs) ---
+    function sanitize(text: string): string {
+      return text
+        .replace(/[\n\r\t]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
     // --- Helper: wrap text into lines ---
     function wrapText(text: string, maxWidth: number, f: PDFFont, size: number): string[] {
-      const words = text.split(' ');
+      // First: split on explicit newlines, then word-wrap each paragraph
+      const paragraphs = text.split(/\r?\n/);
       const lines: string[] = [];
-      let currentLine = '';
 
-      for (const word of words) {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const width = f.widthOfTextAtSize(testLine, size);
-        if (width > maxWidth && currentLine) {
-          lines.push(currentLine);
-          currentLine = word;
-        } else {
-          currentLine = testLine;
+      for (const para of paragraphs) {
+        const clean = para.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!clean) {
+          lines.push('');
+          continue;
         }
+        const words = clean.split(' ');
+        let currentLine = '';
+
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const width = f.widthOfTextAtSize(testLine, size);
+          if (width > maxWidth && currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
       }
-      if (currentLine) lines.push(currentLine);
       return lines.length > 0 ? lines : [''];
     }
 
@@ -168,7 +186,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       color: NIA_GREEN,
     });
 
-    cursor.page.drawText(survey.title, {
+    cursor.page.drawText(sanitize(survey.title), {
       x: MARGIN + 14,
       y: cursor.y,
       size: 18,
@@ -234,7 +252,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       // Section label
       if (q.section_label) {
         cursor = ensureSpace(cursor, 30);
-        cursor.page.drawText(q.section_label, {
+        cursor.page.drawText(sanitize(q.section_label), {
           x: MARGIN,
           y: cursor.y,
           size: 12,
@@ -284,7 +302,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             });
 
             // Draw label
-            cursor.page.drawText(`${i + 1} — ${label}`, {
+            cursor.page.drawText(sanitize(`${i + 1} — ${label}`), {
               x: MARGIN + 30,
               y: cursor.y,
               size: 9,
@@ -405,7 +423,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
               width: 12,
               height: 12,
             });
-            cursor.page.drawText(choices[i], {
+            cursor.page.drawText(sanitize(choices[i]), {
               x: MARGIN + 30,
               y: cursor.y,
               size: 9,
@@ -464,7 +482,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
               width: 12,
               height: 12,
             });
-            cursor.page.drawText(choices[i], {
+            cursor.page.drawText(sanitize(choices[i]), {
               x: MARGIN + 30,
               y: cursor.y,
               size: 9,
@@ -573,7 +591,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             }
 
             // Row label (truncate if too long)
-            const rowLabel = rows[ri].length > 30 ? rows[ri].substring(0, 28) + '...' : rows[ri];
+            const rowText = sanitize(rows[ri]);
+            const rowLabel = rowText.length > 30 ? rowText.substring(0, 28) + '...' : rowText;
             cursor.page.drawText(rowLabel, {
               x: MARGIN + 4,
               y: cursor.y,
