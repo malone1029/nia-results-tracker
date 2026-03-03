@@ -1253,16 +1253,6 @@ function ProcessDetailContent() {
                     : 'Create New Project'}
               </Button>
             )}
-            {!process.asana_project_gid && !asanaPickerOpen && (
-              <Button
-                size="sm"
-                onClick={() => handleAsanaExport(true)}
-                disabled={asanaExporting}
-                loading={asanaExporting}
-              >
-                {asanaExporting ? 'Creating...' : 'Create New Project'}
-              </Button>
-            )}
             <Button
               variant="ghost"
               size="sm"
