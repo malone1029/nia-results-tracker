@@ -176,6 +176,24 @@ export default function SurveyCard({
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function downloadFillablePdf() {
+    try {
+      const res = await fetch(`/api/surveys/${survey.id}/fillable-pdf`);
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${survey.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-survey-form.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF download failed:', err);
+    }
+  }
+
   async function fetchResults(waveId: number) {
     setLoadingResults(true);
     try {
@@ -460,14 +478,15 @@ export default function SurveyCard({
                     Edit
                   </button>
                 )}
-                <a
-                  href={`/api/surveys/${survey.id}/fillable-pdf`}
-                  download
-                  onClick={() => setMenuOpen(false)}
-                  className="block w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover"
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    downloadFillablePdf();
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover"
                 >
                   Download PDF
-                </a>
+                </button>
                 <button
                   onClick={() => {
                     setMenuOpen(false);
@@ -618,9 +637,8 @@ export default function SurveyCard({
               />
             </svg>
           </button>
-          <a
-            href={`/api/surveys/${survey.id}/fillable-pdf`}
-            download
+          <button
+            onClick={downloadFillablePdf}
             className="p-1.5 text-text-muted hover:text-nia-dark rounded-md hover:bg-surface-subtle transition-colors"
             title="Download fillable PDF survey"
           >
@@ -637,7 +655,7 @@ export default function SurveyCard({
                 d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
               />
             </svg>
-          </a>
+          </button>
         </div>
       )}
 
