@@ -176,10 +176,16 @@ export default function SurveyCard({
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+
   async function downloadFillablePdf() {
+    setPdfDownloading(true);
     try {
       const res = await fetch(`/api/surveys/${survey.id}/fillable-pdf`);
-      if (!res.ok) throw new Error('Download failed');
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server returned ${res.status}: ${text}`);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -190,7 +196,11 @@ export default function SurveyCard({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('PDF download failed:', err);
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      console.error('PDF download failed:', msg);
+      alert(`PDF download failed: ${msg}`);
+    } finally {
+      setPdfDownloading(false);
     }
   }
 

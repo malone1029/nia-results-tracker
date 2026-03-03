@@ -59,7 +59,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   ]);
 
   if (!surveyRes.data || !questionsRes.data) {
-    return new Response(JSON.stringify({ error: 'Survey not found' }), { status: 404 });
+    console.error('Fillable PDF: survey not found', {
+      surveyId,
+      surveyError: surveyRes.error,
+      questionsError: questionsRes.error,
+    });
+    return new Response(
+      JSON.stringify({
+        error: 'Survey not found',
+        surveyError: surveyRes.error?.message,
+        questionsError: questionsRes.error?.message,
+      }),
+      { status: 404 }
+    );
   }
 
   const survey = surveyRes.data;
