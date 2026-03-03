@@ -1047,6 +1047,69 @@ function OpenTextInput({
 // ---------------------------------------------------------------------------
 // Matrix / Grid
 // ---------------------------------------------------------------------------
+// Color-coded scale: red (negative) → yellow (neutral) → green (positive)
+// Works for any number of columns by interpolating position across the gradient.
+function getMatrixColumnColors(colIndex: number, totalColumns: number) {
+  if (totalColumns <= 1)
+    return {
+      selected: 'bg-gray-500 border-gray-500',
+      header: 'text-text-muted',
+      unselected: 'border-gray-300 hover:border-gray-400',
+      mobileBg: 'bg-gray-500',
+      mobileUnselected: 'bg-surface-subtle text-text-secondary hover:bg-surface-muted',
+    };
+
+  // Normalize position to 0–1 (0 = first/negative, 1 = last/positive)
+  const t = colIndex / (totalColumns - 1);
+
+  if (t <= 0.15) {
+    // Strongly negative — red
+    return {
+      selected: 'bg-red-500 border-red-500',
+      header: 'text-red-600',
+      unselected: 'border-red-200 hover:border-red-300',
+      mobileBg: 'bg-red-500',
+      mobileUnselected: 'bg-red-50 text-red-700 hover:bg-red-100',
+    };
+  } else if (t <= 0.35) {
+    // Negative — orange
+    return {
+      selected: 'bg-orange-500 border-orange-500',
+      header: 'text-orange-600',
+      unselected: 'border-orange-200 hover:border-orange-300',
+      mobileBg: 'bg-orange-500',
+      mobileUnselected: 'bg-orange-50 text-orange-700 hover:bg-orange-100',
+    };
+  } else if (t <= 0.65) {
+    // Neutral — amber/yellow
+    return {
+      selected: 'bg-amber-500 border-amber-500',
+      header: 'text-amber-600',
+      unselected: 'border-amber-200 hover:border-amber-300',
+      mobileBg: 'bg-amber-500',
+      mobileUnselected: 'bg-amber-50 text-amber-700 hover:bg-amber-100',
+    };
+  } else if (t <= 0.85) {
+    // Positive — light green
+    return {
+      selected: 'bg-emerald-500 border-emerald-500',
+      header: 'text-emerald-600',
+      unselected: 'border-emerald-200 hover:border-emerald-300',
+      mobileBg: 'bg-emerald-500',
+      mobileUnselected: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+    };
+  } else {
+    // Strongly positive — green
+    return {
+      selected: 'bg-green-600 border-green-600',
+      header: 'text-green-700',
+      unselected: 'border-green-200 hover:border-green-300',
+      mobileBg: 'bg-green-600',
+      mobileUnselected: 'bg-green-50 text-green-700 hover:bg-green-100',
+    };
+  }
+}
+
 function MatrixInput({
   question,
   matrixAnswers,
@@ -1063,6 +1126,8 @@ function MatrixInput({
     return <p className="text-sm text-text-muted">Matrix not configured.</p>;
   }
 
+  const colCount = columns.length;
+
   return (
     <div>
       {/* Desktop: grid table */}
@@ -1071,11 +1136,17 @@ function MatrixInput({
           <thead>
             <tr>
               <th className="text-left py-2 pr-4 font-medium text-text-muted w-1/3" />
-              {columns.map((col, ci) => (
-                <th key={ci} className="text-center py-2 px-2 font-medium text-text-muted text-xs">
-                  {col}
-                </th>
-              ))}
+              {columns.map((col, ci) => {
+                const colors = getMatrixColumnColors(ci, colCount);
+                return (
+                  <th
+                    key={ci}
+                    className={`text-center py-2 px-2 font-semibold text-xs ${colors.header}`}
+                  >
+                    {col}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -1084,22 +1155,23 @@ function MatrixInput({
               return (
                 <tr key={ri} className="border-t border-border/50">
                   <td className="py-3 pr-4 text-foreground font-medium text-sm">{row}</td>
-                  {columns.map((_, ci) => (
-                    <td key={ci} className="text-center py-3 px-2">
-                      <button
-                        onClick={() => onChange(ri, ci)}
-                        className={`w-7 h-7 rounded-full border-2 transition-all mx-auto flex items-center justify-center ${
-                          selectedCol === ci
-                            ? 'border-[#2d3c34] bg-[#2d3c34]'
-                            : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                      >
-                        {selectedCol === ci && (
-                          <span className="w-2.5 h-2.5 rounded-full bg-white" />
-                        )}
-                      </button>
-                    </td>
-                  ))}
+                  {columns.map((_, ci) => {
+                    const colors = getMatrixColumnColors(ci, colCount);
+                    return (
+                      <td key={ci} className="text-center py-3 px-2">
+                        <button
+                          onClick={() => onChange(ri, ci)}
+                          className={`w-7 h-7 rounded-full border-2 transition-all mx-auto flex items-center justify-center ${
+                            selectedCol === ci ? `${colors.selected}` : `${colors.unselected}`
+                          }`}
+                        >
+                          {selectedCol === ci && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-white" />
+                          )}
+                        </button>
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}
@@ -1115,19 +1187,22 @@ function MatrixInput({
             <div key={ri} className="border border-border/50 rounded-lg p-3">
               <p className="text-sm font-medium text-foreground mb-2">{row}</p>
               <div className="flex gap-1.5 flex-wrap">
-                {columns.map((col, ci) => (
-                  <button
-                    key={ci}
-                    onClick={() => onChange(ri, ci)}
-                    className={`flex-1 min-w-0 py-2 px-1 rounded-lg text-xs font-medium transition-all text-center leading-tight ${
-                      selectedCol === ci
-                        ? 'bg-[#2d3c34] text-white shadow-md'
-                        : 'bg-surface-subtle text-text-secondary hover:bg-surface-muted'
-                    }`}
-                  >
-                    {col}
-                  </button>
-                ))}
+                {columns.map((col, ci) => {
+                  const colors = getMatrixColumnColors(ci, colCount);
+                  return (
+                    <button
+                      key={ci}
+                      onClick={() => onChange(ri, ci)}
+                      className={`flex-1 min-w-0 py-2 px-1 rounded-lg text-xs font-medium transition-all text-center leading-tight ${
+                        selectedCol === ci
+                          ? `${colors.mobileBg} text-white shadow-md`
+                          : `${colors.mobileUnselected}`
+                      }`}
+                    >
+                      {col}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );
