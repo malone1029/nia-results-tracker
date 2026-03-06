@@ -536,6 +536,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
             // Text field for "other" answer
             const otherField = form.createTextField(`${fieldPrefix}_other`);
+            otherField.setFontSize(9);
             otherField.addToPage(cursor.page, {
               x: MARGIN + 72,
               y: cursor.y - 4,
@@ -593,6 +594,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
               color: DARK_TEXT,
             });
             const otherField = form.createTextField(`${fieldPrefix}_other`);
+            otherField.setFontSize(9);
             otherField.addToPage(cursor.page, {
               x: MARGIN + 72,
               y: cursor.y - 4,
@@ -609,7 +611,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
         case 'open_text': {
           const variant = (q.options as QuestionOptions)?.variant || 'short';
-          const height = variant === 'long' ? 80 : 24;
+          const height = variant === 'long' ? 100 : 24;
 
           cursor = ensureSpace(cursor, height + 8);
 
@@ -617,6 +619,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           if (variant === 'long') {
             textField.enableMultiline();
           }
+          textField.setFontSize(10);
           textField.addToPage(cursor.page, {
             x: MARGIN + 12,
             y: cursor.y - height + 8,
@@ -636,12 +639,24 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           if (rows.length === 0 || columns.length === 0) break;
 
           // Column headers
-          const labelColWidth = 160;
+          const labelColWidth = 200;
           const colWidth = Math.min((CONTENT_WIDTH - labelColWidth - 12) / columns.length, 60);
-          const rowHeight = 20;
-          const headerHeight = 30;
+          const minRowHeight = 20;
+          const matrixHeaderHeight = 30;
+          const matrixLabelFontSize = 7.5;
+          const matrixLabelLineHeight = matrixLabelFontSize * 1.3;
 
-          cursor = ensureSpace(cursor, headerHeight + rows.length * rowHeight + 8);
+          // Pre-calculate row heights (wrap labels instead of truncating)
+          const rowWrappedLabels = rows.map((row) => {
+            const rowText = sanitize(row);
+            return wrapText(rowText, labelColWidth - 12, font, matrixLabelFontSize);
+          });
+          const rowHeights = rowWrappedLabels.map((lines) =>
+            Math.max(minRowHeight, lines.length * matrixLabelLineHeight + 8)
+          );
+
+          const totalMatrixHeight = matrixHeaderHeight + rowHeights.reduce((a, b) => a + b, 0) + 8;
+          cursor = ensureSpace(cursor, Math.min(totalMatrixHeight, 200));
 
           // Draw column headers
           for (let ci = 0; ci < columns.length; ci++) {
@@ -657,46 +672,49 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
               });
             }
           }
-          cursor.y -= headerHeight;
+          cursor.y -= matrixHeaderHeight;
 
           // Draw rows
           for (let ri = 0; ri < rows.length; ri++) {
-            cursor = ensureSpace(cursor, rowHeight);
+            const thisRowHeight = rowHeights[ri];
+            cursor = ensureSpace(cursor, thisRowHeight);
 
             // Alternate row background
             if (ri % 2 === 0) {
               cursor.page.drawRectangle({
                 x: MARGIN,
-                y: cursor.y - 6,
+                y: cursor.y - thisRowHeight + minRowHeight - 6,
                 width: CONTENT_WIDTH,
-                height: rowHeight,
+                height: thisRowHeight,
                 color: LIGHT_BG,
               });
             }
 
-            // Row label (truncate if too long)
-            const rowText = sanitize(rows[ri]);
-            const rowLabel = rowText.length > 30 ? rowText.substring(0, 28) + '...' : rowText;
-            cursor.page.drawText(rowLabel, {
-              x: MARGIN + 4,
-              y: cursor.y,
-              size: 8,
-              font: font,
-              color: DARK_TEXT,
-            });
+            // Row label (wrapped, not truncated)
+            const lines = rowWrappedLabels[ri];
+            for (let li = 0; li < lines.length; li++) {
+              cursor.page.drawText(lines[li], {
+                x: MARGIN + 4,
+                y: cursor.y - li * matrixLabelLineHeight,
+                size: matrixLabelFontSize,
+                font: font,
+                color: DARK_TEXT,
+              });
+            }
 
-            // Radio buttons for each column
+            // Radio buttons for each column (vertically centered in row)
             const radioGroup = form.createRadioGroup(`${fieldPrefix}_r${ri}`);
+            const radioYCenter = cursor.y - (thisRowHeight - minRowHeight) / 2;
             for (let ci = 0; ci < columns.length; ci++) {
               const x = MARGIN + labelColWidth + ci * colWidth + colWidth / 2 - 6;
               radioGroup.addOptionToPage(`c${ci}`, cursor.page, {
                 x,
-                y: cursor.y - 3,
+                y: radioYCenter - 3,
                 width: 12,
                 height: 12,
               });
             }
-            cursor.y -= rowHeight;
+            cursor.y -= thisRowHeight;
           }
           cursor.y -= 8;
           break;
@@ -740,6 +758,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
     cursor.y -= 4;
     const emailField = form.createTextField('respondent_email');
+    emailField.setFontSize(10);
     emailField.addToPage(cursor.page, {
       x: MARGIN,
       y: cursor.y - 18,
