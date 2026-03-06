@@ -149,16 +149,20 @@ function MatrixTable({ q }: { q: QuestionResult }) {
                   return (
                     <td
                       key={ci}
-                      className="px-2 py-2 text-center text-xs"
+                      className="px-2 py-2 text-center text-xs cursor-default"
                       style={{
                         backgroundColor: `rgba(177, 189, 55, ${intensity * 0.5})`,
                       }}
+                      title={`${cols[ci]}: ${count} response${count !== 1 ? 's' : ''}`}
                     >
                       {count}
                     </td>
                   );
                 })}
-                <td className="px-2 py-2 text-center text-xs font-bold text-nia-dark">
+                <td
+                  className="px-2 py-2 text-center text-xs font-bold text-nia-dark cursor-default"
+                  title={`Average: ${row.avg_value.toFixed(2)} from ${row.response_count} response${row.response_count !== 1 ? 's' : ''}`}
+                >
                   {row.avg_value.toFixed(1)}
                 </td>
               </tr>
