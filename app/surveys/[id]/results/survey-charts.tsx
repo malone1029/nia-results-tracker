@@ -136,7 +136,11 @@ export function RatingChart({ q }: { q: QuestionResult }) {
             axisLine={false}
           />
           <YAxis hide allowDecimals={false} />
-          <Tooltip contentStyle={tooltipStyle} />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            formatter={(value) => [`${value} response${value !== 1 ? 's' : ''}`, 'Count']}
+            labelFormatter={(label) => `Rating: ${label}`}
+          />
           <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={40}>
             {data.map((_, i) => (
               <Cell
@@ -196,6 +200,7 @@ export function NpsChart({ q }: { q: QuestionResult }) {
             <div
               className="flex items-center justify-center text-white text-[10px] font-semibold"
               style={{ width: `${detPct}%`, backgroundColor: NIA.red }}
+              title={`Detractors (0–6): ${nps_segments?.detractors || 0} response${(nps_segments?.detractors || 0) !== 1 ? 's' : ''}`}
             >
               {detPct}%
             </div>
@@ -204,6 +209,7 @@ export function NpsChart({ q }: { q: QuestionResult }) {
             <div
               className="flex items-center justify-center text-white text-[10px] font-semibold"
               style={{ width: `${pasPct}%`, backgroundColor: NIA.yellow }}
+              title={`Passives (7–8): ${nps_segments?.passives || 0} response${(nps_segments?.passives || 0) !== 1 ? 's' : ''}`}
             >
               {pasPct}%
             </div>
@@ -212,6 +218,7 @@ export function NpsChart({ q }: { q: QuestionResult }) {
             <div
               className="flex items-center justify-center text-white text-[10px] font-semibold"
               style={{ width: `${proPct}%`, backgroundColor: NIA.green }}
+              title={`Promoters (9–10): ${nps_segments?.promoters || 0} response${(nps_segments?.promoters || 0) !== 1 ? 's' : ''}`}
             >
               {proPct}%
             </div>
@@ -235,7 +242,11 @@ export function NpsChart({ q }: { q: QuestionResult }) {
               axisLine={false}
             />
             <YAxis hide allowDecimals={false} />
-            <Tooltip contentStyle={tooltipStyle} />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              formatter={(value) => [`${value} response${value !== 1 ? 's' : ''}`, 'Count']}
+              labelFormatter={(label) => `Score: ${label}`}
+            />
             <Bar dataKey="count" radius={[3, 3, 0, 0]} maxBarSize={28}>
               {distData.map((_, i) => {
                 const color = i <= 6 ? NIA.red : i <= 8 ? NIA.yellow : NIA.green;
@@ -285,10 +296,13 @@ export function MultipleChoiceChart({ q }: { q: QuestionResult }) {
             </Pie>
             <Tooltip
               contentStyle={tooltipStyle}
-              formatter={(value, name) => [
-                `${value} (${total > 0 ? Math.round((Number(value) / total) * 100) : 0}%)`,
-                name,
-              ]}
+              formatter={(value, name) => {
+                const v = Number(value) || 0;
+                return [
+                  `${v} response${v !== 1 ? 's' : ''} (${total > 0 ? Math.round((v / total) * 100) : 0}%)`,
+                  name,
+                ];
+              }}
             />
           </PieChart>
         </ResponsiveContainer>
@@ -296,13 +310,19 @@ export function MultipleChoiceChart({ q }: { q: QuestionResult }) {
         {/* Legend */}
         <div className="flex-1 space-y-1.5">
           {data.map((d, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm">
+            <div
+              key={i}
+              className="flex items-center gap-2 text-sm cursor-default"
+              title={`${d.name}: ${d.value} response${d.value !== 1 ? 's' : ''} (${d.pct}%)`}
+            >
               <span
                 className="w-3 h-3 rounded-sm flex-shrink-0"
                 style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
               />
               <span className="flex-1 text-foreground truncate">{d.name}</span>
-              <span className="text-text-muted">{d.pct}%</span>
+              <span className="text-text-muted tabular-nums">
+                {d.value} <span className="text-xs">({d.pct}%)</span>
+              </span>
             </div>
           ))}
         </div>
@@ -356,7 +376,10 @@ export function CheckboxChart({ q }: { q: QuestionResult }) {
             tickLine={false}
             axisLine={false}
           />
-          <Tooltip contentStyle={tooltipStyle} />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            formatter={(value) => [`${value} response${value !== 1 ? 's' : ''}`, 'Selected by']}
+          />
           <Bar
             dataKey="count"
             fill={NIA.green}
@@ -419,6 +442,7 @@ export function YesNoChart({ q }: { q: QuestionResult }) {
               <Cell fill={NIA.green} />
               <Cell fill="var(--surface-subtle)" />
             </Pie>
+            <Tooltip contentStyle={tooltipStyle} formatter={(value, name) => [`${value}%`, name]} />
           </PieChart>
         </ResponsiveContainer>
         <div>
@@ -603,7 +627,10 @@ export function TrendsTab({ surveyId }: { surveyId: string }) {
               axisLine={false}
             />
             <YAxis hide allowDecimals={false} />
-            <Tooltip contentStyle={tooltipStyle} />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              formatter={(value) => [`${value} response${value !== 1 ? 's' : ''}`, 'Total']}
+            />
             <Bar
               dataKey="responses"
               fill={NIA.greyBlue}
