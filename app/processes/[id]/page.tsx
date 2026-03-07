@@ -274,16 +274,8 @@ function ProcessDetailContent() {
   >([]);
   const [linkedObjectiveIds, setLinkedObjectiveIds] = useState<Set<number>>(new Set());
 
-  // ── Process Map inline chat ────────────────────────────────────────────
+  // ── Process Map state ──────────────────────────────────────────────────
   const [localFlowData, setLocalFlowData] = useState<ProcessMapFlowData | null>(null);
-  const [showMapChat, setShowMapChat] = useState(false);
-  const [mapChatMessages, setMapChatMessages] = useState<
-    { role: 'user' | 'assistant'; content: string }[]
-  >([]);
-  const [mapChatInput, setMapChatInput] = useState('');
-  const [mapChatLoading, setMapChatLoading] = useState(false);
-  const [mapDiagramUpdatedIndicator, setMapDiagramUpdatedIndicator] = useState(false);
-  const mapChatEndRef = useRef<HTMLDivElement>(null);
 
   // Maps scroll target IDs to the tab they live on
   function getTabForScrollTarget(
@@ -304,128 +296,76 @@ function ProcessDetailContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [process?.workflow?.flow_data]);
 
-  // ── Scroll map chat to bottom on new messages ─────────────────────────
-  useEffect(() => {
-    if (showMapChat) {
-      mapChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [mapChatMessages, showMapChat]);
-
-  // ── Send message to /api/ai/map-chat ──────────────────────────────────
-  const sendMapChat = useCallback(
-    async (text?: string) => {
+  // ── Save process map to database ───────────────────────────────────
+  const saveFlowData = useCallback(
+    async (data: ProcessMapFlowData) => {
       if (!process) return;
-      const input = (text ?? mapChatInput).trim();
-      if (!input || mapChatLoading) return;
-
-      const userMsg = { role: 'user' as const, content: input };
-      const nextMessages = [...mapChatMessages, userMsg];
-      setMapChatMessages(nextMessages);
-      setMapChatInput('');
-      setMapChatLoading(true);
-      setMapChatMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
-
-      try {
-        const res = await fetch('/api/ai/map-chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: nextMessages,
-            flowData: localFlowData,
-            processId: process.id,
-            processName: process.name,
-            charter: process.charter,
-          }),
-        });
-
-        if (!res.ok || !res.body) {
-          setMapChatMessages((prev) => {
-            const updated = [...prev];
-            updated[updated.length - 1] = {
-              role: 'assistant',
-              content: "Sorry, couldn't get a response. Please try again.",
-            };
-            return updated;
-          });
-          setMapChatLoading(false);
-          return;
-        }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let fullContent = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          fullContent += chunk;
-          setMapChatMessages((prev) => {
-            const updated = [...prev];
-            const last = updated[updated.length - 1];
-            if (last.role === 'assistant') {
-              updated[updated.length - 1] = { ...last, content: fullContent };
+      await fetch('/api/ai/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          processId: process.id,
+          field: 'workflow',
+          content: data,
+          suggestionTitle: 'Manual process map edit',
+        }),
+      });
+      setProcess((prev) =>
+        prev
+          ? {
+              ...prev,
+              workflow: { ...(prev.workflow || {}), flow_data: data } as Workflow,
             }
-            return updated;
-          });
-        }
-
-        // ── Parse ---DIAGRAM--- delimiter ────────────────────────────────
-        const DELIM = '---DIAGRAM---';
-        const delimIdx = fullContent.indexOf(DELIM);
-        if (delimIdx !== -1) {
-          const textPart = fullContent.slice(0, delimIdx).trim();
-          const jsonPart = fullContent.slice(delimIdx + DELIM.length).trim();
-
-          setMapChatMessages((prev) => {
-            const updated = [...prev];
-            updated[updated.length - 1] = {
-              role: 'assistant',
-              content: textPart + '\n\n_✓ Diagram updated_',
-            };
-            return updated;
-          });
-
-          if (jsonPart) {
-            try {
-              const newFlowData = JSON.parse(jsonPart) as ProcessMapFlowData;
-              // Update canvas immediately (no page reload)
-              setLocalFlowData(newFlowData);
-              setMapDiagramUpdatedIndicator(true);
-              setTimeout(() => setMapDiagramUpdatedIndicator(false), 4000);
-              // Persist to database via apply route
-              fetch('/api/ai/apply', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  processId: process.id,
-                  field: 'workflow',
-                  content: newFlowData,
-                  suggestionTitle: 'Map chat edit',
-                }),
-              }).catch(() => {
-                /* non-fatal */
-              });
-            } catch {
-              console.warn('Failed to parse updated diagram JSON from map chat');
-            }
-          }
-        }
-      } catch {
-        setMapChatMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            role: 'assistant',
-            content: 'Network error — please try again.',
-          };
-          return updated;
-        });
-      } finally {
-        setMapChatLoading(false);
-      }
+          : prev
+      );
     },
-    [mapChatInput, mapChatLoading, mapChatMessages, localFlowData, process]
+    [process]
   );
+
+  // ── Generate process map from charter via AI ───────────────────────
+  const [isGeneratingMap, setIsGeneratingMap] = useState(false);
+
+  const generateMapFromCharter = useCallback(async () => {
+    if (!process) return;
+    setIsGeneratingMap(true);
+    try {
+      const res = await fetch('/api/ai/map-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'user',
+              content:
+                'Generate a process map from scratch based on the current charter and ADLI content.',
+            },
+          ],
+          flowData: null,
+          processId: process.id,
+          processName: process.name,
+          charter: process.charter,
+        }),
+      });
+      if (!res.ok || !res.body) return;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullContent += decoder.decode(value, { stream: true });
+      }
+      const DELIM = '---DIAGRAM---';
+      const delimIdx = fullContent.indexOf(DELIM);
+      if (delimIdx !== -1) {
+        const jsonPart = fullContent.slice(delimIdx + DELIM.length).trim();
+        const newFlowData = JSON.parse(jsonPart) as ProcessMapFlowData;
+        setLocalFlowData(newFlowData);
+      }
+    } finally {
+      setIsGeneratingMap(false);
+    }
+  }, [process]);
 
   async function fetchProcess() {
     // Fetch process with category name
@@ -2426,260 +2366,13 @@ function ProcessDetailContent() {
       {/* ═══ PROCESS MAP TAB — mounted once viewed, kept alive via CSS hidden ═══ */}
       {processMapMounted && (
         <div id="section-workflow" className={activeTab !== 'process-map' ? 'hidden' : ''}>
-          {localFlowData ? (
-            /* New React Flow interactive diagram */
-            <div>
-              <ProcessFlowCanvas flowData={localFlowData} height={520} />
-
-              {/* ── Inline Map Chat ──────────────────────────────────────── */}
-              <div className="mt-4 border-t border-border pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <button
-                    onClick={() => setShowMapChat((v) => !v)}
-                    className="flex items-center gap-2 text-sm font-medium text-nia-dark hover:text-nia-green transition-colors"
-                  >
-                    <svg
-                      className="w-4 h-4 text-nia-green"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                      />
-                    </svg>
-                    Chat to edit this map
-                    <svg
-                      className={`w-3.5 h-3.5 text-text-muted transition-transform ${showMapChat ? 'rotate-180' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    {mapDiagramUpdatedIndicator && (
-                      <span className="flex items-center gap-1 text-xs text-nia-green font-medium animate-pulse">
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
-                        Map updated
-                      </span>
-                    )}
-                    <button
-                      onClick={() => {
-                        setShowMapChat(true);
-                        sendMapChat(
-                          'Regenerate the process map from scratch based on the current charter and ADLI content.'
-                        );
-                      }}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
-                    >
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      Regenerate
-                    </button>
-                  </div>
-                </div>
-
-                {showMapChat && (
-                  <div className="rounded-lg border border-border bg-surface-hover overflow-hidden">
-                    {/* Message list */}
-                    <div className="p-3 space-y-3 max-h-72 overflow-y-auto">
-                      {mapChatMessages.length === 0 ? (
-                        <div className="space-y-2">
-                          <p className="text-xs text-text-muted">
-                            Ask the AI to explain or change this diagram — it will update the canvas
-                            live.
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {[
-                              'Add a step for supervisor review',
-                              'Add a decision after step 1',
-                              'Who is responsible for each step?',
-                              'Simplify this — remove any redundant steps',
-                            ].map((starter) => (
-                              <button
-                                key={starter}
-                                onClick={() => sendMapChat(starter)}
-                                disabled={mapChatLoading}
-                                className="text-xs px-2.5 py-1.5 rounded-full border border-border bg-card text-text-secondary hover:text-nia-dark hover:border-nia-green/50 transition-colors"
-                              >
-                                {starter}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        mapChatMessages.map((msg, i) => (
-                          <div
-                            key={i}
-                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                          >
-                            <div
-                              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
-                                msg.role === 'user'
-                                  ? 'bg-nia-dark text-white'
-                                  : 'bg-card border border-border text-nia-dark'
-                              }`}
-                            >
-                              {msg.content || (
-                                <span className="flex gap-1 items-center text-text-muted">
-                                  <span className="animate-pulse">●</span>
-                                  <span
-                                    className="animate-pulse"
-                                    style={{ animationDelay: '0.2s' }}
-                                  >
-                                    ●
-                                  </span>
-                                  <span
-                                    className="animate-pulse"
-                                    style={{ animationDelay: '0.4s' }}
-                                  >
-                                    ●
-                                  </span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                      <div ref={mapChatEndRef} />
-                    </div>
-
-                    {/* Input row */}
-                    <div className="flex items-center gap-2 p-2 border-t border-border bg-card">
-                      <input
-                        type="text"
-                        value={mapChatInput}
-                        onChange={(e) => setMapChatInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            sendMapChat();
-                          }
-                        }}
-                        placeholder="Say 'Add a step for X' or ask a question..."
-                        disabled={mapChatLoading}
-                        className="flex-1 text-sm px-3 py-2 rounded-lg border border-border bg-background text-nia-dark placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-nia-green/50 disabled:opacity-50"
-                      />
-                      <button
-                        onClick={() => sendMapChat()}
-                        disabled={!mapChatInput.trim() || mapChatLoading}
-                        className="flex items-center justify-center w-8 h-8 rounded-lg bg-nia-green text-white hover:bg-nia-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : process.workflow?.content ? (
-            /* Legacy Mermaid diagram — show as-is until regenerated */
-            <ProcessMapView
-              content={process.workflow.content}
-              processName={process.name}
-              onRefine={() =>
-                setPendingPrompt(
-                  "The current process map needs adjustments. Here's what I'd like to change:"
-                )
-              }
-              onRegenerate={() =>
-                setPendingPrompt(
-                  'Regenerate the process map from scratch based on the current charter and ADLI content.'
-                )
-              }
-            />
-          ) : (
-            <div className="text-center py-12">
-              <svg
-                className="w-10 h-10 mx-auto text-text-muted mb-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
-                />
-              </svg>
-              <p className="text-sm font-medium text-nia-dark mb-1">No process map yet</p>
-              <p className="text-xs text-text-muted mb-4 max-w-xs mx-auto">
-                Ask the AI Coach to generate an interactive process map based on this process&apos;s
-                charter and ADLI documentation.
-                <HelpTip text="The AI generates an interactive React Flow diagram with pan, zoom, and step-by-step visualization." />
-              </p>
-              <button
-                onClick={() =>
-                  setPendingPrompt(
-                    'Generate a process map for this process. Create an interactive flowchart that shows the key steps, decision points, responsible parties, and outputs based on the charter and ADLI content.'
-                  )
-                }
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-nia-dark-solid hover:bg-nia-grey-blue px-4 py-2 rounded-lg transition-all duration-150 shadow-sm hover:shadow"
-              >
-                <svg
-                  className="w-4 h-4 opacity-70"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                Generate Process Map
-              </button>
-            </div>
-          )}
+          <ProcessFlowCanvas
+            flowData={localFlowData}
+            height={600}
+            onSave={saveFlowData}
+            onGenerateFromCharter={generateMapFromCharter}
+            isGenerating={isGeneratingMap}
+          />
         </div>
       )}
 
@@ -3601,180 +3294,6 @@ function JournalEntryCard({
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── Process Map View with Download ──────────────────────────────
-
-function ProcessMapView({
-  content,
-  processName,
-  onRefine,
-  onRegenerate,
-}: {
-  content: string;
-  processName: string;
-  onRefine: () => void;
-  onRegenerate: () => void;
-}) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [downloading, setDownloading] = useState(false);
-
-  async function downloadSVG() {
-    if (!mapRef.current) return;
-    const svg = mapRef.current.querySelector('svg');
-    if (!svg) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${processName.replace(/[^a-zA-Z0-9]/g, '-')}-process-map.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  async function downloadPNG() {
-    if (!mapRef.current) return;
-    const svg = mapRef.current.querySelector('svg');
-    if (!svg) return;
-    setDownloading(true);
-
-    try {
-      // Get SVG dimensions
-      const bbox = svg.getBoundingClientRect();
-      const scale = 2; // 2x for retina quality
-      const canvas = document.createElement('canvas');
-      canvas.width = bbox.width * scale;
-      canvas.height = bbox.height * scale;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      // White background (intentional — export images must be opaque white regardless of theme)
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.scale(scale, scale);
-
-      // Draw SVG onto canvas
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const img = new Image();
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
-
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0);
-          resolve();
-        };
-        img.onerror = reject;
-        img.src = url;
-      });
-
-      URL.revokeObjectURL(url);
-
-      // Download as PNG
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const pngUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = pngUrl;
-        a.download = `${processName.replace(/[^a-zA-Z0-9]/g, '-')}-process-map.png`;
-        a.click();
-        URL.revokeObjectURL(pngUrl);
-      }, 'image/png');
-    } finally {
-      setDownloading(false);
-    }
-  }
-
-  return (
-    <div>
-      <div ref={mapRef}>
-        <MarkdownContent content={content} />
-      </div>
-      {/* Unified toolbar — downloads + AI actions */}
-      <div className="mt-3 pt-3 border-t border-border-light flex flex-wrap items-center gap-2">
-        <button
-          onClick={downloadSVG}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-nia-grey-blue bg-nia-grey-blue/8 hover:bg-nia-grey-blue/15 px-3 py-1.5 rounded-full transition-colors"
-        >
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
-          SVG
-        </button>
-        <button
-          onClick={downloadPNG}
-          disabled={downloading}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-nia-grey-blue bg-nia-grey-blue/8 hover:bg-nia-grey-blue/15 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
-        >
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
-          {downloading ? 'Exporting...' : 'PNG'}
-        </button>
-        <span className="w-px h-4 bg-surface-muted mx-1" />
-        <button
-          onClick={onRefine}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-nia-dark bg-nia-green/15 hover:bg-nia-green/25 px-3 py-1.5 rounded-full transition-colors"
-        >
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"
-            />
-          </svg>
-          Refine with AI
-        </button>
-        <button
-          onClick={onRegenerate}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-text-tertiary bg-surface-subtle hover:bg-surface-muted px-3 py-1.5 rounded-full transition-colors"
-        >
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
-            />
-          </svg>
-          Regenerate
-        </button>
-      </div>
     </div>
   );
 }
