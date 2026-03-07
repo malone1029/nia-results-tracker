@@ -58,6 +58,17 @@ function ProcessOwnerDashboard() {
   const [asanaConnected, setAsanaConnected] = useState(false);
   const [userId, setUserId] = useState('');
   const [dashboardTasks, setDashboardTasks] = useState<DashboardTaskData | null>(null);
+  const [pendingSuggestions, setPendingSuggestions] = useState<
+    {
+      id: number;
+      title: string;
+      processName: string;
+      processId: number;
+      submittedBy: string | null;
+      resolveUrl: string | null;
+      createdAt: string;
+    }[]
+  >([]);
   const [userRole, setUserRole] = useState<string>('member');
   const [orgAvgHealth, setOrgAvgHealth] = useState(0);
 
@@ -89,6 +100,7 @@ function ProcessOwnerDashboard() {
         entriesRes,
         improvementsRes,
         tasksRes,
+        suggestionsRes,
       ] = await Promise.all([
         fetchHealthData(),
         supabase.auth.getUser(),
@@ -102,6 +114,13 @@ function ProcessOwnerDashboard() {
           .order('created_at', { ascending: false })
           .limit(20),
         fetch('/api/tasks/dashboard').then((r) => (r.ok ? r.json() : null)),
+        supabase
+          .from('improvement_journal')
+          .select(
+            'id, title, process_id, submitted_by, resolve_ticket_url, created_at, processes!inner(name)'
+          )
+          .eq('status', 'suggested')
+          .order('created_at', { ascending: false }),
       ]);
 
       const procs = healthData.processes;
@@ -280,6 +299,21 @@ function ProcessOwnerDashboard() {
         if (imp.created_at >= thirtyDaysAgo) monthlyProcs.add(imp.process_id);
       }
       setMonthlyImprovedCount(monthlyProcs.size);
+
+      // Pending suggestions from Resolve
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const suggestions = (suggestionsRes.data || []) as any[];
+      setPendingSuggestions(
+        suggestions.map((s) => ({
+          id: s.id as number,
+          title: s.title as string,
+          processName: (s.processes?.name || 'Unknown') as string,
+          processId: s.process_id as number,
+          submittedBy: s.submitted_by as string | null,
+          resolveUrl: s.resolve_ticket_url as string | null,
+          createdAt: s.created_at as string,
+        }))
+      );
 
       // Check if new user needs onboarding
       if (uid && (forceWelcome || !hasCompletedOnboarding(uid))) {
@@ -700,6 +734,45 @@ function ProcessOwnerDashboard() {
               <MomentumAndWins monthlyImprovedCount={monthlyImprovedCount} wins={topWins} />
             </div>
           </div>
+
+          {/* ── Pending Suggestions ── */}
+          {pendingSuggestions.length > 0 && (
+            <Card className="mb-6">
+              <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-400/20 text-amber-600 text-xs font-bold">
+                  {pendingSuggestions.length}
+                </span>
+                <h2 className="text-sm font-semibold text-nia-dark">
+                  Improvement Suggestions Pending Review
+                </h2>
+              </div>
+              <div className="divide-y divide-border">
+                {pendingSuggestions.map((s) => (
+                  <div key={s.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/processes/${s.processId}?tab=improvements`}
+                        className="text-sm font-medium text-nia-dark hover:text-nia-grey-blue transition-colors"
+                      >
+                        {s.title}
+                      </Link>
+                      <p className="text-xs text-text-tertiary mt-0.5">
+                        {s.processName}
+                        {s.submittedBy && <> &middot; by {s.submittedBy}</>} &middot;{' '}
+                        {new Date(s.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/processes/${s.processId}?tab=improvements`}
+                      className="text-xs font-medium text-nia-orange hover:text-nia-orange/80 transition-colors whitespace-nowrap"
+                    >
+                      Review
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
           {/* ── Processes (full width) ── */}
           <div data-tour="process-list">
