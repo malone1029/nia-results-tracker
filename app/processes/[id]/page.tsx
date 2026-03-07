@@ -3428,81 +3428,56 @@ function JournalEntryCard({
             {entry.submitted_by && <> &middot; by {entry.submitted_by}</>}
           </span>
           <div className="flex items-center gap-2">
-            {entry.status === 'suggested' && (
+            {isFromResolve && entry.status !== 'dismissed' && (
+              <button
+                onClick={() => {
+                  setStatusAction({
+                    status: entry.status === 'suggested' ? 'under_review' : entry.status,
+                    label: 'Update Status',
+                  });
+                  setStatusMessage('');
+                }}
+                className="text-xs font-medium text-nia-orange hover:text-nia-orange/80 transition-colors"
+              >
+                Update Status
+              </button>
+            )}
+            {!isFromResolve && entry.status === 'suggested' && (
               <>
                 <button
-                  onClick={() => {
-                    if (isFromResolve) {
-                      setStatusAction({ status: 'under_review', label: 'Accept' });
-                      setStatusMessage('');
-                    } else {
-                      onUpdate({ status: 'in_progress' });
-                    }
-                  }}
+                  onClick={() => onUpdate({ status: 'in_progress' })}
                   className="text-xs font-medium text-nia-green hover:text-nia-green/80 transition-colors"
                 >
                   Accept
                 </button>
                 <button
-                  onClick={() => {
-                    if (isFromResolve) {
-                      setStatusAction({ status: 'dismissed', label: 'Dismiss' });
-                      setStatusMessage('');
-                    } else {
-                      onDelete();
-                    }
-                  }}
+                  onClick={() => onDelete()}
                   className="text-xs font-medium text-text-muted hover:text-nia-red transition-colors"
                 >
                   Dismiss
                 </button>
               </>
             )}
-            {entry.status === 'under_review' && (
+            {!isFromResolve && entry.status === 'under_review' && (
               <>
                 <button
-                  onClick={() => {
-                    if (isFromResolve) {
-                      setStatusAction({ status: 'in_progress', label: 'Move to In Progress' });
-                      setStatusMessage('');
-                    } else {
-                      onUpdate({ status: 'in_progress' });
-                    }
-                  }}
+                  onClick={() => onUpdate({ status: 'in_progress' })}
                   className="text-xs font-medium text-nia-orange hover:text-nia-orange/80 transition-colors"
                 >
                   In Progress
                 </button>
                 <button
-                  onClick={() => {
-                    if (isFromResolve) {
-                      setStatusAction({ status: 'dismissed', label: 'Dismiss' });
-                      setStatusMessage('');
-                    } else {
-                      onDelete();
-                    }
-                  }}
+                  onClick={() => onDelete()}
                   className="text-xs font-medium text-text-muted hover:text-nia-red transition-colors"
                 >
                   Dismiss
                 </button>
               </>
             )}
-            {(entry.status === 'in_progress' || entry.status === 'completed') && (
+            {!isFromResolve && (entry.status === 'in_progress' || entry.status === 'completed') && (
               <>
                 <button
-                  onClick={() => {
-                    const newStatus = isCompleted ? 'in_progress' : 'completed';
-                    if (isFromResolve) {
-                      setStatusAction({
-                        status: newStatus,
-                        label: isCompleted ? 'Reopen' : 'Mark Complete',
-                      });
-                      setStatusMessage('');
-                    } else {
-                      onUpdate({ status: newStatus });
-                    }
-                  }}
+                  onClick={() => onUpdate({ status: isCompleted ? 'in_progress' : 'completed' })}
                   className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
                 >
                   {isCompleted ? 'Reopen' : 'Mark Complete'}
@@ -3514,6 +3489,14 @@ function JournalEntryCard({
                   Edit
                 </button>
               </>
+            )}
+            {isFromResolve && entry.status !== 'dismissed' && (
+              <button
+                onClick={() => setEditing(true)}
+                className="text-xs text-text-muted hover:text-nia-dark transition-colors"
+              >
+                Edit
+              </button>
             )}
             {entry.status !== 'dismissed' && !isFromResolve && (
               <button
@@ -3557,8 +3540,18 @@ function JournalEntryCard({
       {statusAction && (
         <div className="mt-2 p-3 bg-surface-hover border border-border rounded-lg space-y-2">
           <p className="text-xs font-medium text-nia-dark">
-            {statusAction.label} this idea{entry.submitted_by ? ` from ${entry.submitted_by}` : ''}
+            Update status{entry.submitted_by ? ` — submitter will be notified` : ''}
           </p>
+          <select
+            value={statusAction.status}
+            onChange={(e) => setStatusAction({ ...statusAction, status: e.target.value })}
+            className="w-full text-xs rounded-md border border-border bg-card px-2 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-nia-orange/30"
+          >
+            <option value="under_review">Under Review — we are evaluating this idea</option>
+            <option value="in_progress">In Progress — we are implementing this improvement</option>
+            <option value="completed">Completed — this improvement has been incorporated</option>
+            <option value="dismissed">Dismissed — we have decided not to pursue this</option>
+          </select>
           <textarea
             value={statusMessage}
             onChange={(e) => setStatusMessage(e.target.value)}
@@ -3579,7 +3572,7 @@ function JournalEntryCard({
                 setStatusMessage('');
               }}
             >
-              {statusAction.label}
+              {JOURNAL_STATUS_STYLES[statusAction.status]?.label || 'Update'}
             </Button>
             <Button
               variant="ghost"

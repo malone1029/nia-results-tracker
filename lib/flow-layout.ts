@@ -172,7 +172,10 @@ const PM_STEP_H = 60;
 const PM_START_END_W = 140;
 const PM_START_END_H = 44;
 
-export function calculateProcessLayout(flowData: ProcessMapFlowData): {
+export function calculateProcessLayout(
+  flowData: ProcessMapFlowData,
+  forceAutoLayout = false
+): {
   nodes: RFNode[];
   edges: RFEdge[];
 } {
@@ -231,7 +234,9 @@ export function calculateProcessLayout(flowData: ProcessMapFlowData): {
 
   // Build React Flow nodes
   for (const node of flowData.nodes) {
-    const pos = posMap.get(node.id) ?? { x: 0, y: 0 };
+    const bfsPos = posMap.get(node.id) ?? { x: 0, y: 0 };
+    const hasSavedPos = !forceAutoLayout && node.x !== undefined && node.y !== undefined;
+    const pos = hasSavedPos ? { x: node.x!, y: node.y! } : bfsPos;
     const isDecision = node.type === 'decision';
     const isStartEnd = node.type === 'start' || node.type === 'end';
     const w = isDecision ? PM_DECISION_W : isStartEnd ? PM_START_END_W : PM_STEP_W;
