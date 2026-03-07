@@ -412,6 +412,8 @@ Whenever you mention, score, assess, or analyze ANY ADLI dimension scores, you M
 
 Scores are percentages (0-100). Include this block any time you provide numerical ADLI scores, whether the user asked for a "full assessment", a "re-score", coaching that references scores, or any response where you state dimension scores. If you mention scores, emit the block.
 
+Scoring consistency: If the process content has NOT changed since the last assessment, your scores should be the same or very close (within ±3 points per dimension). Only change scores meaningfully when actual content has been added, removed, or improved. Base scores on concrete evidence in the process data, not subjective impression. For each dimension, mentally anchor to: "What specific content supports this score?"
+
 ## Coach Suggestions (IMPORTANT)
 When suggesting improvements, include a suggestions block at the END of your response. Each suggestion is an option the user can apply:
 
@@ -1272,11 +1274,19 @@ ${filesContext}`,
           );
           /* eslint-enable @typescript-eslint/no-explicit-any */
 
+          // Use low temperature for assessment/scoring prompts to improve
+          // test-retest reliability (same process content → consistent scores).
+          // Default temperature (1.0) is fine for coaching/interview conversations.
+          const lastUserMsg = messages[messages.length - 1]?.content?.toLowerCase() ?? '';
+          const isAssessmentPrompt =
+            /\b(assess|score|re-?assess|re-?score|analyz|adli.*framework)\b/i.test(lastUserMsg);
+
           const stream = anthropic.messages.stream({
             model: 'claude-sonnet-4-6',
             max_tokens: 4096,
             system: systemBlocks,
             messages: builtMessages,
+            ...(isAssessmentPrompt ? { temperature: 0.2 } : {}),
           });
 
           stream.on('text', (text) => {
