@@ -10,8 +10,6 @@ import {
   Controls,
   MiniMap,
   ReactFlowProvider,
-  useNodesState,
-  useEdgesState,
   BackgroundVariant,
 } from '@xyflow/react';
 
@@ -55,8 +53,8 @@ function ProcessFlowInner({ flowData, height = 520 }: ProcessFlowCanvasProps) {
     [layout.nodes, isDark]
   );
 
-  const [nodes, , onNodesChange] = useNodesState(nodesWithTheme);
-  const [edges, , onEdgesChange] = useEdgesState(layout.edges);
+  // Derive edges directly from layout (no stale state)
+  const edges = layout.edges;
 
   const bgColor = isDark ? 'var(--background)' : '#fafafa';
   const gridColor = 'var(--border)';
@@ -67,8 +65,6 @@ function ProcessFlowInner({ flowData, height = 520 }: ProcessFlowCanvasProps) {
         nodes={nodesWithTheme}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
         fitView
         fitViewOptions={{ padding: 0.12 }}
         minZoom={0.3}

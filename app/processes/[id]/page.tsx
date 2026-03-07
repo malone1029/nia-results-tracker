@@ -2487,11 +2487,12 @@ function ProcessDetailContent() {
                       </span>
                     )}
                     <button
-                      onClick={() =>
-                        setPendingPrompt(
+                      onClick={() => {
+                        setShowMapChat(true);
+                        sendMapChat(
                           'Regenerate the process map from scratch based on the current charter and ADLI content.'
-                        )
-                      }
+                        );
+                      }}
                       className="inline-flex items-center gap-1 text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
                     >
                       <svg

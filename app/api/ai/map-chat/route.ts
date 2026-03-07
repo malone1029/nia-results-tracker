@@ -93,7 +93,9 @@ Node rules:
 
 Edge rules:
 - Each edge must have: id (string), source (string), target (string)
-- Decision node edges should use label: "Yes" or "No"
+- Decision node edges MUST have label: "Yes" or "No" — these labels control routing (Yes exits bottom, No exits right)
+- Loop-back edges (going to an earlier step) are allowed — they create visual loops in the diagram
+- Do NOT use a terminal "end" node for re-entry points — loop the edge directly back to the target step
 - New edge IDs: use e1, e2, e3... or keep existing IDs
 
 Only append ---DIAGRAM--- when actually modifying the diagram. For questions, respond with text only.`;
