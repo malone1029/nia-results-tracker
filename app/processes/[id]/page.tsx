@@ -125,13 +125,14 @@ interface JournalEntry {
   process_id: number;
   title: string;
   description: string | null;
-  status: 'suggested' | 'in_progress' | 'completed';
+  status: 'suggested' | 'under_review' | 'in_progress' | 'completed' | 'dismissed';
   asana_task_url: string | null;
   created_at: string;
   completed_at: string | null;
   source_ticket_id: string | null;
   source_ticket_number: number | null;
   submitted_by: string | null;
+  resolve_ticket_url: string | null;
 }
 
 interface AdliScoreData {
@@ -1846,31 +1847,25 @@ function ProcessDetailContent() {
                   <div className="space-y-2">
                     {journalEntries.slice(0, 3).map((j) => (
                       <div key={j.id} className="flex items-center gap-2 py-1">
-                        <span
-                          className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${
-                            j.status === 'completed'
-                              ? 'bg-nia-green'
-                              : j.status === 'suggested'
-                                ? 'bg-amber-400'
-                                : 'bg-nia-orange'
-                          }`}
-                        />
-                        <span className="text-sm text-nia-dark truncate flex-1">{j.title}</span>
-                        <span
-                          className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                            j.status === 'completed'
-                              ? 'bg-nia-green/10 text-nia-green'
-                              : j.status === 'suggested'
-                                ? 'bg-amber-400/10 text-amber-600'
-                                : 'bg-nia-orange/10 text-nia-orange'
-                          }`}
-                        >
-                          {j.status === 'completed'
-                            ? 'Done'
-                            : j.status === 'suggested'
-                              ? 'Suggested'
-                              : 'In Progress'}
-                        </span>
+                        {(() => {
+                          const s =
+                            JOURNAL_STATUS_STYLES[j.status] || JOURNAL_STATUS_STYLES.suggested;
+                          return (
+                            <>
+                              <span
+                                className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${s.text.replace('text-', 'bg-')}`}
+                              />
+                              <span className="text-sm text-nia-dark truncate flex-1">
+                                {j.title}
+                              </span>
+                              <span
+                                className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${s.bg} ${s.text}`}
+                              >
+                                {s.label}
+                              </span>
+                            </>
+                          );
+                        })()}
                       </div>
                     ))}
                     {journalEntries.length > 3 && (
@@ -2780,17 +2775,25 @@ function ProcessDetailContent() {
                     <JournalEntryCard
                       key={entry.id}
                       entry={entry}
-                      onUpdate={async (updates) => {
+                      onUpdate={async (updates, message) => {
                         const res = await fetch('/api/journal', {
                           method: 'PATCH',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ id: entry.id, ...updates }),
+                          body: JSON.stringify({
+                            id: entry.id,
+                            ...updates,
+                            resolve_message: message,
+                          }),
                         });
                         if (res.ok) {
                           const updated = await res.json();
                           setJournalEntries((prev) =>
                             prev.map((e) => (e.id === entry.id ? updated : e))
                           );
+                          // Open Resolve ticket in new tab for dialogue
+                          if (entry.resolve_ticket_url && updates.status) {
+                            window.open(entry.resolve_ticket_url, '_blank');
+                          }
                         }
                       }}
                       onDelete={async () => {
@@ -3286,21 +3289,32 @@ function ImprovementCard({
   );
 }
 
+const JOURNAL_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  suggested: { bg: 'bg-amber-400/10', text: 'text-amber-600', label: 'Suggested' },
+  under_review: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Under Review' },
+  in_progress: { bg: 'bg-nia-orange/10', text: 'text-nia-orange', label: 'In Progress' },
+  completed: { bg: 'bg-nia-green/10', text: 'text-nia-green', label: 'Completed' },
+  dismissed: { bg: 'bg-gray-100', text: 'text-gray-500', label: 'Dismissed' },
+};
+
 function JournalEntryCard({
   entry,
   onUpdate,
   onDelete,
 }: {
   entry: JournalEntry;
-  onUpdate: (updates: Partial<JournalEntry>) => void;
+  onUpdate: (updates: Partial<JournalEntry>, message?: string) => void;
   onDelete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(entry.title);
   const [editDesc, setEditDesc] = useState(entry.description || '');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [statusAction, setStatusAction] = useState<{ status: string; label: string } | null>(null);
+  const [statusMessage, setStatusMessage] = useState('');
 
   const isCompleted = entry.status === 'completed';
+  const isFromResolve = !!entry.source_ticket_id;
 
   return (
     <div className="border border-border-light rounded-lg p-3 hover:border-border transition-colors">
@@ -3356,21 +3370,16 @@ function JournalEntryCard({
         </div>
         {!editing && (
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span
-              className={`text-xs font-medium px-2 py-0.5 rounded ${
-                entry.status === 'completed'
-                  ? 'bg-nia-green/10 text-nia-green'
-                  : entry.status === 'suggested'
-                    ? 'bg-amber-400/10 text-amber-600'
-                    : 'bg-nia-orange/10 text-nia-orange'
-              }`}
-            >
-              {entry.status === 'completed'
-                ? 'Completed'
-                : entry.status === 'suggested'
-                  ? 'Suggested'
-                  : 'In Progress'}
-            </span>
+            {(() => {
+              const style = JOURNAL_STATUS_STYLES[entry.status] || JOURNAL_STATUS_STYLES.suggested;
+              return (
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded ${style.bg} ${style.text}`}
+                >
+                  {style.label}
+                </span>
+              );
+            })()}
             {entry.asana_task_url && (
               <a
                 href={entry.asana_task_url}
@@ -3398,29 +3407,101 @@ function JournalEntryCard({
               <> &middot; Completed {new Date(entry.completed_at).toLocaleDateString()}</>
             )}
             {entry.source_ticket_number && (
-              <> &middot; from Resolve #{entry.source_ticket_number}</>
+              <>
+                {' '}
+                &middot;{' '}
+                {entry.resolve_ticket_url ? (
+                  <a
+                    href={entry.resolve_ticket_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-nia-grey-blue hover:text-nia-dark hover:underline"
+                  >
+                    from Resolve #{entry.source_ticket_number}
+                  </a>
+                ) : (
+                  <>from Resolve #{entry.source_ticket_number}</>
+                )}
+              </>
             )}
+            {entry.submitted_by && <> &middot; by {entry.submitted_by}</>}
           </span>
           <div className="flex items-center gap-2">
-            {entry.status === 'suggested' ? (
+            {entry.status === 'suggested' && (
               <>
                 <button
-                  onClick={() => onUpdate({ status: 'in_progress' })}
+                  onClick={() => {
+                    if (isFromResolve) {
+                      setStatusAction({ status: 'under_review', label: 'Accept' });
+                      setStatusMessage('');
+                    } else {
+                      onUpdate({ status: 'in_progress' });
+                    }
+                  }}
                   className="text-xs font-medium text-nia-green hover:text-nia-green/80 transition-colors"
                 >
                   Accept
                 </button>
                 <button
-                  onClick={() => onDelete()}
+                  onClick={() => {
+                    if (isFromResolve) {
+                      setStatusAction({ status: 'dismissed', label: 'Dismiss' });
+                      setStatusMessage('');
+                    } else {
+                      onDelete();
+                    }
+                  }}
                   className="text-xs font-medium text-text-muted hover:text-nia-red transition-colors"
                 >
                   Dismiss
                 </button>
               </>
-            ) : (
+            )}
+            {entry.status === 'under_review' && (
               <>
                 <button
-                  onClick={() => onUpdate({ status: isCompleted ? 'in_progress' : 'completed' })}
+                  onClick={() => {
+                    if (isFromResolve) {
+                      setStatusAction({ status: 'in_progress', label: 'Move to In Progress' });
+                      setStatusMessage('');
+                    } else {
+                      onUpdate({ status: 'in_progress' });
+                    }
+                  }}
+                  className="text-xs font-medium text-nia-orange hover:text-nia-orange/80 transition-colors"
+                >
+                  In Progress
+                </button>
+                <button
+                  onClick={() => {
+                    if (isFromResolve) {
+                      setStatusAction({ status: 'dismissed', label: 'Dismiss' });
+                      setStatusMessage('');
+                    } else {
+                      onDelete();
+                    }
+                  }}
+                  className="text-xs font-medium text-text-muted hover:text-nia-red transition-colors"
+                >
+                  Dismiss
+                </button>
+              </>
+            )}
+            {(entry.status === 'in_progress' || entry.status === 'completed') && (
+              <>
+                <button
+                  onClick={() => {
+                    const newStatus = isCompleted ? 'in_progress' : 'completed';
+                    if (isFromResolve) {
+                      setStatusAction({
+                        status: newStatus,
+                        label: isCompleted ? 'Reopen' : 'Mark Complete',
+                      });
+                      setStatusMessage('');
+                    } else {
+                      onUpdate({ status: newStatus });
+                    }
+                  }}
                   className="text-xs font-medium text-nia-grey-blue hover:text-nia-dark transition-colors"
                 >
                   {isCompleted ? 'Reopen' : 'Mark Complete'}
@@ -3431,27 +3512,84 @@ function JournalEntryCard({
                 >
                   Edit
                 </button>
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="text-xs text-text-muted hover:text-nia-red transition-colors"
-                  title="Delete entry"
-                >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
               </>
             )}
+            {entry.status !== 'dismissed' && !isFromResolve && (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="text-xs text-text-muted hover:text-nia-red transition-colors"
+                title="Delete entry"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            )}
+            {isFromResolve && entry.resolve_ticket_url && (
+              <a
+                href={entry.resolve_ticket_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-nia-grey-blue hover:text-nia-dark transition-colors"
+                title="Open Resolve ticket"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Status change dialog — shown for Resolve-sourced entries */}
+      {statusAction && (
+        <div className="mt-2 p-3 bg-surface-hover border border-border rounded-lg space-y-2">
+          <p className="text-xs font-medium text-nia-dark">
+            {statusAction.label} this idea{entry.submitted_by ? ` from ${entry.submitted_by}` : ''}
+          </p>
+          <textarea
+            value={statusMessage}
+            onChange={(e) => setStatusMessage(e.target.value)}
+            rows={2}
+            placeholder="Write a message to the submitter (optional)..."
+            className="w-full text-xs rounded-md border border-border bg-card px-2 py-1.5 text-foreground placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-nia-orange/30 resize-none"
+          />
+          <div className="flex gap-2">
+            <Button
+              size="xs"
+              variant={statusAction.status === 'dismissed' ? 'danger' : 'primary'}
+              onClick={() => {
+                onUpdate(
+                  { status: statusAction.status as JournalEntry['status'] },
+                  statusMessage.trim() || undefined
+                );
+                setStatusAction(null);
+                setStatusMessage('');
+              }}
+            >
+              {statusAction.label}
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => {
+                setStatusAction(null);
+                setStatusMessage('');
+              }}
+            >
+              Cancel
+            </Button>
           </div>
         </div>
       )}
