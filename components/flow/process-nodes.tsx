@@ -121,6 +121,7 @@ export function StepNode({ data }: { data: StepData }) {
       }}
     >
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="left" style={{ opacity: 0 }} />
       <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3 }}>{data.label}</span>
       {data.responsible && (
         <span style={{ fontSize: 10, opacity: 0.7, lineHeight: 1.2 }}>{data.responsible}</span>

@@ -81,10 +81,14 @@ export async function PATCH(request: Request) {
 
   // Notify Resolve of status change via webhook (fire-and-forget)
   if (status && data.source_ticket_id) {
-    const webhookUrl = process.env.RESOLVE_WEBHOOK_URL;
-    const webhookSecret = process.env.RESOLVE_WEBHOOK_SECRET;
+    const webhookUrl = (process.env.RESOLVE_WEBHOOK_URL || '').trim();
+    const webhookSecret = (process.env.RESOLVE_WEBHOOK_SECRET || '').trim();
     if (webhookUrl && webhookSecret) {
-      fetch(`${webhookUrl}/api/webhooks/hub-status`, {
+      // RESOLVE_WEBHOOK_URL may be a full URL or just the base — handle both
+      const fullUrl = webhookUrl.includes('/api/webhooks/')
+        ? webhookUrl
+        : `${webhookUrl}/api/webhooks/hub-status`;
+      fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
