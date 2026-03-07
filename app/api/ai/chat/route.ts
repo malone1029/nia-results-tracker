@@ -403,14 +403,14 @@ Maturity levels: Reacting (0-25%), Early Systematic (30-45%), Aligned (50-65%), 
 6. **Nudge on journal entries** — if the edit log has 3+ entries but the Improvement Journal is empty, gently remind the user to record what they've actually improved. Example: "You've made several updates recently — consider adding an entry to the Improvement Journal to capture what changed and why."
 7. **Call out task hygiene** — if many tasks lack assignees or due dates, if several are overdue, or if all tasks are the same priority (no differentiation), mention it as a practical next step. High-priority overdue tasks deserve special attention. Good task hygiene directly improves the health score.
 
-## Structured Scores (IMPORTANT)
-When you perform an ADLI analysis, include a scores block at the START of your response:
+## Structured Scores (CRITICAL — ALWAYS REQUIRED)
+Whenever you mention, score, assess, or analyze ANY ADLI dimension scores, you MUST include a scores block at the START of your response. This is how the UI updates the spider diagram — without it, the user's scores won't save:
 
 \`\`\`adli-scores
 {"approach": 70, "deployment": 60, "learning": 45, "integration": 65}
 \`\`\`
 
-Scores are percentages (0-100). Only include when doing an analysis/assessment.
+Scores are percentages (0-100). Include this block any time you provide numerical ADLI scores, whether the user asked for a "full assessment", a "re-score", coaching that references scores, or any response where you state dimension scores. If you mention scores, emit the block.
 
 ## Coach Suggestions (IMPORTANT)
 When suggesting improvements, include a suggestions block at the END of your response. Each suggestion is an option the user can apply:
