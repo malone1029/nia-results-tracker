@@ -328,6 +328,35 @@ function buildRequirementsContext(requirements: Record<string, unknown>[]): stri
   return lines.join('\n') + '\n';
 }
 
+function buildAvailableRequirementsContext(
+  allRequirements: { id: number; requirement: string; stakeholder_group: string }[],
+  linkedRequirementIds: Set<number>
+): string {
+  const unlinked = allRequirements.filter((r) => !linkedRequirementIds.has(r.id));
+  if (unlinked.length === 0) return '';
+
+  // Group by stakeholder
+  const grouped = new Map<string, typeof unlinked>();
+  for (const r of unlinked) {
+    const group = grouped.get(r.stakeholder_group) || [];
+    group.push(r);
+    grouped.set(r.stakeholder_group, group);
+  }
+
+  const lines = ['\n### Available Key Requirements (Not Linked to This Process)'];
+  lines.push(
+    'These requirements exist in the system. Recommend specific ones by id when relevant:\n'
+  );
+
+  for (const [group, reqs] of grouped) {
+    lines.push(`**${group}:**`);
+    for (const r of reqs) {
+      lines.push(`- ${r.requirement} [req_id:${r.id}]`);
+    }
+  }
+  return lines.join('\n') + '\n';
+}
+
 function buildStrategicObjectivesContext(
   objectives: {
     title: string;
@@ -807,11 +836,25 @@ export async function POST(request: Request) {
       });
     }
 
-    // Load linked requirements
-    const { data: reqLinks } = await supabase
-      .from('process_requirements')
-      .select(`requirement_id, key_requirements!inner ( id, requirement, stakeholder_group )`)
-      .eq('process_id', processId);
+    // Load linked requirements + all available requirements
+    const [{ data: reqLinks }, { data: allRequirementsData }] = await Promise.all([
+      supabase
+        .from('process_requirements')
+        .select(`requirement_id, key_requirements!inner ( id, requirement, stakeholder_group )`)
+        .eq('process_id', processId),
+      supabase
+        .from('key_requirements')
+        .select('id, requirement, stakeholder_group')
+        .order('stakeholder_group')
+        .order('requirement'),
+    ]);
+
+    const linkedRequirementIds = new Set(
+      (reqLinks || []).map((link) => {
+        const req = link.key_requirements as unknown as { id: number };
+        return req.id;
+      })
+    );
 
     const requirements = (reqLinks || []).map((link) => {
       const req = link.key_requirements as unknown as Record<string, unknown>;
@@ -1211,6 +1254,14 @@ export async function POST(request: Request) {
     const metricsContext = buildMetricsContext(metricsWithValues);
     const availableMetricsContext = buildAvailableMetricsContext(availableMetrics);
     const requirementsContext = buildRequirementsContext(requirements);
+    const availableRequirementsContext = buildAvailableRequirementsContext(
+      (allRequirementsData || []) as {
+        id: number;
+        requirement: string;
+        stakeholder_group: string;
+      }[],
+      linkedRequirementIds
+    );
     const strategicObjectivesContext = buildStrategicObjectivesContext(strategicObjectives);
 
     // ── Block 1: Static coaching instructions (CACHED) ──────────────────────
@@ -1234,6 +1285,7 @@ ${processContext}
 ${metricsContext}
 ${availableMetricsContext}
 ${requirementsContext}
+${availableRequirementsContext}
 ${strategicObjectivesContext}
 ${surveyContext}
 ${improvementsContext}
