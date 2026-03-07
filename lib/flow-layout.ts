@@ -70,7 +70,11 @@ export interface RFEdge {
   type?: string;
   style?: Record<string, unknown>;
   labelStyle?: Record<string, unknown>;
+  labelBgStyle?: Record<string, unknown>;
+  labelBgPadding?: [number, number];
   markerEnd?: { type: MarkerType };
+  sourceHandle?: string;
+  targetHandle?: string;
 }
 
 export function calculateMissionLayout(flowData: MissionFlowData): {
@@ -246,8 +250,28 @@ export function calculateProcessLayout(flowData: ProcessMapFlowData): {
     });
   }
 
-  // Build edges
+  // Build a quick lookup: node id → node type
+  const nodeTypeMap = new Map<string, string>();
+  for (const node of flowData.nodes) {
+    nodeTypeMap.set(node.id, node.type);
+  }
+
+  // Build edges — decision nodes get sourceHandle routing
   for (const edge of flowData.edges) {
+    const sourceType = nodeTypeMap.get(edge.source);
+    const labelLower = (edge.label ?? '').toLowerCase().trim();
+
+    // Decide which handle to exit from on decision diamonds
+    let sourceHandle: string | undefined;
+    if (sourceType === 'decision') {
+      sourceHandle = labelLower === 'no' ? 'no' : 'yes';
+    }
+
+    // Loop-back edges (target is at a higher/earlier level) get a distinct style
+    const srcLevel = levels.get(edge.source) ?? 0;
+    const tgtLevel = levels.get(edge.target) ?? 0;
+    const isLoopBack = tgtLevel <= srcLevel && edge.source !== edge.target;
+
     rfEdges.push({
       id: edge.id,
       source: edge.source,
@@ -255,8 +279,15 @@ export function calculateProcessLayout(flowData: ProcessMapFlowData): {
       label: edge.label,
       type: 'smoothstep',
       markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: '#55787c', strokeWidth: 2 },
-      labelStyle: { fontSize: 11, fill: '#55787c', fontWeight: 500 },
+      style: {
+        stroke: isLoopBack ? '#f79935' : '#55787c',
+        strokeWidth: 2,
+        ...(isLoopBack ? { strokeDasharray: '6 3' } : {}),
+      },
+      labelStyle: { fontSize: 11, fill: isLoopBack ? '#92400e' : '#55787c', fontWeight: 600 },
+      labelBgStyle: { fill: isLoopBack ? '#fff7ed' : '#ffffff', fillOpacity: 0.9 },
+      labelBgPadding: [4, 2],
+      ...(sourceHandle ? { sourceHandle } : {}),
     });
   }
 
