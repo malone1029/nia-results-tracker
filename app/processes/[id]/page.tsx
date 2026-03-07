@@ -76,6 +76,7 @@ interface ProcessDetail {
   updated_at: string;
   asana_project_gid: string | null;
   asana_project_url: string | null;
+  asana_project_name: string | null;
   guided_step: string | null;
 }
 
@@ -382,9 +383,15 @@ function ProcessDetailContent() {
     }
 
     const cat = procData.categories as Record<string, unknown>;
+    const rawData = procData.asana_raw_data as Record<string, unknown> | null;
+    const asanaProject = rawData?.project as Record<string, unknown> | null;
     const proc: ProcessDetail = {
-      ...(procData as unknown as Omit<ProcessDetail, 'category_display_name'>),
+      ...(procData as unknown as Omit<
+        ProcessDetail,
+        'category_display_name' | 'asana_project_name'
+      >),
       category_display_name: cat.display_name as string,
+      asana_project_name: (asanaProject?.name as string) || null,
     };
     setProcess(proc);
     document.title = `${proc.name} | NIA Excellence Hub`;
@@ -1015,6 +1022,33 @@ function ProcessDetailContent() {
               <>
                 <span>&middot;</span>
                 <span>Reviewer: {process.reviewer}</span>
+              </>
+            )}
+            {process.asana_project_name && process.asana_project_url && (
+              <>
+                <span>&middot;</span>
+                <a
+                  href={process.asana_project_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-nia-grey-blue hover:text-nia-dark transition-colors"
+                >
+                  Asana: {process.asana_project_name}
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </a>
               </>
             )}
           </div>
