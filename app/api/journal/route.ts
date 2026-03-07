@@ -50,7 +50,7 @@ export async function PATCH(request: Request) {
   const supabase = await createSupabaseServer();
   const body = await request.json();
 
-  const { id, title, description, status } = body;
+  const { id, title, description, status, resolve_message } = body;
 
   if (!id) {
     return NextResponse.json({ error: 'id is required' }, { status: 400 });
@@ -77,6 +77,27 @@ export async function PATCH(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Notify Resolve of status change via webhook (fire-and-forget)
+  if (status && data.source_ticket_id) {
+    const webhookUrl = process.env.RESOLVE_WEBHOOK_URL;
+    const webhookSecret = process.env.RESOLVE_WEBHOOK_SECRET;
+    if (webhookUrl && webhookSecret) {
+      fetch(`${webhookUrl}/api/webhooks/hub-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${webhookSecret}`,
+        },
+        body: JSON.stringify({
+          ticket_id: data.source_ticket_id,
+          new_status: status,
+          message: resolve_message || undefined,
+          changed_by: 'Process Owner',
+        }),
+      }).catch((err) => console.error('[journal] webhook error:', err));
+    }
   }
 
   return NextResponse.json(data);

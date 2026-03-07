@@ -72,10 +72,16 @@ export async function GET() {
     // Monthly improvement count — query journal entries for current month
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const { count } = await supabase
-      .from('improvement_journal')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', monthStart);
+    const [{ count }, { count: pendingSuggestions }] = await Promise.all([
+      supabase
+        .from('improvement_journal')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', monthStart),
+      supabase
+        .from('improvement_journal')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'suggested'),
+    ]);
 
     return NextResponse.json({
       score: avgScore,
@@ -83,6 +89,7 @@ export async function GET() {
       color: level.color,
       topAction,
       monthlyStreak: count || 0,
+      pendingSuggestions: pendingSuggestions || 0,
     });
   } catch (err) {
     console.error('sidebar-health error:', err);
