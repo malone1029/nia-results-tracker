@@ -79,7 +79,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Notify Resolve of status change via webhook (fire-and-forget)
+  // Notify Resolve of status change via webhook (must await — Vercel kills fire-and-forget)
   if (status && data.source_ticket_id) {
     const webhookUrl = (process.env.RESOLVE_WEBHOOK_URL || '').trim();
     const webhookSecret = (process.env.RESOLVE_WEBHOOK_SECRET || '').trim();
@@ -88,19 +88,26 @@ export async function PATCH(request: Request) {
       const fullUrl = webhookUrl.includes('/api/webhooks/')
         ? webhookUrl
         : `${webhookUrl}/api/webhooks/hub-status`;
-      fetch(fullUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${webhookSecret}`,
-        },
-        body: JSON.stringify({
-          ticket_id: data.source_ticket_id,
-          new_status: status,
-          message: resolve_message || undefined,
-          changed_by: 'Process Owner',
-        }),
-      }).catch((err) => console.error('[journal] webhook error:', err));
+      try {
+        const webhookRes = await fetch(fullUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${webhookSecret}`,
+          },
+          body: JSON.stringify({
+            ticket_id: data.source_ticket_id,
+            new_status: status,
+            message: resolve_message || undefined,
+            changed_by: 'Process Owner',
+          }),
+        });
+        if (!webhookRes.ok) {
+          console.error('[journal] webhook failed:', webhookRes.status, await webhookRes.text());
+        }
+      } catch (err) {
+        console.error('[journal] webhook error:', err);
+      }
     }
   }
 
