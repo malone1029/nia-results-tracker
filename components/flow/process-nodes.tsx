@@ -3,6 +3,7 @@
 // Custom React Flow node types for individual process map diagrams.
 // All node type registrations must be MODULE-LEVEL constants.
 
+import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 
 // ── Flowchart node colors ─────────────────────────────────────────────────────
@@ -30,6 +31,15 @@ const NODE_COLORS = {
   },
 } as const;
 
+const HANDLE_STYLE: React.CSSProperties = {
+  width: 10,
+  height: 10,
+  background: '#55787c',
+  border: '2px solid #ffffff',
+  opacity: 0,
+  transition: 'opacity 0.15s',
+};
+
 // ── StartEndNode ──────────────────────────────────────────────────────────────
 // Pill-shaped terminal nodes (green for start, red for end).
 
@@ -42,6 +52,7 @@ interface StartEndData {
 export function StartNode({ data }: { data: StartEndData }) {
   return (
     <div
+      className="group"
       style={{
         width: '100%',
         height: '100%',
@@ -59,7 +70,12 @@ export function StartNode({ data }: { data: StartEndData }) {
       }}
     >
       {data.label}
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ ...HANDLE_STYLE }}
+        className="group-hover:!opacity-100"
+      />
     </div>
   );
 }
@@ -67,6 +83,7 @@ export function StartNode({ data }: { data: StartEndData }) {
 export function EndNode({ data }: { data: StartEndData }) {
   return (
     <div
+      className="group"
       style={{
         width: '100%',
         height: '100%',
@@ -83,7 +100,12 @@ export function EndNode({ data }: { data: StartEndData }) {
         padding: '0 12px',
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ ...HANDLE_STYLE }}
+        className="group-hover:!opacity-100"
+      />
       {data.label}
     </div>
   );
@@ -104,6 +126,7 @@ export function StepNode({ data }: { data: StepData }) {
   const s = isDark ? NODE_COLORS.step.dark : NODE_COLORS.step.light;
   return (
     <div
+      className="group"
       style={{
         width: '100%',
         height: '100%',
@@ -120,13 +143,29 @@ export function StepNode({ data }: { data: StepData }) {
         gap: 2,
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Left} id="left" style={{ opacity: 0 }} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ ...HANDLE_STYLE }}
+        className="group-hover:!opacity-100"
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left"
+        style={{ ...HANDLE_STYLE }}
+        className="group-hover:!opacity-100"
+      />
       <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3 }}>{data.label}</span>
       {data.responsible && (
         <span style={{ fontSize: 10, opacity: 0.7, lineHeight: 1.2 }}>{data.responsible}</span>
       )}
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ ...HANDLE_STYLE }}
+        className="group-hover:!opacity-100"
+      />
     </div>
   );
 }
@@ -144,6 +183,7 @@ export function DecisionNode({ data }: { data: DecisionData }) {
   const d = isDark ? NODE_COLORS.decision.dark : NODE_COLORS.decision.light;
   return (
     <div
+      className="group"
       style={{
         width: '100%',
         height: '100%',
@@ -181,9 +221,26 @@ export function DecisionNode({ data }: { data: DecisionData }) {
       >
         {data.label}
       </span>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Bottom} id="yes" style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Right} id="no" style={{ opacity: 0 }} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ ...HANDLE_STYLE }}
+        className="group-hover:!opacity-100"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="yes"
+        style={{ ...HANDLE_STYLE }}
+        className="group-hover:!opacity-100"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="no"
+        style={{ ...HANDLE_STYLE }}
+        className="group-hover:!opacity-100"
+      />
     </div>
   );
 }
@@ -202,6 +259,7 @@ export function InputNode({ data }: { data: IOData }) {
   const inp = isDark ? NODE_COLORS.input.dark : NODE_COLORS.input.light;
   return (
     <div
+      className="group"
       style={{
         width: '100%',
         height: '100%',
@@ -222,13 +280,15 @@ export function InputNode({ data }: { data: IOData }) {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ opacity: 0, transform: 'skewX(8deg)' }}
+        style={{ ...HANDLE_STYLE, transform: 'skewX(8deg)' }}
+        className="group-hover:!opacity-100"
       />
       <span style={{ transform: 'skewX(8deg)', lineHeight: 1.3 }}>{data.label}</span>
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ opacity: 0, transform: 'skewX(8deg)' }}
+        style={{ ...HANDLE_STYLE, transform: 'skewX(8deg)' }}
+        className="group-hover:!opacity-100"
       />
     </div>
   );
@@ -239,6 +299,7 @@ export function OutputNode({ data }: { data: IOData }) {
   const out = isDark ? NODE_COLORS.output.dark : NODE_COLORS.output.light;
   return (
     <div
+      className="group"
       style={{
         width: '100%',
         height: '100%',
@@ -259,13 +320,15 @@ export function OutputNode({ data }: { data: IOData }) {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ opacity: 0, transform: 'skewX(-8deg)' }}
+        style={{ ...HANDLE_STYLE, transform: 'skewX(-8deg)' }}
+        className="group-hover:!opacity-100"
       />
       <span style={{ transform: 'skewX(-8deg)', lineHeight: 1.3 }}>{data.label}</span>
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ opacity: 0, transform: 'skewX(-8deg)' }}
+        style={{ ...HANDLE_STYLE, transform: 'skewX(-8deg)' }}
+        className="group-hover:!opacity-100"
       />
     </div>
   );

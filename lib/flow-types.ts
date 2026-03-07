@@ -42,6 +42,8 @@ export interface ProcessMapNode {
   label: string;
   responsible?: string;
   notes?: string;
+  x?: number; // canvas x position
+  y?: number; // canvas y position
 }
 
 export interface ProcessMapEdge {
