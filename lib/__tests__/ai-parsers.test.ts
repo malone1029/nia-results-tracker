@@ -17,7 +17,7 @@ describe('parseAdliScores', () => {
     expect(cleanedText).toBe('Here is the assessment:\nOverall analysis follows.');
   });
 
-  it('returns null scores when no block is present', () => {
+  it('returns null scores when no block or prose scores are present', () => {
     const text = 'Just a regular message with no scores.';
     const { scores, cleanedText } = parseAdliScores(text);
     expect(scores).toBeNull();
@@ -29,6 +29,30 @@ describe('parseAdliScores', () => {
     const { scores, cleanedText } = parseAdliScores(text);
     expect(scores).toBeNull();
     expect(cleanedText).toBe(text);
+  });
+
+  it('extracts prose-format scores (Dimension: N/100)', () => {
+    const text = `Here is the assessment:\n\n**Approach**: 70/100\n**Deployment**: 55/100\n**Learning**: 40/100\n**Integration**: 60/100\n\nOverall analysis follows.`;
+    const { scores } = parseAdliScores(text);
+    expect(scores).toEqual({ approach: 70, deployment: 55, learning: 40, integration: 60 });
+  });
+
+  it('extracts prose-format scores (Dimension: N without /100)', () => {
+    const text = `- Approach: 70\n- Deployment: 55\n- Learning: 40\n- Integration: 60`;
+    const { scores } = parseAdliScores(text);
+    expect(scores).toEqual({ approach: 70, deployment: 55, learning: 40, integration: 60 });
+  });
+
+  it('returns null for prose with only some dimensions', () => {
+    const text = `Approach: 70\nDeployment: 55\nLearning: 40`;
+    const { scores } = parseAdliScores(text);
+    expect(scores).toBeNull();
+  });
+
+  it('prefers code block over prose when both present', () => {
+    const text = `Approach: 10\n\`\`\`adli-scores\n{"approach":70,"deployment":55,"learning":40,"integration":60}\n\`\`\``;
+    const { scores } = parseAdliScores(text);
+    expect(scores).toEqual({ approach: 70, deployment: 55, learning: 40, integration: 60 });
   });
 });
 

@@ -60,18 +60,46 @@ export const FIELD_LABELS: Record<string, string> = {
   workflow: 'Process Map',
 };
 
-// Parse adli-scores code block from AI response, return scores and cleaned text
+// Parse adli-scores code block from AI response, return scores and cleaned text.
+// Falls back to extracting prose-format scores (e.g., "Approach: 65/100") when the
+// AI doesn't emit the structured code block.
 export function parseAdliScores(text: string): { scores: AdliScores | null; cleanedText: string } {
+  // Primary: structured code block
   const match = text.match(/```adli-scores\s*\n([\s\S]*?)\n```/);
-  if (!match) return { scores: null, cleanedText: text };
-
-  try {
-    const scores = JSON.parse(match[1]) as AdliScores;
-    const cleanedText = text.replace(/```adli-scores\s*\n[\s\S]*?\n```\s*\n?/, '').trim();
-    return { scores, cleanedText };
-  } catch {
-    return { scores: null, cleanedText: text };
+  if (match) {
+    try {
+      const scores = JSON.parse(match[1]) as AdliScores;
+      const cleanedText = text.replace(/```adli-scores\s*\n[\s\S]*?\n```\s*\n?/, '').trim();
+      return { scores, cleanedText };
+    } catch {
+      return { scores: null, cleanedText: text };
+    }
   }
+
+  // Fallback: extract prose-format scores like "Approach: 65" or "Approach: 65/100"
+  const proseScores = parseProseAdliScores(text);
+  if (proseScores) return { scores: proseScores, cleanedText: text };
+
+  return { scores: null, cleanedText: text };
+}
+
+// Extract ADLI scores from prose (e.g., "**Approach**: 65/100" or "- Approach: 65")
+// Only returns scores if ALL four dimensions are found.
+function parseProseAdliScores(text: string): AdliScores | null {
+  const dims = ['approach', 'deployment', 'learning', 'integration'] as const;
+  const scores: Record<string, number> = {};
+
+  for (const dim of dims) {
+    // Match patterns like "Approach: 65", "Approach: 65/100", "**Approach** — 65/100"
+    const pattern = new RegExp(`\\b${dim}\\b[\\s:—\\-*]+\\s*(\\d{1,3})(?:\\s*/\\s*100)?`, 'i');
+    const m = text.match(pattern);
+    if (!m) return null; // All four must be present
+    const val = parseInt(m[1], 10);
+    if (val < 0 || val > 100) return null;
+    scores[dim] = val;
+  }
+
+  return scores as unknown as AdliScores;
 }
 
 // Parse coach-suggestions code block from AI response

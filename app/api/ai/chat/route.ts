@@ -328,6 +328,35 @@ function buildRequirementsContext(requirements: Record<string, unknown>[]): stri
   return lines.join('\n') + '\n';
 }
 
+function buildAvailableRequirementsContext(
+  allRequirements: { id: number; requirement: string; stakeholder_group: string }[],
+  linkedRequirementIds: Set<number>
+): string {
+  const unlinked = allRequirements.filter((r) => !linkedRequirementIds.has(r.id));
+  if (unlinked.length === 0) return '';
+
+  // Group by stakeholder
+  const grouped = new Map<string, typeof unlinked>();
+  for (const r of unlinked) {
+    const group = grouped.get(r.stakeholder_group) || [];
+    group.push(r);
+    grouped.set(r.stakeholder_group, group);
+  }
+
+  const lines = ['\n### Available Key Requirements (Not Linked to This Process)'];
+  lines.push(
+    'These requirements exist in the system. Recommend specific ones by id when relevant:\n'
+  );
+
+  for (const [group, reqs] of grouped) {
+    lines.push(`**${group}:**`);
+    for (const r of reqs) {
+      lines.push(`- ${r.requirement} [req_id:${r.id}]`);
+    }
+  }
+  return lines.join('\n') + '\n';
+}
+
 function buildStrategicObjectivesContext(
   objectives: {
     title: string;
@@ -403,14 +432,16 @@ Maturity levels: Reacting (0-25%), Early Systematic (30-45%), Aligned (50-65%), 
 6. **Nudge on journal entries** — if the edit log has 3+ entries but the Improvement Journal is empty, gently remind the user to record what they've actually improved. Example: "You've made several updates recently — consider adding an entry to the Improvement Journal to capture what changed and why."
 7. **Call out task hygiene** — if many tasks lack assignees or due dates, if several are overdue, or if all tasks are the same priority (no differentiation), mention it as a practical next step. High-priority overdue tasks deserve special attention. Good task hygiene directly improves the health score.
 
-## Structured Scores (IMPORTANT)
-When you perform an ADLI analysis, include a scores block at the START of your response:
+## Structured Scores (CRITICAL — ALWAYS REQUIRED)
+Whenever you mention, score, assess, or analyze ANY ADLI dimension scores, you MUST include a scores block at the START of your response. This is how the UI updates the spider diagram — without it, the user's scores won't save:
 
 \`\`\`adli-scores
 {"approach": 70, "deployment": 60, "learning": 45, "integration": 65}
 \`\`\`
 
-Scores are percentages (0-100). Only include when doing an analysis/assessment.
+Scores are percentages (0-100). Include this block any time you provide numerical ADLI scores, whether the user asked for a "full assessment", a "re-score", coaching that references scores, or any response where you state dimension scores. If you mention scores, emit the block.
+
+Scoring consistency: If the process content has NOT changed since the last assessment, your scores should be the same or very close (within ±3 points per dimension). Only change scores meaningfully when actual content has been added, removed, or improved. Base scores on concrete evidence in the process data, not subjective impression. For each dimension, mentally anchor to: "What specific content supports this score?"
 
 ## Coach Suggestions (IMPORTANT)
 When suggesting improvements, include a suggestions block at the END of your response. Each suggestion is an option the user can apply:
@@ -805,11 +836,25 @@ export async function POST(request: Request) {
       });
     }
 
-    // Load linked requirements
-    const { data: reqLinks } = await supabase
-      .from('process_requirements')
-      .select(`requirement_id, key_requirements!inner ( id, requirement, stakeholder_group )`)
-      .eq('process_id', processId);
+    // Load linked requirements + all available requirements
+    const [{ data: reqLinks }, { data: allRequirementsData }] = await Promise.all([
+      supabase
+        .from('process_requirements')
+        .select(`requirement_id, key_requirements!inner ( id, requirement, stakeholder_group )`)
+        .eq('process_id', processId),
+      supabase
+        .from('key_requirements')
+        .select('id, requirement, stakeholder_group')
+        .order('stakeholder_group')
+        .order('requirement'),
+    ]);
+
+    const linkedRequirementIds = new Set(
+      (reqLinks || []).map((link) => {
+        const req = link.key_requirements as unknown as { id: number };
+        return req.id;
+      })
+    );
 
     const requirements = (reqLinks || []).map((link) => {
       const req = link.key_requirements as unknown as Record<string, unknown>;
@@ -1209,6 +1254,14 @@ export async function POST(request: Request) {
     const metricsContext = buildMetricsContext(metricsWithValues);
     const availableMetricsContext = buildAvailableMetricsContext(availableMetrics);
     const requirementsContext = buildRequirementsContext(requirements);
+    const availableRequirementsContext = buildAvailableRequirementsContext(
+      (allRequirementsData || []) as {
+        id: number;
+        requirement: string;
+        stakeholder_group: string;
+      }[],
+      linkedRequirementIds
+    );
     const strategicObjectivesContext = buildStrategicObjectivesContext(strategicObjectives);
 
     // ── Block 1: Static coaching instructions (CACHED) ──────────────────────
@@ -1232,6 +1285,7 @@ ${processContext}
 ${metricsContext}
 ${availableMetricsContext}
 ${requirementsContext}
+${availableRequirementsContext}
 ${strategicObjectivesContext}
 ${surveyContext}
 ${improvementsContext}
@@ -1272,11 +1326,19 @@ ${filesContext}`,
           );
           /* eslint-enable @typescript-eslint/no-explicit-any */
 
+          // Use low temperature for assessment/scoring prompts to improve
+          // test-retest reliability (same process content → consistent scores).
+          // Default temperature (1.0) is fine for coaching/interview conversations.
+          const lastUserMsg = messages[messages.length - 1]?.content?.toLowerCase() ?? '';
+          const isAssessmentPrompt =
+            /\b(assess|score|re-?assess|re-?score|analyz|adli.*framework)\b/i.test(lastUserMsg);
+
           const stream = anthropic.messages.stream({
             model: 'claude-sonnet-4-6',
             max_tokens: 4096,
             system: systemBlocks,
             messages: builtMessages,
+            ...(isAssessmentPrompt ? { temperature: 0.2 } : {}),
           });
 
           stream.on('text', (text) => {

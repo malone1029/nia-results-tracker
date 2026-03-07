@@ -384,23 +384,23 @@ export default function AiChatPanel({
         latestScores = scores;
         setAdliScores(scores);
         // Persist scores to database, then refresh parent page
-        fetch('/api/ai/scores', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            processId,
-            approach: scores.approach,
-            deployment: scores.deployment,
-            learning: scores.learning,
-            integration: scores.integration,
-          }),
-        })
-          .then((r) => {
-            if (r.ok) onProcessUpdated?.();
-          })
-          .catch(() => {
-            /* silent — non-critical */
+        try {
+          const scoreRes = await fetch('/api/ai/scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              processId,
+              approach: scores.approach,
+              deployment: scores.deployment,
+              learning: scores.learning,
+              integration: scores.integration,
+            }),
           });
+          if (scoreRes.ok) onProcessUpdated?.();
+        } catch {
+          // Score save failed — still refresh parent to pick up any other changes
+          onProcessUpdated?.();
+        }
       }
       const { suggestions } = parseCoachSuggestions(assistantContent);
       if (suggestions.length > 0) {
