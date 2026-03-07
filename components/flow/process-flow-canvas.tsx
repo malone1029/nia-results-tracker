@@ -530,7 +530,7 @@ function ProcessFlowInner({
           colorMode={isDark ? 'dark' : 'light'}
           nodesDraggable
           nodesConnectable
-          deleteKeyCode="Backspace"
+          deleteKeyCode={['Backspace', 'Delete']}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={gridColor} />
           <Controls
